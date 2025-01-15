@@ -1,6 +1,5 @@
-const cacheName = 'psico-pwa-v2';
+const cacheName = 'psico-pwa-v6';
 const assets = [
-    './',
     './index.html',
     './manifest.json',
     './sw.js',
@@ -8,14 +7,17 @@ const assets = [
     './psychedelic-icon-512x512.png'
 ];
 
-// Instalar e adicionar os recursos ao cache
+// Instalando e armazenando no cache
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(cacheName).then(cache => cache.addAll(assets))
+        caches.open(cacheName).then(cache => {
+            return cache.addAll(assets);
+        })
     );
+    self.skipWaiting();  // Forçar o SW a ser ativado imediatamente
 });
 
-// Ativar e remover caches antigos
+// Ativando e limpando caches antigos
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys => {
@@ -24,9 +26,10 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    self.clients.claim();
 });
 
-// Interceptar requisições e servir do cache
+// Interceptando as requisições e servindo do cache
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request).then(response => {
