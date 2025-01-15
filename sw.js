@@ -1,11 +1,11 @@
 const cacheName = 'psico-pwa-v2';
 const assets = [
-    '/Psico/',
-    '/Psico/index.html',
-    '/Psico/manifest.json',
-    '/Psico/sw.js',
-    '/Psico/psychedelic-icon-192x192.png',
-    '/Psico/psychedelic-icon-512x512.png'
+    './',
+    './index.html',
+    './manifest.json',
+    './sw.js',
+    './psychedelic-icon-192x192.png',
+    './psychedelic-icon-512x512.png'
 ];
 
 // Instalar e adicionar os recursos ao cache
