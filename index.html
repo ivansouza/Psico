@@ -3,80 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estrelas  Psicodélicas</title>
-    <meta name="theme-color" content="#000000">
-    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAQCAYAAAAf8/9hAAAAGElEQVR42mNgGAWjYBSMglEwCihhsUgYBADiTQvYQHTIzQAAAABJRU5ErkJggg==">
-    <link rel="manifest" href="data:application/json;base64,eyAibmFtZSI6ICJFc3RyZWxhcyBQc3ljb2RlbGljYXMgdGV4dG9zIiwgInNob3J0X25hbWUiOiAiRXN0cmVsYXMiLCAic3RhcnRfdXJsIjogIi9pbmRleC5odG1sIiwgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwMDAwMDAiLCAidGhlbWVfY29sb3IiOiAiIzAwMDAwMCIsICJpY29ucyI6IFt7ICJzcmMiOiAiaWNvbi0xOTJ4MTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiB9XX0=">
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: black;
-        }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-    </style>
+    <title>Psico App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192x192.png">
 </head>
 <body>
+    <h1>Estrelas Psicodélicas</h1>
     <canvas id="starsCanvas"></canvas>
-
+    <script src="script.js"></script>
     <script>
-        // Animação das estrelas psicodélicas
-        const canvas = document.getElementById('starsCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        let stars = [];
-        const colors = ['#ff0000', '#ff8000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#8000ff'];
-
-        function createStar() {
-            return {
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 5 + 1,
-                speed: Math.random() * 2 + 1,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                angle: Math.random() * Math.PI * 2
-            };
-        }
-
-        function initStars(count) {
-            for (let i = 0; i < count; i++) {
-                stars.push(createStar());
-            }
-        }
-
-        function drawStars() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            stars.forEach(star => {
-                ctx.fillStyle = star.color;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-                ctx.fill();
-
-                star.x += Math.cos(star.angle) * star.speed;
-                star.y += Math.sin(star.angle) * star.speed;
-
-                if (star.x < 0 || star.x > canvas.width || star.y < 0 || star.y > canvas.height) {
-                    Object.assign(star, createStar());
-                }
-            });
-            requestAnimationFrame(drawStars);
-        }
-
-        initStars(100);
-        drawStars();
-    </script>
-
-    <script>
-        // Service Worker embutido no mesmo arquivo
+        // Registrar o Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('data:application/javascript;base64,dmFyIGNhY2hlTmFtZSA9ICJlc3RyZWxhcy1jYWNoZS12MSI7CnNlbGYuYWRkRXZlbnRMaXN0ZW5lcigiaW5zdGFsbCIsIGZ1bmN0aW9uKGV2ZW50KSB7CiAgICBldmVudC53YWl0VW50aWwoY2FjaGVzLm9wZW4oY2FjaGVOYW1lKS50aGVuKGZ1bmN0aW9uKGNhY2hlKSB7CiAgICAgICAgcmV0dXJuIGNhY2hlLmFkZEFsbChbJy8nLCAnL2luZGV4Lmh0bWwnXSk7CiAgICB9KSk7Cn0pOwpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2ZldGNoJywgZnVuY3Rpb24oZXZlbnQpIHsKICAgIGV2ZW50LnJlc3BvbmRXaXRoKGNhY2hlcy5tYXRjaChldmVudC5yZXF1ZXN0KS50aGVuKGZ1bmN0aW9uKHJlc3BvbnNlKSB7CiAgICAgICAgcmV0dXJuIHJlc3BvbnNlIHx8IGZldGNoKGV2ZW50LnJlcXVlc3QpOwogICAgfSk7Cn0pOw==');
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/Psico/sw.js')
+                    .then(() => console.log('Service Worker registrado!'));
+            });
         }
     </script>
 </body>
