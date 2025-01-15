@@ -4,33 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Psico App</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/icon-192x192.png">
-</head>
-<body>
-    <h1>Estrelas Psicodélicas</h1>
-    <canvas id="starsCanvas"></canvas>
-    <script src="script.js"></script>
-    <script>
-        // Registrar o Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/Psico/sw.js')
-                    .then(() => console.log('Service Worker registrado!'));
-            });
-        }
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estrelas Psicodélicas</title>
     <meta name="theme-color" content="#000000">
-    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAQCAYAAAAf8/9hAAAAGElEQVR42mNgGAWjYBSMglEwCihhsUgYBADiTQvYQHTIzQAAAABJRU5ErkJggg==">
-    <link rel="manifest" href="data:application/json;base64,eyAibmFtZSI6ICJFc3RyZWxhcyBQc3ljb2RlbGljYXMgdGV4dG9zIiwgInNob3J0X25hbWUiOiAiRXN0cmVsYXMiLCAic3RhcnRfdXJsIjogIi9pbmRleC5odG1sIiwgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwMDAwMDAiLCAidGhlbWVfY29sb3IiOiAiIzAwMDAwMCIsICJpY29ucyI6IFt7ICJzcmMiOiAiaWNvbi0xOTJ4MTkyLnBuZyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiB9XX0=">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/Psico/manifest.json">
+    <link rel="icon" href="/Psico/psychedelic-icon-192x192.png">
     <style>
         body, html {
             margin: 0;
@@ -47,9 +24,8 @@
 </head>
 <body>
     <canvas id="starsCanvas"></canvas>
-
     <script>
-        // Animação das estrelas psicodélicas
+        // Animação de estrelas psicodélicas
         const canvas = document.getElementById('starsCanvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -98,10 +74,43 @@
     </script>
 
     <script>
-        // Service Worker embutido no mesmo arquivo
+        // Registrar o Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('data:application/javascript;base64,dmFyIGNhY2hlTmFtZSA9ICJlc3RyZWxhcy1jYWNoZS12MSI7CnNlbGYuYWRkRXZlbnRMaXN0ZW5lcigiaW5zdGFsbCIsIGZ1bmN0aW9uKGV2ZW50KSB7CiAgICBldmVudC53YWl0VW50aWwoY2FjaGVzLm9wZW4oY2FjaGVOYW1lKS50aGVuKGZ1bmN0aW9uKGNhY2hlKSB7CiAgICAgICAgcmV0dXJuIGNhY2hlLmFkZEFsbChbJy8nLCAnL2luZGV4Lmh0bWwnXSk7CiAgICB9KSk7Cn0pOwpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2ZldGNoJywgZnVuY3Rpb24oZXZlbnQpIHsKICAgIGV2ZW50LnJlc3BvbmRXaXRoKGNhY2hlcy5tYXRjaChldmVudC5yZXF1ZXN0KS50aGVuKGZ1bmN0aW9uKHJlc3BvbnNlKSB7CiAgICAgICAgcmV0dXJuIHJlc3BvbnNlIHx8IGZldGNoKGV2ZW50LnJlcXVlc3QpOwogICAgfSk7Cn0pOw==');
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/Psico/sw.js')
+                    .then(() => console.log('Service Worker registrado com sucesso!'))
+                    .catch((error) => console.error('Erro ao registrar o Service Worker:', error));
+            });
         }
+
+        // Exibir o banner de instalação no Android
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installButton = document.createElement('button');
+            installButton.textContent = 'Instalar o App';
+            installButton.style.position = 'fixed';
+            installButton.style.bottom = '20px';
+            installButton.style.right = '20px';
+            installButton.style.padding = '10px';
+            installButton.style.backgroundColor = 'green';
+            installButton.style.color = 'white';
+            document.body.appendChild(installButton);
+
+            installButton.addEventListener('click', () => {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário aceitou instalar o PWA');
+                        installButton.remove();
+                    } else {
+                        console.log('Usuário recusou a instalação');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        });
     </script>
 </body>
 </html>
