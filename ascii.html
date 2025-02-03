@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating Colorful ASCII Sphere</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+        }
+        pre {
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <pre id="sphere"></pre>
+    <script>
+        const canvas = document.getElementById('sphere');
+        const width = 80;
+        const height = 40;
+        const density = 0.1;
+        let angleX = 0;
+        let angleY = 0;
+
+        const renderSphere = () => {
+            let output = '';
+            const radius = Math.min(width, height) / 2 * density;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const nx = (x / width) - 0.5;
+                    const ny = (y / height) - 0.5;
+                    const distance = Math.sqrt(nx * nx + ny * ny);
+                    if (distance <= radius) {
+                        const theta = Math.acos(ny / distance);
+                        const phi = Math.atan2(nx, ny);
+
+                        const rotatedTheta = theta + angleX;
+                        const rotatedPhi = phi + angleY;
+                        const sinTheta = Math.sin(rotatedTheta);
+                        const cosTheta = Math.cos(rotatedTheta);
+                        const cosPhi = Math.cos(rotatedPhi);
+                        const z = cosTheta;
+
+                        const colorFactor = (z + 1) / 2; // Map z from -1 to 1 to 0 to 1
+                        const r = Math.floor(255 * colorFactor);
+                        const g = Math.floor(255 * (1 - colorFactor));
+                        const b = Math.floor(255 * (colorFactor / 2));
+                        const shade = Math.floor(z * 12.5 + 12.5);
+                        const char = String.fromCharCode(48 + shade);
+
+                        output += `<span style="color: rgb(${r}, ${g}, ${b})">${char}</span>`;
+                    } else {
+                        output += ' ';
+                    }
+                }
+                output += '\n';
+            }
+            canvas.innerHTML = output;
+        };
+
+        const update = () => {
+            angleX += 0.01;
+            angleY += 0.01;
+            renderSphere();
+            requestAnimationFrame(update);
+        };
+
+        update();
+    </script>
+</body>
+</html>
