@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Sphere with Numbers</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Create a canvas element for generating a number texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const context = canvas.getContext('2d');
+
+        // Draw numbers on the canvas
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.font = 'bold 48px Arial';
+        context.fillStyle = 'white';
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 10; j++) {
+                const number = i * 10 + j;
+                context.fillText(number, j * 50 + 10, i * 50 + 40);
+            }
+        }
+
+        // Create Three.js scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+
+        // Create a sphere with the texture
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        // Position camera
+        camera.position.z = 3;
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Rotate the sphere
+            sphere.rotation.x += 0.005;
+            sphere.rotation.y += 0.005;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+</body>
+</html>
