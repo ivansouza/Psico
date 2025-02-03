@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Three.js Sphere with Randomized IVAN</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Create a canvas element for generating a text texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const context = canvas.getContext('2d');
+
+        // Draw the word "IVAN" randomly across the canvas
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = 'white';
+        const fontSize = 24;
+        context.font = `bold ${fontSize}px Arial`;
+        
+        for (let i = 0; i < 100; i++) {
+            const x = Math.random() * (canvas.width - fontSize * 4);
+            const y = Math.random() * (canvas.height - fontSize);
+            context.fillText('EDVALDO', x, y + fontSize);
+        }
+
+        // Create Three.js scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+
+        // Create a sphere with the texture
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        // Position camera
+        camera.position.z = 3;
+
+        // Variables to handle mouse/touch interactions
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        // Mouse and touch event listeners
+        const onPointerDown = (event) => {
+            isDragging = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        };
+
+        const onPointerMove = (event) => {
+            if (!isDragging) return;
+            const deltaMove = {
+                x: event.clientX - previousMousePosition.x,
+                y: event.clientY - previousMousePosition.y
+            };
+            
+            sphere.rotation.y += deltaMove.x * 0.005;
+            sphere.rotation.x += deltaMove.y * 0.005;
+            
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        };
+
+        const onPointerUp = () => {
+            isDragging = false;
+        };
+
+        // Add event listeners
+        renderer.domElement.addEventListener('mousedown', onPointerDown);
+        renderer.domElement.addEventListener('mousemove', onPointerMove);
+        renderer.domElement.addEventListener('mouseup', onPointerUp);
+        renderer.domElement.addEventListener('mouseleave', onPointerUp);
+
+        // Touch events for mobile interaction
+        renderer.domElement.addEventListener('touchstart', (e) => onPointerDown(e.touches[0]));
+        renderer.domElement.addEventListener('touchmove', (e) => onPointerMove(e.touches[0]));
+        renderer.domElement.addEventListener('touchend', onPointerUp);
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+</body>
+</html>
