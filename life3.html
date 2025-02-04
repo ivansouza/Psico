@@ -10,8 +10,9 @@
     </style>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.152.2/three.min.js"></script>
-    <script>
+    <script type="module">
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.module.js';
+
         // Configurações da simulação
         const SPHERE_DIVISIONS = 32;
         const CUBE_SIZE = 0.05;
