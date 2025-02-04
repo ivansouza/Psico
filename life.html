@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life on a Sphere</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.152.2/three.min.js"></script>
+    <script>
+        // Configurações da simulação
+        const SPHERE_DIVISIONS = 128; // Aumentando para quadrados menores
+        const COLOR_PALETTE = [
+            [0.0, 0.5, 1.0], // Azul
+            [1.0, 0.5, 0.0], // Laranja
+            [0.0, 1.0, 0.5], // Verde
+        ];
+        const SIM_SPEED = 100; // Intervalo entre gerações em milissegundos
+
+        // Configuração do Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000);
+        document.body.appendChild(renderer.domElement);
+
+        // Iluminação
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 0.7);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // Geometria da esfera
+        const sphereGeometry = new THREE.SphereGeometry(1, SPHERE_DIVISIONS, SPHERE_DIVISIONS);
+        const material = new THREE.MeshBasicMaterial({ vertexColors: true, wireframe: false });
+        const sphereMesh = new THREE.Mesh(sphereGeometry, material);
+        scene.add(sphereMesh);
+        camera.position.z = 3;
+
+        // Inicialização do Jogo da Vida
+        const initGrid = () => {
+            const grid = [];
+            for (let i = 0; i <= SPHERE_DIVISIONS; i++) {
+                grid[i] = [];
+                for (let j = 0; j <= SPHERE_DIVISIONS; j++) {
+                    grid[i][j] = Math.random() > 0.8 ? 1 : 0;
+                }
+            }
+            return grid;
+        }
+
+        let grid = initGrid();
+
+        // Atualizar cores das células na esfera
+        const updateGrid = () => {
+            const colors = [];
+            for (let i = 0; i <= SPHERE_DIVISIONS; i++) {
+                for (let j = 0; j <= SPHERE_DIVISIONS; j++) {
+                    const idx = (i * (SPHERE_DIVISIONS + 1) + j) * 3;
+                    const alive = grid[i][j] === 1;
+                    if (alive) {
+                        const color = COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+                        colors[idx] = color[0];
+                        colors[idx + 1] = color[1];
+                        colors[idx + 2] = color[2];
+                    } else {
+                        colors[idx] = 0;
+                        colors[idx + 1] = 0;
+                        colors[idx + 2] = 0;
+                    }
+                }
+            }
+            sphereGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        }
+
+        // Lógica do Jogo da Vida
+        const computeNextGeneration = () => {
+            const nextGrid = JSON.parse(JSON.stringify(grid));
+            for (let i = 1; i < SPHERE_DIVISIONS; i++) {
+                for (let j = 1; j < SPHERE_DIVISIONS; j++) {
+                    const neighbors = [
+                        grid[i - 1][j - 1], grid[i - 1][j], grid[i - 1][j + 1],
+                        grid[i][j - 1], grid[i][j + 1],
+                        grid[i + 1][j - 1], grid[i + 1][j], grid[i + 1][j + 1]
+                    ];
+                    const aliveNeighbors = neighbors.reduce((acc, val) => acc + val, 0);
+
+                    if (grid[i][j] === 1) {
+                        if (aliveNeighbors < 2 || aliveNeighbors > 3) {
+                            nextGrid[i][j] = 0;
+                        }
+                    } else {
+                        if (aliveNeighbors === 3) {
+                            nextGrid[i][j] = 1;
+                        }
+                    }
+                }
+            }
+            grid = nextGrid;
+        }
+
+        // Variáveis para controle de toque/mouse
+        let isInteracting = false;
+        let previousX = null;
+        let previousY = null;
+
+        const handleInteractionStart = (x, y) => {
+            isInteracting = true;
+            previousX = x;
+            previousY = y;
+        };
+
+        const handleInteractionMove = (x, y) => {
+            if (isInteracting) {
+                const deltaX = x - previousX;
+                const deltaY = y - previousY;
+                sphereMesh.rotation.y += deltaX * 0.01;
+                sphereMesh.rotation.x += deltaY * 0.01;
+                previousX = x;
+                previousY = y;
+            }
+        };
+
+        const handleInteractionEnd = () => {
+            isInteracting = false;
+            previousX = null;
+            previousY = null;
+        };
+
+        // Eventos de toque
+        renderer.domElement.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            if (event.touches.length === 1) {
+                handleInteractionStart(event.touches[0].clientX, event.touches[0].clientY);
+            }
+        }, false);
+
+        renderer.domElement.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            if (event.touches.length === 1) {
+                handleInteractionMove(event.touches[0].clientX, event.touches[0].clientY);
+            }
+        }, false);
+
+        renderer.domElement.addEventListener('touchend', (event) => {
+            event.preventDefault();
+            handleInteractionEnd();
+        }, false);
+
+        // Eventos de mouse
+        renderer.domElement.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            handleInteractionStart(event.clientX, event.clientY);
+        }, false);
+
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            event.preventDefault();
+            handleInteractionMove(event.clientX, event.clientY);
+        }, false);
+
+        renderer.domElement.addEventListener('mouseup', (event) => {
+            event.preventDefault();
+            handleInteractionEnd();
+        }, false);
+
+        // Loop de animação
+        const animate = () => {
+            requestAnimationFrame(animate);
+            computeNextGeneration();
+            updateGrid();
+            renderer.render(scene, camera);
+        };
+
+        animate();
+    </script>
+</body>
+</html>
