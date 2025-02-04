@@ -10,15 +10,12 @@
     </style>
 </head>
 <body>
-    <script type="module">
-        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.module.js';
-
-        // Configurações da simulação
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+    <script>
         const SPHERE_DIVISIONS = 32;
         const CUBE_SIZE = 0.05;
-        const SIM_SPEED = 100; // Intervalo entre gerações em milissegundos para animação rápida
+        const SIM_SPEED = 100;
 
-        // Configuração do Three.js
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
@@ -26,14 +23,12 @@
         renderer.setClearColor(0x000000);
         document.body.appendChild(renderer.domElement);
 
-        // Iluminação
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
         const pointLight = new THREE.PointLight(0xffffff, 0.7);
         pointLight.position.set(5, 5, 5);
         scene.add(pointLight);
 
-        // Geometria da esfera e cubos
         const sphere = new THREE.Group();
         const cubeGeometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
         const liveMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
@@ -45,8 +40,9 @@
                 grid[i] = [];
                 for (let j = 0; j < SPHERE_DIVISIONS; j++) {
                     const isLive = Math.random() > 0.8 ? 1 : 0;
-                    grid[i][j] = createCube(i, j, isLive);
-                    sphere.add(grid[i][j]);
+                    const cube = createCube(i, j, isLive);
+                    grid[i][j] = { cube, isLive };
+                    sphere.add(cube);
                 }
             }
             return grid;
@@ -69,7 +65,6 @@
         scene.add(sphere);
         camera.position.z = 3;
 
-        // Atualizar o estado das células
         const updateGrid = () => {
             for (let i = 0; i < SPHERE_DIVISIONS; i++) {
                 for (let j = 0; j < SPHERE_DIVISIONS; j++) {
@@ -78,9 +73,9 @@
                     const x = Math.sin(phi) * Math.cos(theta);
                     const y = Math.sin(phi) * Math.sin(theta);
                     const z = Math.cos(phi);
-                    const multiplier = grid[i][j].material === liveMaterial ? 1.1 : 1.0;
+                    const multiplier = grid[i][j].isLive ? 1.5 : 1.0;
 
-                    grid[i][j].position.set(
+                    grid[i][j].cube.position.set(
                         x * multiplier,
                         y * multiplier,
                         z * multiplier
@@ -89,17 +84,16 @@
             }
         }
 
-        // Lógica do Jogo da Vida com grid toroidal
         const computeNextGeneration = () => {
             const nextGrid = JSON.parse(JSON.stringify(grid, (key, value) => {
-                if (key === 'material') return undefined;
+                if (key === 'cube') return undefined;
                 return value;
             }));
 
             const getIndex = (i, j) => {
                 const wrappedI = (i + SPHERE_DIVISIONS) % SPHERE_DIVISIONS;
                 const wrappedJ = (j + SPHERE_DIVISIONS) % SPHERE_DIVISIONS;
-                return grid[wrappedI][wrappedJ].material === liveMaterial ? 1 : 0;
+                return grid[wrappedI][wrappedJ].isLive;
             };
 
             for (let i = 0; i < SPHERE_DIVISIONS; i++) {
@@ -111,27 +105,22 @@
                     ];
                     const aliveNeighbors = neighbors.reduce((acc, val) => acc + val, 0);
 
-                    if (grid[i][j].material === liveMaterial) {
-                        if (aliveNeighbors < 2 || aliveNeighbors > 3) {
-                            nextGrid[i][j].material = deadMaterial;
-                        }
+                    if (grid[i][j].isLive) {
+                        nextGrid[i][j].isLive = aliveNeighbors === 2 || aliveNeighbors === 3;
                     } else {
-                        if (aliveNeighbors === 3) {
-                            nextGrid[i][j].material = liveMaterial;
-                        }
+                        nextGrid[i][j].isLive = aliveNeighbors === 3;
                     }
                 }
             }
 
-            // Update grid materials
             for (let i = 0; i < SPHERE_DIVISIONS; i++) {
                 for (let j = 0; j < SPHERE_DIVISIONS; j++) {
-                    grid[i][j].material = nextGrid[i][j].material;
+                    grid[i][j].isLive = nextGrid[i][j].isLive;
+                    grid[i][j].cube.material = grid[i][j].isLive ? liveMaterial : deadMaterial;
                 }
             }
         }
 
-        // Loop de animação com atraso para animação mais rápida
         const animate = () => {
             setTimeout(() => {
                 computeNextGeneration();
