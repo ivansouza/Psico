@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life on a 3D Sphere</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.152.2/three.min.js"></script>
+    <script>
+        // Configurações da simulação
+        const SPHERE_DIVISIONS = 32;
+        const CUBE_SIZE = 0.05;
+        const SIM_SPEED = 100; // Intervalo entre gerações em milissegundos para animação rápida
+
+        // Configuração do Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000);
+        document.body.appendChild(renderer.domElement);
+
+        // Iluminação
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 0.7);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // Geometria da esfera e cubos
+        const sphere = new THREE.Group();
+        const cubeGeometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+        const liveMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        const deadMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+        const initGrid = () => {
+            const grid = [];
+            for (let i = 0; i < SPHERE_DIVISIONS; i++) {
+                grid[i] = [];
+                for (let j = 0; j < SPHERE_DIVISIONS; j++) {
+                    const isLive = Math.random() > 0.8 ? 1 : 0;
+                    grid[i][j] = createCube(i, j, isLive);
+                    sphere.add(grid[i][j]);
+                }
+            }
+            return grid;
+        }
+
+        const createCube = (i, j, isLive) => {
+            const phi = Math.PI * (i / SPHERE_DIVISIONS);
+            const theta = 2 * Math.PI * (j / SPHERE_DIVISIONS);
+            const x = Math.sin(phi) * Math.cos(theta);
+            const y = Math.sin(phi) * Math.sin(theta);
+            const z = Math.cos(phi);
+
+            const cube = new THREE.Mesh(cubeGeometry, isLive ? liveMaterial : deadMaterial);
+            cube.position.set(x, y, z);
+            cube.lookAt(0, 0, 0);
+            return cube;
+        }
+
+        let grid = initGrid();
+        scene.add(sphere);
+        camera.position.z = 3;
+
+        // Atualizar o estado das células
+        const updateGrid = () => {
+            for (let i = 0; i < SPHERE_DIVISIONS; i++) {
+                for (let j = 0; j < SPHERE_DIVISIONS; j++) {
+                    const phi = Math.PI * (i / SPHERE_DIVISIONS);
+                    const theta = 2 * Math.PI * (j / SPHERE_DIVISIONS);
+                    const x = Math.sin(phi) * Math.cos(theta);
+                    const y = Math.sin(phi) * Math.sin(theta);
+                    const z = Math.cos(phi);
+                    const multiplier = grid[i][j].material === liveMaterial ? 1.1 : 1.0;
+
+                    grid[i][j].position.set(
+                        x * multiplier,
+                        y * multiplier,
+                        z * multiplier
+                    );
+                }
+            }
+        }
+
+        // Lógica do Jogo da Vida com grid toroidal
+        const computeNextGeneration = () => {
+            const nextGrid = JSON.parse(JSON.stringify(grid, (key, value) => {
+                if (key === 'material') return undefined;
+                return value;
+            }));
+
+            const getIndex = (i, j) => {
+                const wrappedI = (i + SPHERE_DIVISIONS) % SPHERE_DIVISIONS;
+                const wrappedJ = (j + SPHERE_DIVISIONS) % SPHERE_DIVISIONS;
+                return grid[wrappedI][wrappedJ].material === liveMaterial ? 1 : 0;
+            };
+
+            for (let i = 0; i < SPHERE_DIVISIONS; i++) {
+                for (let j = 0; j < SPHERE_DIVISIONS; j++) {
+                    const neighbors = [
+                        getIndex(i - 1, j - 1), getIndex(i - 1, j), getIndex(i - 1, j + 1),
+                        getIndex(i, j - 1), getIndex(i, j + 1),
+                        getIndex(i + 1, j - 1), getIndex(i + 1, j), getIndex(i + 1, j + 1)
+                    ];
+                    const aliveNeighbors = neighbors.reduce((acc, val) => acc + val, 0);
+
+                    if (grid[i][j].material === liveMaterial) {
+                        if (aliveNeighbors < 2 || aliveNeighbors > 3) {
+                            nextGrid[i][j].material = deadMaterial;
+                        }
+                    } else {
+                        if (aliveNeighbors === 3) {
+                            nextGrid[i][j].material = liveMaterial;
+                        }
+                    }
+                }
+            }
+
+            // Update grid materials
+            for (let i = 0; i < SPHERE_DIVISIONS; i++) {
+                for (let j = 0; j < SPHERE_DIVISIONS; j++) {
+                    grid[i][j].material = nextGrid[i][j].material;
+                }
+            }
+        }
+
+        // Loop de animação com atraso para animação mais rápida
+        const animate = () => {
+            setTimeout(() => {
+                computeNextGeneration();
+                updateGrid();
+                renderer.render(scene, camera);
+                animate();
+            }, SIM_SPEED);
+        };
+
+        animate();
+    </script>
+</body>
+</html>
