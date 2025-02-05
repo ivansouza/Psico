@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>p5.js Example with Custom Font</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/addons/p5.sound.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Poppins', sans-serif;
+      }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <script>
+      let f = 0;
+
+      function setup() {
+        createCanvas(400, 400);
+        textFont('Poppins');
+      }
+
+      function draw() {
+        background(0);
+        translate(width / 2, height / 2);
+        
+        for (let a = 0; a < TWO_PI; a += PI / 64) {
+          rotate(PI / 64);
+          for (let i = 1; i > 0; i -= 0.002) {
+            let x = noise(i, f / 3, a) * i * width;
+            let y = noise(f / 2, i, a) * i * height;
+            stroke(255, 200 - i * 200);
+            point(x, y);
+          }
+        }
+        f += 0.005;
+      }
+    </script>
+  </body>
+</html>
