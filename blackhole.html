@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Fibonacci Interativo</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Segoe UI', monospace;
+            color: white;
+        }
+        canvas {
+            display: block;
+        }
+        
+        /* Estilo do Overlay de Controles */
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 280px;
+            padding: 20px;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px); /* Efeito de vidro fosco */
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        /* Remove margem do último grupo para alinhar com botão */
+        .control-group:last-of-type {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            color: #aaa;
+        }
+
+        span.value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        input[type=range] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        /* Estilizando o trilho do slider */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        /* Estilizando a bolinha do slider */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #fff;
+            margin-top: -6px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]:hover::-webkit-slider-thumb {
+            transform: scale(1.2);
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        /* Botão de Restart Estilizado */
+        .btn-restart {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1); /* Fundo sutil */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-restart:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-restart:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay de Controles -->
+    <div id="controls">
+        <div class="control-group">
+            <label>
+                Velocidade Fluxo
+                <span id="val-speed" class="value">0.5</span>
+            </label>
+            <input type="range" id="input-speed" min="0" max="2.0" step="0.1" value="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Abertura (Spread)
+                <span id="val-spread" class="value">12</span>
+            </label>
+            <input type="range" id="input-spread" min="4" max="30" step="0.5" value="12">
+        </div>
+
+        <button id="btn-restart" class="btn-restart">
+            Reiniciar Animação
+        </button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Referências UI
+        const inputSpeed = document.getElementById('input-speed');
+        const valSpeed = document.getElementById('val-speed');
+        const inputSpread = document.getElementById('input-spread');
+        const valSpread = document.getElementById('val-spread');
+        const btnRestart = document.getElementById('btn-restart');
+
+        let width, height, centerX, centerY;
+        
+        // --- PARÂMETROS PADRÃO ---
+        const ANGLE_STEP = 137.507764 * (Math.PI / 180); 
+        const TOTAL_POINTS = 700;
+        
+        // Variáveis dinâmicas controladas pelos sliders
+        let spread = 12;
+        let zoomSpeed = 0.5;
+
+        // Estado da animação
+        let startFrame = 0;
+        let rotation = 0;
+
+        // Atualiza valores quando sliders mudam
+        inputSpeed.addEventListener('input', (e) => {
+            zoomSpeed = parseFloat(e.target.value);
+            valSpeed.textContent = zoomSpeed.toFixed(1);
+        });
+
+        inputSpread.addEventListener('input', (e) => {
+            spread = parseFloat(e.target.value);
+            valSpread.textContent = spread.toFixed(1);
+        });
+
+        // Lógica do Botão Restart
+        btnRestart.addEventListener('click', () => {
+            startFrame = 0; // Volta para o início do túnel
+            rotation = 0;   // Reseta o ângulo
+            // Nota: Não resetamos os sliders para manter a preferência do usuário
+        });
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        function draw() {
+            // Limpeza total para contraste máximo
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            // Atualiza o frame baseado na velocidade do slider
+            startFrame += zoomSpeed;
+            
+            // Rotação constante (independente da velocidade do fluxo)
+            rotation += 0.002;
+
+            for (let i = 0; i < TOTAL_POINTS; i++) {
+                const n = startFrame + i; 
+
+                // spread vem do slider agora
+                const r = spread * Math.sqrt(n); 
+                const theta = n * ANGLE_STEP + rotation;
+
+                const x = centerX + r * Math.cos(theta);
+                const y = centerY + r * Math.sin(theta);
+
+                // Otimização de renderização
+                const distSq = (x - centerX) ** 2 + (y - centerY) ** 2;
+                if (distSq > (Math.max(width, height)/1.1) ** 2) continue;
+
+                // Tamanho dinâmico
+                let size = Math.sqrt(n) * (spread * 0.04); 
+                if (size < 0.6) size = 0.6;
+                if (size > 15) size = 15; 
+
+                // Cor HSL
+                const hue = (n * 2) % 360; 
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
+                ctx.fill();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+
+    </script>
+</body>
+</html>
+
+
