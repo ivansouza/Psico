@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Retro Audio Station</title>
     <style>
         /* --- FONTES --- */
@@ -46,7 +46,8 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            padding-bottom: env(safe-area-inset-bottom); /* iPhone safe area */
+            /* Garante padding seguro para iPhones sem barra home física */
+            padding-bottom: env(safe-area-inset-bottom); 
         }
 
         /* --- SEÇÃO SUPERIOR: DISPLAY E VISUALIZER --- */
@@ -62,6 +63,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            min-height: 0; /* Importante para flexbox em paisagem */
         }
 
         /* Efeito LCD Fundo */
@@ -87,6 +89,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
+            min-height: 0; /* Permite encolher em paisagem */
         }
 
         .info-header {
@@ -95,6 +98,7 @@
             align-items: flex-start;
             margin-bottom: 10px;
             height: 40px;
+            flex-shrink: 0;
         }
 
         .track-marquee {
@@ -137,7 +141,7 @@
             border-radius: 4px;
             position: relative;
             overflow: hidden;
-            min-height: 100px;
+            min-height: 50px; /* Mínimo para não quebrar em paisagem */
         }
 
         canvas {
@@ -172,12 +176,13 @@
         /* --- SEÇÃO INFERIOR: CONTROLES --- */
         #controls-section {
             background-color: #d4d4d4;
-            padding: 10px 15px 20px 15px;
+            padding: 10px 15px 15px 15px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             border-top: 1px solid #999;
             box-shadow: 0 -4px 8px rgba(0,0,0,0.1);
+            flex-shrink: 0; /* Não encolhe */
         }
 
         /* Barra de Progresso */
@@ -231,10 +236,10 @@
             border-radius: 4px;
             pointer-events: none;
             z-index: 1;
-            width: 0%; /* JS will update this */
+            width: 0%; 
         }
 
-        /* Botões Layout */
+        /* Linha dos Botões */
         .controls-row {
             display: flex;
             justify-content: space-between;
@@ -245,7 +250,9 @@
         .btn-group-main {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 12px;
+            flex: 1; /* Ocupa o centro */
         }
 
         .btn-group-play {
@@ -259,13 +266,28 @@
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
         }
 
-        .btn-group-right {
+        .upload-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            right: 15px; /* Fixado à direita */
+            top: 45px; /* Alinhado com a linha dos botões */
+        }
+
+        /* Linha do Volume (Abaixo dos botões) */
+        .volume-row {
             display: flex;
             align-items: center;
-            gap: 15px;
-            flex-shrink: 1; /* Permite encolher */
-            min-width: 0;   /* Permite flex-shrink funcionar bem */
-            justify-content: flex-end;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: #ccc;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #fff;
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
+            margin-top: 5px;
         }
 
         /* Botões Metálicos */
@@ -323,25 +345,10 @@
             filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8));
         }
 
-        /* Volume Control */
-        .volume-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: #ccc;
-            padding: 5px 10px;
-            border-radius: 20px;
-            border: 1px solid #fff;
-            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
-            
-            /* CRUCIAL PARA MOBILE: Flexível */
-            flex: 0 1 120px; /* Base 120px, pode encolher */
-            min-width: 60px;
-        }
-
         input[type=range].vol-slider {
             -webkit-appearance: none;
-            width: 100%; /* Ocupa o espaço disponível no container flexível */
+            width: 100%;
+            max-width: 300px;
             height: 6px;
             background: #666;
             border-radius: 3px;
@@ -350,8 +357,8 @@
 
         input[type=range].vol-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: #888;
             box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
@@ -377,15 +384,30 @@
             100% { opacity: 0.5; }
         }
 
-        /* Responsividade Extrema */
-        @media (max-width: 360px) {
-            .btn-group-main { gap: 5px; }
-            .btn-group-right { gap: 8px; }
-            .size-lg { width: 48px; height: 48px; }
+        /* Ajustes Específicos para Paisagem */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #display-section {
+                margin: 4px 4px 0 4px;
+            }
+            #controls-section {
+                padding: 5px 15px;
+                gap: 5px;
+            }
+            .info-header {
+                height: 30px;
+                margin-bottom: 5px;
+            }
+            .track-marquee {
+                height: 24px;
+            }
+            .timer {
+                font-size: 32px;
+            }
+            .size-lg { width: 44px; height: 44px; }
             .size-md { width: 36px; height: 36px; }
             .size-sm { width: 28px; height: 28px; }
-            .timer { font-size: 32px; min-width: 60px; }
-            .volume-icon { display: none; } /* Esconde ícone de nota musical se muito pequeno */
+            .volume-row { padding: 4px 10px; margin-top: 2px; }
+            .upload-wrapper { top: 35px; }
         }
 
     </style>
@@ -422,10 +444,10 @@
                 <input type="range" class="seek-slider" id="seek-slider" min="0" value="0" step="0.1">
             </div>
 
-            <!-- Buttons Row -->
-            <div class="controls-row">
+            <!-- Buttons Row (Center) & Upload (Right Absolute) -->
+            <div class="controls-row" style="position: relative;">
                 
-                <!-- Left: Playback -->
+                <!-- Center: Playback -->
                 <div class="btn-group-main">
                     <button class="metal-btn size-sm" id="btn-prev" title="Previous">
                         <div class="metal-btn-inner"></div>
@@ -454,39 +476,33 @@
                     </button>
                 </div>
 
-                <!-- Right: Upload & Volume -->
-                <div class="btn-group-right">
-                    
-                    <!-- Upload -->
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <button class="metal-btn size-md" id="btn-upload" title="Load Song">
-                            <div class="metal-btn-inner"></div>
-                            <svg class="btn-icon" viewBox="0 0 24 24" style="fill: #004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
-                        </button>
-                        <span class="upload-label">LOAD</span>
-                    </div>
-
-                    <!-- Volume -->
-                    <div class="volume-container">
-                        <svg class="btn-icon volume-icon" style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                        <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.05" value="0.5">
-                    </div>
-
+                <!-- Right Absolute: Upload -->
+                <div class="upload-wrapper">
+                    <button class="metal-btn size-md" id="btn-upload" title="Load Song">
+                        <div class="metal-btn-inner"></div>
+                        <svg class="btn-icon" viewBox="0 0 24 24" style="fill: #004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
+                    </button>
+                    <span class="upload-label">LOAD</span>
                 </div>
 
             </div>
+
+            <!-- Volume Row (Bottom) -->
+            <div class="volume-row">
+                <svg class="btn-icon" style="width: 18px; height: 18px; flex-shrink: 0;" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.05" value="0.5">
+            </div>
+
         </div>
     </div>
 
     <!-- Hidden Input -->
-    <!-- 'accept' corrigido para Android -->
     <input type="file" id="file-input" accept="audio/*, .mp3, .wav, .ogg" style="display: none;">
 
     <script>
         // --- LOGIC ---
         const audio = new Audio();
         audio.crossOrigin = "anonymous";
-        // Default song
         audio.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
         
         let audioCtx;
@@ -610,11 +626,10 @@
 
             marqueeEl.innerText = file.name.toUpperCase() + " *** LOCAL FILE ***";
             
-            // Auto play
             initAudioContext();
             audio.play().then(() => updatePlayState(true)).catch(console.warn);
 
-            fileInput.value = ''; // Reset to allow same file selection
+            fileInput.value = ''; 
         });
 
         // --- Events ---
@@ -646,20 +661,36 @@
             timerEl.innerText = `${m}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- Visualizer & Resize ---
+        // --- Visualizer & Resize Handling (Robust) ---
         
         function resizeCanvas() {
             const container = canvas.parentElement;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            // Se o container estiver colapsado (ex: transição de rotação), 
+            // não redimensiona para 0 para não quebrar o contexto.
+            if (container.clientWidth > 0 && container.clientHeight > 0) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+            }
         }
+
+        // Eventos de redimensionamento
         window.addEventListener('resize', resizeCanvas);
-        // Initial resize
+        // Evento extra para celulares na rotação
+        window.addEventListener('orientationchange', () => {
+            // Pequeno delay para esperar o navegador redesenhar o layout
+            setTimeout(resizeCanvas, 100);
+            setTimeout(resizeCanvas, 500); // Redundância
+        });
+        
+        // Inicialização
         setTimeout(resizeCanvas, 100);
 
         function renderFrame() {
             if (!isPlaying) return;
             animationId = requestAnimationFrame(renderFrame);
+
+            // Verifica se o canvas tem tamanho válido antes de desenhar
+            if (canvas.width === 0 || canvas.height === 0) return;
 
             const w = canvas.width;
             const h = canvas.height;
@@ -670,7 +701,7 @@
 
             ctx.clearRect(0, 0, w, h);
 
-            const barCount = Math.floor(w / 6); // Density
+            const barCount = Math.floor(w / 6); 
             const barWidth = (w / barCount) * 0.8;
             const gap = (w / barCount) * 0.2;
             const step = Math.floor(bufferLength / barCount);
@@ -690,7 +721,6 @@
                     ctx.fillStyle = grad;
                     ctx.fillRect(i * (barWidth + gap), h - barHeight, barWidth, barHeight);
                     
-                    // Peak
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     ctx.fillRect(i * (barWidth + gap), h - barHeight - 4, barWidth, 2);
                 }
