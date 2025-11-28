@@ -1,0 +1,460 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Play, Pause, Square, SkipBack, SkipForward, Music, Upload } from 'lucide-react';
+
+/* --- GLOBAL STYLES --- */
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+    
+    .font-lcd {
+      font-family: 'VT323', monospace;
+    }
+    
+    .no-select {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Remove scrollbars to ensure app-like feel */
+    body {
+        overflow: hidden;
+        background-color: #111;
+        margin: 0;
+        padding: 0;
+    }
+  `}</style>
+);
+
+/* --- HOOKS --- */
+
+const useAudioPlayer = (initialSrc) => {
+  const audioRef = useRef(new Audio(initialSrc));
+  const audioCtxRef = useRef(null);
+  const sourceRef = useRef(null);
+  const analyserRef = useRef(null);
+  const gainNodeRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const [state, setState] = useState({
+    playing: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 0.5,
+    trackName: "DEMO TRACK - AUDIO VISUALIZER"
+  });
+
+  const initAudio = () => {
+    if (!audioCtxRef.current) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256; 
+      
+      const source = ctx.createMediaElementSource(audioRef.current);
+      const gainNode = ctx.createGain();
+      
+      source.connect(analyser);
+      analyser.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      audioCtxRef.current = ctx;
+      analyserRef.current = analyser;
+      sourceRef.current = source;
+      gainNodeRef.current = gainNode;
+      gainNode.volume = state.volume;
+    } else if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+        if (audio.src && audio.src.startsWith('blob:')) {
+            URL.revokeObjectURL(audio.src);
+        }
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    
+    const updateTime = () => setState(s => ({ ...s, currentTime: audio.currentTime }));
+    const updateDuration = () => setState(s => ({ ...s, duration: audio.duration }));
+    const onEnded = () => setState(s => ({ ...s, playing: false }));
+    
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  const controls = {
+    play: () => { 
+        initAudio(); 
+        audioRef.current.play()
+            .then(() => setState(s => ({ ...s, playing: true })))
+            .catch(e => console.error("Play failed", e));
+    },
+    pause: () => { 
+        audioRef.current.pause(); 
+        setState(s => ({ ...s, playing: false })); 
+    },
+    stop: () => { 
+        audioRef.current.pause(); 
+        audioRef.current.currentTime = 0; 
+        setState(s => ({ ...s, playing: false, currentTime: 0 })); 
+    },
+    seek: (time) => { 
+        audioRef.current.currentTime = time; 
+        setState(s => ({ ...s, currentTime: time })); 
+    },
+    setVolume: (val) => {
+        audioRef.current.volume = val;
+        if(gainNodeRef.current) gainNodeRef.current.volume = val;
+        audioRef.current.volume = val;
+        setState(s => ({ ...s, volume: val }));
+    },
+    loadFile: (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        audioRef.current.pause();
+        
+        if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
+            URL.revokeObjectURL(audioRef.current.src);
+        }
+        
+        const objectUrl = URL.createObjectURL(file);
+        audioRef.current.src = objectUrl;
+        audioRef.current.load();
+        
+        setState(s => ({ 
+            ...s, 
+            playing: true, 
+            currentTime: 0,
+            trackName: `${file.name.toUpperCase()} - LOCAL AUDIO`
+        }));
+        
+        initAudio();
+
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error("Auto-play prevented", error);
+                setState(s => ({ ...s, playing: false }));
+            });
+        }
+
+        e.target.value = null; 
+    },
+    triggerFileUpload: () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    }
+  };
+
+  return { ...state, ...controls, analyserRef, fileInputRef };
+};
+
+/* --- VISUAL COMPONENTS --- */
+
+const ResponsiveVisualizer = ({ analyserRef, playing }) => {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Resize handler
+  useEffect(() => {
+    const handleResize = () => {
+        if (containerRef.current && canvasRef.current) {
+            canvasRef.current.width = containerRef.current.clientWidth;
+            canvasRef.current.height = containerRef.current.clientHeight;
+        }
+    };
+
+    window.addEventListener('resize', handleResize);
+    // Pequeno delay para garantir que o container já tenha tamanho
+    setTimeout(handleResize, 100); 
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Animation Loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !analyserRef.current) return;
+    
+    const ctx = canvas.getContext('2d');
+    const bufferLength = analyserRef.current.frequencyBinCount; 
+    const dataArray = new Uint8Array(bufferLength);
+    
+    let animationId;
+    
+    const render = () => {
+      animationId = requestAnimationFrame(render);
+      analyserRef.current.getByteFrequencyData(dataArray);
+      
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+      
+      const barCount = 64; 
+      const barWidth = (w / barCount) * 0.8;
+      const gap = (w / barCount) * 0.2;
+      const step = Math.floor(bufferLength / barCount);
+
+      for (let i = 0; i < barCount; i++) {
+        const dataIndex = Math.floor(i * step); 
+        const value = dataArray[dataIndex];
+        const barHeight = (value / 255) * h;
+
+        if (value > 5) {
+            const gradient = ctx.createLinearGradient(0, h - barHeight, 0, h);
+            gradient.addColorStop(0, '#ffffff');     
+            gradient.addColorStop(0.3, '#00ffff');   
+            gradient.addColorStop(1, '#0033cc');     
+            
+            ctx.fillStyle = playing ? gradient : '#333';
+            ctx.fillRect(i * (barWidth + gap) + gap/2, h - barHeight, barWidth, barHeight);
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillRect(i * (barWidth + gap) + gap/2, h - barHeight - 4, barWidth, 2);
+        }
+      }
+    };
+    
+    if (playing) render();
+    else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#003366';
+        ctx.fillRect(0, canvas.height - 2, canvas.width, 2);
+    }
+
+    return () => cancelAnimationFrame(animationId);
+  }, [analyserRef, playing]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative">
+        <canvas ref={canvasRef} className="block w-full h-full" />
+        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')]"></div>
+    </div>
+  );
+};
+
+const MetallicButton = ({ icon: Icon, onClick, size = "md", active = false, className = "", title }) => {
+    const sizes = {
+        sm: "w-8 h-8 p-1.5",
+        md: "w-10 h-10 p-2",
+        lg: "w-14 h-14 p-3",
+        xl: "w-16 h-16 p-4" // Reduzido levemente para caber melhor
+    };
+    
+    return (
+        <button 
+            onClick={onClick}
+            title={title}
+            className={`
+                relative rounded-full flex items-center justify-center flex-shrink-0
+                bg-gradient-to-br from-[#f0f0f0] via-[#d0d0d0] to-[#a0a0a0]
+                shadow-[2px_2px_5px_rgba(0,0,0,0.5),-1px_-1px_3px_rgba(255,255,255,0.8)]
+                active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.4)]
+                active:translate-y-[1px]
+                transition-transform duration-75
+                group
+                ${sizes[size]}
+                ${className}
+            `}
+        >
+            <div className={`
+                absolute inset-[4px] rounded-full 
+                bg-gradient-to-tl from-[#e0e0e0] to-[#c0c0c0]
+                shadow-[inset_1px_1px_2px_rgba(0,0,0,0.2)]
+                flex items-center justify-center
+            `}>
+                <Icon 
+                    className={`
+                        text-[#444] drop-shadow-[0_1px_0_rgba(255,255,255,0.8)] 
+                        group-hover:text-black group-active:text-[#0055aa]
+                        fill-current
+                    `} 
+                    strokeWidth={0} 
+                    style={{ width: '60%', height: '60%' }} 
+                />
+            </div>
+            
+            {active && (
+                <div className="absolute inset-0 rounded-full shadow-[0_0_15px_rgba(0,150,255,0.8)] ring-2 ring-[#00aaff] opacity-60 pointer-events-none"></div>
+            )}
+        </button>
+    );
+};
+
+/* --- MAIN APP --- */
+const App = () => {
+  const songUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+  const { 
+      playing, currentTime, duration, volume, trackName,
+      play, pause, stop, seek, setVolume, loadFile, triggerFileUpload,
+      analyserRef, fileInputRef 
+  } = useAudioPlayer(songUrl);
+
+  const formatTime = (t) => {
+    if (isNaN(t)) return "00:00";
+    const min = Math.floor(t / 60);
+    const sec = Math.floor(t % 60);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-[#d4d4d4] flex flex-col overflow-hidden font-sans">
+      <GlobalStyles />
+      
+      {/* Texture Background */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+      
+      {/* Hidden File Input */}
+      <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={loadFile} 
+          accept="audio/*, .mp3, .wav, .ogg, application/octet-stream" 
+          style={{ display: 'none' }}
+      />
+
+      {/* --- TOP SECTION: DISPLAY (Flex Grow to Fill) --- */}
+      <div className="flex-1 min-h-0 bg-[#111] m-2 mb-0 rounded-t-lg border-4 border-[#555] shadow-[inset_0_0_20px_rgba(0,0,0,1)] relative overflow-hidden flex flex-col group">
+          
+          {/* LCD Background */}
+          <div className="absolute inset-0 bg-[#001122] z-0">
+             <div className="w-full h-full opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+          </div>
+
+          <div className="relative z-10 flex flex-col h-full p-2 md:p-4">
+              
+              {/* Info Header */}
+              <div className="flex justify-between items-start mb-2 md:mb-4 flex-shrink-0">
+                  {/* Track Name */}
+                  <div className="flex-1 overflow-hidden h-[24px] md:h-[30px] relative mr-2 md:mr-4 bg-[#00000040] rounded border border-[#223344] flex items-center">
+                       <div className="whitespace-nowrap absolute font-lcd text-lg md:text-xl text-[#aaddff] animate-[marquee_15s_linear_infinite] px-2">
+                            {trackName} *** AUDIO STATION *** {trackName}
+                       </div>
+                  </div>
+                  
+                  {/* Timer */}
+                  <div className="font-lcd text-4xl md:text-5xl text-[#00ccff] drop-shadow-[0_0_8px_rgba(0,200,255,0.8)] leading-none">
+                       {formatTime(currentTime)}
+                  </div>
+              </div>
+
+              {/* Visualizer Area (Fills remaining height) */}
+              <div className="flex-1 rounded border border-[#223344] bg-[#00000060] relative overflow-hidden min-h-[100px]">
+                  <ResponsiveVisualizer analyserRef={analyserRef} playing={playing} />
+                  
+                  {!playing && (
+                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                           <span className="font-lcd text-[#005588] text-xl md:text-2xl animate-pulse tracking-widest">READY</span>
+                       </div>
+                   )}
+              </div>
+          </div>
+      </div>
+
+      {/* --- BOTTOM SECTION: CONTROLS (Fixed Height area) --- */}
+      <div className="relative z-20 flex flex-col w-full p-3 pb-safe-area bg-[#d4d4d4]">
+            
+            {/* Seek Bar */}
+            <div className="w-full h-8 flex items-center relative mb-1 px-1">
+                <input 
+                    type="range" 
+                    min="0" max={duration || 100} 
+                    value={currentTime} 
+                    onChange={(e) => seek(Number(e.target.value))}
+                    className="
+                        w-full h-[8px] appearance-none bg-[#222] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]
+                        border-b border-[#555]
+                        cursor-pointer
+                        [&::-webkit-slider-thumb]:appearance-none 
+                        [&::-webkit-slider-thumb]:w-[20px] 
+                        [&::-webkit-slider-thumb]:h-[20px] 
+                        [&::-webkit-slider-thumb]:rounded-full
+                        [&::-webkit-slider-thumb]:bg-gradient-to-b 
+                        [&::-webkit-slider-thumb]:from-[#eee] 
+                        [&::-webkit-slider-thumb]:to-[#999]
+                        [&::-webkit-slider-thumb]:border 
+                        [&::-webkit-slider-thumb]:border-[#555]
+                        [&::-webkit-slider-thumb]:shadow-[0_2px_4px_rgba(0,0,0,0.5)]
+                    "
+                />
+                <div 
+                    className="absolute h-[6px] bg-gradient-to-r from-blue-900 to-blue-400 rounded-full pointer-events-none top-1/2 -translate-y-1/2 left-[2px]"
+                    style={{ width: `calc(${(currentTime / (duration || 1)) * 98}% + 0px)` }}
+                ></div>
+            </div>
+
+            {/* Controls Row - Flex layout to fit all widths */}
+            <div className="flex items-center justify-between w-full overflow-hidden">
+                
+                {/* Left: Playback Controls */}
+                <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+                    <MetallicButton icon={SkipBack} onClick={() => seek(0)} size="sm" />
+                    
+                    {/* Main Actions Cluster */}
+                    <div className="flex items-center gap-2 bg-[#ccc] p-1.5 md:p-2 rounded-full shadow-inner border border-white/50">
+                        <MetallicButton icon={Play} onClick={play} size="lg" active={playing} />
+                        <MetallicButton icon={Pause} onClick={pause} size="md" active={!playing && currentTime > 0} />
+                    </div>
+                    
+                    <MetallicButton icon={Square} onClick={stop} size="sm" className="hidden xs:flex" /> {/* Esconde stop em telas muito pequenas se precisar */}
+                    <MetallicButton icon={SkipForward} onClick={() => seek(duration)} size="sm" />
+                </div>
+
+                {/* Right: Upload & Volume */}
+                <div className="flex items-center gap-2 md:gap-6 flex-shrink min-w-0 justify-end ml-2">
+                    
+                    {/* Upload */}
+                    <div className="flex flex-col items-center flex-shrink-0">
+                        <MetallicButton icon={Upload} onClick={triggerFileUpload} size="md" title="Load Song" className="text-blue-800" />
+                    </div>
+
+                    {/* Volume - Allows shrinking */}
+                    <div className="flex items-center gap-1 md:gap-2 bg-[#ccc] p-1.5 md:p-2 rounded-full shadow-[inset_1px_1px_3px_rgba(0,0,0,0.3)] border border-[#fff] flex-shrink min-w-[80px] max-w-[140px]">
+                         <Music size={14} className="text-[#666] flex-shrink-0" />
+                         <input 
+                            type="range" min="0" max="1" step="0.05" 
+                            value={volume}
+                            onChange={(e) => setVolume(e.target.value)}
+                            className="w-full h-2 appearance-none bg-[#666] rounded-full outline-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-[#888] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow cursor-pointer"
+                        />
+                     </div>
+                </div>
+
+            </div>
+      </div>
+
+      <style>{`
+          @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+          }
+          .pb-safe-area {
+              padding-bottom: env(safe-area-inset-bottom, 16px);
+          }
+          /* Extra breakpoint for very small screens */
+          @media (min-width: 380px) {
+              .xs\\:flex { display: flex; }
+          }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
+
+
