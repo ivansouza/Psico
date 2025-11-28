@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Retro Audio Station</title>
     <style>
-        /* --- FONTES --- */
+        /* --- FONTES & RESET --- */
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
-        /* --- RESET E GERAL --- */
         * {
             box-sizing: border-box;
             user-select: none;
@@ -20,39 +19,33 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
             background-color: #d4d4d4;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; /* Previne scroll da página inteira */
         }
 
-        /* Fundo Texturizado */
+        /* Container Principal */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Textura de Fundo */
         .bg-texture {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             opacity: 0.1;
             pointer-events: none;
             background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
             z-index: 0;
         }
 
-        /* --- LAYOUT PRINCIPAL --- */
-        #app-container {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-            /* Garante padding seguro para iPhones sem barra home física */
-            padding-bottom: env(safe-area-inset-bottom); 
-        }
-
-        /* --- SEÇÃO SUPERIOR: DISPLAY E VISUALIZER --- */
+        /* --- DISPLAY SUPERIOR (Ocupa o espaço restante) --- */
         #display-section {
-            flex: 1;
+            flex: 1; /* Cresce para ocupar tudo */
             background-color: #111;
             margin: 8px 8px 0 8px;
             border: 4px solid #555;
@@ -60,25 +53,21 @@
             border-radius: 8px 8px 0 0;
             box-shadow: inset 0 0 20px rgba(0,0,0,1);
             position: relative;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
-            min-height: 0; /* Importante para flexbox em paisagem */
+            min-height: 0; /* Crítico para layout flex funcionar bem */
         }
 
-        /* Efeito LCD Fundo */
+        /* Efeitos LCD */
         .lcd-bg {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), 
                         linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
-            z-index: 1;
             opacity: 0.3;
+            z-index: 1;
         }
 
         .display-content {
@@ -88,16 +77,15 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            height: 100%;
-            min-height: 0; /* Permite encolher em paisagem */
+            overflow: hidden;
         }
 
+        /* Cabeçalho do Display */
         .info-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
             margin-bottom: 10px;
-            height: 40px;
+            height: 35px;
             flex-shrink: 0;
         }
 
@@ -106,7 +94,6 @@
             background: rgba(0,0,0,0.4);
             border: 1px solid #223344;
             border-radius: 4px;
-            height: 32px;
             margin-right: 10px;
             position: relative;
             overflow: hidden;
@@ -134,14 +121,15 @@
             text-align: right;
         }
 
-        .visualizer-container {
-            flex: 1;
+        /* Container do Visualizador */
+        .visualizer-wrapper {
+            flex: 1; /* Ocupa o resto da altura do display */
             background: rgba(0,0,0,0.6);
             border: 1px solid #223344;
             border-radius: 4px;
             position: relative;
             overflow: hidden;
-            min-height: 50px; /* Mínimo para não quebrar em paisagem */
+            min-height: 50px;
         }
 
         canvas {
@@ -152,10 +140,7 @@
 
         .visualizer-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             background-image: url('https://www.transparenttextures.com/patterns/black-scales.png');
             opacity: 0.2;
             pointer-events: none;
@@ -163,8 +148,7 @@
 
         .ready-text {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             font-family: 'VT323', monospace;
             color: #005588;
@@ -173,25 +157,38 @@
             animation: pulse 2s infinite;
         }
 
-        /* --- SEÇÃO INFERIOR: CONTROLES --- */
+        /* --- SEÇÃO DE CONTROLES (Inferior Fixa) --- */
         #controls-section {
             background-color: #d4d4d4;
             padding: 10px 15px 15px 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
             border-top: 1px solid #999;
             box-shadow: 0 -4px 8px rgba(0,0,0,0.1);
-            flex-shrink: 0; /* Não encolhe */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0; /* Não deixa espremer */
+            z-index: 5;
         }
 
-        /* Barra de Progresso */
+        /* Barra de Busca (Seek) */
         .seek-container {
             position: relative;
             width: 100%;
             height: 20px;
             display: flex;
             align-items: center;
+        }
+        
+        .progress-fill {
+            position: absolute;
+            top: 50%; left: 0;
+            transform: translateY(-50%);
+            height: 6px;
+            background: linear-gradient(to right, #003366, #00aaff);
+            border-radius: 4px;
+            pointer-events: none;
+            width: 0%;
+            z-index: 1;
         }
 
         input[type=range].seek-slider {
@@ -201,233 +198,171 @@
             position: relative;
             z-index: 2;
         }
-        
         input[type=range].seek-slider:focus { outline: none; }
-
         input[type=range].seek-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
+            height: 20px; width: 20px;
             border-radius: 50%;
             background: linear-gradient(to bottom, #eee, #999);
             border: 1px solid #555;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
             margin-top: -6px;
-            cursor: pointer;
         }
-
         input[type=range].seek-slider::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
+            width: 100%; height: 8px;
             background: #222;
             border-radius: 4px;
             border-bottom: 1px solid #555;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
         }
 
-        .progress-fill {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            transform: translateY(-50%);
-            height: 6px;
-            background: linear-gradient(to right, #003366, #00aaff);
-            border-radius: 4px;
-            pointer-events: none;
-            z-index: 1;
-            width: 0%; 
-        }
-
-        /* Linha dos Botões */
-        .controls-row {
+        /* Linha de Botões */
+        .buttons-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .btn-group-main {
-            display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 12px;
-            flex: 1; /* Ocupa o centro */
+            align-items: center;
+            position: relative;
+            height: 60px;
         }
 
-        .btn-group-play {
+        /* Agrupamento Central */
+        .main-controls {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+        }
+
+        .play-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             background: #ccc;
-            padding: 6px 10px;
+            padding: 5px 12px;
             border-radius: 30px;
             border: 1px solid rgba(255,255,255,0.5);
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
         }
 
-        .upload-wrapper {
+        /* Botão Load à Direita Absoluta */
+        .load-wrapper {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            position: absolute;
-            right: 15px; /* Fixado à direita */
-            top: 45px; /* Alinhado com a linha dos botões */
         }
 
-        /* Linha do Volume (Abaixo dos botões) */
+        /* Linha de Volume (Separada abaixo) */
         .volume-row {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            width: 100%;
             background: #ccc;
             padding: 8px 15px;
             border-radius: 20px;
             border: 1px solid #fff;
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
-            margin-top: 5px;
-        }
-
-        /* Botões Metálicos */
-        .metal-btn {
-            appearance: none;
-            border: none;
-            outline: none;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f0f0f0, #d0d0d0, #a0a0a0);
-            box-shadow: 3px 3px 6px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.8);
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        .metal-btn:active {
-            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4);
-            transform: translateY(1px);
-        }
-
-        .metal-btn-inner {
-            position: absolute;
-            top: 4px; bottom: 4px; left: 4px; right: 4px;
-            border-radius: 50%;
-            background: linear-gradient(-45deg, #e0e0e0, #c0c0c0);
-            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
-            pointer-events: none;
-        }
-        
-        .metal-btn.active::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 50%;
-            box-shadow: 0 0 15px rgba(0,150,255,0.8);
-            border: 2px solid #00aaff;
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        /* Tamanhos dos Botões */
-        .size-sm { width: 32px; height: 32px; }
-        .size-md { width: 42px; height: 42px; }
-        .size-lg { width: 56px; height: 56px; }
-
-        .btn-icon {
-            position: relative;
-            z-index: 2;
-            width: 50%;
-            height: 50%;
-            fill: #444;
-            filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8));
+            width: 100%;
+            max-width: 400px; /* Limita largura em telas grandes */
+            margin: 0 auto;
         }
 
         input[type=range].vol-slider {
             -webkit-appearance: none;
             width: 100%;
-            max-width: 300px;
             height: 6px;
             background: #666;
             border-radius: 3px;
             outline: none;
         }
-
         input[type=range].vol-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
             border-radius: 50%;
             background: #888;
             box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Estilos de Botão */
+        .metal-btn {
+            border: none; outline: none;
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f0f0f0, #d0d0d0, #a0a0a0);
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.8);
             cursor: pointer;
         }
-
-        .upload-label {
-            font-size: 10px;
-            font-weight: bold;
-            color: #555;
-            margin-top: 4px;
-            text-align: center;
+        .metal-btn:active {
+            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4);
+            transform: translateY(1px);
+        }
+        .metal-btn-inner {
+            position: absolute; inset: 4px;
+            border-radius: 50%;
+            background: linear-gradient(-45deg, #e0e0e0, #c0c0c0);
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+        .metal-btn.active::after {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0,150,255,0.8);
+            border: 2px solid #00aaff;
+            opacity: 0.6; pointer-events: none;
+        }
+        
+        .btn-icon {
+            position: relative; z-index: 2;
+            width: 50%; height: 50%;
+            fill: #444; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8));
         }
 
-        /* Animações */
-        @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
+        .size-sm { width: 34px; height: 34px; }
+        .size-md { width: 44px; height: 44px; }
+        .size-lg { width: 60px; height: 60px; }
+        
+        .label-text { font-size: 10px; font-weight: bold; color: #555; margin-top: 2px; }
 
-        /* Ajustes Específicos para Paisagem */
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        /* Ajustes para Paisagem (Mobile) */
         @media (orientation: landscape) and (max-height: 500px) {
-            #display-section {
-                margin: 4px 4px 0 4px;
-            }
-            #controls-section {
-                padding: 5px 15px;
-                gap: 5px;
-            }
-            .info-header {
-                height: 30px;
-                margin-bottom: 5px;
-            }
-            .track-marquee {
-                height: 24px;
-            }
-            .timer {
-                font-size: 32px;
-            }
-            .size-lg { width: 44px; height: 44px; }
-            .size-md { width: 36px; height: 36px; }
-            .size-sm { width: 28px; height: 28px; }
-            .volume-row { padding: 4px 10px; margin-top: 2px; }
-            .upload-wrapper { top: 35px; }
+            #display-section { margin: 4px 4px 0 4px; }
+            #controls-section { padding: 5px 10px 5px 10px; gap: 5px; }
+            .info-header { height: 25px; margin-bottom: 5px; }
+            .track-marquee { height: 25px; }
+            .timer { font-size: 28px; min-width: 60px; }
+            .buttons-row { height: 45px; }
+            .size-lg { width: 45px; height: 45px; }
+            .size-md { width: 38px; height: 38px; }
+            .size-sm { width: 30px; height: 30px; }
+            .volume-row { padding: 4px 10px; max-width: 300px; }
+            .label-text { display: none; } /* Esconde texto LOAD em paisagem pra economizar espaço vertical */
         }
-
     </style>
 </head>
 <body>
-
     <div class="bg-texture"></div>
 
     <div id="app-container">
-        <!-- Display Section -->
+        
+        <!-- DISPLAY -->
         <div id="display-section">
             <div class="lcd-bg"></div>
             <div class="display-content">
                 <div class="info-header">
                     <div class="track-marquee">
-                        <div class="marquee-text" id="track-name">READY TO PLAY *** LOAD A SONG *** AUDIO STATION</div>
+                        <div class="marquee-text" id="track-name">READY TO PLAY *** AUDIO STATION *** LOAD MP3</div>
                     </div>
                     <div class="timer" id="timer">00:00</div>
                 </div>
-                <div class="visualizer-container">
+                <!-- Wrapper dedicado para o observer funcionar bem -->
+                <div class="visualizer-wrapper" id="vis-wrapper">
                     <canvas id="vis-canvas"></canvas>
                     <div class="visualizer-overlay"></div>
                     <div class="ready-text" id="ready-msg">READY</div>
@@ -435,72 +370,51 @@
             </div>
         </div>
 
-        <!-- Controls Section -->
+        <!-- CONTROLS -->
         <div id="controls-section">
             
-            <!-- Seek Bar -->
+            <!-- Seek -->
             <div class="seek-container">
                 <div class="progress-fill" id="progress-fill"></div>
                 <input type="range" class="seek-slider" id="seek-slider" min="0" value="0" step="0.1">
             </div>
 
-            <!-- Buttons Row (Center) & Upload (Right Absolute) -->
-            <div class="controls-row" style="position: relative;">
-                
-                <!-- Center: Playback -->
-                <div class="btn-group-main">
-                    <button class="metal-btn size-sm" id="btn-prev" title="Previous">
-                        <div class="metal-btn-inner"></div>
-                        <svg class="btn-icon" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg>
-                    </button>
-
-                    <div class="btn-group-play">
-                        <button class="metal-btn size-lg" id="btn-play" title="Play">
-                            <div class="metal-btn-inner"></div>
-                            <svg class="btn-icon" viewBox="0 0 24 24" style="margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                        </button>
-                        <button class="metal-btn size-md" id="btn-pause" title="Pause">
-                            <div class="metal-btn-inner"></div>
-                            <svg class="btn-icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                        </button>
+            <!-- Botões -->
+            <div class="buttons-row">
+                <div class="main-controls">
+                    <button class="metal-btn size-sm" id="btn-prev"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg></button>
+                    
+                    <div class="play-group">
+                        <button class="metal-btn size-lg" id="btn-play"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24" style="margin-left:2px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></button>
+                        <button class="metal-btn size-md" id="btn-pause"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
                     </div>
 
-                    <button class="metal-btn size-sm" id="btn-stop" title="Stop">
-                        <div class="metal-btn-inner"></div>
-                        <svg class="btn-icon" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"></rect></svg>
-                    </button>
-
-                    <button class="metal-btn size-sm" id="btn-next" title="Next">
-                        <div class="metal-btn-inner"></div>
-                        <svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg>
-                    </button>
+                    <button class="metal-btn size-sm" id="btn-stop"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"></rect></svg></button>
+                    <button class="metal-btn size-sm" id="btn-next"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg></button>
                 </div>
 
-                <!-- Right Absolute: Upload -->
-                <div class="upload-wrapper">
-                    <button class="metal-btn size-md" id="btn-upload" title="Load Song">
+                <div class="load-wrapper">
+                    <button class="metal-btn size-md" id="btn-upload">
                         <div class="metal-btn-inner"></div>
-                        <svg class="btn-icon" viewBox="0 0 24 24" style="fill: #004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
+                        <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
                     </button>
-                    <span class="upload-label">LOAD</span>
+                    <span class="label-text">LOAD</span>
                 </div>
-
             </div>
 
-            <!-- Volume Row (Bottom) -->
+            <!-- Volume (Abaixo) -->
             <div class="volume-row">
-                <svg class="btn-icon" style="width: 18px; height: 18px; flex-shrink: 0;" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <svg class="btn-icon" style="width:18px;height:18px;flex-shrink:0" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.05" value="0.5">
             </div>
 
         </div>
     </div>
 
-    <!-- Hidden Input -->
     <input type="file" id="file-input" accept="audio/*, .mp3, .wav, .ogg" style="display: none;">
 
     <script>
-        // --- LOGIC ---
+        // --- CONFIGURAÇÃO DE ÁUDIO ---
         const audio = new Audio();
         audio.crossOrigin = "anonymous";
         audio.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
@@ -512,7 +426,7 @@
         let isPlaying = false;
         let animationId;
 
-        // Elements
+        // Elementos DOM
         const btnPlay = document.getElementById('btn-play');
         const btnPause = document.getElementById('btn-pause');
         const btnStop = document.getElementById('btn-stop');
@@ -531,15 +445,16 @@
         
         const canvas = document.getElementById('vis-canvas');
         const ctx = canvas.getContext('2d');
+        const visWrapper = document.getElementById('vis-wrapper');
 
-        // Init Audio Context (User gesture required)
+        // Inicializa Contexto de Áudio (Requer clique do usuário)
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioCtx = new AudioContext();
                 
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
+                analyser.fftSize = 256; 
 
                 source = audioCtx.createMediaElementSource(audio);
                 gainNode = audioCtx.createGain();
@@ -554,8 +469,7 @@
             }
         }
 
-        // --- Controls ---
-        
+        // --- CONTROLE DE ESTADO ---
         function updatePlayState(playing) {
             isPlaying = playing;
             if (playing) {
@@ -566,13 +480,17 @@
             } else {
                 btnPlay.classList.remove('active');
                 if (audio.currentTime > 0 && !audio.ended) btnPause.classList.add('active');
+                // Não cancelamos a animação imediatamente para permitir o desenho do estado "parado" ou limpeza
                 cancelAnimationFrame(animationId);
+                // Limpa o canvas visualmente se parar
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
         }
 
+        // Listeners Botões
         btnPlay.addEventListener('click', () => {
             initAudioContext();
-            audio.play().then(() => updatePlayState(true)).catch(e => console.error(e));
+            audio.play().then(() => updatePlayState(true)).catch(console.error);
         });
 
         btnPause.addEventListener('click', () => {
@@ -588,60 +506,49 @@
             readyMsg.style.display = 'block';
             updateSeekUI();
         });
+        
+        btnPrev.addEventListener('click', () => audio.currentTime = 0);
+        btnNext.addEventListener('click', () => audio.currentTime = audio.duration);
 
-        btnPrev.addEventListener('click', () => { audio.currentTime = 0; });
-        btnNext.addEventListener('click', () => { audio.currentTime = audio.duration; });
-
-        // Seek
+        // Slider Seek
         sliderSeek.addEventListener('input', (e) => {
-            const val = e.target.value;
-            audio.currentTime = val;
+            audio.currentTime = e.target.value;
             updateSeekUI();
         });
 
-        // Volume
+        // Slider Volume
         sliderVol.addEventListener('input', (e) => {
-            const val = e.target.value;
-            audio.volume = val;
-            if(gainNode) gainNode.gain.value = val;
+            audio.volume = e.target.value;
+            if(gainNode) gainNode.gain.value = e.target.value;
         });
 
-        // --- Upload ---
+        // Upload
         btnUpload.addEventListener('click', () => fileInput.click());
-
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             audio.pause();
             updatePlayState(false);
+            if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
 
-            if (audio.src && audio.src.startsWith('blob:')) {
-                URL.revokeObjectURL(audio.src);
-            }
-
-            const url = URL.createObjectURL(file);
-            audio.src = url;
+            audio.src = URL.createObjectURL(file);
             audio.load();
-
             marqueeEl.innerText = file.name.toUpperCase() + " *** LOCAL FILE ***";
             
             initAudioContext();
             audio.play().then(() => updatePlayState(true)).catch(console.warn);
-
-            fileInput.value = ''; 
+            fileInput.value = '';
         });
 
-        // --- Events ---
+        // Eventos Áudio
         audio.addEventListener('timeupdate', () => {
             updateSeekUI();
             formatTime();
         });
-
         audio.addEventListener('loadedmetadata', () => {
             sliderSeek.max = audio.duration;
         });
-
         audio.addEventListener('ended', () => {
             updatePlayState(false);
             btnPause.classList.remove('active');
@@ -661,56 +568,61 @@
             timerEl.innerText = `${m}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- Visualizer & Resize Handling (Robust) ---
+        // --- SISTEMA DE VISUALIZAÇÃO RESPONSIVA ---
         
-        function resizeCanvas() {
-            const container = canvas.parentElement;
-            // Se o container estiver colapsado (ex: transição de rotação), 
-            // não redimensiona para 0 para não quebrar o contexto.
-            if (container.clientWidth > 0 && container.clientHeight > 0) {
-                canvas.width = container.clientWidth;
-                canvas.height = container.clientHeight;
+        // ResizeObserver: A solução definitiva para detectar mudança de tamanho do container
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                // Pega as dimensões exatas em pixels do dispositivo
+                // Se devicePixelContentBoxSize não suportado, usa contentRect
+                const width = entry.contentRect.width;
+                const height = entry.contentRect.height;
+                
+                // Atualiza o tamanho interno do canvas para casar com o CSS
+                // Isso evita o esticamento (blur) da imagem
+                if (width > 0 && height > 0) {
+                    canvas.width = width;
+                    canvas.height = height;
+                }
             }
-        }
-
-        // Eventos de redimensionamento
-        window.addEventListener('resize', resizeCanvas);
-        // Evento extra para celulares na rotação
-        window.addEventListener('orientationchange', () => {
-            // Pequeno delay para esperar o navegador redesenhar o layout
-            setTimeout(resizeCanvas, 100);
-            setTimeout(resizeCanvas, 500); // Redundância
         });
         
-        // Inicialização
-        setTimeout(resizeCanvas, 100);
+        // Começa a observar o wrapper
+        resizeObserver.observe(visWrapper);
 
         function renderFrame() {
             if (!isPlaying) return;
+            
+            // Loop de animação
             animationId = requestAnimationFrame(renderFrame);
-
-            // Verifica se o canvas tem tamanho válido antes de desenhar
-            if (canvas.width === 0 || canvas.height === 0) return;
 
             const w = canvas.width;
             const h = canvas.height;
+            
+            // Se dimensões inválidas, sai
+            if (w === 0 || h === 0) return;
+
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
-            
             analyser.getByteFrequencyData(dataArray);
 
             ctx.clearRect(0, 0, w, h);
 
-            const barCount = Math.floor(w / 6); 
+            // Ajuste dinâmico de barras baseado na largura
+            // Quanto maior a tela, mais barras
+            const barCount = Math.floor(w / 5); 
             const barWidth = (w / barCount) * 0.8;
             const gap = (w / barCount) * 0.2;
-            const step = Math.floor(bufferLength / barCount);
+            
+            // Mapeamento de frequência
+            const step = bufferLength / barCount;
 
             for (let i = 0; i < barCount; i++) {
+                // Interpolação simples para pegar o índice da frequência
                 const dataIndex = Math.floor(i * step);
                 const value = dataArray[dataIndex];
                 
-                if (value > 5) {
+                if (value > 5) { // Threshold de ruído
                     const barHeight = (value / 255) * h;
                     
                     const grad = ctx.createLinearGradient(0, h - barHeight, 0, h);
@@ -721,12 +633,12 @@
                     ctx.fillStyle = grad;
                     ctx.fillRect(i * (barWidth + gap), h - barHeight, barWidth, barHeight);
                     
+                    // Pico
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     ctx.fillRect(i * (barWidth + gap), h - barHeight - 4, barWidth, 2);
                 }
             }
         }
-
     </script>
 </body>
 </html>
