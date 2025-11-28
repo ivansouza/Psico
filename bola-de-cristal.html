@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twigl Shader Standalone</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glcanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('glcanvas');
+        const gl = canvas.getContext('webgl2');
+
+        if (!gl) {
+            alert('Unable to initialize WebGL 2. Your browser or machine may not support it.');
+        }
+
+        // Vertex Shader: A simple full-screen triangle strip
+        const vsSource = `#version 300 es
+            in vec4 position;
+            void main() {
+                gl_Position = position;
+            }
+        `;
+
+        // Fragment Shader: The converted Twigl code
+        const fsSource = `#version 300 es
+            precision highp float;
+            
+            uniform vec2 resolution;
+            uniform float time;
+            
+            out vec4 fragColor;
+
+            void main() {
+                // Twigl Variable Mappings
+                vec2 r = resolution;
+                float t = time;
+                vec4 o = vec4(0.0);
+                vec2 FC = gl_FragCoord.xy;
+
+                // --- START USER CODE ---
+                // Initializing variables to 0 to prevent undefined behavior in strict drivers
+                float i=0., d=0., s=0., n=0., l=0., m=1.; 
+                
+                for(mat2 R=mat2(cos(sin(t/2.)*.785+vec4(0,33,11,0))); i++<1e2;){
+                    vec3 p, k=vec3((FC.xy*2.-r.xy)/r.y, d-10.);
+                    l=length(k.xy-vec2(.2+sin(t)/4., .3+sin(t+t)/6.));
+                    k.xy*=d;
+                    k.xz*=R;
+                    k.y<-6.3 ? k.y=-k.y-9.,m=.5 : m;
+                    
+                    for(p=k*.5,n=.01; n<1.; n+=n)
+                        p.y+=.9+abs(dot(sin(p.x+2.*t+p/n), .2+p-p))*n;
+                    
+                    d += s = .012+.08*abs(max(mix(sin(length(ceil(k*8.).x+k)), mix(sin(length(p)-.2),l,.3-l), smoothstep(5.5,6.,p.y)), length(k)-5.)-i/150.);
+                    
+                    o += max(sin(vec4(1,2,3,1)+i*.5)*1.5/s+vec4(1,2,3,1)*.04/l, -length(k*k));
+                }
+                o = tanh(o*o/8e5)*m;
+                // --- END USER CODE ---
+
+                fragColor = o;
+                fragColor.a = 1.0; // Ensure alpha is solid
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        const shaderProgram = gl.createProgram();
+
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+        }
+
+        // Set up position buffer (covers the screen with a big triangle)
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        const positions = [
+            -1.0, -1.0,
+             3.0, -1.0,
+            -1.0,  3.0,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+        const positionAttributeLocation = gl.getAttribLocation(shaderProgram, 'position');
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+        const timeUniformLocation = gl.getUniformLocation(shaderProgram, 'time');
+        const resolutionUniformLocation = gl.getUniformLocation(shaderProgram, 'resolution');
+
+        gl.useProgram(shaderProgram);
+
+        function resize() {
+            // Handle high DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            const width = window.innerWidth * dpr;
+            const height = window.innerHeight * dpr;
+            
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width;
+                canvas.height = height;
+                gl.viewport(0, 0, width, height);
+            }
+        }
+
+        function render(now) {
+            resize();
+            
+            // Pass time in seconds
+            gl.uniform1f(timeUniformLocation, now * 0.001);
+            
+            // Pass resolution
+            gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
+
