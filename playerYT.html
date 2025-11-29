@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Retro Audio Station - Stream Edition</title>
+    <title>Retro Audio Station - Omni Source</title>
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
-        /* --- ESTILOS GERAIS --- */
+        /* --- ESTILOS VISUAIS --- */
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
         * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -17,77 +18,85 @@
         #display-section { flex: 1; background-color: #111; margin: 8px 8px 0 8px; border: 4px solid #555; border-bottom: none; border-radius: 8px 8px 0 0; box-shadow: inset 0 0 20px rgba(0,0,0,1); position: relative; display: flex; flex-direction: column; min-height: 0; }
         .lcd-bg { position: absolute; inset: 0; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06)); background-size: 100% 2px, 3px 100%; pointer-events: none; opacity: 0.3; z-index: 1; }
         
-        /* Album Art no Fundo (TV) */
-        #album-art {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 150px; height: 150px; border-radius: 50%; 
-            border: 4px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            background-size: cover; background-position: center;
-            opacity: 0.3; transition: opacity 0.5s;
-            animation: spin 10s linear infinite;
-            animation-play-state: paused;
-        }
+        #album-art { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 150px; height: 150px; border-radius: 50%; border: 4px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.8); background-size: cover; background-position: center; opacity: 0.3; transition: opacity 0.5s; animation: spin 10s linear infinite; animation-play-state: paused; z-index: 3; pointer-events: none; }
         #album-art.active { opacity: 0.8; animation-play-state: running; }
 
-        .display-content { position: relative; z-index: 2; padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .info-header { display: flex; justify-content: space-between; margin-bottom: 10px; height: 35px; flex-shrink: 0; }
-        .track-marquee { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid #223344; border-radius: 4px; margin-right: 10px; position: relative; overflow: hidden; display: flex; align-items: center; }
+        /* TV Screen (Para quando o áudio falhar e precisar do vídeo) */
+        #tv-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+        #tv-screen.active { opacity: 1; pointer-events: all; }
+        #yt-player-placeholder { width: 100%; height: 100%; object-fit: cover; }
+
+        .display-content { position: relative; z-index: 4; padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; } /* Deixa clicar no video abaixo */
+        .info-header { display: flex; justify-content: space-between; margin-bottom: 10px; height: 35px; flex-shrink: 0; pointer-events: all; }
+        
+        .track-marquee { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid #223344; border-radius: 4px; margin-right: 10px; position: relative; overflow: hidden; display: flex; align-items: center; backdrop-filter: blur(2px); }
         .marquee-text { font-family: 'VT323', monospace; font-size: 20px; color: #aaddff; white-space: nowrap; position: absolute; animation: marquee 15s linear infinite; padding-left: 100%; }
-        .timer { font-family: 'VT323', monospace; font-size: 42px; color: #00ccff; text-shadow: 0 0 8px rgba(0,200,255,0.8); line-height: 0.8; min-width: 80px; text-align: right; }
-        .visualizer-wrapper { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid #223344; border-radius: 4px; position: relative; overflow: hidden; min-height: 50px; }
-        canvas { display: block; width: 100%; height: 100%; }
+        .timer { font-family: 'VT323', monospace; font-size: 42px; color: #00ccff; text-shadow: 0 0 8px rgba(0,200,255,0.8); line-height: 0.8; min-width: 80px; text-align: right; background: rgba(0,0,0,0.3); border-radius: 4px; }
+        
+        .visualizer-wrapper { flex: 1; position: relative; overflow: hidden; min-height: 50px; pointer-events: none; }
+        canvas { display: block; width: 100%; height: 100%; opacity: 0.8; }
         .ready-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323', monospace; color: #005588; font-size: 24px; letter-spacing: 4px; animation: pulse 2s infinite; }
 
-        /* --- MODAL BUSCA --- */
-        #search-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10; display: none; flex-direction: column; padding: 15px; backdrop-filter: blur(5px); }
+        /* MODAL BUSCA */
+        #search-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20; display: none; flex-direction: column; padding: 10px; backdrop-filter: blur(5px); }
         #search-modal.active { display: flex; }
+        
         .search-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00ff00; padding-bottom: 5px; margin-bottom: 10px; }
         .search-title { font-family: 'VT323'; color: #00ff00; font-size: 24px; }
-        .search-input-group { display: flex; gap: 5px; margin-bottom: 10px; }
-        #search-input { flex: 1; background: #111; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 18px; padding: 8px; outline: none; }
-        .retro-btn { background: #003300; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 18px; padding: 0 15px; cursor: pointer; }
-        #search-results { flex: 1; overflow-y: auto; border: 1px solid #004400; background: #050505; padding: 5px; }
-        .result-item { display: flex; align-items: center; padding: 6px; border-bottom: 1px solid #003300; cursor: pointer; font-family: 'VT323'; color: #aaa; }
-        .result-item:hover { background: #002200; color: #fff; }
-        .result-item img { width: 40px; height: 40px; margin-right: 10px; border: 1px solid #333; object-fit: cover; }
-        .result-info { display: flex; flex-direction: column; overflow: hidden; }
-        .result-title { font-size: 16px; color: #00ff00; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .result-meta { font-size: 12px; color: #008800; }
+        
+        /* Source Toggles */
+        .source-toggle { display: flex; gap: 5px; margin-bottom: 10px; justify-content: center; }
+        .source-btn { background: #111; border: 1px solid #444; color: #666; font-family: 'VT323'; padding: 2px 8px; cursor: pointer; font-size: 14px; }
+        .source-btn.active { border-color: #00ff00; color: #00ff00; background: #002200; }
 
-        /* --- CONTROLES --- */
-        #controls-section { background-color: #d4d4d4; padding: 10px 10px 15px 10px; border-top: 1px solid #999; box-shadow: 0 -4px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; z-index: 5; }
-        .seek-container { position: relative; width: 100%; height: 20px; display: flex; align-items: center; }
-        .progress-fill { position: absolute; top: 50%; left: 0; transform: translateY(-50%); height: 6px; background: linear-gradient(to right, #003366, #00aaff); border-radius: 4px; pointer-events: none; width: 0%; z-index: 1; }
+        .search-input-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        #search-input { flex: 1; background: #111; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 20px; padding: 8px; outline: none; text-transform: uppercase; }
+        .retro-btn { background: #003300; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 20px; padding: 0 15px; cursor: pointer; }
+        
+        #search-results { flex: 1; overflow-y: auto; border: 1px solid #004400; background: #050505; padding: 5px; margin-bottom: 5px; }
+        .result-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #003300; cursor: pointer; font-family: 'VT323'; color: #aaa; transition: background 0.2s; }
+        .result-item:hover { background: #002200; color: #fff; }
+        .result-icon { font-size: 18px; margin-right: 10px; width: 24px; text-align: center; }
+        .result-info { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+        .result-title { font-size: 18px; color: #00ff00; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-meta { font-size: 12px; color: #008800; display: flex; justify-content: space-between; }
+        
+        /* Debug Console Mini */
+        #console-line { height: 20px; font-family: 'Courier New'; font-size: 10px; color: #00aa00; white-space: nowrap; overflow: hidden; border-top: 1px solid #003300; line-height: 20px; padding: 0 5px; }
+
+        /* CONTROLES */
+        #controls-section { background-color: #d4d4d4; padding: 10px 5px; border-top: 1px solid #999; box-shadow: 0 -4px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; z-index: 10; }
+        
+        /* Seek */
+        .seek-container { position: relative; width: 100%; height: 20px; display: flex; align-items: center; padding: 0 10px; }
+        .progress-fill { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); height: 6px; background: linear-gradient(to right, #003366, #00aaff); border-radius: 4px; pointer-events: none; width: 0%; z-index: 1; max-width: calc(100% - 20px); }
         input[type=range].seek-slider { -webkit-appearance: none; width: 100%; background: transparent; position: relative; z-index: 2; }
         input[type=range].seek-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: linear-gradient(to bottom, #eee, #999); border: 1px solid #555; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         input[type=range].seek-slider::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #222; border-radius: 4px; border-bottom: 1px solid #555; }
 
-        .buttons-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 60px; position: relative; }
+        /* Botões */
+        .buttons-row { display: flex; justify-content: space-between; align-items: center; width: 100%; height: 50px; position: relative; padding: 0 10px; }
         .side-tool { display: flex; flex-direction: column; align-items: center; width: 50px; flex-shrink: 0; }
-        .main-controls { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; }
-        .play-group { display: flex; align-items: center; gap: 8px; background: #ccc; padding: 5px 10px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.5); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); }
+        .main-controls { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; }
+        .play-group { display: flex; align-items: center; gap: 5px; background: #ccc; padding: 4px 8px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.5); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); }
         
-        .volume-row { display: flex; align-items: center; justify-content: center; gap: 10px; background: #ccc; padding: 8px 15px; border-radius: 20px; border: 1px solid #fff; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2); width: 100%; max-width: 400px; margin: 0 auto; }
+        .volume-row { display: flex; align-items: center; justify-content: center; gap: 10px; background: #ccc; padding: 5px 15px; border-radius: 20px; border: 1px solid #fff; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2); width: 100%; max-width: 400px; margin: 0 auto; }
         input[type=range].vol-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #666; border-radius: 3px; outline: none; }
         input[type=range].vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #888; box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 
-        .metal-btn { border: none; outline: none; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 50%; background: linear-gradient(135deg, #f0f0f0, #d0d0d0, #a0a0a0); box-shadow: 3px 3px 6px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.8); cursor: pointer; }
+        .metal-btn { border: none; outline: none; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 50%; background: linear-gradient(135deg, #f0f0f0, #d0d0d0, #a0a0a0); box-shadow: 2px 2px 4px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.8); cursor: pointer; }
         .metal-btn:active { box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4); transform: translateY(1px); }
         .metal-btn-inner { position: absolute; inset: 4px; border-radius: 50%; background: linear-gradient(-45deg, #e0e0e0, #c0c0c0); box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); pointer-events: none; }
-        .metal-btn.active::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 15px rgba(0,150,255,0.8); border: 2px solid #00aaff; opacity: 0.6; pointer-events: none; }
         .btn-icon { position: relative; z-index: 2; width: 50%; height: 50%; fill: #444; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8)); }
         
-        .size-sm { width: 32px; height: 32px; }
-        .size-md { width: 40px; height: 40px; }
-        .size-lg { width: 56px; height: 56px; }
-        .label-text { font-size: 10px; font-weight: bold; color: #555; margin-top: 2px; }
+        .size-sm { width: 30px; height: 30px; }
+        .size-md { width: 38px; height: 38px; }
+        .size-lg { width: 50px; height: 50px; }
+        .label-text { font-size: 9px; font-weight: bold; color: #555; margin-top: 2px; }
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
         @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-
-        /* Loader */
-        .loader { width: 20px; height: 20px; border: 3px solid #00ff00; border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
 
         @media (orientation: landscape) and (max-height: 500px) {
             #display-section { margin: 4px 4px 0 4px; }
@@ -105,33 +114,42 @@
     <div class="bg-texture"></div>
 
     <div id="app-container">
-        <!-- DISPLAY -->
         <div id="display-section">
             <div class="lcd-bg"></div>
-            <!-- Arte do Álbum (Gira como vinil) -->
             <div id="album-art"></div>
+            
+            <!-- FALLBACK VIDEO LAYER -->
+            <div id="tv-screen"><div id="yt-player-placeholder"></div></div>
 
             <!-- MODAL BUSCA -->
             <div id="search-modal">
                 <div class="search-header">
-                    <div class="search-title">AUDIO NET SEARCH</div>
+                    <div class="search-title">OMNI SEARCH</div>
                     <button class="retro-btn" id="btn-close-search">X</button>
                 </div>
+                
+                <div class="source-toggle">
+                    <div class="source-btn active" id="src-archive">ARCHIVE.ORG (MP3)</div>
+                    <div class="source-btn" id="src-youtube">YOUTUBE (STREAM)</div>
+                </div>
+
                 <div class="search-input-group">
                     <input type="text" id="search-input" placeholder="ARTIST OR SONG...">
                     <button class="retro-btn" id="btn-go-search">GO</button>
                 </div>
+                
                 <div id="search-results">
-                    <div style="color:#008800; font-family:VT323; padding:20px; text-align:center">
-                        SYSTEM ONLINE. READY TO SEARCH.
+                    <div style="color:#008800; font-family:VT323; padding:10px; text-align:center">
+                        SELECT SOURCE ABOVE AND SEARCH.
                     </div>
                 </div>
+                <div id="console-line">READY.</div>
             </div>
 
             <div class="display-content">
                 <div class="info-header">
                     <div class="track-marquee">
-                        <div class="marquee-text" id="track-name">READY TO PLAY *** STREAM EDITION ***</div>
+                        <div class="marquee-text" id="track-name">READY TO PLAY *** SELECT SOURCE ***</div>
                     </div>
                     <div class="timer" id="timer">00:00</div>
                 </div>
@@ -143,7 +161,6 @@
             </div>
         </div>
 
-        <!-- CONTROLES -->
         <div id="controls-section">
             <div class="seek-container">
                 <div class="progress-fill" id="progress-fill"></div>
@@ -188,11 +205,20 @@
     <input type="file" id="file-input" accept="audio/*, .mp3, .wav, .ogg" style="display: none;">
 
     <script>
-        // --- MOTOR DE ÁUDIO NATIVO ---
-        const audio = new Audio();
-        audio.crossOrigin = "anonymous";
-        let audioCtx, analyser, source, gainNode;
+        // --- LOGGING ---
+        function log(msg) {
+            document.getElementById('console-line').innerText = `> ${msg}`;
+            console.log(msg);
+        }
+
+        // --- ESTADO ---
+        let currentMode = 'AUDIO'; // AUDIO | YOUTUBE
+        let searchSource = 'archive'; // archive | youtube
         let isPlaying = false, animationId;
+        let ytPlayer = null, ytReady = false;
+        
+        const audio = new Audio(); audio.crossOrigin = "anonymous";
+        let audioCtx, analyser, source, gainNode;
 
         const els = {
             play: document.getElementById('btn-play'),
@@ -207,209 +233,331 @@
             canvas: document.getElementById('vis-canvas'),
             visWrapper: document.getElementById('vis-wrapper'),
             album: document.getElementById('album-art'),
+            tv: document.getElementById('tv-screen'),
             searchModal: document.getElementById('search-modal'),
             searchInput: document.getElementById('search-input'),
             searchResults: document.getElementById('search-results')
         };
         const ctx = els.canvas.getContext('2d');
 
-        // --- LISTA DE SERVIDORES PIPED (Para Busca e Streaming) ---
-        // A chave aqui é ter VÁRIOS. Se um falhar, tentamos o próximo.
-        const pipedInstances = [
-            "https://pipedapi.kavin.rocks",
-            "https://api.piped.privacy.com.de",
-            "https://pipedapi.drgns.space",
-            "https://pa.il.ax",
-            "https://piped-api.lunar.icu",
-            "https://api.piped.projectsegfau.lt",
-            "https://pipedapi.moomoo.me"
-        ];
+        // --- YOUTUBE API (Fallback Indestrutível) ---
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('yt-player-placeholder', {
+                height: '100%', width: '100%',
+                playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1, 'iv_load_policy': 3 },
+                events: { 'onReady': () => { ytReady = true; }, 'onStateChange': onPlayerStateChange }
+            });
+        }
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) { 
+                updatePlayState(true); 
+                startFakeVisualizer(); 
+                // Assegura que a TV esteja visível se estamos no modo YouTube
+                if (currentMode === 'YOUTUBE') els.tv.classList.add('active');
+            } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) { 
+                updatePlayState(false); 
+            }
+        }
 
-        // --- FUNÇÕES DE BUSCA E STREAM ---
-        
-        async function performSearch() {
-            const query = els.searchInput.value;
-            if (!query) return;
-            els.searchResults.innerHTML = '<div style="color:#00ff00; font-family:VT323; padding:20px; text-align:center"><div class="loader"></div><br>SCANNING SERVERS...</div>';
+        // --- SEARCH: INTERNET ARCHIVE (MP3 REAL) ---
+        async function searchArchive(query) {
+            els.searchResults.innerHTML = '<div style="color:#00ff00;text-align:center;font-family:VT323">SEARCHING ARCHIVE.ORG...</div>';
+            log("Conectando ao Internet Archive...");
+            
+            try {
+                // Busca apenas itens de áudio (MP3)
+                const q = `mediaType:audio AND format:MP3 AND title:(${encodeURIComponent(query)})`;
+                const url = `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier,title,creator&sort[]=downloads+desc&rows=20&page=1&output=json`;
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.response.docs.length === 0) {
+                    els.searchResults.innerHTML = '<div style="color:red;text-align:center;font-family:VT323">NO MP3 FOUND. TRY YOUTUBE MODE.</div>';
+                    return;
+                }
 
-            // Embaralha para balancear
-            const servers = [...pipedInstances].sort(() => 0.5 - Math.random());
+                els.searchResults.innerHTML = '';
+                data.response.docs.forEach(doc => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    div.innerHTML = `
+                        <div class="result-icon">💾</div>
+                        <div class="result-info">
+                            <span class="result-title">${doc.title}</span>
+                            <span class="result-meta">${doc.creator || 'Unknown'}</span>
+                        </div>
+                    `;
+                    div.onclick = () => loadArchiveMp3(doc.identifier, doc.title);
+                    els.searchResults.appendChild(div);
+                });
+                log("Resultados MP3 carregados.");
 
-            for (let i = 0; i < servers.length; i++) {
-                const api = servers[i];
+            } catch (e) {
+                els.searchResults.innerHTML = '<div style="color:red;text-align:center;font-family:VT323">ARCHIVE ERROR.</div>';
+            }
+        }
+
+        async function loadArchiveMp3(id, title) {
+            log("Resolvendo arquivo MP3...");
+            try {
+                // Pega metadados para achar o arquivo .mp3 específico
+                const metaRes = await fetch(`https://archive.org/metadata/${id}`);
+                const meta = await metaRes.json();
+                
+                // Acha o primeiro arquivo mp3
+                const mp3File = meta.files.find(f => f.name.endsWith('.mp3'));
+                if (!mp3File) throw new Error("No MP3 file inside item");
+
+                const streamUrl = `https://archive.org/download/${id}/${mp3File.name}`;
+                const thumb = meta.metadata.image ? `https://archive.org/services/img/${id}` : ''; // Capa se houver
+
+                // Toca!
+                audio.pause();
+                if (ytReady) ytPlayer.stopVideo();
+                els.tv.classList.remove('active');
+                els.searchModal.classList.remove('active');
+                
+                if(thumb) els.album.style.backgroundImage = `url('${thumb}')`;
+                else els.album.style.backgroundImage = 'none';
+                
+                playAudioUrl(streamUrl, title, false);
+
+            } catch (e) {
+                alert("Erro ao carregar MP3: " + e.message);
+            }
+        }
+
+        // --- SEARCH: YOUTUBE (VIA PROXY) ---
+        async function searchYoutube(query) {
+            els.searchResults.innerHTML = '<div style="color:#00ff00;text-align:center;font-family:VT323">SEARCHING YOUTUBE INDEX...</div>';
+            log("Consultando YouTube...");
+
+            // Usa Piped API via proxy corsproxy.io para máxima compatibilidade
+            const api = "https://pipedapi.kavin.rocks"; 
+            // Fallback APIs
+            const apis = [
+                "https://pipedapi.kavin.rocks",
+                "https://api.piped.privacy.com.de",
+                "https://pipedapi.drgns.space"
+            ];
+
+            for (let api of apis) {
                 try {
-                    // Tenta buscar
-                    const res = await fetchWithTimeout(`${api}/search?q=${encodeURIComponent(query)}&filter=music_songs`, 4000);
+                    // Tenta busca direta primeiro (Piped geralmente tem CORS)
+                    const res = await fetch(`${api}/search?q=${encodeURIComponent(query)}&filter=music_songs`);
                     const data = await res.json();
                     
                     if (data.items && data.items.length > 0) {
-                        renderResults(data.items, api); // Passa a API que funcionou para usar no stream depois
+                        renderYoutubeResults(data.items);
                         return;
                     }
-                } catch (e) {
-                    console.log(`Server ${api} failed, skipping...`);
-                }
+                } catch (e) { console.log("API Fail", api); }
             }
-            els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">NET BUSY. TRY AGAIN.</div>';
+            
+            els.searchResults.innerHTML = '<div style="color:red;text-align:center;font-family:VT323">ALL SERVERS BUSY. TRY ARCHIVE.ORG.</div>';
         }
 
-        function renderResults(items, workingApi) {
+        function renderYoutubeResults(items) {
             els.searchResults.innerHTML = '';
             items.forEach(item => {
                 const id = item.url.split("v=")[1];
                 if(!id) return;
                 const div = document.createElement('div');
                 div.className = 'result-item';
-                div.innerHTML = `<img src="${item.thumbnail}"><div class="result-info"><span class="result-title">${item.title}</span><span class="result-meta">${item.uploaderName}</span></div>`;
-                // Ao clicar, chamamos a função que extrai o stream usando a API que sabemos que funciona
-                div.onclick = () => loadStream(id, item.title, item.thumbnail, workingApi);
+                div.innerHTML = `
+                    <div class="result-icon">📺</div>
+                    <div class="result-info">
+                        <span class="result-title">${item.title}</span>
+                        <span class="result-meta">${item.uploaderName}</span>
+                    </div>
+                `;
+                // Ao clicar, tenta extrair áudio, se falhar, vai pro vídeo
+                div.onclick = () => loadYoutubeStrategy(id, item.title, item.thumbnail);
                 els.searchResults.appendChild(div);
             });
+            log("Resultados YouTube carregados.");
         }
 
-        // --- O PULO DO GATO: STREAM HIJACK ---
-        async function loadStream(id, title, thumb, preferredApi) {
+        // --- ESTRATÉGIA HÍBRIDA YOUTUBE ---
+        async function loadYoutubeStrategy(id, title, thumb) {
             audio.pause();
-            els.marquee.innerText = "BUFFERING DATA...";
             els.searchModal.classList.remove('active');
+            els.marquee.innerText = "LOADING...";
             
-            // Define arte do álbum
-            els.album.style.backgroundImage = `url('${thumb}')`;
+            // Configura visual
+            if(thumb) els.album.style.backgroundImage = `url('${thumb}')`;
             els.album.classList.remove('active');
 
-            // Tenta pegar o link direto do áudio
-            const servers = [preferredApi, ...pipedInstances.filter(s => s !== preferredApi)];
-            
-            for (let i = 0; i < servers.length; i++) {
-                const api = servers[i];
+            // 1. Tenta extrair áudio MP4/M4A (Stream)
+            log("Tentando extrair áudio...");
+            const apis = [
+                "https://pipedapi.kavin.rocks",
+                "https://api.piped.privacy.com.de"
+            ];
+
+            let streamUrl = null;
+            for (let api of apis) {
                 try {
-                    console.log(`Fetching stream from ${api}`);
-                    const res = await fetchWithTimeout(`${api}/streams/${id}`, 5000);
+                    const res = await fetch(`${api}/streams/${id}`);
                     const data = await res.json();
-                    
-                    // Procura streams de áudio
-                    const audioStreams = data.audioStreams;
-                    if (audioStreams && audioStreams.length > 0) {
-                        // Pega o de melhor qualidade (m4a geralmente é melhor suportado que webm audio only em alguns browsers, ou mp3)
-                        // Vamos tentar achar um mp4/m4a primeiro
-                        let stream = audioStreams.find(s => s.mimeType.includes("mp4")) || audioStreams[0];
-                        
-                        // SUCESSO!
-                        playAudioUrl(stream.url, title);
-                        return;
+                    if (data.audioStreams && data.audioStreams.length > 0) {
+                        streamUrl = data.audioStreams.find(s => s.mimeType.includes("mp4"))?.url || data.audioStreams[0].url;
+                        break;
                     }
-                } catch (e) {
-                    console.log(`Stream fetch failed on ${api}`);
+                } catch(e){}
+            }
+
+            if (streamUrl) {
+                // Sucesso: Toca como áudio puro
+                log("Stream OK. Modo Áudio.");
+                els.tv.classList.remove('active'); // Esconde TV
+                playAudioUrl(streamUrl, title, false);
+            } else {
+                // Falha: Fallback para YouTube Player (Modo TV)
+                log("Stream falhou. Modo TV (Embed).");
+                currentMode = 'YOUTUBE';
+                els.marquee.innerText = title.toUpperCase() + " *** VIDEO MODE ***";
+                els.tv.classList.add('active'); // Mostra TV
+                els.album.style.backgroundImage = 'none'; // Tira arte para ver o vídeo
+                
+                if (ytReady) {
+                    ytPlayer.loadVideoById(id);
+                } else {
+                    alert("Player YouTube ainda carregando...");
                 }
             }
-            els.marquee.innerText = "STREAM ERROR. TRY ANOTHER SONG.";
         }
 
-        function playAudioUrl(url, title) {
+        // --- CORE PLAYBACK ---
+        function playAudioUrl(url, title, isPreview) {
+            currentMode = 'AUDIO';
             if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
             audio.src = url;
             audio.load();
+            els.marquee.innerText = title.toUpperCase();
             
-            els.marquee.innerText = title.toUpperCase() + " *** NET AUDIO ***";
             initAudioContext();
-            
-            audio.play().then(() => {
-                updatePlayState(true);
-            }).catch(e => {
-                console.error("Play error", e);
-                els.marquee.innerText = "PLAYBACK BLOCKED. PRESS PLAY.";
+            audio.play().then(() => updatePlayState(true)).catch(e => {
+                log("Autoplay bloqueado. Clique Play.");
+                els.marquee.innerText = "TAP PLAY TO START";
             });
         }
 
-        function fetchWithTimeout(url, ms) {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), ms);
-            return fetch(url, { signal: controller.signal }).then(r => {
-                clearTimeout(id);
-                return r;
-            });
+        // --- UI LOGIC ---
+        document.getElementById('src-archive').onclick = () => setSource('archive');
+        document.getElementById('src-youtube').onclick = () => setSource('youtube');
+
+        function setSource(src) {
+            searchSource = src;
+            document.getElementById('src-archive').classList.toggle('active', src === 'archive');
+            document.getElementById('src-youtube').classList.toggle('active', src === 'youtube');
+            document.getElementById('search-input').placeholder = src === 'archive' ? 'SEARCH MP3 LIBRARY...' : 'SEARCH YOUTUBE...';
         }
 
-        // --- CONTROLES & VISUAL ---
-        function updatePlayState(playing) {
-            isPlaying = playing;
-            if (playing) {
-                els.play.classList.add('active'); els.pause.classList.remove('active');
-                els.ready.style.display = 'none';
-                els.album.classList.add('active');
-                renderFrame();
-            } else {
-                els.play.classList.remove('active');
-                els.pause.classList.add('active'); // Mantém pause aceso se pausado
-                els.album.classList.remove('active');
-                cancelAnimationFrame(animationId);
-                // Não limpa o canvas para efeito de "pause"
-            }
+        function triggerSearch() {
+            const q = els.searchInput.value;
+            if(!q) return;
+            if (searchSource === 'archive') searchArchive(q);
+            else searchYoutube(q);
         }
 
         // Listeners
-        els.play.addEventListener('click', () => { initAudioContext(); audio.play().then(()=>updatePlayState(true)); });
-        els.pause.addEventListener('click', () => { audio.pause(); updatePlayState(false); });
-        els.stop.addEventListener('click', () => { audio.pause(); audio.currentTime=0; updatePlayState(false); els.pause.classList.remove('active'); els.ready.style.display='block'; els.seek.value=0; els.fill.style.width='0%'; });
-        
-        els.seek.addEventListener('input', (e) => { audio.currentTime = e.target.value; updateSeekUI(); });
-        els.vol.addEventListener('input', (e) => { audio.volume = e.target.value; if(gainNode) gainNode.gain.value = e.target.value; });
-        
-        // Search & Load UI
-        document.getElementById('btn-open-search').addEventListener('click', () => { els.searchModal.classList.add('active'); els.searchInput.focus(); });
-        document.getElementById('btn-close-search').addEventListener('click', () => els.searchModal.classList.remove('active'));
-        document.getElementById('btn-go-search').addEventListener('click', performSearch);
-        els.searchInput.addEventListener('keypress', (e) => { if(e.key==='Enter') performSearch(); });
-        
-        // Local Upload
-        document.getElementById('btn-upload').addEventListener('click', () => document.getElementById('file-input').click());
-        document.getElementById('file-input').addEventListener('change', (e) => {
-            const f = e.target.files[0]; if(!f)return;
-            if(audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
-            audio.src = URL.createObjectURL(f);
-            els.marquee.innerText = f.name.toUpperCase() + " *** LOCAL ***";
-            els.album.style.backgroundImage = 'none'; // Reseta album art
-            initAudioContext();
-            audio.play().then(()=>updatePlayState(true));
-            e.target.value='';
-        });
+        document.getElementById('btn-open-search').onclick = () => els.searchModal.classList.add('active');
+        document.getElementById('btn-close-search').onclick = () => els.searchModal.classList.remove('active');
+        document.getElementById('btn-go-search').onclick = triggerSearch;
+        els.searchInput.onkeypress = (e) => { if(e.key==='Enter') triggerSearch(); };
 
-        // Time Update
-        audio.addEventListener('timeupdate', () => {
-            if(!audio.duration) return;
-            els.seek.max = audio.duration;
-            els.seek.value = audio.currentTime;
-            const pct = (audio.currentTime / audio.duration) * 100;
-            els.fill.style.width = pct + '%';
-            const m = Math.floor(audio.currentTime / 60);
-            const s = Math.floor(audio.currentTime % 60);
-            els.timer.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-        });
-        
-        audio.addEventListener('ended', () => { updatePlayState(false); els.pause.classList.remove('active'); });
+        document.getElementById('btn-upload').onclick = () => document.getElementById('file-input').click();
+        document.getElementById('file-input').onchange = (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            playAudioUrl(URL.createObjectURL(f), f.name, false);
+            els.album.style.backgroundImage = 'none';
+            els.tv.classList.remove('active');
+            if(ytReady) ytPlayer.stopVideo();
+            e.target.value = '';
+        };
 
-        // --- VISUALIZADOR REAL ---
+        // Controls
+        els.play.onclick = () => { 
+            if(currentMode==='AUDIO'){ initAudioContext(); audio.play(); } 
+            else if(ytReady) ytPlayer.playVideo(); 
+        };
+        els.pause.onclick = () => { 
+            if(currentMode==='AUDIO') audio.pause(); 
+            else if(ytReady) ytPlayer.pauseVideo(); 
+        };
+        els.stop.onclick = () => { 
+            audio.pause(); audio.currentTime=0; 
+            if(ytReady) ytPlayer.stopVideo(); 
+            els.tv.classList.remove('active');
+            updatePlayState(false);
+        };
+
+        els.seek.oninput = (e) => {
+            const v = parseFloat(e.target.value);
+            if(currentMode==='AUDIO') audio.currentTime = v;
+            else if(ytReady) ytPlayer.seekTo(v);
+        };
+        els.vol.oninput = (e) => {
+            const v = parseFloat(e.target.value);
+            audio.volume = v;
+            if(gainNode) gainNode.gain.value = v;
+            if(ytReady) ytPlayer.setVolume(v*100);
+        };
+
+        // Time Loop
+        setInterval(() => {
+            if(!isPlaying) return;
+            let c=0, d=0;
+            if(currentMode==='AUDIO') { c=audio.currentTime; d=audio.duration; }
+            else if(ytReady && ytPlayer.getCurrentTime) { c=ytPlayer.getCurrentTime(); d=ytPlayer.getDuration(); }
+            
+            if(d>0) {
+                els.seek.max = d; els.seek.value = c;
+                els.fill.style.width = ((c/d)*100)+'%';
+                const m = Math.floor(c/60); const s = Math.floor(c%60);
+                els.timer.innerText = `${m}:${s.toString().padStart(2,'0')}`;
+            }
+        }, 500);
+
+        audio.onended = () => updatePlayState(false);
+
+        function updatePlayState(playing) {
+            isPlaying = playing;
+            if(playing) {
+                els.play.classList.add('active'); els.pause.classList.remove('active');
+                els.ready.style.display = 'none'; 
+                if(currentMode==='AUDIO') {
+                    els.album.classList.add('active');
+                    renderFrame();
+                }
+            } else {
+                els.play.classList.remove('active'); els.pause.classList.add('active');
+                els.album.classList.remove('active'); cancelAnimationFrame(animationId);
+            }
+        }
+
+        // --- VISUALIZADOR ---
         function initAudioContext() {
             if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext; audioCtx = new AudioContext();
+                const AC = window.AudioContext || window.webkitAudioContext; audioCtx = new AC();
                 analyser = audioCtx.createAnalyser(); analyser.fftSize = 256; 
                 source = audioCtx.createMediaElementSource(audio); gainNode = audioCtx.createGain();
                 source.connect(analyser); analyser.connect(gainNode); gainNode.connect(audioCtx.destination);
                 gainNode.gain.value = els.vol.value;
             } else if (audioCtx.state === 'suspended') audioCtx.resume();
         }
-
+        
         new ResizeObserver(entries => { for(let e of entries) if(e.contentRect.width>0){els.canvas.width=e.contentRect.width;els.canvas.height=e.contentRect.height;} }).observe(els.visWrapper);
 
         function renderFrame() {
-            if (!isPlaying) return;
+            if(!isPlaying || currentMode!=='AUDIO') return;
             animationId = requestAnimationFrame(renderFrame);
-            const w = els.canvas.width, h = els.canvas.height;
-            if(w===0) return;
-            const buf = analyser.frequencyBinCount, data = new Uint8Array(buf);
+            const w=els.canvas.width, h=els.canvas.height; if(w===0)return;
+            const data = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(data);
             ctx.clearRect(0, 0, w, h);
-            
             const count = Math.floor(w/6), width = (w/count)*0.8, gap = (w/count)*0.2, step = data.length/count;
             for(let i=0; i<count; i++) {
                 const val = data[Math.floor(i*step)];
@@ -418,9 +566,28 @@
                     const grad = ctx.createLinearGradient(0, h-bh, 0, h);
                     grad.addColorStop(0,'#fff'); grad.addColorStop(0.3,'#0ff'); grad.addColorStop(1,'#03c');
                     ctx.fillStyle = grad; ctx.fillRect(i*(width+gap), h-bh, width, bh);
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(i*(width+gap), h-bh-4, width, 2);
                 }
             }
+        }
+
+        function startFakeVisualizer() {
+            if(currentMode!=='YOUTUBE' || !isPlaying) return;
+            const loop = () => {
+                if(!isPlaying || currentMode!=='YOUTUBE') return;
+                animationId = requestAnimationFrame(loop);
+                const w=els.canvas.width, h=els.canvas.height; if(w===0)return;
+                const data = new Uint8Array(128); const t = Date.now()/200;
+                for(let i=0; i<128; i++) data[i] = Math.sin(i*0.1+t)*100 + Math.cos(i*0.5-t)*50 + 50;
+                ctx.clearRect(0, 0, w, h);
+                const count = Math.floor(w/6), width = (w/count)*0.8, gap = (w/count)*0.2, step = data.length/count;
+                for(let i=0; i<count; i++) {
+                    const val = data[Math.floor(i*step)];
+                    const bh = (val/255)*h;
+                    const grad = ctx.createLinearGradient(0, h-bh, 0, h);
+                    grad.addColorStop(0,'#fff'); grad.addColorStop(0.5,'#f00'); grad.addColorStop(1,'#500');
+                    ctx.fillStyle = grad; ctx.fillRect(i*(width+gap), h-bh, width, bh);
+                }
+            }; loop();
         }
     </script>
 </body>
