@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Retro Audio Station</title>
+    <title>Retro Audio Station - Network Edition</title>
     <style>
         /* --- FONTES & RESET --- */
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
@@ -21,7 +21,7 @@
             height: 100%;
             background-color: #d4d4d4;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; /* Previne scroll da página inteira */
+            overflow: hidden;
         }
 
         /* Container Principal */
@@ -43,9 +43,9 @@
             z-index: 0;
         }
 
-        /* --- DISPLAY SUPERIOR (Ocupa o espaço restante) --- */
+        /* --- DISPLAY SUPERIOR --- */
         #display-section {
-            flex: 1; /* Cresce para ocupar tudo */
+            flex: 1;
             background-color: #111;
             margin: 8px 8px 0 8px;
             border: 4px solid #555;
@@ -55,7 +55,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            min-height: 0; /* Crítico para layout flex funcionar bem */
+            min-height: 0;
         }
 
         /* Efeitos LCD */
@@ -123,7 +123,7 @@
 
         /* Container do Visualizador */
         .visualizer-wrapper {
-            flex: 1; /* Ocupa o resto da altura do display */
+            flex: 1;
             background: rgba(0,0,0,0.6);
             border: 1px solid #223344;
             border-radius: 4px;
@@ -157,7 +157,104 @@
             animation: pulse 2s infinite;
         }
 
-        /* --- SEÇÃO DE CONTROLES (Inferior Fixa) --- */
+        /* --- MODAL DE BUSCA (Estilo Retro) --- */
+        #search-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 10;
+            display: none; /* Oculto por padrão */
+            flex-direction: column;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        #search-modal.active { display: flex; }
+
+        .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-title {
+            font-family: 'VT323', monospace;
+            color: #00ff00;
+            font-size: 28px;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        #search-input {
+            flex: 1;
+            background: #111;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            padding: 10px;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        #search-input::placeholder { color: #005500; }
+
+        .retro-btn {
+            background: #003300;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            padding: 0 20px;
+            cursor: pointer;
+            text-shadow: 0 0 2px #00ff00;
+        }
+        .retro-btn:active { background: #00ff00; color: #000; }
+
+        #search-results {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #004400;
+            background: #050505;
+            padding: 5px;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #003300;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            color: #aaa;
+            transition: all 0.2s;
+        }
+        .result-item:hover {
+            background: #002200;
+            color: #fff;
+            padding-left: 12px;
+        }
+        .result-item img {
+            width: 40px; height: 40px;
+            margin-right: 10px;
+            border: 1px solid #333;
+        }
+        .result-info {
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .result-title { font-size: 18px; color: #00ff00; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-artist { font-size: 14px; color: #008800; }
+
+        /* --- SEÇÃO DE CONTROLES --- */
         #controls-section {
             background-color: #d4d4d4;
             padding: 10px 15px 15px 15px;
@@ -166,11 +263,11 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            flex-shrink: 0; /* Não deixa espremer */
+            flex-shrink: 0;
             z-index: 5;
         }
 
-        /* Barra de Busca (Seek) */
+        /* Seek Bar */
         .seek-container {
             position: relative;
             width: 100%;
@@ -216,7 +313,7 @@
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
         }
 
-        /* Linha de Botões */
+        /* Botões Layout */
         .buttons-row {
             display: flex;
             justify-content: center;
@@ -225,7 +322,6 @@
             height: 60px;
         }
 
-        /* Agrupamento Central */
         .main-controls {
             display: flex;
             align-items: center;
@@ -243,18 +339,23 @@
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
         }
 
-        /* Botão Load à Direita Absoluta */
-        .load-wrapper {
+        /* Ferramentas (Direita) */
+        .tools-wrapper {
             position: absolute;
             right: 0;
             top: 50%;
             transform: translateY(-50%);
             display: flex;
+            gap: 10px;
+        }
+
+        .tool-btn-container {
+            display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* Linha de Volume (Separada abaixo) */
+        /* Volume Row */
         .volume-row {
             display: flex;
             align-items: center;
@@ -266,7 +367,7 @@
             border: 1px solid #fff;
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
             width: 100%;
-            max-width: 400px; /* Limita largura em telas grandes */
+            max-width: 400px;
             margin: 0 auto;
         }
 
@@ -286,7 +387,7 @@
             box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        /* Estilos de Botão */
+        /* Estilos de Botão Metálico */
         .metal-btn {
             border: none; outline: none;
             position: relative;
@@ -329,8 +430,18 @@
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(100vh); } }
 
-        /* Ajustes para Paisagem (Mobile) */
+        /* Scanline para o Modal */
+        .scanline {
+            position: fixed; left: 0; top: 0; width: 100%; height: 5px;
+            background: rgba(0, 255, 0, 0.3);
+            opacity: 0.5;
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+        }
+
+        /* Responsividade Paisagem */
         @media (orientation: landscape) and (max-height: 500px) {
             #display-section { margin: 4px 4px 0 4px; }
             #controls-section { padding: 5px 10px 5px 10px; gap: 5px; }
@@ -342,7 +453,8 @@
             .size-md { width: 38px; height: 38px; }
             .size-sm { width: 30px; height: 30px; }
             .volume-row { padding: 4px 10px; max-width: 300px; }
-            .label-text { display: none; } /* Esconde texto LOAD em paisagem pra economizar espaço vertical */
+            .label-text { display: none; }
+            #search-modal { padding: 10px; }
         }
     </style>
 </head>
@@ -351,17 +463,37 @@
 
     <div id="app-container">
         
-        <!-- DISPLAY -->
+        <!-- DISPLAY SECTION -->
         <div id="display-section">
             <div class="lcd-bg"></div>
+            
+            <!-- Modal de Busca (Sobreposto ao display) -->
+            <div id="search-modal">
+                <div class="scanline"></div>
+                <div class="search-header">
+                    <div class="search-title">NETWORK SEARCH</div>
+                    <button class="retro-btn" id="btn-close-search">X</button>
+                </div>
+                <div class="search-input-group">
+                    <input type="text" id="search-input" placeholder="ARTIST OR SONG NAME...">
+                    <button class="retro-btn" id="btn-go-search">GO</button>
+                </div>
+                <div id="search-results">
+                    <!-- Resultados vão aqui -->
+                    <div style="padding: 20px; text-align: center; color: #005500; font-family: 'VT323';">
+                        CONNECTING TO GLOBAL DATABASE...<br>
+                        TYPE A QUERY AND PRESS GO.
+                    </div>
+                </div>
+            </div>
+
             <div class="display-content">
                 <div class="info-header">
                     <div class="track-marquee">
-                        <div class="marquee-text" id="track-name">READY TO PLAY *** AUDIO STATION *** LOAD MP3</div>
+                        <div class="marquee-text" id="track-name">READY TO PLAY *** AUDIO STATION ***</div>
                     </div>
                     <div class="timer" id="timer">00:00</div>
                 </div>
-                <!-- Wrapper dedicado para o observer funcionar bem -->
                 <div class="visualizer-wrapper" id="vis-wrapper">
                     <canvas id="vis-canvas"></canvas>
                     <div class="visualizer-overlay"></div>
@@ -370,7 +502,7 @@
             </div>
         </div>
 
-        <!-- CONTROLS -->
+        <!-- CONTROLS SECTION -->
         <div id="controls-section">
             
             <!-- Seek -->
@@ -393,12 +525,25 @@
                     <button class="metal-btn size-sm" id="btn-next"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg></button>
                 </div>
 
-                <div class="load-wrapper">
-                    <button class="metal-btn size-md" id="btn-upload">
-                        <div class="metal-btn-inner"></div>
-                        <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
-                    </button>
-                    <span class="label-text">LOAD</span>
+                <!-- Ferramentas (Direita) -->
+                <div class="tools-wrapper">
+                    <!-- Botão de Busca -->
+                    <div class="tool-btn-container">
+                        <button class="metal-btn size-md" id="btn-open-search" style="border: 1px solid #555;">
+                            <div class="metal-btn-inner"></div>
+                            <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#005500"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="3"></line></svg>
+                        </button>
+                        <span class="label-text">SEARCH</span>
+                    </div>
+
+                    <!-- Botão de Upload -->
+                    <div class="tool-btn-container">
+                        <button class="metal-btn size-md" id="btn-upload">
+                            <div class="metal-btn-inner"></div>
+                            <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
+                        </button>
+                        <span class="label-text">LOAD</span>
+                    </div>
                 </div>
             </div>
 
@@ -414,9 +559,10 @@
     <input type="file" id="file-input" accept="audio/*, .mp3, .wav, .ogg" style="display: none;">
 
     <script>
-        // --- CONFIGURAÇÃO DE ÁUDIO ---
+        // --- CORE AUDIO LOGIC ---
         const audio = new Audio();
         audio.crossOrigin = "anonymous";
+        // Default startup sound
         audio.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
         
         let audioCtx;
@@ -426,180 +572,221 @@
         let isPlaying = false;
         let animationId;
 
-        // Elementos DOM
-        const btnPlay = document.getElementById('btn-play');
-        const btnPause = document.getElementById('btn-pause');
-        const btnStop = document.getElementById('btn-stop');
-        const btnPrev = document.getElementById('btn-prev');
-        const btnNext = document.getElementById('btn-next');
-        const btnUpload = document.getElementById('btn-upload');
-        const fileInput = document.getElementById('file-input');
-        
-        const sliderSeek = document.getElementById('seek-slider');
-        const progressFill = document.getElementById('progress-fill');
-        const sliderVol = document.getElementById('vol-slider');
-        
-        const timerEl = document.getElementById('timer');
-        const marqueeEl = document.getElementById('track-name');
-        const readyMsg = document.getElementById('ready-msg');
-        
-        const canvas = document.getElementById('vis-canvas');
-        const ctx = canvas.getContext('2d');
-        const visWrapper = document.getElementById('vis-wrapper');
+        // UI Elements
+        const els = {
+            play: document.getElementById('btn-play'),
+            pause: document.getElementById('btn-pause'),
+            stop: document.getElementById('btn-stop'),
+            prev: document.getElementById('btn-prev'),
+            next: document.getElementById('btn-next'),
+            upload: document.getElementById('btn-upload'),
+            searchOpen: document.getElementById('btn-open-search'),
+            searchClose: document.getElementById('btn-close-search'),
+            searchGo: document.getElementById('btn-go-search'),
+            searchInput: document.getElementById('search-input'),
+            searchModal: document.getElementById('search-modal'),
+            searchResults: document.getElementById('search-results'),
+            fileInput: document.getElementById('file-input'),
+            seek: document.getElementById('seek-slider'),
+            fill: document.getElementById('progress-fill'),
+            vol: document.getElementById('vol-slider'),
+            timer: document.getElementById('timer'),
+            marquee: document.getElementById('track-name'),
+            ready: document.getElementById('ready-msg'),
+            canvas: document.getElementById('vis-canvas'),
+            visWrapper: document.getElementById('vis-wrapper')
+        };
 
-        // Inicializa Contexto de Áudio (Requer clique do usuário)
+        const ctx = els.canvas.getContext('2d');
+
+        // Init Audio Context
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioCtx = new AudioContext();
-                
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 256; 
-
                 source = audioCtx.createMediaElementSource(audio);
                 gainNode = audioCtx.createGain();
-
                 source.connect(analyser);
                 analyser.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
-                
-                gainNode.gain.value = sliderVol.value;
+                gainNode.gain.value = els.vol.value;
             } else if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
         }
 
-        // --- CONTROLE DE ESTADO ---
+        // --- PLAYBACK CONTROL ---
         function updatePlayState(playing) {
             isPlaying = playing;
             if (playing) {
-                btnPlay.classList.add('active');
-                btnPause.classList.remove('active');
-                readyMsg.style.display = 'none';
+                els.play.classList.add('active');
+                els.pause.classList.remove('active');
+                els.ready.style.display = 'none';
                 renderFrame();
             } else {
-                btnPlay.classList.remove('active');
-                if (audio.currentTime > 0 && !audio.ended) btnPause.classList.add('active');
-                // Não cancelamos a animação imediatamente para permitir o desenho do estado "parado" ou limpeza
+                els.play.classList.remove('active');
+                if (audio.currentTime > 0 && !audio.ended) els.pause.classList.add('active');
                 cancelAnimationFrame(animationId);
-                // Limpa o canvas visualmente se parar
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
             }
         }
 
-        // Listeners Botões
-        btnPlay.addEventListener('click', () => {
+        // --- SEARCH LOGIC (ITUNES API) ---
+        els.searchOpen.addEventListener('click', () => {
+            els.searchModal.classList.add('active');
+            els.searchInput.focus();
+        });
+
+        els.searchClose.addEventListener('click', () => {
+            els.searchModal.classList.remove('active');
+        });
+
+        els.searchGo.addEventListener('click', performSearch);
+        els.searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        async function performSearch() {
+            const query = els.searchInput.value;
+            if (!query) return;
+
+            els.searchResults.innerHTML = '<div style="color:#00ff00; font-family:VT323; padding:20px; text-align:center">SEARCHING GLOBAL NETWORK...</div>';
+
+            try {
+                // Usando API do iTunes (gratuita e pública)
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=20`);
+                const data = await res.json();
+                
+                els.searchResults.innerHTML = '';
+
+                if (data.resultCount === 0) {
+                    els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">NO DATA FOUND.</div>';
+                    return;
+                }
+
+                data.results.forEach(track => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    div.innerHTML = `
+                        <img src="${track.artworkUrl60}" alt="art">
+                        <div class="result-info">
+                            <span class="result-title">${track.trackName}</span>
+                            <span class="result-artist">${track.artistName}</span>
+                        </div>
+                    `;
+                    div.onclick = () => loadTrack(track.previewUrl, `${track.artistName} - ${track.trackName}`, true);
+                    els.searchResults.appendChild(div);
+                });
+
+            } catch (err) {
+                els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">NETWORK ERROR.</div>';
+            }
+        }
+
+        function loadTrack(url, title, isPreview = false) {
+            audio.pause();
+            updatePlayState(false);
+            
+            // Se for blob anterior, revoga
+            if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
+            
+            audio.src = url;
+            audio.load(); // Importante para resetar o buffer
+
+            let displayTitle = title.toUpperCase();
+            if (isPreview) displayTitle += " *** PREVIEW (30s) ***";
+            
+            els.marquee.innerText = displayTitle;
+            els.searchModal.classList.remove('active');
+
+            initAudioContext();
+            audio.play().then(() => updatePlayState(true)).catch(console.warn);
+        }
+
+
+        // --- EVENT LISTENERS UI ---
+        els.play.addEventListener('click', () => {
             initAudioContext();
             audio.play().then(() => updatePlayState(true)).catch(console.error);
         });
 
-        btnPause.addEventListener('click', () => {
-            audio.pause();
-            updatePlayState(false);
-        });
-
-        btnStop.addEventListener('click', () => {
+        els.pause.addEventListener('click', () => { audio.pause(); updatePlayState(false); });
+        els.stop.addEventListener('click', () => {
             audio.pause();
             audio.currentTime = 0;
             updatePlayState(false);
-            btnPause.classList.remove('active');
-            readyMsg.style.display = 'block';
+            els.pause.classList.remove('active');
+            els.ready.style.display = 'block';
             updateSeekUI();
         });
         
-        btnPrev.addEventListener('click', () => audio.currentTime = 0);
-        btnNext.addEventListener('click', () => audio.currentTime = audio.duration);
+        els.prev.addEventListener('click', () => audio.currentTime = 0);
+        els.next.addEventListener('click', () => audio.currentTime = audio.duration);
 
-        // Slider Seek
-        sliderSeek.addEventListener('input', (e) => {
-            audio.currentTime = e.target.value;
-            updateSeekUI();
+        els.seek.addEventListener('input', (e) => {
+            if(Number.isFinite(audio.duration)) {
+               audio.currentTime = e.target.value;
+               updateSeekUI();
+            }
         });
 
-        // Slider Volume
-        sliderVol.addEventListener('input', (e) => {
+        els.vol.addEventListener('input', (e) => {
             audio.volume = e.target.value;
             if(gainNode) gainNode.gain.value = e.target.value;
         });
 
-        // Upload
-        btnUpload.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
+        els.upload.addEventListener('click', () => els.fileInput.click());
+        els.fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            audio.pause();
-            updatePlayState(false);
-            if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
-
-            audio.src = URL.createObjectURL(file);
-            audio.load();
-            marqueeEl.innerText = file.name.toUpperCase() + " *** LOCAL FILE ***";
-            
-            initAudioContext();
-            audio.play().then(() => updatePlayState(true)).catch(console.warn);
-            fileInput.value = '';
+            const url = URL.createObjectURL(file);
+            loadTrack(url, file.name + " *** LOCAL FILE ***");
+            els.fileInput.value = '';
         });
 
-        // Eventos Áudio
-        audio.addEventListener('timeupdate', () => {
-            updateSeekUI();
-            formatTime();
-        });
-        audio.addEventListener('loadedmetadata', () => {
-            sliderSeek.max = audio.duration;
-        });
+        // --- AUDIO EVENTS ---
+        audio.addEventListener('timeupdate', () => { updateSeekUI(); formatTime(); });
+        audio.addEventListener('loadedmetadata', () => { els.seek.max = audio.duration; });
         audio.addEventListener('ended', () => {
             updatePlayState(false);
-            btnPause.classList.remove('active');
-            readyMsg.style.display = 'block';
+            els.pause.classList.remove('active');
+            els.ready.style.display = 'block';
         });
 
         function updateSeekUI() {
             if (!audio.duration) return;
             const pct = (audio.currentTime / audio.duration) * 100;
-            sliderSeek.value = audio.currentTime;
-            progressFill.style.width = pct + '%';
+            els.seek.value = audio.currentTime;
+            els.fill.style.width = pct + '%';
         }
 
         function formatTime() {
             const m = Math.floor(audio.currentTime / 60);
             const s = Math.floor(audio.currentTime % 60);
-            timerEl.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+            els.timer.innerText = `${m}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- SISTEMA DE VISUALIZAÇÃO RESPONSIVA ---
-        
-        // ResizeObserver: A solução definitiva para detectar mudança de tamanho do container
+        // --- VISUALIZER RESIZER ---
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
-                // Pega as dimensões exatas em pixels do dispositivo
-                // Se devicePixelContentBoxSize não suportado, usa contentRect
-                const width = entry.contentRect.width;
-                const height = entry.contentRect.height;
-                
-                // Atualiza o tamanho interno do canvas para casar com o CSS
-                // Isso evita o esticamento (blur) da imagem
-                if (width > 0 && height > 0) {
-                    canvas.width = width;
-                    canvas.height = height;
+                const w = entry.contentRect.width;
+                const h = entry.contentRect.height;
+                if (w > 0 && h > 0) {
+                    els.canvas.width = w;
+                    els.canvas.height = h;
                 }
             }
         });
-        
-        // Começa a observar o wrapper
-        resizeObserver.observe(visWrapper);
+        resizeObserver.observe(els.visWrapper);
 
         function renderFrame() {
             if (!isPlaying) return;
-            
-            // Loop de animação
             animationId = requestAnimationFrame(renderFrame);
 
-            const w = canvas.width;
-            const h = canvas.height;
-            
-            // Se dimensões inválidas, sai
+            const w = els.canvas.width;
+            const h = els.canvas.height;
             if (w === 0 || h === 0) return;
 
             const bufferLength = analyser.frequencyBinCount;
@@ -608,21 +795,16 @@
 
             ctx.clearRect(0, 0, w, h);
 
-            // Ajuste dinâmico de barras baseado na largura
-            // Quanto maior a tela, mais barras
             const barCount = Math.floor(w / 5); 
             const barWidth = (w / barCount) * 0.8;
             const gap = (w / barCount) * 0.2;
-            
-            // Mapeamento de frequência
             const step = bufferLength / barCount;
 
             for (let i = 0; i < barCount; i++) {
-                // Interpolação simples para pegar o índice da frequência
                 const dataIndex = Math.floor(i * step);
                 const value = dataArray[dataIndex];
                 
-                if (value > 5) { // Threshold de ruído
+                if (value > 5) {
                     const barHeight = (value / 255) * h;
                     
                     const grad = ctx.createLinearGradient(0, h - barHeight, 0, h);
@@ -633,7 +815,6 @@
                     ctx.fillStyle = grad;
                     ctx.fillRect(i * (barWidth + gap), h - barHeight, barWidth, barHeight);
                     
-                    // Pico
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     ctx.fillRect(i * (barWidth + gap), h - barHeight - 4, barWidth, 2);
                 }
