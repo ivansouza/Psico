@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Retro Audio Station - Network Edition</title>
+    <title>Retro Audio Station - Layout Fixed</title>
     <style>
         /* --- FONTES & RESET --- */
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
@@ -33,7 +33,6 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* Textura de Fundo */
         .bg-texture {
             position: absolute;
             inset: 0;
@@ -80,7 +79,6 @@
             overflow: hidden;
         }
 
-        /* Cabeçalho do Display */
         .info-header {
             display: flex;
             justify-content: space-between;
@@ -121,7 +119,6 @@
             text-align: right;
         }
 
-        /* Container do Visualizador */
         .visualizer-wrapper {
             flex: 1;
             background: rgba(0,0,0,0.6);
@@ -132,18 +129,12 @@
             min-height: 50px;
         }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+        canvas { display: block; width: 100%; height: 100%; }
 
         .visualizer-overlay {
-            position: absolute;
-            inset: 0;
+            position: absolute; inset: 0;
             background-image: url('https://www.transparenttextures.com/patterns/black-scales.png');
-            opacity: 0.2;
-            pointer-events: none;
+            opacity: 0.2; pointer-events: none;
         }
 
         .ready-text {
@@ -157,107 +148,30 @@
             animation: pulse 2s infinite;
         }
 
-        /* --- MODAL DE BUSCA (Estilo Retro) --- */
+        /* --- MODAL DE BUSCA --- */
         #search-modal {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95);
-            z-index: 10;
-            display: none; /* Oculto por padrão */
-            flex-direction: column;
-            padding: 20px;
-            backdrop-filter: blur(5px);
+            z-index: 10; display: none; flex-direction: column;
+            padding: 20px; backdrop-filter: blur(5px);
         }
-
         #search-modal.active { display: flex; }
-
-        .search-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #00ff00;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-
-        .search-title {
-            font-family: 'VT323', monospace;
-            color: #00ff00;
-            font-size: 28px;
-            text-shadow: 0 0 5px #00ff00;
-        }
-
-        .search-input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        #search-input {
-            flex: 1;
-            background: #111;
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            font-family: 'VT323', monospace;
-            font-size: 20px;
-            padding: 10px;
-            outline: none;
-            text-transform: uppercase;
-        }
-
-        #search-input::placeholder { color: #005500; }
-
-        .retro-btn {
-            background: #003300;
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            font-family: 'VT323', monospace;
-            font-size: 20px;
-            padding: 0 20px;
-            cursor: pointer;
-            text-shadow: 0 0 2px #00ff00;
-        }
-        .retro-btn:active { background: #00ff00; color: #000; }
-
-        #search-results {
-            flex: 1;
-            overflow-y: auto;
-            border: 1px solid #004400;
-            background: #050505;
-            padding: 5px;
-        }
-
-        .result-item {
-            display: flex;
-            align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid #003300;
-            cursor: pointer;
-            font-family: 'VT323', monospace;
-            color: #aaa;
-            transition: all 0.2s;
-        }
-        .result-item:hover {
-            background: #002200;
-            color: #fff;
-            padding-left: 12px;
-        }
-        .result-item img {
-            width: 40px; height: 40px;
-            margin-right: 10px;
-            border: 1px solid #333;
-        }
-        .result-info {
-            display: flex; flex-direction: column;
-            overflow: hidden;
-        }
+        .search-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00ff00; padding-bottom: 10px; margin-bottom: 15px; }
+        .search-title { font-family: 'VT323'; color: #00ff00; font-size: 28px; }
+        .search-input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        #search-input { flex: 1; background: #111; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 20px; padding: 10px; outline: none; text-transform: uppercase; }
+        .retro-btn { background: #003300; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 20px; padding: 0 20px; cursor: pointer; }
+        #search-results { flex: 1; overflow-y: auto; border: 1px solid #004400; background: #050505; padding: 5px; }
+        .result-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #003300; cursor: pointer; font-family: 'VT323'; color: #aaa; }
+        .result-item:hover { background: #002200; color: #fff; }
+        .result-item img { width: 40px; height: 40px; margin-right: 10px; border: 1px solid #333; }
+        .result-info { display: flex; flex-direction: column; overflow: hidden; }
         .result-title { font-size: 18px; color: #00ff00; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .result-artist { font-size: 14px; color: #008800; }
 
         /* --- SEÇÃO DE CONTROLES --- */
         #controls-section {
             background-color: #d4d4d4;
-            padding: 10px 15px 15px 15px;
+            padding: 10px 10px 15px 10px; /* Padding reduzido nas laterais */
             border-top: 1px solid #999;
             box-shadow: 0 -4px 8px rgba(0,0,0,0.1);
             display: flex;
@@ -267,194 +181,103 @@
             z-index: 5;
         }
 
-        /* Seek Bar */
-        .seek-container {
-            position: relative;
-            width: 100%;
-            height: 20px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .progress-fill {
-            position: absolute;
-            top: 50%; left: 0;
-            transform: translateY(-50%);
-            height: 6px;
-            background: linear-gradient(to right, #003366, #00aaff);
-            border-radius: 4px;
-            pointer-events: none;
-            width: 0%;
-            z-index: 1;
-        }
+        .seek-container { position: relative; width: 100%; height: 20px; display: flex; align-items: center; }
+        .progress-fill { position: absolute; top: 50%; left: 0; transform: translateY(-50%); height: 6px; background: linear-gradient(to right, #003366, #00aaff); border-radius: 4px; pointer-events: none; width: 0%; z-index: 1; }
+        input[type=range].seek-slider { -webkit-appearance: none; width: 100%; background: transparent; position: relative; z-index: 2; }
+        input[type=range].seek-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: linear-gradient(to bottom, #eee, #999); border: 1px solid #555; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        input[type=range].seek-slider::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #222; border-radius: 4px; border-bottom: 1px solid #555; }
 
-        input[type=range].seek-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-            position: relative;
-            z-index: 2;
-        }
-        input[type=range].seek-slider:focus { outline: none; }
-        input[type=range].seek-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 20px; width: 20px;
-            border-radius: 50%;
-            background: linear-gradient(to bottom, #eee, #999);
-            border: 1px solid #555;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            margin-top: -6px;
-        }
-        input[type=range].seek-slider::-webkit-slider-runnable-track {
-            width: 100%; height: 8px;
-            background: #222;
-            border-radius: 4px;
-            border-bottom: 1px solid #555;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
-        }
-
-        /* Botões Layout */
+        /* --- LAYOUT DOS BOTÕES (CORRIGIDO) --- */
         .buttons-row {
             display: flex;
-            justify-content: center;
+            justify-content: space-between; /* Distribui Esquerda/Centro/Direita */
             align-items: center;
-            position: relative;
+            width: 100%;
             height: 60px;
+            position: relative;
+        }
+
+        /* Grupos laterais com largura fixa para garantir centralização do meio */
+        .side-tool {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 50px; /* Largura fixa para equilíbrio */
+            flex-shrink: 0;
         }
 
         .main-controls {
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: center;
+            gap: 8px; /* Gap reduzido para mobile */
+            flex: 1;
         }
 
         .play-group {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             background: #ccc;
-            padding: 5px 12px;
+            padding: 5px 10px;
             border-radius: 30px;
             border: 1px solid rgba(255,255,255,0.5);
             box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
         }
 
-        /* Ferramentas (Direita) */
-        .tools-wrapper {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            gap: 10px;
-        }
-
-        .tool-btn-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* Volume Row */
         .volume-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            background: #ccc;
-            padding: 8px 15px;
-            border-radius: 20px;
-            border: 1px solid #fff;
-            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: #ccc; padding: 8px 15px; border-radius: 20px; border: 1px solid #fff; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
+            width: 100%; max-width: 400px; margin: 0 auto;
         }
+        input[type=range].vol-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #666; border-radius: 3px; outline: none; }
+        input[type=range].vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #888; box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 
-        input[type=range].vol-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: #666;
-            border-radius: 3px;
-            outline: none;
-        }
-        input[type=range].vol-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: #888;
-            box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        /* Estilos de Botão Metálico */
+        /* Botões */
         .metal-btn {
-            border: none; outline: none;
-            position: relative;
-            display: flex; justify-content: center; align-items: center;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f0f0f0, #d0d0d0, #a0a0a0);
-            box-shadow: 3px 3px 6px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.8);
-            cursor: pointer;
+            border: none; outline: none; position: relative; display: flex; justify-content: center; align-items: center;
+            border-radius: 50%; background: linear-gradient(135deg, #f0f0f0, #d0d0d0, #a0a0a0);
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.8); cursor: pointer;
         }
-        .metal-btn:active {
-            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4);
-            transform: translateY(1px);
-        }
-        .metal-btn-inner {
-            position: absolute; inset: 4px;
-            border-radius: 50%;
-            background: linear-gradient(-45deg, #e0e0e0, #c0c0c0);
-            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
-            pointer-events: none;
-        }
-        .metal-btn.active::after {
-            content: ''; position: absolute; inset: 0;
-            border-radius: 50%;
-            box-shadow: 0 0 15px rgba(0,150,255,0.8);
-            border: 2px solid #00aaff;
-            opacity: 0.6; pointer-events: none;
-        }
+        .metal-btn:active { box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4); transform: translateY(1px); }
+        .metal-btn-inner { position: absolute; inset: 4px; border-radius: 50%; background: linear-gradient(-45deg, #e0e0e0, #c0c0c0); box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); pointer-events: none; }
+        .metal-btn.active::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 15px rgba(0,150,255,0.8); border: 2px solid #00aaff; opacity: 0.6; pointer-events: none; }
         
-        .btn-icon {
-            position: relative; z-index: 2;
-            width: 50%; height: 50%;
-            fill: #444; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8));
-        }
-
-        .size-sm { width: 34px; height: 34px; }
-        .size-md { width: 44px; height: 44px; }
-        .size-lg { width: 60px; height: 60px; }
+        .btn-icon { position: relative; z-index: 2; width: 50%; height: 50%; fill: #444; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8)); }
         
         .label-text { font-size: 10px; font-weight: bold; color: #555; margin-top: 2px; }
+
+        /* Tamanhos Ajustados para Portrait */
+        .size-sm { width: 32px; height: 32px; }
+        .size-md { width: 40px; height: 40px; }
+        .size-lg { width: 56px; height: 56px; }
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
         @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(100vh); } }
+        .scanline { position: fixed; left: 0; top: 0; width: 100%; height: 5px; background: rgba(0, 255, 0, 0.3); opacity: 0.5; animation: scanline 4s linear infinite; pointer-events: none; }
 
-        /* Scanline para o Modal */
-        .scanline {
-            position: fixed; left: 0; top: 0; width: 100%; height: 5px;
-            background: rgba(0, 255, 0, 0.3);
-            opacity: 0.5;
-            animation: scanline 4s linear infinite;
-            pointer-events: none;
+        /* Media Queries Específicas para Telas Estreitas */
+        @media (max-width: 380px) {
+            .size-lg { width: 50px; height: 50px; }
+            .size-md { width: 36px; height: 36px; }
+            .size-sm { width: 28px; height: 28px; }
+            .main-controls { gap: 4px; }
+            .play-group { padding: 4px 6px; gap: 4px; }
+            #controls-section { padding: 10px 5px 15px 5px; } /* Menos padding lateral */
+            .side-tool { width: 40px; }
         }
 
-        /* Responsividade Paisagem */
+        /* Ajustes Paisagem */
         @media (orientation: landscape) and (max-height: 500px) {
             #display-section { margin: 4px 4px 0 4px; }
-            #controls-section { padding: 5px 10px 5px 10px; gap: 5px; }
-            .info-header { height: 25px; margin-bottom: 5px; }
-            .track-marquee { height: 25px; }
-            .timer { font-size: 28px; min-width: 60px; }
+            #controls-section { padding: 5px 15px 5px 15px; }
+            .info-header { height: 25px; }
             .buttons-row { height: 45px; }
-            .size-lg { width: 45px; height: 45px; }
-            .size-md { width: 38px; height: 38px; }
+            .size-lg { width: 44px; height: 44px; }
+            .size-md { width: 36px; height: 36px; }
             .size-sm { width: 30px; height: 30px; }
-            .volume-row { padding: 4px 10px; max-width: 300px; }
             .label-text { display: none; }
-            #search-modal { padding: 10px; }
         }
     </style>
 </head>
@@ -463,11 +286,10 @@
 
     <div id="app-container">
         
-        <!-- DISPLAY SECTION -->
+        <!-- DISPLAY -->
         <div id="display-section">
             <div class="lcd-bg"></div>
             
-            <!-- Modal de Busca (Sobreposto ao display) -->
             <div id="search-modal">
                 <div class="scanline"></div>
                 <div class="search-header">
@@ -475,15 +297,11 @@
                     <button class="retro-btn" id="btn-close-search">X</button>
                 </div>
                 <div class="search-input-group">
-                    <input type="text" id="search-input" placeholder="ARTIST OR SONG NAME...">
+                    <input type="text" id="search-input" placeholder="ARTIST OR SONG...">
                     <button class="retro-btn" id="btn-go-search">GO</button>
                 </div>
                 <div id="search-results">
-                    <!-- Resultados vão aqui -->
-                    <div style="padding: 20px; text-align: center; color: #005500; font-family: 'VT323';">
-                        CONNECTING TO GLOBAL DATABASE...<br>
-                        TYPE A QUERY AND PRESS GO.
-                    </div>
+                    <div style="color:#005500; font-family:VT323; padding:20px; text-align:center">ENTER QUERY...</div>
                 </div>
             </div>
 
@@ -502,17 +320,25 @@
             </div>
         </div>
 
-        <!-- CONTROLS SECTION -->
+        <!-- CONTROLS -->
         <div id="controls-section">
             
-            <!-- Seek -->
             <div class="seek-container">
                 <div class="progress-fill" id="progress-fill"></div>
                 <input type="range" class="seek-slider" id="seek-slider" min="0" value="0" step="0.1">
             </div>
 
-            <!-- Botões -->
             <div class="buttons-row">
+                <!-- ESQUERDA: Botão Search -->
+                <div class="side-tool">
+                    <button class="metal-btn size-md" id="btn-open-search" style="border: 1px solid #555;">
+                        <div class="metal-btn-inner"></div>
+                        <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#005500"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="3"></line></svg>
+                    </button>
+                    <span class="label-text">SEARCH</span>
+                </div>
+
+                <!-- CENTRO: Controles de Reprodução -->
                 <div class="main-controls">
                     <button class="metal-btn size-sm" id="btn-prev"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg></button>
                     
@@ -525,29 +351,16 @@
                     <button class="metal-btn size-sm" id="btn-next"><div class="metal-btn-inner"></div><svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3" stroke-linecap="round"></line></svg></button>
                 </div>
 
-                <!-- Ferramentas (Direita) -->
-                <div class="tools-wrapper">
-                    <!-- Botão de Busca -->
-                    <div class="tool-btn-container">
-                        <button class="metal-btn size-md" id="btn-open-search" style="border: 1px solid #555;">
-                            <div class="metal-btn-inner"></div>
-                            <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#005500"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="3"></line></svg>
-                        </button>
-                        <span class="label-text">SEARCH</span>
-                    </div>
-
-                    <!-- Botão de Upload -->
-                    <div class="tool-btn-container">
-                        <button class="metal-btn size-md" id="btn-upload">
-                            <div class="metal-btn-inner"></div>
-                            <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
-                        </button>
-                        <span class="label-text">LOAD</span>
-                    </div>
+                <!-- DIREITA: Botão Load -->
+                <div class="side-tool">
+                    <button class="metal-btn size-md" id="btn-upload">
+                        <div class="metal-btn-inner"></div>
+                        <svg class="btn-icon" viewBox="0 0 24 24" style="fill:#004488"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"></line></svg>
+                    </button>
+                    <span class="label-text">LOAD</span>
                 </div>
             </div>
 
-            <!-- Volume (Abaixo) -->
             <div class="volume-row">
                 <svg class="btn-icon" style="width:18px;height:18px;flex-shrink:0" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 <input type="range" class="vol-slider" id="vol-slider" min="0" max="1" step="0.05" value="0.5">
@@ -559,20 +372,13 @@
     <input type="file" id="file-input" accept="audio/*, .mp3, .wav, .ogg" style="display: none;">
 
     <script>
-        // --- CORE AUDIO LOGIC ---
+        // --- LOGIC ---
         const audio = new Audio();
         audio.crossOrigin = "anonymous";
-        // Default startup sound
         audio.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
         
-        let audioCtx;
-        let analyser;
-        let source;
-        let gainNode;
-        let isPlaying = false;
-        let animationId;
+        let audioCtx, analyser, source, gainNode, isPlaying = false, animationId;
 
-        // UI Elements
         const els = {
             play: document.getElementById('btn-play'),
             pause: document.getElementById('btn-pause'),
@@ -599,7 +405,6 @@
 
         const ctx = els.canvas.getContext('2d');
 
-        // Init Audio Context
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -617,7 +422,6 @@
             }
         }
 
-        // --- PLAYBACK CONTROL ---
         function updatePlayState(playing) {
             isPlaying = playing;
             if (playing) {
@@ -633,190 +437,89 @@
             }
         }
 
-        // --- SEARCH LOGIC (ITUNES API) ---
-        els.searchOpen.addEventListener('click', () => {
-            els.searchModal.classList.add('active');
-            els.searchInput.focus();
-        });
-
-        els.searchClose.addEventListener('click', () => {
-            els.searchModal.classList.remove('active');
-        });
-
+        // Search API
+        els.searchOpen.addEventListener('click', () => { els.searchModal.classList.add('active'); els.searchInput.focus(); });
+        els.searchClose.addEventListener('click', () => els.searchModal.classList.remove('active'));
         els.searchGo.addEventListener('click', performSearch);
-        els.searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
-        });
+        els.searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
 
         async function performSearch() {
             const query = els.searchInput.value;
             if (!query) return;
-
-            els.searchResults.innerHTML = '<div style="color:#00ff00; font-family:VT323; padding:20px; text-align:center">SEARCHING GLOBAL NETWORK...</div>';
-
+            els.searchResults.innerHTML = '<div style="color:#00ff00; font-family:VT323; padding:20px; text-align:center">SEARCHING...</div>';
             try {
-                // Usando API do iTunes (gratuita e pública)
                 const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=20`);
                 const data = await res.json();
-                
                 els.searchResults.innerHTML = '';
-
                 if (data.resultCount === 0) {
-                    els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">NO DATA FOUND.</div>';
+                    els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">NO RESULTS</div>';
                     return;
                 }
-
                 data.results.forEach(track => {
                     const div = document.createElement('div');
                     div.className = 'result-item';
-                    div.innerHTML = `
-                        <img src="${track.artworkUrl60}" alt="art">
-                        <div class="result-info">
-                            <span class="result-title">${track.trackName}</span>
-                            <span class="result-artist">${track.artistName}</span>
-                        </div>
-                    `;
+                    div.innerHTML = `<img src="${track.artworkUrl60}"><div class="result-info"><span class="result-title">${track.trackName}</span></div>`;
                     div.onclick = () => loadTrack(track.previewUrl, `${track.artistName} - ${track.trackName}`, true);
                     els.searchResults.appendChild(div);
                 });
-
-            } catch (err) {
-                els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">NETWORK ERROR.</div>';
-            }
+            } catch (err) { els.searchResults.innerHTML = '<div style="color:red; font-family:VT323; padding:20px; text-align:center">ERROR</div>'; }
         }
 
         function loadTrack(url, title, isPreview = false) {
-            audio.pause();
-            updatePlayState(false);
-            
-            // Se for blob anterior, revoga
+            audio.pause(); updatePlayState(false);
             if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
-            
-            audio.src = url;
-            audio.load(); // Importante para resetar o buffer
-
-            let displayTitle = title.toUpperCase();
-            if (isPreview) displayTitle += " *** PREVIEW (30s) ***";
-            
-            els.marquee.innerText = displayTitle;
+            audio.src = url; audio.load();
+            els.marquee.innerText = title.toUpperCase() + (isPreview ? " *** PREVIEW ***" : "");
             els.searchModal.classList.remove('active');
-
             initAudioContext();
             audio.play().then(() => updatePlayState(true)).catch(console.warn);
         }
 
-
-        // --- EVENT LISTENERS UI ---
-        els.play.addEventListener('click', () => {
-            initAudioContext();
-            audio.play().then(() => updatePlayState(true)).catch(console.error);
-        });
-
+        // Controls
+        els.play.addEventListener('click', () => { initAudioContext(); audio.play().then(() => updatePlayState(true)).catch(console.error); });
         els.pause.addEventListener('click', () => { audio.pause(); updatePlayState(false); });
-        els.stop.addEventListener('click', () => {
-            audio.pause();
-            audio.currentTime = 0;
-            updatePlayState(false);
-            els.pause.classList.remove('active');
-            els.ready.style.display = 'block';
-            updateSeekUI();
-        });
-        
+        els.stop.addEventListener('click', () => { audio.pause(); audio.currentTime = 0; updatePlayState(false); els.pause.classList.remove('active'); els.ready.style.display='block'; updateSeekUI(); });
         els.prev.addEventListener('click', () => audio.currentTime = 0);
         els.next.addEventListener('click', () => audio.currentTime = audio.duration);
-
-        els.seek.addEventListener('input', (e) => {
-            if(Number.isFinite(audio.duration)) {
-               audio.currentTime = e.target.value;
-               updateSeekUI();
-            }
-        });
-
-        els.vol.addEventListener('input', (e) => {
-            audio.volume = e.target.value;
-            if(gainNode) gainNode.gain.value = e.target.value;
-        });
-
+        els.seek.addEventListener('input', (e) => { if(Number.isFinite(audio.duration)) { audio.currentTime = e.target.value; updateSeekUI(); } });
+        els.vol.addEventListener('input', (e) => { audio.volume = e.target.value; if(gainNode) gainNode.gain.value = e.target.value; });
         els.upload.addEventListener('click', () => els.fileInput.click());
-        els.fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const url = URL.createObjectURL(file);
-            loadTrack(url, file.name + " *** LOCAL FILE ***");
-            els.fileInput.value = '';
-        });
+        els.fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if(!file)return; const url = URL.createObjectURL(file); loadTrack(url, file.name + " *** LOCAL ***"); els.fileInput.value = ''; });
 
-        // --- AUDIO EVENTS ---
         audio.addEventListener('timeupdate', () => { updateSeekUI(); formatTime(); });
         audio.addEventListener('loadedmetadata', () => { els.seek.max = audio.duration; });
-        audio.addEventListener('ended', () => {
-            updatePlayState(false);
-            els.pause.classList.remove('active');
-            els.ready.style.display = 'block';
-        });
+        audio.addEventListener('ended', () => { updatePlayState(false); els.pause.classList.remove('active'); els.ready.style.display='block'; });
 
-        function updateSeekUI() {
-            if (!audio.duration) return;
-            const pct = (audio.currentTime / audio.duration) * 100;
-            els.seek.value = audio.currentTime;
-            els.fill.style.width = pct + '%';
-        }
+        function updateSeekUI() { if (!audio.duration) return; const pct = (audio.currentTime / audio.duration) * 100; els.seek.value = audio.currentTime; els.fill.style.width = pct + '%'; }
+        function formatTime() { const m = Math.floor(audio.currentTime / 60); const s = Math.floor(audio.currentTime % 60); els.timer.innerText = `${m}:${s.toString().padStart(2, '0')}`; }
 
-        function formatTime() {
-            const m = Math.floor(audio.currentTime / 60);
-            const s = Math.floor(audio.currentTime % 60);
-            els.timer.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-        }
-
-        // --- VISUALIZER RESIZER ---
-        const resizeObserver = new ResizeObserver(entries => {
+        // Resizer
+        new ResizeObserver(entries => {
             for (let entry of entries) {
                 const w = entry.contentRect.width;
                 const h = entry.contentRect.height;
-                if (w > 0 && h > 0) {
-                    els.canvas.width = w;
-                    els.canvas.height = h;
-                }
+                if (w > 0 && h > 0) { els.canvas.width = w; els.canvas.height = h; }
             }
-        });
-        resizeObserver.observe(els.visWrapper);
+        }).observe(els.visWrapper);
 
         function renderFrame() {
             if (!isPlaying) return;
             animationId = requestAnimationFrame(renderFrame);
-
-            const w = els.canvas.width;
-            const h = els.canvas.height;
+            const w = els.canvas.width; const h = els.canvas.height;
             if (w === 0 || h === 0) return;
-
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
             analyser.getByteFrequencyData(dataArray);
-
             ctx.clearRect(0, 0, w, h);
-
-            const barCount = Math.floor(w / 5); 
-            const barWidth = (w / barCount) * 0.8;
-            const gap = (w / barCount) * 0.2;
-            const step = bufferLength / barCount;
-
+            const barCount = Math.floor(w / 5); const barWidth = (w / barCount) * 0.8; const gap = (w / barCount) * 0.2; const step = bufferLength / barCount;
             for (let i = 0; i < barCount; i++) {
-                const dataIndex = Math.floor(i * step);
-                const value = dataArray[dataIndex];
-                
+                const value = dataArray[Math.floor(i * step)];
                 if (value > 5) {
                     const barHeight = (value / 255) * h;
-                    
                     const grad = ctx.createLinearGradient(0, h - barHeight, 0, h);
-                    grad.addColorStop(0, '#ffffff');
-                    grad.addColorStop(0.3, '#00ffff');
-                    grad.addColorStop(1, '#0033cc');
-
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(i * (barWidth + gap), h - barHeight, barWidth, barHeight);
-                    
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.fillRect(i * (barWidth + gap), h - barHeight - 4, barWidth, 2);
+                    grad.addColorStop(0, '#fff'); grad.addColorStop(0.3, '#0ff'); grad.addColorStop(1, '#03c');
+                    ctx.fillStyle = grad; ctx.fillRect(i * (barWidth + gap), h - barHeight, barWidth, barHeight);
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(i * (barWidth + gap), h - barHeight - 4, barWidth, 2);
                 }
             }
         }
