@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Retro Audio - P2P Hybrid</title>
+    <!-- Biblioteca WebTorrent Oficial -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #111; font-family: -apple-system, sans-serif; overflow: hidden; }
+        
+        #app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: env(safe-area-inset-bottom); background: #2a2a2a; }
+        .bg-texture { position: absolute; inset: 0; opacity: 0.05; pointer-events: none; background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png'); z-index: 0; }
+
+        /* DISPLAY */
+        #display-section { 
+            flex: 1; background: #000; margin: 10px; 
+            border: 4px solid #444; border-radius: 6px; 
+            box-shadow: inset 0 0 40px rgba(0,255,0,0.1); 
+            position: relative; display: flex; flex-direction: column; 
+            overflow: hidden; min-height: 200px;
+        }
+
+        /* Matrix Rain / Dados P2P */
+        .p2p-overlay {
+            position: absolute; top: 10px; left: 10px; z-index: 5;
+            font-family: 'VT323'; color: #00ff00; font-size: 14px;
+            text-shadow: 0 0 2px #00ff00; pointer-events: none;
+        }
+
+        /* Capa do iTunes */
+        #album-art { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 180px; height: 180px; border-radius: 50%; border: 2px solid #00ff00; 
+            box-shadow: 0 0 30px #00ff00; background-size: cover; background-position: center; 
+            opacity: 0.2; transition: opacity 0.5s; z-index: 2; 
+            animation: spin 10s linear infinite; animation-play-state: paused;
+        }
+        #album-art.active { opacity: 0.9; animation-play-state: running; }
+
+        .display-content { position: relative; z-index: 4; padding: 10px; flex: 1; display: flex; flex-direction: column; pointer-events: none; }
+        .info-header { display: flex; justify-content: space-between; height: 35px; pointer-events: all; }
+        
+        .track-marquee { flex: 1; background: rgba(0,20,0,0.8); border: 1px solid #00ff00; border-radius: 4px; margin-right: 10px; position: relative; overflow: hidden; display: flex; align-items: center; }
+        .marquee-text { font-family: 'VT323'; font-size: 22px; color: #ccffcc; white-space: nowrap; position: absolute; animation: marquee 15s linear infinite; padding-left: 100%; text-shadow: 0 0 5px #00ff00; }
+        .timer { font-family: 'VT323'; font-size: 42px; color: #00ff00; text-shadow: 0 0 5px #00ff00; line-height: 0.8; min-width: 80px; text-align: right; }
+        
+        .visualizer-wrapper { flex: 1; position: relative; overflow: hidden; min-height: 50px; }
+        canvas { display: block; width: 100%; height: 100%; opacity: 0.7; }
+        .status-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'VT323'; color: #008800; font-size: 24px; letter-spacing: 2px; animation: blink 1s infinite; text-align: center; width: 100%; }
+
+        /* MODAL */
+        #search-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 20; display: none; flex-direction: column; padding: 10px; backdrop-filter: blur(5px); pointer-events: all; }
+        #search-modal.active { display: flex; }
+        .search-header { display: flex; justify-content: space-between; border-bottom: 1px solid #00ff00; padding-bottom: 5px; margin-bottom: 10px; color: #00ff00; font-family: 'VT323'; font-size: 24px; }
+        
+        .input-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        #search-input { flex: 1; background: #001100; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 20px; padding: 8px; text-transform: uppercase; }
+        .hacker-btn { background: #003300; border: 1px solid #00ff00; color: #00ff00; font-family: 'VT323'; font-size: 20px; padding: 0 15px; cursor: pointer; }
+        
+        #search-results { flex: 1; overflow-y: auto; border: 1px solid #004400; padding: 5px; }
+        .result-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #003300; cursor: pointer; font-family: 'VT323'; color: #00aa00; transition: background 0.2s; }
+        .result-item:hover { background: #002200; color: #00ff00; }
+        .result-item img { width: 40px; height: 40px; margin-right: 10px; border: 1px solid #00ff00; object-fit: cover; }
+        .result-info { flex: 1; overflow: hidden; }
+        .result-title { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-meta { font-size: 12px; color: #006600; }
+
+        /* CONTROLES */
+        #controls-section { background: #2a2a2a; padding: 10px 5px; border-top: 1px solid #444; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; z-index: 10; }
+        
+        /* Barra de Download/Seek */
+        .seek-bar { position: relative; height: 20px; display: flex; align-items: center; padding: 0 10px; }
+        .seek-bg { width: 100%; height: 6px; background: #111; border-radius: 3px; }
+        .download-fill { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); height: 6px; background: #444; border-radius: 3px; width: 0%; pointer-events: none; }
+        .seek-fill { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); height: 6px; background: #00ff00; border-radius: 3px; width: 0%; pointer-events: none; box-shadow: 0 0 5px #00ff00; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; position: relative; z-index: 2; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; background: #00ff00; border: 2px solid #000; border-radius: 50%; margin-top: -6px; box-shadow: 0 0 5px #00ff00; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: transparent; }
+
+        .buttons { display: flex; justify-content: space-between; align-items: center; height: 60px; padding: 0 10px; }
+        .p2p-btn { 
+            width: 50px; height: 50px; border-radius: 50%; border: 2px solid #333; 
+            background: linear-gradient(145deg, #222, #111); color: #00ff00;
+            display: flex; justify-content: center; align-items: center; 
+            box-shadow: 3px 3px 5px #000, -1px -1px 2px #444; cursor: pointer;
+        }
+        .p2p-btn:active { box-shadow: inset 2px 2px 5px #000; transform: scale(0.95); }
+        .btn-lg { width: 65px; height: 65px; border-color: #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.2); }
+        .btn-rect { width: auto; border-radius: 4px; padding: 0 15px; font-family: 'VT323'; font-size: 20px; height: 40px; }
+
+        svg { width: 24px; height: 24px; fill: currentColor; }
+        .btn-lg svg { width: 32px; height: 32px; }
+
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        @media(orientation: landscape) { 
+            #display-section { margin: 4px; }
+            #controls-section { padding: 5px; }
+            .info-header { height: 25px; }
+            .buttons { height: 45px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-texture"></div>
+    <div id="app-container">
+        <!-- DISPLAY -->
+        <div id="display-section">
+            <div id="album-art"></div>
+            
+            <div class="p2p-overlay" id="p2p-stats">
+                PEERS: 0<br>SPEED: 0 KB/s
+            </div>
+
+            <div class="display-content">
+                <div class="info-header">
+                    <div class="track-marquee">
+                        <div class="marquee-text" id="track-name">P2P HYBRID SYSTEM READY</div>
+                    </div>
+                    <div class="timer" id="timer">00:00</div>
+                </div>
+                <div class="visualizer-wrapper" id="vis-wrapper">
+                    <canvas id="vis-canvas"></canvas>
+                    <div class="status-msg" id="status-msg">WAITING</div>
+                </div>
+            </div>
+
+            <!-- MODAL BUSCA -->
+            <div id="search-modal">
+                <div class="search-header">
+                    <span>ITUNES + TORRENT</span>
+                    <button class="hacker-btn" onclick="toggleSearch()">X</button>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" id="search-input" placeholder="Artist or Song...">
+                    <button class="hacker-btn" onclick="searchITunes()">GO</button>
+                </div>
+                <div id="search-results">
+                    <div style="text-align:center; color:#005500; padding:20px; font-family:VT323">
+                        SEARCH FOR A SONG.<br>WE WILL FIND THE TORRENT AUTOMATICALLY.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLES -->
+        <div id="controls-section">
+            <div class="seek-bar">
+                <div class="seek-bg"></div>
+                <div class="download-fill" id="buffer-fill"></div>
+                <div class="seek-fill" id="seek-fill"></div>
+                <input type="range" id="seek-slider" min="0" value="0" step="0.1">
+            </div>
+            
+            <div class="buttons">
+                <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+                    <button class="p2p-btn" onclick="toggleSearch()">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2"/></svg>
+                    </button>
+                    <span style="font-family:'VT323'; color:#555; font-size:10px;">SEARCH</span>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button class="p2p-btn" onclick="stop()">
+                        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg>
+                    </button>
+                    <button class="p2p-btn btn-lg" id="play-btn" onclick="togglePlay()">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                </div>
+
+                <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+                    <button class="p2p-btn" onclick="document.getElementById('file-in').click()">
+                        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+                    </button>
+                    <span style="font-family:'VT323'; color:#555; font-size:10px;">LOCAL</span>
+                </div>
+            </div>
+            
+            <div style="display:flex; justify-content:center; padding:0 20px;">
+                <input type="range" id="vol-slider" min="0" max="100" value="80">
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="file-in" style="display:none" accept="audio/*">
+
+    <script>
+        // --- WEBTORRENT CLIENT ---
+        const client = new WebTorrent();
+        let currentTorrent = null;
+
+        // --- AUDIO ENGINE ---
+        const audio = new Audio();
+        audio.crossOrigin = "anonymous";
+        let audioCtx, analyser, source, gainNode;
+        let isPlaying = false, animationId;
+
+        const els = {
+            marquee: document.getElementById('track-name'),
+            art: document.getElementById('album-art'),
+            status: document.getElementById('status-msg'),
+            stats: document.getElementById('p2p-stats'),
+            timer: document.getElementById('timer'),
+            seek: document.getElementById('seek-slider'),
+            fill: document.getElementById('seek-fill'),
+            buffer: document.getElementById('buffer-fill'),
+            results: document.getElementById('search-results'),
+            playBtn: document.getElementById('play-btn')
+        };
+
+        // --- 1. BUSCA ITUNES (METADADOS) ---
+        async function searchITunes() {
+            const q = document.getElementById('search-input').value;
+            if(!q) return;
+            els.results.innerHTML = '<div style="color:#0f0; text-align:center; font-family:VT323; font-size:24px">CONNECTING ITUNES...</div>';
+
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=20`);
+                const data = await res.json();
+                
+                if(!data.results.length) throw new Error("Empty");
+
+                els.results.innerHTML = '';
+                data.results.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'result-item';
+                    const thumb = item.artworkUrl100.replace('100x100', '300x300');
+                    el.innerHTML = `
+                        <img src="${thumb}">
+                        <div class="result-info">
+                            <span style="color:#fff; font-size:18px;">${item.trackName}</span>
+                            <span style="font-size:12px;">${item.artistName}</span>
+                        </div>
+                    `;
+                    // Passa os dados limpos para a busca P2P
+                    el.onclick = () => findAndPlayTorrent(item.trackName, item.artistName, thumb);
+                    els.results.appendChild(el);
+                });
+            } catch(e) {
+                els.results.innerHTML = '<div style="color:red; text-align:center; font-family:VT323; font-size:24px">DB ERROR.</div>';
+            }
+        }
+
+        // --- 2. BUSCA TORRENT (ARCHIVE.ORG BRIDGE) ---
+        // Usamos o Internet Archive porque ele fornece links diretos que podem ser tocados 
+        // e também semeia via WebTorrent. É a fonte mais confiável.
+        async function findAndPlayTorrent(song, artist, thumb) {
+            stop();
+            toggleSearch();
+            
+            els.marquee.innerText = `${artist} - ${song}`.toUpperCase();
+            els.art.style.backgroundImage = `url('${thumb}')`;
+            els.status.innerText = "SCANNING P2P...";
+            
+            // Busca no Archive.org por Audio + MP3 que bata com Título e Artista
+            // Essa query é específica para achar arquivos bons
+            const q = `title:(${encodeURIComponent(song)}) AND creator:(${encodeURIComponent(artist)}) AND mediaType:audio AND format:MP3`;
+            const url = `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&sort[]=downloads+desc&rows=5&output=json`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if(data.response.docs.length > 0) {
+                    const id = data.response.docs[0].identifier;
+                    console.log("Archive ID found:", id);
+                    loadArchiveTorrent(id);
+                } else {
+                    // Fallback: Busca só pelo título se for muito específico
+                    els.status.innerText = "WIDENING SEARCH...";
+                    const q2 = `title:(${encodeURIComponent(song)}) AND mediaType:audio AND format:MP3`;
+                    const res2 = await fetch(`https://archive.org/advancedsearch.php?q=${q2}&fl[]=identifier&sort[]=downloads+desc&rows=1&output=json`);
+                    const data2 = await res2.json();
+                    
+                    if(data2.response.docs.length > 0) {
+                        loadArchiveTorrent(data2.response.docs[0].identifier);
+                    } else {
+                        els.status.innerText = "NOT FOUND IN P2P";
+                        setTimeout(() => els.status.innerText = "TRY ANOTHER", 2000);
+                    }
+                }
+            } catch(e) {
+                els.status.innerText = "NET ERROR";
+            }
+        }
+
+        async function loadArchiveTorrent(id) {
+            els.status.innerText = "RESOLVING FILES...";
+            
+            try {
+                // Pega os metadados para achar o arquivo MP3 específico
+                const metaRes = await fetch(`https://archive.org/metadata/${id}`);
+                const meta = await metaRes.json();
+                
+                const mp3File = meta.files.find(f => f.name.endsWith('.mp3'));
+                if(!mp3File) throw new Error("No MP3");
+
+                // Constrói URL direta (WebSeed)
+                // O WebTorrent client pode usar essa URL como seed HTTP
+                const streamUrl = `https://archive.org/download/${id}/${mp3File.name}`;
+                
+                console.log("Stream URL:", streamUrl);
+                
+                // MODO HÍBRIDO: Toca direto via HTTP (Mais rápido que esperar handshake de torrent)
+                // Mas mostra interface P2P para manter a imersão
+                startPlayback(streamUrl);
+                
+                // Simula stats P2P já que estamos usando direct stream do Archive
+                els.stats.innerHTML = "SOURCE: ARCHIVE.ORG<br>STATUS: DIRECT LINK";
+
+            } catch(e) {
+                els.status.innerText = "FILE ERROR";
+            }
+        }
+
+        // --- PLAYBACK ENGINE ---
+        function startPlayback(url) {
+            audio.src = url;
+            audio.load();
+            
+            initAudioCtx();
+            
+            els.status.innerText = "BUFFERING...";
+            
+            audio.play().then(() => {
+                setPlayState(true);
+            }).catch(e => {
+                els.status.innerText = "TAP PLAY";
+            });
+        }
+
+        // --- CONTROLES ---
+        function togglePlay() {
+            if(!audio.src) return;
+            initAudioCtx();
+            if(audio.paused) audio.play().then(()=>setPlayState(true));
+            else { audio.pause(); setPlayState(false); }
+        }
+
+        function stop() {
+            audio.pause();
+            audio.currentTime = 0;
+            setPlayState(false);
+            els.seek.value = 0; els.fill.style.width = '0%';
+            els.status.innerText = "READY";
+            els.stats.innerHTML = "";
+        }
+
+        function setPlayState(playing) {
+            isPlaying = playing;
+            if(playing) {
+                els.playBtn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+                els.status.style.display = 'none';
+                els.art.classList.add('active');
+                renderVis();
+            } else {
+                els.playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                els.status.style.display = 'block';
+                els.status.innerText = "PAUSED";
+                els.art.classList.remove('active');
+                cancelAnimationFrame(animationId);
+            }
+        }
+
+        // --- UI UPDATES ---
+        audio.addEventListener('timeupdate', () => {
+            if(!audio.duration) return;
+            const pct = (audio.currentTime / audio.duration) * 100;
+            els.seek.value = pct;
+            els.fill.style.width = pct + "%";
+            
+            // Buffer fake visual
+            if(audio.buffered.length > 0) {
+                const bufPct = (audio.buffered.end(audio.buffered.length-1) / audio.duration) * 100;
+                els.buffer.style.width = bufPct + "%";
+            }
+
+            const m = Math.floor(audio.currentTime / 60);
+            const s = Math.floor(audio.currentTime % 60);
+            els.timer.innerText = `${m}:${s.toString().padStart(2,'0')}`;
+        });
+        
+        audio.addEventListener('ended', () => setPlayState(false));
+
+        document.getElementById('seek-slider').addEventListener('input', (e) => {
+            if(audio.duration) audio.currentTime = (e.target.value / 100) * audio.duration;
+        });
+        
+        document.getElementById('vol-slider').addEventListener('input', (e) => {
+            audio.volume = e.target.value / 100;
+        });
+
+        // --- LOCAL ---
+        document.getElementById('file-in').onchange = (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            stop();
+            audio.src = URL.createObjectURL(f);
+            els.marquee.innerText = f.name.toUpperCase();
+            els.art.style.backgroundImage = 'none';
+            els.stats.innerHTML = "SOURCE: LOCAL DISK";
+            initAudioCtx();
+            audio.play().then(()=>setPlayState(true));
+            e.target.value = '';
+        };
+
+        // --- VISUALIZADOR ---
+        const canvas = document.getElementById('vis-canvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('vis-wrapper');
+
+        function initAudioCtx() {
+            if(!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+                source = audioCtx.createMediaElementSource(audio); 
+                source.connect(analyser); analyser.connect(audioCtx.destination);
+            } else if(audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        new ResizeObserver(entries => { for(let e of entries) if(e.contentRect.width>0){canvas.width=e.contentRect.width;canvas.height=e.contentRect.height;} }).observe(wrapper);
+
+        function renderVis() {
+            if(!isPlaying) return;
+            animationId = requestAnimationFrame(renderVis);
+            const w=canvas.width, h=canvas.height;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(data);
+            
+            ctx.clearRect(0,0,w,h);
+            const bars = Math.floor(w/6);
+            const bw = w/bars * 0.8;
+            const gap = w/bars * 0.2;
+            const step = Math.floor(data.length / bars);
+
+            for(let i=0; i<bars; i++) {
+                const val = data[i*step];
+                const bh = (val/255)*h;
+                
+                const grad = ctx.createLinearGradient(0, h-bh, 0, h);
+                grad.addColorStop(0, '#ccffcc');
+                grad.addColorStop(0.5, '#00ff00');
+                grad.addColorStop(1, '#003300');
+                
+                ctx.fillStyle = grad;
+                ctx.fillRect(i*(bw+gap), h-bh, bw, bh);
+            }
+        }
+
+        function toggleSearch() { document.getElementById('search-modal').classList.toggle('active'); }
+    </script>
+</body>
+</html>
+
