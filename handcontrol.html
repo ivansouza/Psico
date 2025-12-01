@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sistema Interativo 3D - Mãos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; }
+        #input_video { transform: scaleX(-1); } // Espelhar vídeo
+
+        /* UI Glassmorphism */
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: #4f46e5;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        input[type="file"] { display: none; }
+
+        /* Modal de Ajuda */
+        #help-modal { transition: opacity 0.3s ease-in-out; }
+        #help-modal.hidden { opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Vídeo Escondido para MediaPipe -->
+    <video id="input_video" class="hidden" playsinline></video>
+
+    <!-- Tela de Carregamento -->
+    <div id="loading" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-500">
+        <div class="loader mb-4"></div>
+        <p class="text-gray-400 text-sm tracking-wider">INICIANDO I.A. VISUAL...</p>
+    </div>
+
+    <!-- Interface do Usuário (UI) -->
+    <div class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 flex flex-col justify-between p-4 sm:p-6">
+        
+        <!-- Cabeçalho -->
+        <div class="flex justify-between items-start">
+            <div class="glass-panel p-4 pointer-events-auto flex items-center gap-4">
+                <div>
+                    <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                        Tecelão de Partículas
+                    </h1>
+                    <p class="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-red-500" id="status-dot"></span>
+                        <span id="status-text">Carregando câmera...</span>
+                    </p>
+                </div>
+                <!-- Botão de Ajuda -->
+                 <button id="btn-help" class="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                    <i data-lucide="help-circle" class="w-5 h-5 text-indigo-300"></i>
+                 </button>
+            </div>
+
+            <!-- Painel de Status -->
+            <div class="glass-panel p-3 pointer-events-auto hidden sm:block text-right">
+                <div class="text-xs text-gray-400 space-y-1">
+                    <p>Modo: <span id="mode-val" class="text-white font-semibold">Partículas</span></p>
+                    <p>Tensão: <span id="tension-val" class="text-white font-semibold">0%</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles Inferiores -->
+        <div class="glass-panel p-4 pointer-events-auto self-center w-full max-w-lg mb-4 animate-fade-in-up">
+            <div class="flex flex-col gap-4">
+                
+                <!-- Seletor de Formas e Upload -->
+                <div class="flex items-center gap-3">
+                    <div class="flex overflow-x-auto pb-1 gap-2 no-scrollbar flex-1" id="shape-selector">
+                        <!-- Botões gerados via JS -->
+                    </div>
+                    <div class="w-px h-8 bg-white/20"></div>
+                    <!-- Botão de Upload de Foto -->
+                    <label class="cursor-pointer group relative flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-indigo-500/20 border border-white/20 hover:border-indigo-400 transition-all" title="Enviar Foto">
+                        <i data-lucide="image-plus" class="w-5 h-5 text-indigo-300 group-hover:text-white"></i>
+                        <input type="file" id="image-upload" accept="image/*">
+                    </label>
+                </div>
+
+                <!-- Seletor de Cor (Apenas para modo partículas) -->
+                <div class="flex items-center justify-between gap-4 border-t border-white/10 pt-3" id="color-controls">
+                    <div class="flex items-center gap-3">
+                        <div class="relative w-8 h-8 rounded-full overflow-hidden border border-gray-500 cursor-pointer hover:scale-110 transition-transform shadow-lg shadow-indigo-500/20">
+                            <input type="color" id="color-picker" class="absolute -top-4 -left-4 w-16 h-16 cursor-pointer" value="#00ffff">
+                        </div>
+                        <span class="text-xs text-gray-300 uppercase tracking-widest font-semibold">Cor das Partículas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ajuda -->
+    <div id="help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="glass-panel max-w-md w-full p-6 relative animate-fade-in-up pointer-events-auto">
+            <button id="btn-close-help" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-xl font-bold mb-4 text-indigo-300 flex items-center gap-2">
+                <i data-lucide="hand-metal" class="w-6 h-6"></i> Gestos de Controle
+            </h2>
+            <div class="space-y-6 text-sm text-gray-200">
+                <div class="flex items-start gap-4">
+                    <div class="bg-white/10 p-3 rounded-lg">
+                        <i data-lucide="expand" class="w-6 h-6 text-cyan-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base mb-1">Expansão (Escala)</h3>
+                        <p>Use **duas mãos** e afaste-as para aumentar o objeto, ou aproxime para diminuir.</p>
+                        <p class="text-xs text-gray-400 mt-1">Alternativa: Use o gesto de pinça com uma mão (polegar e indicador).</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4">
+                     <div class="bg-white/10 p-3 rounded-lg">
+                        <i data-lucide="vibrate" class="w-6 h-6 text-rose-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base mb-1">Vibração (Tensão)</h3>
+                        <p>**Feche a mão em punho**. Quanto mais fechado o punho, mais intensamente as partículas ou a foto irão vibrar e distorcer.</p>
+                    </div>
+                </div>
+                <div class="bg-indigo-500/20 p-3 rounded-lg text-xs border border-indigo-500/30">
+                    Dica: A foto enviada também reage a estes mesmos movimentos!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container Three.js -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <script>
+        // Inicializar Ícones
+        lucide.createIcons();
+
+        /** ------- CONFIGURAÇÃO & ESTADO ------- **/
+        const CONFIG = {
+            particleCount: 5000,
+            defaultColor: '#00ffff',
+            lerpSpeed: 0.06, 
+            tensionSensitivity: 2.5
+        };
+
+        const STATE = {
+            mode: 'particles', // 'particles' ou 'image'
+            currentShape: 'heart',
+            targetColor: new THREE.Color(CONFIG.defaultColor),
+            interaction: {
+                scale: 1.0,
+                tension: 0.0
+            }
+        };
+
+        /** ------- GERADORES MATEMÁTICOS DE FORMAS ------- **/
+        const Shapes = {
+            coração: (i, count) => {
+                const phi = Math.acos(-1 + (2 * i) / count);
+                const theta = Math.sqrt(count * Math.PI) * phi;
+                const u = phi * 2; const v = theta;
+                let x = 16 * Math.pow(Math.sin(u), 3) * Math.sin(v);
+                let y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u));
+                let z = x * Math.cos(v) * 0.2 + (Math.cos(u) * 5);
+                return new THREE.Vector3(x * 0.2, y * 0.2, z * 0.2);
+            },
+            saturno: (i, count) => {
+                const ratio = 0.6;
+                if (i < count * ratio) {
+                    const phi = Math.acos(-1 + (2 * i) / (count * ratio));
+                    const theta = Math.sqrt((count * ratio) * Math.PI) * phi;
+                    return new THREE.Vector3(2.5 * Math.cos(theta) * Math.sin(phi), 2.5 * Math.sin(theta) * Math.sin(phi), 2.5 * Math.cos(phi));
+                } else {
+                    const idx = i - count * ratio;
+                    const angle = (idx / (count * (1 - ratio))) * Math.PI * 12;
+                    const r = 4 + Math.random() * 2.5;
+                    return new THREE.Vector3(Math.cos(angle)*r, (Math.random()-0.5)*0.2, Math.sin(angle)*r).applyAxisAngle(new THREE.Vector3(1,0,1).normalize(), 0.4);
+                }
+            },
+            flor: (i, count) => {
+                const t = (i / count) * Math.PI * 20;
+                const r = Math.cos(5 * t) * 3 + 1;
+                return new THREE.Vector3(r * Math.cos(t), r * Math.sin(t), (i/count)*6 - 3);
+            },
+            esfera: (i, count) => {
+                const phi = Math.acos(-1 + (2 * i) / count);
+                const theta = Math.sqrt(count * Math.PI) * phi;
+                return new THREE.Vector3(4 * Math.cos(theta) * Math.sin(phi), 4 * Math.sin(theta) * Math.sin(phi), 4 * Math.cos(phi));
+            }
+        };
+
+        /** ------- THREE.JS SETUP ------- **/
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.04);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 14;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        /** ------- SISTEMA DE PARTÍCULAS ------- **/
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(CONFIG.particleCount * 3);
+        const targetPositions = new Float32Array(CONFIG.particleCount * 3);
+        const randomness = new Float32Array(CONFIG.particleCount);
+
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            const p = Shapes['coração'](i, CONFIG.particleCount);
+            positions[i*3] = p.x; positions[i*3+1] = p.y; positions[i*3+2] = p.z;
+            targetPositions[i*3] = p.x; targetPositions[i*3+1] = p.y; targetPositions[i*3+2] = p.z;
+            randomness[i] = Math.random();
+        }
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('randomness', new THREE.BufferAttribute(randomness, 1));
+
+        const particleMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                globalColor: { value: new THREE.Color(CONFIG.defaultColor) },
+                time: { value: 0 },
+                scale: { value: 1.0 },
+                tension: { value: 0.0 }
+            },
+            vertexShader: `
+                uniform float time; uniform float scale; uniform float tension;
+                attribute float randomness;
+                varying float vAlpha;
+                void main() {
+                    vec3 pos = position;
+                    pos *= scale; // Expansão
+                    // Tensão (Vibração de ruído)
+                    float jitter = tension * 0.8;
+                    if (jitter > 0.01) {
+                        pos.x += sin(time * 25.0 + pos.y * 2.0) * jitter * randomness;
+                        pos.y += cos(time * 20.0 + pos.z * 2.0) * jitter * randomness;
+                        pos.z += sin(time * 15.0 + pos.x * 2.0) * jitter * randomness;
+                    }
+                    pos.y += sin(time * 1.5 + randomness * 10.0) * 0.15; // Flutuação
+                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                    gl_PointSize = (7.0 * scale) * (1.0 / -mvPosition.z);
+                    gl_Position = projectionMatrix * mvPosition;
+                    vAlpha = 0.7 + 0.3 * sin(time * 2.0 + randomness * 5.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 globalColor; varying float vAlpha;
+                void main() {
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    float r = length(coord); if (r > 0.5) discard;
+                    float glow = pow(1.0 - (r * 2.0), 2.0);
+                    gl_FragColor = vec4(globalColor, vAlpha * glow);
+                }
+            `,
+            transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const particleSystem = new THREE.Points(geometry, particleMaterial);
+        scene.add(particleSystem);
+
+        /** ------- SISTEMA DE FOTO REAL (PLANO) ------- **/
+        let photoMesh = null;
+        // Shader para o plano da foto reagir à tensão
+        const photoMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                map: { value: null },
+                time: { value: 0 },
+                scale: { value: 1.0 },
+                tension: { value: 0.0 }
+            },
+            vertexShader: `
+                uniform float time; uniform float scale; uniform float tension;
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    vec3 pos = position;
+                    // Expansão simples
+                    pos *= scale; 
+                    
+                    // Tensão: Distorção dos vértices do plano baseada em ondas
+                    float dist = tension * 0.5;
+                    if (dist > 0.01) {
+                        pos.z += sin(uv.x * 10.0 + time * 15.0) * dist;
+                        pos.x += cos(uv.y * 10.0 + time * 15.0) * dist * 0.5;
+                    }
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D map; varying vec2 vUv;
+                void main() {
+                    vec4 texColor = texture2D(map, vUv);
+                    if (texColor.a < 0.1) discard; // Transparência png
+                    gl_FragColor = texColor;
+                }
+            `,
+            transparent: true, side: THREE.DoubleSide
+        });
+
+        const textureLoader = new THREE.TextureLoader();
+        const fileInput = document.getElementById('image-upload');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                loadPhoto(event.target.result);
+            };
+            reader.readAsDataURL(file);
+            // Reset input para permitir carregar a mesma imagem novamente se quiser
+            e.target.value = ''; 
+        });
+
+        function loadPhoto(imageDataURI) {
+            textureLoader.load(imageDataURI, (texture) => {
+                texture.minFilter = THREE.LinearFilter; // Melhor qualidade
+                
+                const aspect = texture.image.width / texture.image.height;
+                const baseSize = 8;
+                const planeGeo = new THREE.PlaneGeometry(baseSize * aspect, baseSize, 32, 32); // Mais segmentos para melhor distorção
+
+                if (photoMesh) {
+                    scene.remove(photoMesh);
+                    photoMesh.geometry.dispose();
+                }
+
+                photoMaterial.uniforms.map.value = texture;
+                photoMesh = new THREE.Mesh(planeGeo, photoMaterial);
+                scene.add(photoMesh);
+
+                switchToImageMode();
+            });
+        }
+
+        function switchToImageMode() {
+            STATE.mode = 'image';
+            particleSystem.visible = false;
+            if (photoMesh) photoMesh.visible = true;
+            updateUIForMode('image');
+        }
+
+        function resetToParticleMode(shapeName) {
+            STATE.mode = 'particles';
+            STATE.currentShape = shapeName;
+            particleSystem.visible = true;
+            if (photoMesh) photoMesh.visible = false;
+            
+            // Calcular posições alvo para a nova forma
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const p = Shapes[shapeName](i, CONFIG.particleCount);
+                targetPositions[i*3] = p.x; targetPositions[i*3+1] = p.y; targetPositions[i*3+2] = p.z;
+            }
+            updateUIForMode(shapeName);
+        }
+
+
+        /** ------- LÓGICA DE UI ------- **/
+        const shapeList = ['coração', 'saturno', 'flor', 'esfera'];
+        const selectorContainer = document.getElementById('shape-selector');
+        const modeValDisplay = document.getElementById('mode-val');
+        const colorControls = document.getElementById('color-controls');
+
+        function updateUIForMode(activeName) {
+            // Atualizar botões
+            Array.from(selectorContainer.children).forEach(btn => {
+                 const name = btn.getAttribute('data-name');
+                 const isActive = name === activeName;
+                 btn.className = `px-4 py-1.5 rounded-full text-xs font-medium transition-all border 
+                    ${isActive ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/50 border-transparent' : 'bg-white/10 text-gray-400 hover:bg-white/20 border-transparent hover:border-white/10'}`;
+            });
+
+            // Atualizar painéis
+            if (activeName === 'image') {
+                modeValDisplay.innerText = "Foto Real";
+                colorControls.classList.add('opacity-50', 'pointer-events-none'); // Desabilitar cor no modo foto
+            } else {
+                modeValDisplay.innerText = activeName.charAt(0).toUpperCase() + activeName.slice(1);
+                colorControls.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        // Criar botões
+        shapeList.forEach(shape => {
+            const btn = document.createElement('button');
+            btn.innerText = shape.charAt(0).toUpperCase() + shape.slice(1);
+            btn.setAttribute('data-name', shape);
+            btn.onclick = () => resetToParticleMode(shape);
+            selectorContainer.appendChild(btn);
+        });
+        updateUIForMode(STATE.currentShape); // Estado inicial
+
+        document.getElementById('color-picker').addEventListener('input', (e) => {
+            STATE.targetColor.set(e.target.value);
+        });
+
+        // --- Lógica do Modal de Ajuda ---
+        const btnHelp = document.getElementById('btn-help');
+        const btnCloseHelp = document.getElementById('btn-close-help');
+        const helpModal = document.getElementById('help-modal');
+
+        function toggleHelp(show) {
+            if (show) {
+                helpModal.classList.remove('hidden');
+            } else {
+                helpModal.classList.add('hidden');
+            }
+        }
+        btnHelp.addEventListener('click', () => toggleHelp(true));
+        btnCloseHelp.addEventListener('click', () => toggleHelp(false));
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) toggleHelp(false); // Fechar ao clicar fora
+        });
+
+
+        /** ------- VISÃO COMPUTACIONAL (MEDIAPIPE) ------- **/
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const tensionDisplay = document.getElementById('tension-val');
+        const loadingScreen = document.getElementById('loading');
+
+        function onResults(results) {
+            // Esconder loading na primeira detecção
+            if (loadingScreen.style.display !== 'none') {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => loadingScreen.style.display = 'none', 500);
+                statusText.innerText = "Rastreamento Ativo";
+                statusText.classList.add('text-green-400');
+                statusDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]";
+            }
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks;
+
+                // 1. ESCALA (Distância entre mãos ou pinça)
+                let newScale = 1.0;
+                if (landmarks.length === 2) {
+                    const dist = Math.hypot(landmarks[0][0].x - landmarks[1][0].x, landmarks[0][0].y - landmarks[1][0].y);
+                    newScale = 0.5 + (dist * 2.5);
+                } else if (landmarks.length === 1) {
+                    const dist = Math.hypot(landmarks[0][4].x - landmarks[0][8].x, landmarks[0][4].y - landmarks[0][8].y);
+                    newScale = 0.6 + (dist * 6.0);
+                }
+                STATE.interaction.scale += (newScale - STATE.interaction.scale) * 0.1;
+
+                // 2. TENSÃO (Punho fechado)
+                let maxTension = 0;
+                landmarks.forEach(hand => {
+                    const wrist = hand[0];
+                    const tips = [8, 12, 16, 20]; // Pontas dos dedos
+                    let avgDist = 0;
+                    tips.forEach(t => avgDist += Math.hypot(hand[t].x - wrist.x, hand[t].y - wrist.y));
+                    avgDist /= 4;
+                    // Mapear distância média: Punho fechado (~0.15) -> Tensão 1.0
+                    let t = 1.0 - (Math.min(Math.max(avgDist, 0.15), 0.45) - 0.15) / 0.3;
+                    if (t > maxTension) maxTension = t;
+                });
+                if (maxTension < 0.2) maxTension = 0; // Zona morta para evitar jitter
+                STATE.interaction.tension += (maxTension - STATE.interaction.tension) * 0.15;
+
+            } else {
+                // Retornar ao estado neutro se não houver mãos
+                STATE.interaction.scale += (1.0 - STATE.interaction.scale) * 0.05;
+                STATE.interaction.tension += (0.0 - STATE.interaction.tension) * 0.1;
+            }
+            tensionDisplay.innerText = Math.round(STATE.interaction.tension * 100) + '%';
+        }
+
+        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        hands.onResults(onResults);
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+                const videoElement = document.getElementById('input_video');
+                videoElement.srcObject = stream;
+                videoElement.play();
+                const sendFrame = async () => { await hands.send({image: videoElement}); requestAnimationFrame(sendFrame); };
+                sendFrame();
+            } catch(e) {
+                statusText.innerText = "Câmera Negada"; statusDot.className = "bg-red-600 w-2 h-2 rounded-full"; loadingScreen.style.display = 'none';
+            }
+        }
+        startCamera();
+
+        /** ------- LOOP DE RENDERIZAÇÃO ------- **/
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // Atualizar posições das partículas (se estiverem visíveis)
+            if (STATE.mode === 'particles') {
+                 const posArr = geometry.attributes.position.array;
+                 for(let i=0; i<CONFIG.particleCount*3; i++) {
+                     posArr[i] += (targetPositions[i] - posArr[i]) * CONFIG.lerpSpeed;
+                 }
+                 geometry.attributes.position.needsUpdate = true;
+                 // Atualizar cor global
+                 particleMaterial.uniforms.globalColor.value.lerp(STATE.targetColor, 0.1);
+            }
+
+            // Atualizar Uniforms dos Shaders (Tanto para partículas quanto para foto)
+            // A tensão é aplicada de forma não-linear para mais drama
+            const tensionValue = Math.pow(STATE.interaction.tension, 2) * CONFIG.tensionSensitivity;
+            
+            particleMaterial.uniforms.time.value = time;
+            particleMaterial.uniforms.scale.value = STATE.interaction.scale;
+            particleMaterial.uniforms.tension.value = tensionValue;
+            
+            photoMaterial.uniforms.time.value = time;
+            photoMaterial.uniforms.scale.value = STATE.interaction.scale;
+            photoMaterial.uniforms.tension.value = tensionValue;
+
+            // Rotação suave da cena
+            scene.rotation.y = Math.sin(time * 0.1) * 0.15;
+            scene.rotation.z = Math.sin(time * 0.05) * 0.08;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
+
