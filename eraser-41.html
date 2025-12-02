@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magic Eraser NB v41 (Configurable)</title>
+    
+    <!-- Dependências React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        * { box-sizing: border-box; touch-action: none; }
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            color: white;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #111;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        
+        canvas {
+            position: absolute; top: 0; left: 0;
+            image-rendering: pixelated;
+        }
+        
+        .ui-layer { pointer-events: none; z-index: 50; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: #8b5cf6;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect, useCallback } = React;
+
+        // --- ÍCONES ---
+        const Icon = ({ d, c="w-6 h-6" }) => <svg viewBox="0 0 24 24" className={c} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
+        
+        const Icons = {
+            Upload: <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>,
+            Save: <Icon d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/>,
+            Brush: <Icon d="M18 13.5c0 2.5-2.2 4.5-5 4.5s-5-2-5-4.5S10.2 9 13 9s5 2 5 4.5ZM13 9V3M10 5.3 13 3l3 2.3"/>,
+            AI: <Icon d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>,
+            Auto: <Icon d="M6 3h12l4 6-10 13L2 9ZM11 3 8 9l4 13 4-13-3-6"/>,
+            Eraser: <Icon d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21M22 21H7M5 11l9 9"/>,
+            Clone: <Icon d="M5 22h14M19.27 13.73A2.665 2.665 0 0 0 17.5 13h-11A2.665 2.665 0 0 0 4.73 13.73L2.5 16h19l-2.23-2.27ZM10 2h4M12 2v11"/>,
+            Move: <Icon d="M5 9l-2 3 2 3M9 5l3-2 3 2M19 9l2 3-2 3M9 19l3 2 3-2M2 12h20M12 2v20"/>,
+            Undo: <Icon d="M3 7v6h6M21 17a9 9 0 0 0-9-9 9 0 0 0-6 2.3L3 13"/>,
+            Redo: <Icon d="M21 7v6h-6M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>,
+            Settings: <Icon d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+        };
+
+        function App() {
+            // --- ESTADOS ---
+            const [img, setImg] = useState(null);
+            const [mode, setMode] = useState('view'); 
+            const [size, setSize] = useState(40);
+            const [msg, setMsg] = useState("");
+            const [busy, setBusy] = useState(false);
+            const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+            const [history, setHistory] = useState([]);
+            const [hIdx, setHIdx] = useState(-1);
+            const [showSettings, setShowSettings] = useState(false);
+            const [userApiKey, setUserApiKey] = useState(localStorage.getItem("gemini_key") || "");
+            
+            // Refs
+            const canvasRef = useRef(null);
+            const overlayRef = useRef(null);
+            const uiCanvasRef = useRef(null);
+            const fileRef = useRef(null);
+            const containerRef = useRef(null);
+
+            // Refs Lógicos
+            const state = useRef({ 
+                panning: false, pinching: false, painting: false,
+                lastX: 0, lastY: 0, startDist: 0, startK: 1, startX: 0, startY: 0,
+                cloneSrc: null, hasMask: false
+            });
+
+            // Salvar chave
+            const saveKey = (key) => {
+                setUserApiKey(key);
+                localStorage.setItem("gemini_key", key);
+            };
+
+            // --- CARREGAMENTO ---
+            const handleFile = (e) => {
+                const f = e.target.files[0];
+                if(!f) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const i = new Image();
+                    i.onload = () => {
+                        let w=i.width, h=i.height;
+                        const max=1200;
+                        if(w>max||h>max) { const r=Math.min(max/w, max/h); w=Math.floor(w*r); h=Math.floor(h*r); }
+                        
+                        const c = document.createElement('canvas'); c.width=w; c.height=h;
+                        c.getContext('2d').drawImage(i,0,0,w,h);
+                        
+                        const finalImg = new Image();
+                        finalImg.onload = () => {
+                            setImg(finalImg);
+                            setHistory([c.toDataURL()]);
+                            setHIdx(0);
+                            
+                            if(containerRef.current) {
+                                const cw = containerRef.current.clientWidth;
+                                const ch = containerRef.current.clientHeight;
+                                const k = Math.min(cw/w, ch/h)*0.95;
+                                setTransform({ x: (cw-w*k)/2, y: (ch-h*k)/2, k });
+                            }
+                            state.current.hasMask = false;
+                            state.current.cloneSrc = null;
+                            setMode('view');
+                            
+                            [canvasRef, overlayRef, uiCanvasRef].forEach(ref => {
+                                if(ref.current) {
+                                    ref.current.width = w; ref.current.height = h;
+                                    ref.current.getContext('2d').clearRect(0,0,w,h);
+                                }
+                            });
+                            if(canvasRef.current) canvasRef.current.getContext('2d').drawImage(finalImg,0,0);
+                        };
+                        finalImg.src = c.toDataURL();
+                    };
+                    i.src = ev.target.result;
+                };
+                reader.readAsDataURL(f);
+            };
+
+            const save = () => {
+                if(!canvasRef.current) return;
+                const a = document.createElement('a');
+                a.download = `magic-nb-${Date.now()}.jpg`;
+                a.href = canvasRef.current.toDataURL('image/jpeg', 0.95);
+                a.click();
+            };
+
+            // --- RENDERIZAÇÃO ---
+            useEffect(() => {
+                if(img && canvasRef.current) {
+                    const ctx = canvasRef.current.getContext('2d');
+                    if(canvasRef.current.width !== img.width) {
+                         canvasRef.current.width = img.width; canvasRef.current.height = img.height;
+                         if(overlayRef.current) { overlayRef.current.width = img.width; overlayRef.current.height = img.height; }
+                         if(uiCanvasRef.current) { uiCanvasRef.current.width = img.width; uiCanvasRef.current.height = img.height; }
+                    }
+                    ctx.clearRect(0, 0, img.width, img.height);
+                    ctx.drawImage(img, 0, 0);
+                }
+            }, [img]);
+
+            // --- GESTOS ---
+            const getPt = (e) => {
+                const r = containerRef.current.getBoundingClientRect();
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                const y = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (x - r.left - transform.x) / transform.k,
+                    y: (y - r.top - transform.y) / transform.k
+                };
+            };
+
+            const drawUI = (pt) => {
+                const ctx = uiCanvasRef.current.getContext('2d');
+                const w = uiCanvasRef.current.width; const h = uiCanvasRef.current.height;
+                ctx.clearRect(0,0,w,h);
+                
+                const src = state.current.cloneSrc;
+                if(src && mode === 'clone') {
+                    const s = 10 / transform.k * 2;
+                    ctx.strokeStyle = '#0f0'; ctx.lineWidth = 2 / transform.k * 2;
+                    ctx.beginPath(); ctx.arc(src.x, src.y, s, 0, 6.28); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(src.x-s*1.5, src.y); ctx.lineTo(src.x+s*1.5, src.y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(src.x, src.y-s*1.5); ctx.lineTo(src.x, src.y+s*1.5); ctx.stroke();
+                }
+            };
+
+            const down = (e) => {
+                if(!img) return;
+                if(e.touches && e.touches.length === 2) {
+                    state.current.pinching = true;
+                    state.current.startDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+                    state.current.startK = transform.k; return;
+                }
+                const pt = getPt(e);
+                if(mode === 'view') {
+                    state.current.panning = true;
+                    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                    state.current.startX = cx - transform.x;
+                    state.current.startY = cy - transform.y;
+                } else if (mode === 'clone' && !state.current.cloneSrc) {
+                    state.current.cloneSrc = pt;
+                    setMsg("Origem definida!"); setTimeout(()=>setMsg(""), 1500);
+                    drawUI(pt);
+                } else {
+                    state.current.painting = true;
+                    state.current.lastX = pt.x; state.current.lastY = pt.y;
+                    paint(pt, pt);
+                    if(mode === 'mask') state.current.hasMask = true;
+                    drawUI(pt);
+                }
+            };
+
+            const move = (e) => {
+                if(!img) return;
+                e.preventDefault();
+                if(state.current.pinching && e.touches.length === 2) {
+                    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+                    const k = Math.max(0.1, Math.min(5, state.current.startK * (d/state.current.startDist)));
+                    setTransform(t => ({...t, k})); return;
+                }
+                if(state.current.panning) {
+                    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                    setTransform(t => ({...t, x: cx - state.current.startX, y: cy - state.current.startY}));
+                } else if(state.current.painting) {
+                    const pt = getPt(e);
+                    paint({x:state.current.lastX, y:state.current.lastY}, pt);
+                    state.current.lastX = pt.x; state.current.lastY = pt.y;
+                    drawUI(pt);
+                }
+            };
+
+            const up = () => {
+                state.current.panning = false; state.current.pinching = false;
+                if(state.current.painting) {
+                    state.current.painting = false;
+                    if(mode === 'erase') applyErase();
+                    if(mode === 'clone') applyClone();
+                }
+            };
+
+            const paint = (start, end) => {
+                const ctx = overlayRef.current.getContext('2d');
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = size;
+                if(mode==='mask') ctx.strokeStyle = '#00FF00'; 
+                else if(mode==='erase') ctx.strokeStyle = '#FF0066';
+                else if(mode==='clone') ctx.strokeStyle = '#6666FF';
+                ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+            };
+
+            const updateImage = (newData) => {
+                const c = document.createElement('canvas'); c.width=newData.width; c.height=newData.height;
+                c.getContext('2d').putImageData(newData,0,0);
+                const ni = new Image();
+                ni.onload = () => {
+                    setImg(ni);
+                    const nh = history.slice(0, hIdx+1); nh.push(c.toDataURL());
+                    setHistory(nh); setHIdx(nh.length-1);
+                    overlayRef.current.getContext('2d').clearRect(0,0,newData.width,newData.height);
+                    setBusy(false);
+                    if(state.current.hasMask && mode !== 'mask') state.current.hasMask = false;
+                };
+                ni.src = c.toDataURL();
+            };
+
+            const applyErase = async () => {
+                setBusy(true); await new Promise(r=>setTimeout(r,10));
+                const w=img.width; const h=img.height;
+                const ctx = canvasRef.current.getContext('2d');
+                const mCtx = overlayRef.current.getContext('2d');
+                const d = ctx.getImageData(0,0,w,h);
+                const m = mCtx.getImageData(0,0,w,h).data;
+                const res = new Uint8ClampedArray(d.data);
+                for(let i=0; i<m.length; i+=4) { if(m[i+3]>0) { const k = i - w*4*5; if(k>=0 && m[k+3]===0) { res[i]=res[k]; res[i+1]=res[k+1]; res[i+2]=res[k+2]; res[i+3]=255; } } }
+                updateImage(new ImageData(res,w,h));
+            };
+
+            const applyClone = async () => {
+                if(!state.current.cloneSrc) return;
+                setBusy(true); await new Promise(r=>setTimeout(r,10));
+                const w=img.width; const h=img.height;
+                const ctx = canvasRef.current.getContext('2d');
+                const mCtx = overlayRef.current.getContext('2d');
+                const d = ctx.getImageData(0,0,w,h);
+                const m = mCtx.getImageData(0,0,w,h).data;
+                const res = new Uint8ClampedArray(d.data);
+                const sx = Math.floor(state.current.cloneSrc.x);
+                const sy = Math.floor(state.current.cloneSrc.y);
+                const sIdx = (sy*w+sx)*4;
+                for(let i=0; i<m.length; i+=4) { if(m[i+3]>0 && sIdx<res.length) { res[i]=d.data[sIdx]; res[i+1]=d.data[sIdx+1]; res[i+2]=d.data[sIdx+2]; res[i+3]=255; } }
+                updateImage(new ImageData(res,w,h));
+            };
+
+            // --- AUTO LOCAL (DIAMANTE) ---
+            const auto = async () => {
+                if(!img) return; setBusy(true); setMsg("Removendo..."); await new Promise(r=>setTimeout(r,50));
+                const w=img.width; const h=img.height;
+                const ctx = canvasRef.current.getContext('2d');
+                const d = ctx.getImageData(0,0,w,h).data;
+                const res = new Uint8ClampedArray(d);
+                const rad = Math.max(25, Math.min(w,h)*0.05);
+                const cx = w - Math.max(15, w*0.03) - (rad*0.8);
+                const cy = h - Math.max(15, h*0.03) - (rad*0.8);
+                for(let y=Math.floor(cy-rad); y<cy+rad; y++) {
+                    for(let x=Math.floor(cx-rad); x<cx+rad; x++) {
+                        if((x-cx)**2+(y-cy)**2 <= rad**2) {
+                            const ti = (y*w+x)*4; const sx = Math.floor(Math.max(0, x-rad*2.5)); const sy = Math.floor(Math.max(0, y-rad*2.5)); const si = (sy*w+sx)*4;
+                            let a=1; const dist=Math.sqrt((x-cx)**2+(y-cy)**2); if(dist>rad-4) a=(rad-dist)/4; a=Math.max(0, Math.min(1,a));
+                            res[ti] = d[si]*a + d[ti]*(1-a); res[ti+1] = d[si+1]*a + d[ti+1]*(1-a); res[ti+2] = d[si+2]*a + d[ti+2]*(1-a);
+                        }
+                    }
+                }
+                updateImage(new ImageData(res,w,h)); setMsg("");
+            };
+
+            // --- GOOGLE AI (AGORA COM CONFIG) ---
+            const ai = async () => {
+                if(!userApiKey) { setShowSettings(true); setMsg("Configure a Chave API!"); setTimeout(()=>setMsg(""),2000); return; }
+                
+                setBusy(true); setMsg("Enviando para Google...");
+                
+                try {
+                    const w=img.width; const h=img.height;
+                    const c = document.createElement('canvas'); c.width=w; c.height=h;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img,0,0);
+                    
+                    // Se não tem máscara, faz AUTO DETECT (Canto)
+                    if(!state.current.hasMask) {
+                        setMsg("Auto Detectando...");
+                        const rad = Math.max(25, Math.min(w,h)*0.05);
+                        const cx = w - Math.max(15, w*0.03) - (rad*0.8);
+                        const cy = h - Math.max(15, h*0.03) - (rad*0.8);
+                        const mC = document.createElement('canvas'); mC.width=w; mC.height=h;
+                        const mCtx = mC.getContext('2d');
+                        mCtx.fillStyle = '#00FF00'; mCtx.beginPath(); mCtx.arc(cx, cy, rad, 0, Math.PI*2); mCtx.fill();
+                        ctx.globalCompositeOperation = 'source-over'; 
+                        ctx.drawImage(mC, 0, 0);
+                    } else {
+                        // Usa máscara manual
+                        const mData = overlayRef.current.getContext('2d').getImageData(0,0,w,h);
+                        const mC = document.createElement('canvas'); mC.width=w; mC.height=h;
+                        const mCtx = mC.getContext('2d');
+                        mCtx.putImageData(mData,0,0);
+                        mCtx.globalCompositeOperation='source-in'; mCtx.fillStyle='#00FF00'; mCtx.fillRect(0,0,w,h);
+                        ctx.drawImage(mC,0,0);
+                    }
+                    
+                    const b64 = c.toDataURL('image/png').split(',')[1];
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${userApiKey}`;
+                    const body = { contents: [{ parts: [{ text: "Inpainting task. Replace green #00FF00 mask with background." }, { inlineData: { mimeType: "image/png", data: b64 } }] }] };
+                    
+                    const req = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+                    const json = await req.json();
+                    
+                    if(json.error) throw new Error(json.error.message);
+                    
+                    const newB64 = json.candidates?.[0]?.content?.parts?.find(p=>p.inlineData)?.inlineData?.data;
+                    if(newB64) {
+                        const ni = new Image();
+                        ni.onload = () => {
+                            const temp = document.createElement('canvas'); temp.width=w; temp.height=h;
+                            temp.getContext('2d').drawImage(ni, 0, 0, w, h); 
+                            updateImage(temp.getContext('2d').getImageData(0,0,w,h));
+                            setMode('view'); setMsg("Sucesso!"); setTimeout(()=>setMsg(""),2000);
+                        };
+                        ni.src = `data:image/png;base64,${newB64}`;
+                    } else throw new Error("Sem retorno de imagem");
+                } catch(e) { console.error(e); setMsg("Erro API: " + e.message); setBusy(false); }
+            };
+
+            const undo = () => {
+                if(hIdx>0) {
+                    const src = history[hIdx-1];
+                    const i = new Image(); i.onload=()=>setImg(i); i.src=src;
+                    setHIdx(hIdx-1);
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-full w-full bg-black text-white">
+                    <div className="flex justify-between items-center p-3 bg-gray-900 border-b border-gray-800 z-50 shadow-lg h-14 shrink-0">
+                        <div className="font-bold text-purple-400 flex gap-2 items-center">{Icons.AI} NB v41</div>
+                        <div className="flex gap-3">
+                            <button onClick={()=>setShowSettings(true)} className="text-gray-400 text-xl">⚙️</button>
+                            <button onClick={()=>fileRef.current.click()} className="bg-gray-700 p-2 rounded-full">{Icons.Upload}</button>
+                            <button onClick={save} disabled={!img} className="bg-white text-black px-4 py-1 rounded-full font-bold text-sm disabled:opacity-50">Salvar</button>
+                        </div>
+                    </div>
+
+                    {showSettings && (
+                        <div className="modal-overlay" onClick={()=>setShowSettings(false)}>
+                            <div className="bg-gray-800 p-6 rounded-xl w-80 border border-gray-700" onClick={e=>e.stopPropagation()}>
+                                <h3 className="font-bold mb-4 text-purple-400">Configurar Google AI</h3>
+                                <label className="block text-xs text-gray-400 mb-1">Google Gemini API Key</label>
+                                <input type="password" value={userApiKey} onChange={e=>saveKey(e.target.value)} className="w-full bg-black border border-gray-600 p-2 rounded text-white mb-4 text-sm" placeholder="Cole sua chave aqui..." />
+                                <button onClick={()=>setShowSettings(false)} className="w-full bg-purple-600 py-2 rounded font-bold hover:bg-purple-500 transition">Salvar & Fechar</button>
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" className="block text-center text-[10px] text-blue-400 mt-3 hover:underline">Obter Chave Gratuita (Google)</a>
+                            </div>
+                        </div>
+                    )}
+
+                    <div ref={containerRef} className="canvas-container"
+                         onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up}
+                         onTouchStart={down} onTouchMove={move} onTouchEnd={up}>
+                        
+                        {!img && <div className="flex flex-col items-center text-gray-500">{Icons.Upload}<p className="mt-2">Carregar Imagem</p></div>}
+
+                        <div className="transform-layer" style={{ 
+                            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`,
+                            width: img ? img.width : 0, height: img ? img.height : 0,
+                            display: img ? 'block' : 'none',
+                            position: 'absolute', top: 0, left: 0, transformOrigin: '0 0'
+                        }}>
+                            <canvas ref={canvasRef} />
+                            <canvas ref={overlayRef} className="paint-layer" />
+                            <canvas ref={uiCanvasRef} className="ui-layer" />
+                        </div>
+
+                        {msg && <div className="absolute top-4 bg-black/80 px-4 py-2 rounded-full text-sm z-50 border border-white/20">{msg}</div>}
+                        {busy && <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50"><div className="loader"></div></div>}
+                    </div>
+
+                    {img && (
+                        <div className="bg-gray-900 p-2 pb-6 z-50 border-t border-gray-800 flex flex-col gap-2">
+                            {mode!=='view' && (
+                                <div className="flex items-center gap-2 px-2">
+                                    <span className="text-xs w-6">{size}</span>
+                                    <input type="range" min="5" max="150" value={size} onChange={e=>setSize(Number(e.target.value))} className="flex-1 h-2 bg-gray-700 rounded-lg accent-purple-500"/>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center px-1 gap-2 overflow-x-auto no-scrollbar">
+                                <div className="flex bg-gray-800/50 p-1 rounded gap-1 border border-white/10">
+                                    <button onClick={()=>setMode('mask')} className={`p-2 rounded w-10 flex flex-col items-center ${mode==='mask'?'text-green-400':'text-gray-400'}`}>{Icons.Brush}<span className="text-[8px]">Pincel</span></button>
+                                    <button onClick={ai} className="p-2 rounded w-10 flex flex-col items-center text-white bg-gradient-to-b from-purple-600 to-indigo-600">{Icons.AI}<span className="text-[8px]">IA GO</span></button>
+                                </div>
+                                <div className="w-px h-8 bg-gray-700"></div>
+                                <button onClick={auto} className="p-2 rounded w-10 flex flex-col items-center text-purple-400">{Icons.Auto}<span className="text-[8px]">Local</span></button>
+                                <button onClick={()=>setMode('erase')} className={`p-2 rounded w-10 flex flex-col items-center ${mode==='erase'?'text-pink-500':'text-gray-400'}`}>{Icons.Eraser}<span className="text-[8px]">Apagar</span></button>
+                                <button onClick={()=>{setMode('clone'); state.current.cloneSrc=null; drawUI();}} className={`p-2 rounded w-10 flex flex-col items-center ${mode==='clone'?'text-blue-400':'text-gray-400'}`}>{Icons.Clone}<span className="text-[8px]">Clone</span></button>
+                                <button onClick={()=>setMode('view')} className={`p-2 rounded w-10 flex flex-col items-center ${mode==='view'?'text-white':'text-gray-400'}`}>{Icons.Move}<span className="text-[8px]">Mover</span></button>
+                                <button onClick={undo} disabled={hIdx<=0} className="p-2 text-gray-400 disabled:opacity-30">{Icons.Undo}</button>
+                            </div>
+                        </div>
+                    )}
+                    <input type="file" ref={fileRef} onChange={handleFile} className="hidden" accept="image/*" />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
