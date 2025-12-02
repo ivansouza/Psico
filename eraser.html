@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Magic Eraser NB - Edição de Imagem IA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Magic Eraser NB</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -19,8 +19,15 @@
         body {
             background-color: #0a0a0a;
             color: white;
-            overflow: hidden; /* Previne scroll elástico no mobile */
-            touch-action: none; /* Previne gestos do navegador */
+            /* Garante que ocupa a altura exata visível, sem scroll na página inteira */
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #root {
+            height: 100%;
+            width: 100%;
         }
         /* Animações customizadas */
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -35,7 +42,7 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
 
-        // --- ÍCONES (Inline SVG Components para evitar dependências externas complexas) ---
+        // --- ÍCONES ---
         const Icon = ({ children, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {children}
@@ -60,7 +67,7 @@
             const [historyIndex, setHistoryIndex] = useState(-1);
             const [brushSize, setBrushSize] = useState(40);
             const [isProcessing, setIsProcessing] = useState(false);
-            const [mode, setMode] = useState('view'); // 'view' or 'erase'
+            const [mode, setMode] = useState('view'); 
             const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
             const [lastAction, setLastAction] = useState(null);
             
@@ -69,7 +76,6 @@
             const containerRef = useRef(null);
             const fileInputRef = useRef(null);
             
-            // Controle de gestos
             const isDragging = useRef(false);
             const isPinching = useRef(false);
             const startPan = useRef({ x: 0, y: 0 });
@@ -107,7 +113,6 @@
                             setHistory([newImageData]);
                             setHistoryIndex(0);
                             
-                            // Ajuste inicial do zoom para caber na tela
                             if (containerRef.current) {
                                 const containerW = containerRef.current.clientWidth;
                                 const containerH = containerRef.current.clientHeight;
@@ -174,7 +179,7 @@
                 return { x, y };
             };
 
-            // --- 3. Lógica de Reconstrução de Padrão (Patch-Based) ---
+            // --- 3. Lógica de Reconstrução (Patch-Based) ---
             const removeWatermarkPattern = async () => {
                 if (!image || !imageCanvasRef.current) return;
                 setIsProcessing(true);
@@ -185,14 +190,12 @@
                 const canvas = imageCanvasRef.current;
                 const ctx = canvas.getContext('2d');
 
-                // 1. Área Alvo (Canto Inferior Direito)
                 const radius = Math.max(25, Math.min(w, h) * 0.05); 
                 const marginX = Math.max(15, w * 0.03); 
                 const marginY = Math.max(15, h * 0.03);
                 const centerX = w - marginX - (radius * 0.8); 
                 const centerY = h - marginY - (radius * 0.8);
 
-                // 2. Configurações Patch-Match
                 const patchSize = Math.max(8, Math.floor(radius / 2.5)); 
                 const searchRadius = Math.floor(radius * 3.5); 
                 const step = Math.floor(patchSize / 2); 
@@ -223,21 +226,16 @@
 
                 for (let y = Math.floor(centerY - radius); y < centerY + radius; y += step) {
                     for (let x = Math.floor(centerX - radius); x < centerX + radius; x += step) {
-                        
                         let patchTouchesTarget = false;
                         for(let iy = y; iy < y + patchSize; iy++) {
                             for(let ix = x; ix < x + patchSize; ix++) {
-                                if(isInsideCircle(ix, iy)) {
-                                    patchTouchesTarget = true;
-                                    break;
-                                }
+                                if(isInsideCircle(ix, iy)) { patchTouchesTarget = true; break; }
                             }
                             if(patchTouchesTarget) break;
                         }
 
                         if (patchTouchesTarget) {
                             let bestPatch = { x: -1, y: -1, diff: Infinity };
-                            
                             for (let sy = y - searchRadius; sy < y + searchRadius; sy += step) {
                                 for (let sx = x - searchRadius; sx < x + searchRadius; sx += step) {
                                     let searchPatchIsValid = true;
@@ -246,30 +244,22 @@
                                     } else {
                                         for(let iy = sy; iy < sy + patchSize; iy++) {
                                             for(let ix = sx; ix < sx + patchSize; ix++) {
-                                                if(isInsideCircle(ix, iy)) {
-                                                    searchPatchIsValid = false;
-                                                    break;
-                                                }
+                                                if(isInsideCircle(ix, iy)) { searchPatchIsValid = false; break; }
                                             }
                                             if(!searchPatchIsValid) break;
                                         }
                                     }
-                                    
                                     if (searchPatchIsValid) {
                                         const diff = comparePatches(x, y, sx, sy);
-                                        if (diff < bestPatch.diff) {
-                                            bestPatch = { x: sx, y: sy, diff: diff };
-                                        }
+                                        if (diff < bestPatch.diff) { bestPatch = { x: sx, y: sy, diff: diff }; }
                                     }
                                 }
                             }
-
                             if (bestPatch.x !== -1) {
                                 for (let i = 0; i < patchSize; i++) {
                                     for (let j = 0; j < patchSize; j++) {
                                         const targetIdx = ((y + i) * w + (x + j)) * 4;
                                         const sourceIdx = ((bestPatch.y + i) * w + (bestPatch.x + j)) * 4;
-                                        
                                         if(isInsideCircle(x + j, y + i)) {
                                             resultData[targetIdx] = data[sourceIdx];
                                             resultData[targetIdx + 1] = data[sourceIdx + 1];
@@ -285,17 +275,14 @@
 
                 const finalImageData = new ImageData(resultData, w, h);
                 setImage(finalImageData);
-                const newHistory = history.slice(0, historyIndex + 1);
-                newHistory.push(finalImageData);
-                setHistory(newHistory);
-                setHistoryIndex(newHistory.length - 1);
-                
+                setHistory([...history.slice(0, historyIndex + 1), finalImageData]);
+                setHistoryIndex(prev => prev + 1);
                 setLastAction("Marca removida com textura!");
                 setTimeout(() => setLastAction(null), 2500);
                 setIsProcessing(false);
             };
 
-            // --- 4. Borracha Manual (Onion Peel) ---
+            // --- 4. Borracha Manual ---
             const applyManualEraser = async () => {
                 if (!hasDrawn.current || !image) return;
                 setIsProcessing(true);
@@ -355,9 +342,9 @@
                         }
                         
                         for (let i=0; i<w*h; i++) if (statusMap[i]===1) statusMap[i] = -1;
-                        
                         if (nextBoundary.length === currentBoundary.length) {
-                            for (let p of nextBoundary) {
+                             // Force fill remaining
+                             for (let p of nextBoundary) {
                                 resultData[p*4] = resultData[currentBoundary[0]*4];
                                 resultData[p*4+1] = resultData[currentBoundary[0]*4+1];
                                 resultData[p*4+2] = resultData[currentBoundary[0]*4+2];
@@ -370,10 +357,8 @@
                     
                     const finalImageData = new ImageData(resultData, w, h);
                     setImage(finalImageData);
-                    const newHistory = history.slice(0, historyIndex + 1);
-                    newHistory.push(finalImageData);
-                    setHistory(newHistory);
-                    setHistoryIndex(newHistory.length - 1);
+                    setHistory([...history.slice(0, historyIndex + 1), finalImageData]);
+                    setHistoryIndex(prev => prev + 1);
                 }
                 
                 oCtx.clearRect(0, 0, w, h);
@@ -382,7 +367,7 @@
                 setMode('view');
             };
 
-            // --- 5. Controles de Gestos ---
+            // --- Gestos ---
             const handlePointerDown = (e) => {
                 if (!image) return;
                 if (e.touches && e.touches.length === 2) {
@@ -458,8 +443,8 @@
             const handleRedo = () => { if (historyIndex < history.length - 1) { setHistoryIndex(historyIndex + 1); setImage(history[historyIndex + 1]); }};
 
             return (
-                <div className="flex flex-col h-screen bg-neutral-950 text-white overflow-hidden touch-none select-none">
-                    <header className="flex justify-between items-center px-4 py-3 bg-neutral-900 z-50 shadow-md">
+                <div className="flex flex-col h-[100dvh] w-screen bg-neutral-950 text-white overflow-hidden touch-none select-none">
+                    <header className="flex-none flex justify-between items-center px-4 py-3 bg-neutral-900 z-50 shadow-md">
                         <div className="flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-pink-500" />
                             <span className="font-bold text-sm md:text-base">Magic Eraser <span className="text-pink-400 text-xs">NB</span></span>
@@ -470,7 +455,7 @@
                         </div>
                     </header>
                     
-                    <main ref={containerRef} className="flex-1 relative overflow-hidden bg-neutral-950 cursor-crosshair" onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp} onMouseLeave={handlePointerUp} onTouchStart={handlePointerDown} onTouchMove={handlePointerMove} onTouchEnd={handlePointerUp}>
+                    <main ref={containerRef} className="flex-1 relative overflow-hidden bg-neutral-950 cursor-crosshair w-full h-full" onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp} onMouseLeave={handlePointerUp} onTouchStart={handlePointerDown} onTouchMove={handlePointerMove} onTouchEnd={handlePointerUp}>
                         {!image ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-500 pointer-events-none text-center p-4">
                                 <ImageIcon className="w-12 h-12 mb-4 opacity-50 mx-auto"/>
@@ -501,7 +486,7 @@
                     </main>
                     
                     {image && (
-                        <footer className="bg-neutral-900 border-t border-neutral-800 px-4 py-4 md:py-6 z-50">
+                        <footer className="flex-none bg-neutral-900 border-t border-neutral-800 px-4 pt-4 pb-10 z-50">
                             <div className="max-w-md mx-auto flex flex-col gap-4">
                                 {mode === 'erase' && (
                                     <div className="flex items-center gap-3 fade-in">
@@ -509,9 +494,8 @@
                                         <input type="range" min="10" max="150" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="flex-1 h-1 bg-neutral-700 rounded-lg appearance-none accent-pink-500"/>
                                     </div>
                                 )}
-                                {/* Layout Flex Responsivo em vez de Grid Fixo */}
+                                
                                 <div className="flex items-center justify-between gap-2">
-                                    {/* Esquerda: Auto Remover */}
                                     <button 
                                         onClick={removeWatermarkPattern} 
                                         className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white transition-all border border-purple-500/30 active:scale-95 w-16 sm:w-20"
@@ -521,7 +505,6 @@
                                         <span className="text-[9px] font-bold uppercase leading-tight text-center">Auto<br/>Remover</span>
                                     </button>
 
-                                    {/* Centro: Ferramentas Principais */}
                                     <div className="flex-1 flex items-center justify-center gap-1 sm:gap-2">
                                         <button 
                                             onClick={() => setMode('erase')} 
@@ -539,7 +522,6 @@
                                         </button>
                                     </div>
 
-                                    {/* Direita: Undo/Redo */}
                                     <div className="flex-shrink-0 flex gap-1">
                                         <button 
                                             onClick={handleUndo} 
