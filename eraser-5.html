@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Magic Eraser NB v13 (Force)</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: white;
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #root {
+            height: 100%;
+            width: 100%;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-custom { animation: spin 1s linear infinite; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        // --- ÍCONES ---
+        const Icon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Sparkles = ({ className }) => <Icon className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 9h4"/></Icon>;
+        const Upload = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></Icon>;
+        const Download = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></Icon>;
+        const ImageIcon = ({ className }) => <Icon className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></Icon>;
+        const Eraser = ({ className }) => <Icon className={className}><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></Icon>;
+        const Move = ({ className }) => <Icon className={className}><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="19 9 22 12 19 15"/><polyline points="9 19 12 22 15 19"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/></Icon>;
+        const Undo = ({ className }) => <Icon className={className}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 0 0 0-6 2.3L3 13"/></Icon>;
+        const Redo = ({ className }) => <Icon className={className}><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></Icon>;
+        const Gem = ({ className }) => <Icon className={className}><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></Icon>;
+        const CheckCircle2 = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></Icon>;
+        const Droplet = ({ className }) => <Icon className={className}><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></Icon>;
+        const Stamp = ({ className }) => <Icon className={className}><path d="M5 22h14"/><path d="M19.27 13.73A2.665 2.665 0 0 0 17.5 13h-11A2.665 2.665 0 0 0 4.73 13.73L2.5 16h19l-2.23-2.27Z"/><path d="M10 2h4"/><path d="M12 2v11"/></Icon>;
+
+        function App() {
+            const [image, setImage] = useState(null);
+            const [history, setHistory] = useState([]);
+            const [historyIndex, setHistoryIndex] = useState(-1);
+            const [brushSize, setBrushSize] = useState(40);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [mode, setMode] = useState('view');
+            const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
+            const [lastAction, setLastAction] = useState(null);
+            const [cloneSource, setCloneSource] = useState(null);
+            
+            const imageCanvasRef = useRef(null);
+            const overlayCanvasRef = useRef(null);
+            const uiCanvasRef = useRef(null);
+            const containerRef = useRef(null);
+            const fileInputRef = useRef(null);
+            
+            const isDragging = useRef(false);
+            const isPinching = useRef(false);
+            const startPan = useRef({ x: 0, y: 0 });
+            const startPinchDist = useRef(0);
+            const startTransform = useRef({ k: 1, x: 0, y: 0 });
+            
+            const isDrawing = useRef(false);
+            const lastDrawPos = useRef({ x: 0, y: 0 });
+            const strokeStartPos = useRef({ x: 0, y: 0 });
+            const hasDrawn = useRef(false);
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const maxDim = 1600; 
+                            let w = img.width;
+                            let h = img.height;
+                            if (w > maxDim || h > maxDim) {
+                                const ratio = Math.min(maxDim / w, maxDim / h);
+                                w *= ratio;
+                                h *= ratio;
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            const newImageData = ctx.getImageData(0, 0, w, h);
+                            
+                            setImage(newImageData);
+                            setHistory([newImageData]);
+                            setHistoryIndex(0);
+                            
+                            if (containerRef.current) {
+                                const containerW = containerRef.current.clientWidth;
+                                const containerH = containerRef.current.clientHeight;
+                                const scaleStart = Math.min(containerW / w, containerH / h) * 0.95;
+                                const xStart = (containerW - w * scaleStart) / 2;
+                                const yStart = (containerH - h * scaleStart) / 2;
+                                setTransform({ k: scaleStart, x: xStart, y: yStart });
+                            }
+                            setMode('view');
+                            setLastAction(null);
+                            setCloneSource(null);
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const saveImage = async () => {
+                if (!imageCanvasRef.current) return;
+                try {
+                    imageCanvasRef.current.toBlob((blob) => {
+                        if (!blob) return;
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.download = `magic-eraser-v13-${Date.now()}.jpg`;
+                        link.href = url;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 'image/jpeg', 0.99);
+                } catch (err) { console.error(err); }
+            };
+
+            // Gerenciamento dos Canvases
+            useEffect(() => {
+                if (image && imageCanvasRef.current && overlayCanvasRef.current && uiCanvasRef.current) {
+                    const canvas = imageCanvasRef.current;
+                    const ctx = canvas.getContext('2d');
+                    if (canvas.width !== image.width) canvas.width = image.width;
+                    if (canvas.height !== image.height) canvas.height = image.height;
+                    ctx.putImageData(image, 0, 0);
+
+                    const overlay = overlayCanvasRef.current;
+                    const oCtx = overlay.getContext('2d');
+                    if (overlay.width !== image.width) overlay.width = image.width;
+                    if (overlay.height !== image.height) overlay.height = image.height;
+                    oCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+                    const uiCanvas = uiCanvasRef.current;
+                    const uiCtx = uiCanvas.getContext('2d');
+                    if (uiCanvas.width !== image.width) uiCanvas.width = image.width;
+                    if (uiCanvas.height !== image.height) uiCanvas.height = image.height;
+                    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+                    
+                    if (mode === 'clone' && cloneSource) {
+                        drawCloneUI(uiCtx); 
+                    }
+                }
+            }, [image, mode, cloneSource]);
+
+            const drawCloneUI = (ctx) => {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                if(!cloneSource) return;
+                
+                const sx = cloneSource.x;
+                const sy = cloneSource.y;
+                
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 4;
+                
+                ctx.beginPath();
+                ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(sx - 12, sy); ctx.lineTo(sx + 12, sy);
+                ctx.moveTo(sx, sy - 12); ctx.lineTo(sx, sy + 12);
+                ctx.stroke();
+
+                if (isDrawing.current && lastDrawPos.current) {
+                    const bx = lastDrawPos.current.x;
+                    const by = lastDrawPos.current.y;
+                    
+                    const startX = strokeStartPos.current.x;
+                    const startY = strokeStartPos.current.y;
+                    const offsetX = sx - startX;
+                    const offsetY = sy - startY;
+                    const currentOriginX = bx + offsetX;
+                    const currentOriginY = by + offsetY;
+
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by);
+                    ctx.lineTo(currentOriginX, currentOriginY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(currentOriginX, currentOriginY, brushSize/2, 0, Math.PI*2);
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+            };
+
+            const containerStyle = {
+                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`,
+                transformOrigin: '0 0',
+                width: image ? image.width : 0,
+                height: image ? image.height : 0,
+            };
+
+            const getCanvasCoordinates = (clientX, clientY) => {
+                if (!containerRef.current) return { x: 0, y: 0 };
+                const containerRect = containerRef.current.getBoundingClientRect();
+                const x = (clientX - containerRect.left - transform.x) / transform.k;
+                const y = (clientY - containerRect.top - transform.y) / transform.k;
+                return { x, y };
+            };
+
+            // --- LÓGICA V13: Force Auto + Texture Graft (Corrigido) ---
+            const removeWatermarkAuto = async () => {
+                if (!image || !imageCanvasRef.current) return;
+                setIsProcessing(true);
+                await new Promise(r => setTimeout(r, 50));
+
+                const w = image.width;
+                const h = image.height;
+                const canvas = imageCanvasRef.current;
+                const ctx = canvas.getContext('2d');
+
+                // 1. Definições
+                const radius = Math.max(25, Math.min(w, h) * 0.05); 
+                const marginX = Math.max(15, w * 0.03); 
+                const marginY = Math.max(15, h * 0.03);
+                const centerX = w - marginX - (radius * 0.8); 
+                const centerY = h - marginY - (radius * 0.8);
+
+                const patchSize = Math.max(8, Math.floor(radius / 2.5)); 
+                const searchRadius = Math.floor(radius * 3.5); 
+                const step = Math.floor(patchSize / 2); 
+
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+                const resultData = new Uint8ClampedArray(data);
+
+                // --- REMOVIDO: Anomaly Detection ---
+                // O botão agora força a execução na área definida (círculo)
+                // Não há verificação se existe ou não diamante.
+
+                const comparePatches = (x1, y1, x2, y2) => {
+                    let diff = 0;
+                    for (let i = 0; i < patchSize; i++) {
+                        for (let j = 0; j < patchSize; j++) {
+                            const idx1 = ((y1 + i) * w + (x1 + j)) * 4;
+                            const idx2 = ((y2 + i) * w + (x2 + j)) * 4;
+                            diff += Math.abs(data[idx1] - data[idx2]) +
+                                    Math.abs(data[idx1 + 1] - data[idx2 + 1]) +
+                                    Math.abs(data[idx1 + 2] - data[idx2 + 2]);
+                        }
+                    }
+                    return diff;
+                };
+
+                // Executar inpainting incondicionalmente no círculo
+                for (let y = Math.floor(centerY - radius); y < centerY + radius; y += step) {
+                    for (let x = Math.floor(centerX - radius); x < centerX + radius; x += step) {
+                        
+                        let patchTouchesTarget = false;
+                        for(let iy = y; iy < y + patchSize; iy++) {
+                            for(let ix = x; ix < x + patchSize; ix++) {
+                                const dist = Math.sqrt((ix-centerX)**2 + (iy-centerY)**2);
+                                if(dist <= radius) { patchTouchesTarget = true; break; }
+                            }
+                            if(patchTouchesTarget) break;
+                        }
+
+                        if (patchTouchesTarget) {
+                            let bestPatch = { x: -1, y: -1, diff: Infinity };
+                            // Procurar em área segura (longe do centro)
+                            for (let sy = y - searchRadius; sy < y + searchRadius; sy += step) {
+                                for (let sx = x - searchRadius; sx < x + searchRadius; sx += step) {
+                                    let searchPatchIsValid = true;
+                                    if(sx < 0 || sy < 0 || sx + patchSize >= w || sy + patchSize >= h) {
+                                        searchPatchIsValid = false;
+                                    } else {
+                                        for(let iy = sy; iy < sy + patchSize; iy++) {
+                                            for(let ix = sx; ix < sx + patchSize; ix++) {
+                                                const dist = Math.sqrt((ix-centerX)**2 + (iy-centerY)**2);
+                                                // A fonte tem que estar LONGE do alvo para não copiar o próprio defeito
+                                                if(dist <= radius + 2) { searchPatchIsValid = false; break; }
+                                            }
+                                            if(!searchPatchIsValid) break;
+                                        }
+                                    }
+                                    if (searchPatchIsValid) {
+                                        const diff = comparePatches(x, y, sx, sy);
+                                        if (diff < bestPatch.diff) { bestPatch = { x: sx, y: sy, diff: diff }; }
+                                    }
+                                }
+                            }
+                            if (bestPatch.x !== -1) {
+                                for (let i = 0; i < patchSize; i++) {
+                                    for (let j = 0; j < patchSize; j++) {
+                                        const targetX = x + j;
+                                        const targetY = y + i;
+                                        const targetIdx = (targetY * w + targetX) * 4;
+                                        const sourceIdx = ((bestPatch.y + i) * w + (bestPatch.x + j)) * 4;
+                                        
+                                        const dist = Math.sqrt((targetX-centerX)**2 + (targetY-centerY)**2);
+                                        
+                                        if(dist <= radius) {
+                                            // Aplicar Feathering (Fusão Suave) na borda do círculo
+                                            // Se estiver nos últimos 5 pixels da borda, mistura com original
+                                            let alpha = 1.0;
+                                            const feather = 6.0;
+                                            if(dist > radius - feather) {
+                                                alpha = (radius - dist) / feather;
+                                                alpha = Math.max(0, Math.min(1, alpha));
+                                            }
+
+                                            resultData[targetIdx] = data[sourceIdx] * alpha + data[targetIdx] * (1-alpha);
+                                            resultData[targetIdx + 1] = data[sourceIdx + 1] * alpha + data[targetIdx + 1] * (1-alpha);
+                                            resultData[targetIdx + 2] = data[sourceIdx + 2] * alpha + data[targetIdx + 2] * (1-alpha);
+                                            resultData[targetIdx + 3] = 255; 
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const finalImageData = new ImageData(resultData, w, h);
+                setImage(finalImageData);
+                setHistory([...history.slice(0, historyIndex + 1), finalImageData]);
+                setHistoryIndex(prev => prev + 1);
+                setLastAction("Marca removida (Forçado)!");
+                setTimeout(() => setLastAction(null), 2500);
+                setIsProcessing(false);
+            };
+
+            // --- Lógica: Aplicar Efeitos Manuais ---
+            const applyManualTool = async () => {
+                if (!hasDrawn.current || !image) return;
+                setIsProcessing(true);
+                await new Promise(r => setTimeout(r, 10)); 
+                
+                const canvas = imageCanvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const overlay = overlayCanvasRef.current; 
+                const oCtx = overlay.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                
+                const srcData = ctx.getImageData(0, 0, w, h).data;
+                const maskData = oCtx.getImageData(0, 0, w, h).data; 
+                const resultData = new Uint8ClampedArray(srcData);
+
+                if (mode === 'erase') {
+                    const statusMap = new Int8Array(w * h); const holePixels = [];
+                    for (let i = 0; i < w * h; i++) { if (maskData[i * 4 + 3] > 20) { statusMap[i] = 0; holePixels.push(i); } else { statusMap[i] = -1; } }
+                    if (holePixels.length > 0) {
+                        const neighbors = [-w, w, -1, 1, -w-1, -w+1, w-1, w+1]; let currentBoundary = [...holePixels]; let nextBoundary = []; let safety = 0;
+                        while (currentBoundary.length > 0 && safety < 1000) { safety++; nextBoundary = []; for (let i = 0; i < currentBoundary.length; i++) { const p = currentBoundary[i]; let r=0, g=0, b=0, count=0; let hasValidNeighbor = false; for (let offset of neighbors) { const n = p + offset; if (n >= 0 && n < w * h && statusMap[n] === -1) { r += resultData[n*4]; g += resultData[n*4+1]; b += resultData[n*4+2]; count++; hasValidNeighbor = true; } } if (hasValidNeighbor) { const noise = (Math.random() - 0.5) * 15; resultData[p*4] = (r/count) + noise; resultData[p*4+1] = (g/count) + noise; resultData[p*4+2] = (b/count) + noise; resultData[p*4+3] = 255; statusMap[p] = 1; } else { nextBoundary.push(p); } } for (let i=0; i<w*h; i++) if (statusMap[i]===1) statusMap[i] = -1; if (nextBoundary.length === currentBoundary.length) { for (let p of nextBoundary) { resultData[p*4] = resultData[currentBoundary[0]*4]; resultData[p*4+1] = resultData[currentBoundary[0]*4+1]; resultData[p*4+2] = resultData[currentBoundary[0]*4+2]; statusMap[p] = -1; } break; } currentBoundary = nextBoundary; }
+                    }
+                }
+                else if (mode === 'blur') {
+                    const blurRadius = 3; const width = w; const height = h; const pixelsToBlur = [];
+                    for (let i = 0; i < w * h; i++) { if (maskData[i * 4 + 3] > 10) pixelsToBlur.push(i); }
+                    for (let p of pixelsToBlur) {
+                        const y = Math.floor(p / width); const x = p % width; let r = 0, g = 0, b = 0, count = 0;
+                        for (let dy = -blurRadius; dy <= blurRadius; dy++) { for (let dx = -blurRadius; dx <= blurRadius; dx++) { const nx = x + dx; const ny = y + dy; if (nx >= 0 && nx < width && ny >= 0 && ny < height) { const idx = (ny * width + nx) * 4; r += srcData[idx]; g += srcData[idx + 1]; b += srcData[idx + 2]; count++; } } }
+                        resultData[p * 4] = r / count; resultData[p * 4 + 1] = g / count; resultData[p * 4 + 2] = b / count;
+                    }
+                }
+                else if (mode === 'clone' && cloneSource) {
+                    const startX = Math.floor(strokeStartPos.current.x); const startY = Math.floor(strokeStartPos.current.y); const sourceX = Math.floor(cloneSource.x); const sourceY = Math.floor(cloneSource.y); const offsetX = sourceX - startX; const offsetY = sourceY - startY;
+                    for (let y = 0; y < h; y++) { for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; 
+                        if (maskData[i + 1] > 50 && maskData[i + 3] > 10) { 
+                            const originX = x + offsetX; const originY = y + offsetY; if (originX >= 0 && originX < w && originY >= 0 && originY < h) { const originI = (originY * w + originX) * 4; const alpha = maskData[i+3] / 255; resultData[i] = srcData[originI] * alpha + srcData[i] * (1 - alpha); resultData[i+1] = srcData[originI+1] * alpha + srcData[i+1] * (1 - alpha); resultData[i+2] = srcData[originI+2] * alpha + srcData[i+2] * (1 - alpha); resultData[i+3] = 255; } } } }
+                }
+
+                const finalImageData = new ImageData(resultData, w, h); setImage(finalImageData); setHistory([...history.slice(0, historyIndex + 1), finalImageData]); setHistoryIndex(prev => prev + 1);
+                
+                oCtx.clearRect(0, 0, w, h); 
+                const uiCtx = uiCanvasRef.current.getContext('2d');
+                uiCtx.clearRect(0, 0, w, h);
+                
+                if (mode === 'clone' && cloneSource) { drawCloneUI(uiCtx); }
+                hasDrawn.current = false; setIsProcessing(false);
+            };
+
+            const handlePointerDown = (e) => {
+                if (!image) return;
+                if (e.touches && e.touches.length === 2) { isPinching.current = true; isDrawing.current = false; const t1 = e.touches[0]; const t2 = e.touches[1]; startPinchDist.current = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); startTransform.current = { ...transform }; return; }
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                if (mode === 'erase' || mode === 'blur' || mode === 'clone') {
+                    const coords = getCanvasCoordinates(clientX, clientY);
+                    if (mode === 'clone') { if (!cloneSource) { setCloneSource({ x: coords.x, y: coords.y }); setLastAction("Origem definida! Agora pinte."); setTimeout(() => setLastAction(null), 2000); return; } }
+                    isDrawing.current = true; hasDrawn.current = true; lastDrawPos.current = coords; strokeStartPos.current = coords;
+                    const ctx = overlayCanvasRef.current.getContext('2d'); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = brushSize; 
+                    if (mode === 'erase') ctx.strokeStyle = 'rgba(255, 0, 100, 0.7)'; if (mode === 'blur') ctx.strokeStyle = 'rgba(0, 200, 255, 0.5)'; if (mode === 'clone') ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+                    ctx.beginPath(); ctx.moveTo(coords.x, coords.y); ctx.lineTo(coords.x, coords.y); ctx.stroke();
+                } else { isDragging.current = true; startPan.current = { x: clientX, y: clientY }; startTransform.current = { ...transform }; }
+            };
+
+            const handlePointerMove = (e) => {
+                if (!image) return; e.preventDefault(); 
+                if (isPinching.current && e.touches && e.touches.length === 2) { const t1 = e.touches[0]; const t2 = e.touches[1]; const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); const scaleFactor = dist / startPinchDist.current; let newScale = startTransform.current.k * scaleFactor; newScale = Math.max(0.1, Math.min(newScale, 5)); setTransform(prev => ({...prev, k: newScale})); return; }
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                if (isDrawing.current) { 
+                    const coords = getCanvasCoordinates(clientX, clientY); 
+                    const ctx = overlayCanvasRef.current.getContext('2d'); 
+                    ctx.beginPath(); ctx.moveTo(lastDrawPos.current.x, lastDrawPos.current.y); ctx.lineTo(coords.x, coords.y); ctx.stroke(); lastDrawPos.current = coords; 
+                    
+                    if (mode === 'clone' && cloneSource) {
+                        const uiCtx = uiCanvasRef.current.getContext('2d');
+                        drawCloneUI(uiCtx);
+                    }
+                } 
+                else if (isDragging.current && mode === 'view') { const dx = clientX - startPan.current.x; const dy = clientY - startPan.current.y; setTransform({ ...transform, x: startTransform.current.x + dx, y: startTransform.current.y + dy }); }
+            };
+
+            const handlePointerUp = () => { isDragging.current = false; isPinching.current = false; if (isDrawing.current) { isDrawing.current = false; applyManualTool(); } };
+            const handleUndo = () => { if (historyIndex > 0) { setHistoryIndex(historyIndex - 1); setImage(history[historyIndex - 1]); }};
+            const handleRedo = () => { if (historyIndex < history.length - 1) { setHistoryIndex(historyIndex + 1); setImage(history[historyIndex + 1]); }};
+            const changeMode = (newMode) => { setMode(newMode); if (newMode !== 'clone') setCloneSource(null); };
+            const resetClone = () => { setCloneSource(null); setLastAction("Toque para definir nova origem"); setTimeout(() => setLastAction(null), 2000); };
+
+            return (
+                <div className="flex flex-col h-[100dvh] w-screen bg-neutral-950 text-white overflow-hidden touch-none select-none">
+                    <header className="flex-none flex justify-between items-center px-4 py-3 bg-neutral-900 z-50 shadow-md">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-pink-500" />
+                            <span className="font-bold text-sm md:text-base">Magic Eraser <span className="text-pink-400 text-xs">v13 (Force)</span></span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => fileInputRef.current.click()} className="p-2 bg-neutral-800 rounded-full hover:bg-neutral-700"><Upload className="w-5 h-5" /></button>
+                            <button onClick={saveImage} disabled={!image} className="flex items-center gap-2 px-4 py-2 bg-white text-black text-sm font-bold rounded-full disabled:opacity-50"><Download className="w-4 h-4" /> Salvar</button>
+                        </div>
+                    </header>
+                    
+                    <main ref={containerRef} className="flex-1 relative overflow-hidden bg-neutral-950 cursor-crosshair w-full h-full" onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp} onMouseLeave={handlePointerUp} onTouchStart={handlePointerDown} onTouchMove={handlePointerMove} onTouchEnd={handlePointerUp}>
+                        {!image ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-500 pointer-events-none text-center p-4">
+                                <ImageIcon className="w-12 h-12 mb-4 opacity-50 mx-auto"/>
+                                <p className="text-sm font-medium">Carregue uma imagem</p>
+                                <p className="text-xs opacity-60 mt-2">Dica: Use 'Carimbar' para copiar texturas manualmente.</p>
+                            </div>
+                        ) : (
+                            <div style={containerStyle} className="absolute top-0 left-0 origin-top-left transition-transform duration-75 ease-linear">
+                                {/* 1. Canvas da Imagem Original */}
+                                <canvas ref={imageCanvasRef} className="absolute top-0 left-0 pointer-events-none" />
+                                {/* 2. Canvas de Pintura (Máscara) */}
+                                <canvas ref={overlayCanvasRef} className="absolute top-0 left-0" />
+                                {/* 3. Canvas de UI (Marcadores) */}
+                                <canvas ref={uiCanvasRef} className="absolute top-0 left-0 pointer-events-none" />
+                            </div>
+                        )}
+                        
+                        {mode === 'clone' && image && (
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-mono border border-white/20 pointer-events-none z-[55]">
+                                {cloneSource ? "2. Pinte sobre o defeito" : "1. Toque na área BOA"}
+                            </div>
+                        )}
+
+                        {lastAction && (
+                            <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-green-500/90 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-in fade-in slide-in-from-top-4 flex items-center gap-2 z-[60]">
+                                <CheckCircle2 className="w-4 h-4" /> {lastAction}
+                            </div>
+                        )}
+
+                        {isProcessing && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50 backdrop-blur-sm">
+                                <div className="bg-neutral-800 px-6 py-4 rounded-xl flex items-center gap-3 border border-neutral-700 shadow-xl">
+                                    <div className="w-5 h-5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin-custom"></div>
+                                    <span className="text-sm font-medium">Processando...</span>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                    
+                    {image && (
+                        <footer className="flex-none bg-neutral-900 border-t border-neutral-800 px-2 pt-3 pb-8 z-50">
+                            <div className="max-w-md mx-auto flex flex-col gap-3">
+                                {mode !== 'view' && (
+                                    <div className="flex items-center gap-3 fade-in px-2">
+                                        <div className="w-6 h-6 rounded-full border border-white/20 bg-pink-500/20 text-[10px] flex items-center justify-center text-pink-400">{brushSize}</div>
+                                        <input type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="flex-1 h-1 bg-neutral-700 rounded-lg appearance-none accent-pink-500"/>
+                                    </div>
+                                )}
+                                
+                                <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 no-scrollbar">
+                                    <button onClick={removeWatermarkAuto} className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white transition-all border border-purple-500/30 w-14">
+                                        <Gem className="w-4 h-4" /> <span className="text-[8px] font-bold uppercase">Auto(v13)</span>
+                                    </button>
+                                    <div className="w-px h-8 bg-neutral-800 mx-1"></div>
+                                    <button onClick={() => changeMode('erase')} className={`flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-14 ${mode === 'erase' ? 'bg-pink-600 text-white' : 'bg-neutral-800 text-neutral-400'}`}><Eraser className="w-4 h-4" /><span className="text-[8px] font-bold uppercase">Apagar</span></button>
+                                    <button onClick={() => changeMode('blur')} className={`flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-14 ${mode === 'blur' ? 'bg-cyan-600 text-white' : 'bg-neutral-800 text-neutral-400'}`}><Droplet className="w-4 h-4" /><span className="text-[8px] font-bold uppercase">Borrar</span></button>
+                                    <button onClick={() => { if (mode === 'clone') resetClone(); else changeMode('clone'); }} className={`flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-14 ${mode === 'clone' ? 'bg-green-600 text-white' : 'bg-neutral-800 text-neutral-400'}`}><Stamp className="w-4 h-4" /><span className="text-[8px] font-bold uppercase">{cloneSource && mode === 'clone' ? 'Reset' : 'Carimbar'}</span></button>
+                                    <button onClick={() => changeMode('view')} className={`flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-14 ${mode === 'view' ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-400'}`}><Move className="w-4 h-4" /><span className="text-[8px] font-bold uppercase">Mover</span></button>
+                                    <div className="w-px h-8 bg-neutral-800 mx-1"></div>
+                                    <div className="flex flex-col gap-1">
+                                        <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-1.5 bg-neutral-800 rounded hover:bg-neutral-700 disabled:opacity-30"><Undo className="w-3 h-3" /></button>
+                                        <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="p-1.5 bg-neutral-800 rounded hover:bg-neutral-700 disabled:opacity-30"><Redo className="w-3 h-3" /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </footer>
+                    )}
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
