@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizador de Shader GLSL</title>
+    <title>Visualizador de Shader GLSL - v2</title>
     <style>
         body { margin: 0; overflow: hidden; background: black; }
         canvas { display: block; }
@@ -12,6 +12,7 @@
 <body>
     <canvas id="canvas"></canvas>
     <script>
+        // Versão 2: Correções no raymarching, rotação e loops para evitar tela preta
         const canvas = document.getElementById('canvas');
         const gl = canvas.getContext('webgl');
 
