@@ -36,35 +36,31 @@
             }
         `;
 
-        // Fragment Shader (seu shader adaptado)
+        // Fragment Shader (seu shader adaptado e corrigido)
         const fsSource = `
             precision mediump float;
             uniform float u_time;
             uniform vec2 u_resolution;
-            varying vec2 v_texCoord; // Não usado, mas para compatibilidade
-
-            #define S smoothstep
             #define FC gl_FragCoord.xy
             #define r u_resolution
-            #define PI 3.14159265359
-            #define TAU (2.0 * PI)
+            #define S smoothstep
+            #define TAU 6.28318530718
 
             void main() {
                 vec3 o = vec3(0.0);
-                float ii = 0.0; // renomeado para evitar conflito com loop
-                float d = 1.0;
-                float s, mm = 1.0, ll, xx = abs(mod(u_time / 4.0, 2.0) - 1.0),
-                aa = (xx < 0.5) ? (-(exp2(12.0 * xx - 6.0) * sin((20.0 * xx - 11.125) * 1.3963)) / 2.0) : ((exp2(-12.0 * xx + 6.0) * sin((20.0 * xx - 11.125) * 1.3963)) / 2.0 + 1.0);
+                float d = 0.0;
+                float mm = 1.0;
+                float xx = abs(mod(u_time / 4.0, 2.0) - 1.0);
+                float aa = (xx < 0.5) ? (-(exp2(12.0 * xx - 6.0) * sin((20.0 * xx - 11.125) * 1.396)) / 2.0) : ((exp2(-12.0 * xx + 6.0) * sin((20.0 * xx - 11.125) * 1.396)) / 2.0 + 1.0);
                 vec3 pp, kk;
-
                 float tt = u_time + fract(1e4 * sin(dot(FC, vec2(137.0, -13.0)))) / 60.0;
-
-                o *= ii; // Inicia o loop (torna o=0)
-
-                for (; ii < 100.0; ii += 1.0) {
+                float ii = 0.0;
+                o *= ii;
+                while (ii < 100.0) {
+                    ii += 1.0;
                     kk = vec3((FC * 2.0 - r) / r.y * d, d - 9.0);
                     if (abs(kk.x) > 6.0) break;
-                    ll = length(0.2 * kk.xy - vec2(sin(tt) / 9.0, 0.6 + sin(2.0 * tt) / 9.0));
+                    float ll = length(0.2 * kk.xy - vec2(sin(tt) / 9.0, 0.6 + sin(2.0 * tt) / 9.0));
                     if (kk.y < -5.0) {
                         kk.y = -kk.y - 10.0;
                         mm = 0.5;
@@ -73,23 +69,25 @@
                     }
                     float angle = aa * TAU + kk.y * 0.3 * S(0.2, 0.5, xx) * S(0.7, 0.5, xx);
                     vec4 coss = cos(angle + vec4(0.0, 33.0, 11.0, 0.0));
-                    mat2 rotmat = mat2(coss.x, coss.z, coss.y, coss.w); // Ajustado para mat2(col1.x, col2.x; col1.y, col2.y)
+                    mat2 rotmat = mat2(coss.x, coss.y, coss.z, coss.w);
                     kk.xz *= rotmat;
                     pp = kk * 0.5;
-                    for (s = 0.01; s < 1.0; s += s) {
-                        vec3 offset = pp.x + 2.0 * tt + pp / s;
+                    float ss = 0.01;
+                    for (; ss < 1.0; ss += ss) {
+                        vec3 offset = pp.x + 2.0 * tt + pp / ss;
                         vec3 sins = sin(offset);
                         float dot_val = dot(sins, vec3(0.2));
-                        pp.y += 0.95 + abs(dot_val) * s;
+                        pp.y += 0.95 + abs(dot_val) * ss;
                     }
                     ll = mix(sin(length(kk * kk.x)), mix(sin(length(pp)), ll, 0.5 - ll), S(5.5, 6.0, pp.y));
                     pp = abs(kk);
                     float box_max = max(max(pp.x, pp.y), pp.z);
                     float sphere = dot(pp, vec3(0.577)) * mix(0.5, 0.9, aa);
                     float scene = max(sin(length(kk) + ll), max(box_max, sphere) - 3.0);
-                    s = 0.012 + 0.09 * (abs(scene) - ii / 100.0);
+                    float s = 0.012 + 0.09 * abs(scene - ii / 100.0);
                     d += s;
-                    vec3 glow = sin(vec3(1.0, 2.0, 3.0) + ii * 0.5) * 1.3 / s;
+                    vec4 sinv = sin(vec4(1.0, 2.0, 3.0, 1.0) + ii * 0.5);
+                    vec3 glow = sinv.rgb * 1.3 / s;
                     o += max(glow, vec3(-length(kk * kk)));
                 }
                 o = tanh(o * o / 1e6) * mm;
