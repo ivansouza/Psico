@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Samambaia de Barnsley - Atrator IFS</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #001; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+        
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls-top {
+            pointer-events: auto;
+            align-self: flex-start;
+        }
+
+        select {
+            background-color: rgba(0, 20, 0, 0.8); /* Verde escuro */
+            color: #50ff50; /* Verde néon */
+            border: 1px solid #50ff50;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 10px rgba(80, 255, 80, 0.2);
+        }
+
+        option { background-color: #001; color: #50ff50; }
+
+        .instructions {
+            color: rgba(150, 255, 150, 0.8);
+            font-size: 14px;
+            text-shadow: 0px 2px 4px black;
+            background-color: rgba(0, 20, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            border: 1px solid rgba(80, 255, 80, 0.2);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #50ff50;
+            font-size: 20px;
+            display: none;
+            background: black;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #50ff50;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="loading" class="loading">Gerando 1 Milhão de Pontos...</div>
+
+    <div class="ui-layer">
+        <div class="controls-top">
+            <select id="species-select">
+                <option value="barnsley">🌿 Barnsley Clássica</option>
+                <option value="cyclosorus">🍃 Cyclosorus (Larga)</option>
+                <option value="culcita">🌱 Culcita (Compacta)</option>
+                <option value="fishbone">🐟 Fishbone (Mutante)</option>
+                <option value="bee">🐝 Bee Fern (Dispersa)</option>
+            </select>
+        </div>
+
+        <div class="instructions">
+            ✌️ <b>Pinça/Roda:</b> Zoom nos átomos<br>
+            👆 <b>Arrastar:</b> Mover a planta<br>
+            Este fractal é uma nuvem de pontos, não uma imagem sólida.
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl', { 
+            alpha: false, 
+            antialias: false,
+            preserveDrawingBuffer: true 
+        });
+        const selector = document.getElementById('species-select');
+        const loadingMsg = document.getElementById('loading');
+
+        if (!gl) alert("WebGL não suportado.");
+
+        // --- CONFIGURAÇÃO IFS (Iterated Function System) ---
+        // Constantes para diferentes "espécies" de fractais
+        const SPECIES = {
+            barnsley: [
+                // Probabilidade |  a      b      c      d      e      f
+                { p: 0.01, params: [0.00,  0.00,  0.00,  0.16,  0.00,  0.00] }, // Caule
+                { p: 0.85, params: [0.85,  0.04, -0.04,  0.85,  0.00,  1.60] }, // Folha menor
+                { p: 0.92, params: [0.20, -0.26,  0.23,  0.22,  0.00,  1.60] }, // Folha esquerda
+                { p: 1.00, params: [-0.15, 0.28,  0.26,  0.24,  0.00,  0.44] }  // Folha direita
+            ],
+            cyclosorus: [
+                { p: 0.02, params: [0.00, 0.00, 0.00, 0.25, 0.00, -0.40] },
+                { p: 0.86, params: [0.95, 0.005, -0.005, 0.93, -0.002, 0.50] },
+                { p: 0.93, params: [0.035, -0.20, 0.16, 0.04, -0.09, 0.02] },
+                { p: 1.00, params: [-0.04, 0.20, 0.16, 0.04, 0.083, 0.12] }
+            ],
+            culcita: [
+                { p: 0.02, params: [0.00, 0.00, 0.00, 0.25, 0.00, -0.14] },
+                { p: 0.86, params: [0.85, 0.02, -0.02, 0.83, 0.00, 1.00] },
+                { p: 0.93, params: [0.09, -0.28, 0.30, 0.11, 0.00, 0.60] },
+                { p: 1.00, params: [-0.09, 0.28, 0.30, 0.09, 0.00, 0.70] }
+            ],
+            fishbone: [
+                { p: 0.02, params: [0.00, 0.00, 0.00, 0.25, 0.00, -0.40] },
+                { p: 0.86, params: [0.95, 0.002, -0.002, 0.93, -0.002, 0.50] },
+                { p: 0.93, params: [0.035, -0.11, 0.27, 0.01, -0.05, 0.005] },
+                { p: 1.00, params: [-0.04, 0.11, 0.27, 0.01, 0.047, 0.06] }
+            ],
+            bee: [
+                { p: 0.02, params: [0.00, 0.00, 0.00, 0.25, 0.00, -0.14] },
+                { p: 0.86, params: [0.85, 0.02, -0.02, 0.83, 0.00, 1.00] },
+                { p: 0.93, params: [0.09, -0.28, 0.30, 0.11, 0.00, 0.60] },
+                { p: 1.00, params: [-0.05, 0.28, 0.30, 0.09, 0.00, 0.70] } 
+            ]
+        };
+
+        // --- ESTADO ---
+        let cameraOffset = { x: 0, y: -4.0 }; // Foca na base
+        let cameraZoom = 60.0;
+        let pointCount = 1000000; // 1 Milhão de pontos
+        let pointsBuffer;
+        
+        // Input Handling
+        let isDragging = false;
+        let isPinching = false;
+        let evCache = [];
+        let prevDiff = -1;
+        let tapStartX = 0, tapStartY = 0;
+
+        // --- GERAÇÃO DOS PONTOS NA CPU ---
+        function generatePoints(type) {
+            loadingMsg.style.display = 'block';
+            
+            // Pequeno timeout para permitir que a UI mostre a mensagem "Carregando"
+            setTimeout(() => {
+                const rules = SPECIES[type];
+                const data = new Float32Array(pointCount * 2);
+                
+                let x = 0;
+                let y = 0;
+
+                // "Aquecer" o fractal (ignorar primeiros pontos para atingir o atrator)
+                for(let i=0; i<20; i++) {
+                    const r = Math.random();
+                    let rule;
+                    for(let k=0; k<rules.length; k++) {
+                        if(r < rules[k].p) { rule = rules[k].params; break; }
+                    }
+                    const nx = rule[0]*x + rule[1]*y + rule[4];
+                    const ny = rule[2]*x + rule[3]*y + rule[5];
+                    x = nx; y = ny;
+                }
+
+                // Gerar pontos reais
+                for (let i = 0; i < pointCount; i++) {
+                    const r = Math.random();
+                    let rule;
+                    // Seleciona transformação baseada na probabilidade
+                    for(let k=0; k<rules.length; k++) {
+                        if(r < rules[k].p) { rule = rules[k].params; break; }
+                    }
+
+                    // x' = ax + by + e
+                    const nx = rule[0]*x + rule[1]*y + rule[4];
+                    // y' = cx + dy + f
+                    const ny = rule[2]*x + rule[3]*y + rule[5];
+                    
+                    x = nx;
+                    y = ny;
+
+                    data[i * 2] = x;
+                    data[i * 2 + 1] = y;
+                }
+
+                uploadDataToGPU(data);
+                loadingMsg.style.display = 'none';
+            }, 50);
+        }
+
+        // --- WEBGL ---
+        const vsSource = `
+            attribute vec2 aPosition;
+            uniform vec2 uResolution;
+            uniform vec2 uOffset;
+            uniform float uZoom;
+            
+            varying float vDepth;
+
+            void main() {
+                // Centralizar a samambaia
+                // A samambaia cresce de 0,0 até aprox 0,10 em Y e -2,2 em X
+                vec2 p = aPosition;
+                
+                // Mover a "Camera"
+                // WebGL coords: -1 a 1.
+                // O Zoom é um fator de escala simples
+                
+                // Ajustar Aspect Ratio
+                float aspect = uResolution.x / uResolution.y;
+                
+                vec2 finalPos = (p * uZoom) + uOffset;
+                
+                // Normalizar para clip space (-1 a 1)
+                // Dividimos pela resolução para manter escala pixels
+                // Mas aqui estamos usando zoom arbitrário, então:
+                
+                finalPos.x /= aspect; // Corrigir distorção de tela
+                
+                // Reduzir coordenadas para caber no NDC (-1 a 1)
+                // Fator arbitrário para converter "Unidades de Samambaia" para Tela
+                finalPos *= 0.05; 
+                
+                gl_Position = vec4(finalPos, 0.0, 1.0);
+                gl_PointSize = 1.2; // Tamanho do "átomo"
+                
+                // Passar altura para cor
+                vDepth = aPosition.y; 
+            }
+        `;
+
+        const fsSource = `
+            precision mediump float;
+            varying float vDepth;
+
+            void main() {
+                // Gradiente de cor baseado na altura da samambaia (vDepth)
+                // 0.0 (Base) -> Amarelo/Marrom
+                // 10.0 (Topo) -> Verde Esmeralda Brilhante
+                
+                float t = vDepth * 0.1;
+                
+                // Mistura de cores
+                vec3 colorA = vec3(0.4, 0.8, 0.1); // Verde Lima
+                vec3 colorB = vec3(0.0, 0.4, 0.3); // Verde Escuro
+                vec3 colorC = vec3(0.8, 0.8, 0.2); // Amarelo (pontas)
+                
+                vec3 finalColor = mix(colorB, colorA, smoothstep(0.0, 0.7, t));
+                finalColor = mix(finalColor, colorC, smoothstep(0.8, 1.2, t));
+                
+                // Alpha baixo para permitir o efeito de brilho (gl.BLEND)
+                // Onde muitos pontos se sobrepõem, fica branco/brilhante
+                gl_FragColor = vec4(finalColor, 0.4); 
+            }
+        `;
+
+        const program = gl.createProgram();
+        
+        function createShader(gl, type, source) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, source);
+            gl.compileShader(s);
+            if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(s));
+                return null;
+            }
+            return s;
+        }
+
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        pointsBuffer = gl.createBuffer();
+
+        function uploadDataToGPU(data) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, pointsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+            
+            const posLoc = gl.getAttribLocation(program, "aPosition");
+            gl.enableVertexAttribArray(posLoc);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+            
+            // Request redraw
+            requestAnimationFrame(draw);
+        }
+
+        const uRes = gl.getUniformLocation(program, "uResolution");
+        const uOffset = gl.getUniformLocation(program, "uOffset");
+        const uZoom = gl.getUniformLocation(program, "uZoom");
+
+        function draw() {
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            
+            // Limpa com preto ligeiramente azulado
+            gl.clearColor(0.0, 0.02, 0.05, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            // Blend Mode Aditivo para efeito "Néon"
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE); 
+
+            gl.uniform2f(uRes, canvas.width, canvas.height);
+            gl.uniform2f(uOffset, cameraOffset.x, cameraOffset.y);
+            gl.uniform1f(uZoom, cameraZoom);
+
+            gl.drawArrays(gl.POINTS, 0, pointCount);
+        }
+
+        // --- INTERAÇÃO ---
+        selector.addEventListener('change', (e) => {
+            generatePoints(e.target.value);
+            // Reset view
+            cameraOffset = { x: 0, y: -4.0 };
+            cameraZoom = 60.0;
+        });
+
+        // Event Listeners (Pointer)
+        canvas.addEventListener('pointerdown', ev => {
+            evCache.push(ev);
+            if (evCache.length === 1) {
+                isDragging = true;
+                tapStartX = ev.clientX;
+                tapStartY = ev.clientY;
+            }
+        });
+
+        canvas.addEventListener('pointermove', ev => {
+            const index = evCache.findIndex(e => e.pointerId === ev.pointerId);
+            if (index >= 0) {
+                const prevX = evCache[index].clientX;
+                const prevY = evCache[index].clientY;
+                evCache[index] = ev;
+
+                if (evCache.length === 1 && isDragging && !isPinching) {
+                    // Pan
+                    const deltaX = ev.clientX - prevX;
+                    const deltaY = ev.clientY - prevY; // Invertido em GL? Vamos ver
+                    
+                    // Ajustar sensibilidade baseada no zoom?
+                    // Aqui o offset é em coordenadas de tela normalizadas pré-zoom
+                    // Na verdade, no vertex shader: (p * zoom) + offset
+                    // Então offset é em pixels de tela
+                    cameraOffset.x += deltaX * 0.1; 
+                    cameraOffset.y -= deltaY * 0.1; 
+                } 
+                else if (evCache.length === 2) {
+                    // Zoom
+                    isPinching = true;
+                    const curDiff = Math.abs(evCache[0].clientX - evCache[1].clientX);
+                    if (prevDiff > 0) {
+                        const delta = curDiff - prevDiff;
+                        cameraZoom += delta * 0.5;
+                        if(cameraZoom < 1.0) cameraZoom = 1.0;
+                    }
+                    prevDiff = curDiff;
+                }
+                requestAnimationFrame(draw);
+            }
+        });
+
+        canvas.addEventListener('pointerup', removeEvent);
+        canvas.addEventListener('pointercancel', removeEvent);
+        canvas.addEventListener('pointerleave', removeEvent);
+        canvas.addEventListener('wheel', (ev) => {
+            ev.preventDefault();
+            cameraZoom -= ev.deltaY * 0.2;
+            if(cameraZoom < 1.0) cameraZoom = 1.0;
+            requestAnimationFrame(draw);
+        }, { passive: false });
+
+        function removeEvent(ev) {
+            const index = evCache.findIndex(e => e.pointerId === ev.pointerId);
+            if (index > -1) evCache.splice(index, 1);
+            if (evCache.length < 2) { prevDiff = -1; isPinching = false; }
+            if (evCache.length === 0) isDragging = false;
+        }
+
+        // Resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            requestAnimationFrame(draw);
+        });
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Init
+        generatePoints('barnsley');
+
+    </script>
+</body>
+</html>
+
