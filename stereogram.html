@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Estereogramas (Magic Eye)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #e5e5e5;
+        }
+        canvas {
+            image-rendering: pixelated; /* Mantém a nitidez dos pixels */
+        }
+        .control-group {
+            background-color: #262626;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #333;
+        }
+        input[type="range"] {
+            accent-color: #8b5cf6;
+        }
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777; 
+        }
+        
+        /* Estilo para Fullscreen */
+        :fullscreen {
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        /* Compatibilidade para Webkit (Safari/Chrome antigos) */
+        :-webkit-full-screen {
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        :fullscreen canvas {
+            max-width: 100vw;
+            max-height: 100vh;
+            border: none;
+            box-shadow: none;
+        }
+        :-webkit-full-screen canvas {
+            max-width: 100vw;
+            max-height: 100vh;
+            border: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-2">
+                Gerador de Estereogramas
+            </h1>
+            <p class="text-gray-400">Crie as suas próprias ilusões de ótica 3D (Autostereogramas)</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- COLUNA DE CONTROLO -->
+            <div class="lg:col-span-1 space-y-4">
+                
+                <!-- Passo 1: Profundidade -->
+                <div class="control-group">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
+                        Mapa de Profundidade
+                    </h2>
+                    <p class="text-xs text-gray-300 font-semibold mb-1">REGRA: Branco = Perto, Preto = Longe</p>
+                    <input type="file" id="depthInput" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-900 file:text-purple-300 hover:file:bg-purple-800 mb-3 cursor-pointer">
+                    
+                    <div class="flex gap-2">
+                        <button onclick="loadExample('circle')" class="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition">Exemplo Círculo</button>
+                        <button onclick="loadExample('text')" class="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition">Exemplo Texto</button>
+                    </div>
+
+                    <!-- Preview do Mapa -->
+                    <div class="mt-4 border border-gray-600 rounded overflow-hidden h-32 bg-black flex items-center justify-center relative group">
+                        <img id="depthPreview" class="max-h-full max-w-full object-contain" alt="Preview Profundidade">
+                        <div class="absolute bottom-0 right-0 bg-black bg-opacity-70 text-xs p-1 rounded-tl text-white" id="depthDims"></div>
+                    </div>
+                </div>
+
+                <!-- Passo 2: Textura -->
+                <div class="control-group relative overflow-hidden">
+                    <!-- Indicador de "Mestre" do Aspect Ratio -->
+                    <div id="aspectRatioBadge" class="hidden absolute top-0 right-0 bg-green-600 text-white text-[10px] px-2 py-1 rounded-bl font-bold shadow-lg z-10">
+                        DEFINE O FORMATO
+                    </div>
+
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
+                        Textura / Padrão
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-2">Define as cores e a proporção final.</p>
+                    <input type="file" id="patternInput" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-900 file:text-pink-300 hover:file:bg-pink-800 mb-3 cursor-pointer">
+                    
+                    <!-- Preview da Textura -->
+                    <div class="mt-4 border border-gray-600 rounded overflow-hidden h-32 bg-black flex items-center justify-center relative">
+                        <img id="patternPreview" class="max-h-full max-w-full object-contain" style="display:none;" alt="Preview Textura">
+                        <div class="absolute bottom-0 right-0 bg-black bg-opacity-70 text-xs p-1 rounded-tl text-white" id="patternDims" style="display:none;"></div>
+                        <span id="patternLabel" class="text-xs text-gray-500 text-center p-4">Nenhuma textura carregada.<br>Usando Ruído Aleatório (Formato do Mapa).</span>
+                        <button id="removeTextureBtn" onclick="removeTexture()" class="hidden absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700" title="Remover Textura">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Configurações -->
+                <div class="control-group">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
+                        Ajustes
+                    </h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1 flex justify-between">
+                            Força 3D (Deslocamento)
+                            <span id="depthValDisplay" class="text-xs text-gray-400">15px</span>
+                        </label>
+                        <input type="range" id="depthFactor" min="5" max="60" value="15" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1 flex justify-between">
+                            Largura do Padrão (Foco)
+                            <span id="patValDisplay" class="text-xs text-gray-400">140px</span>
+                        </label>
+                        <input type="range" id="patternWidth" min="80" max="300" value="140" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-[10px] text-gray-500 mt-1">Quanto maior, mais fácil de ver, mas menos detalhado.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="checkbox" id="addGuides" class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-600 focus:ring-offset-gray-800">
+                        <label for="addGuides" class="text-sm select-none cursor-pointer">Adicionar pontos guia</label>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                         <input type="checkbox" id="invertDepth" class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-600 focus:ring-offset-gray-800">
+                        <label for="invertDepth" class="text-sm select-none cursor-pointer text-gray-400">Inverter (Tornar Preto = Perto)</label>
+                    </div>
+                </div>
+
+                <button onclick="generateStereogram()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded shadow-lg transform transition hover:scale-105 active:scale-95">
+                    GERAR ESTEREOGRAMA
+                </button>
+            </div>
+
+            <!-- COLUNA DE RESULTADO -->
+            <div class="lg:col-span-2 bg-black rounded-lg border border-gray-700 p-1 flex flex-col relative h-[600px] lg:h-auto group">
+                <div class="absolute top-4 left-4 z-10 bg-black/50 px-2 py-1 rounded text-gray-300 text-xs uppercase tracking-widest font-bold backdrop-blur-sm pointer-events-none">Resultado</div>
+                
+                <!-- Botão Fullscreen -->
+                <button onclick="toggleFullScreen()" class="absolute top-4 right-4 z-10 bg-black/60 hover:bg-purple-600 text-white p-2 rounded transition backdrop-blur-sm shadow-lg" title="Ver em Ecrã Inteiro (Melhor para visualizar)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                </button>
+                
+                <div id="canvasContainer" class="w-full h-full flex items-center justify-center overflow-auto bg-[#0a0a0a] rounded p-4">
+                    <canvas id="resultCanvas" class="shadow-2xl border border-gray-800 max-w-full max-h-full object-contain"></canvas>
+                </div>
+
+                <div class="absolute bottom-4 right-4 flex gap-2">
+                    <button onclick="downloadImage()" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white py-2 px-4 rounded flex items-center gap-2 transition shadow-lg text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- VARIÁVEIS E SETUP ---
+        const canvas = document.getElementById('resultCanvas');
+        const ctx = canvas.getContext('2d');
+        const depthPreview = document.getElementById('depthPreview');
+        const patternPreview = document.getElementById('patternPreview');
+        const depthInput = document.getElementById('depthInput');
+        const patternInput = document.getElementById('patternInput');
+        
+        let loadedDepthImg = null;
+        let loadedPatternImg = null;
+
+        window.onload = () => {
+            loadExample('circle');
+            setupSliders();
+        };
+
+        function setupSliders() {
+            document.getElementById('depthFactor').addEventListener('input', (e) => {
+                document.getElementById('depthValDisplay').innerText = e.target.value + 'px';
+            });
+            document.getElementById('patternWidth').addEventListener('input', (e) => {
+                document.getElementById('patValDisplay').innerText = e.target.value + 'px';
+            });
+        }
+
+        // --- FULLSCREEN ---
+        function toggleFullScreen() {
+            const elem = document.getElementById('canvasContainer');
+            
+            if (!document.fullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE11 */
+                    elem.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        // --- CARREGAMENTO DE IMAGENS ---
+
+        function loadExample(type) {
+            const tempCanvas = document.createElement('canvas');
+            const tCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = 800;
+            tempCanvas.height = 600;
+
+            // Fundo Preto (Longe)
+            tCtx.fillStyle = '#000000';
+            tCtx.fillRect(0, 0, 800, 600);
+
+            if (type === 'circle') {
+                const grad = tCtx.createRadialGradient(400, 300, 20, 400, 300, 250);
+                grad.addColorStop(0, '#ffffff'); // Branco = Perto
+                grad.addColorStop(1, '#000000'); // Preto = Longe
+                tCtx.fillStyle = grad;
+                tCtx.beginPath();
+                tCtx.arc(400, 300, 250, 0, Math.PI * 2);
+                tCtx.fill();
+            } else if (type === 'text') {
+                tCtx.fillStyle = 'white'; // Branco = Perto
+                tCtx.font = 'bold 250px sans-serif';
+                tCtx.textAlign = 'center';
+                tCtx.textBaseline = 'middle';
+                tCtx.fillText('SOL', 400, 300);
+                tCtx.filter = 'blur(8px)';
+                tCtx.fillText('SOL', 400, 300);
+            }
+
+            loadedDepthImg = new Image();
+            loadedDepthImg.src = tempCanvas.toDataURL();
+            loadedDepthImg.onload = () => {
+                depthPreview.src = loadedDepthImg.src;
+                updateImageDims('depthDims', loadedDepthImg);
+                generateStereogram();
+            };
+        }
+
+        depthInput.addEventListener('change', (e) => {
+            handleImageUpload(e, (img) => {
+                loadedDepthImg = img;
+                depthPreview.src = img.src;
+                updateImageDims('depthDims', img);
+                generateStereogram();
+            });
+        });
+
+        patternInput.addEventListener('change', (e) => {
+            handleImageUpload(e, (img) => {
+                loadedPatternImg = img;
+                patternPreview.src = img.src;
+                patternPreview.style.display = 'block';
+                document.getElementById('patternLabel').style.display = 'none';
+                document.getElementById('removeTextureBtn').style.display = 'block';
+                document.getElementById('aspectRatioBadge').classList.remove('hidden');
+                updateImageDims('patternDims', img);
+                document.getElementById('patternDims').style.display = 'block';
+                generateStereogram();
+            });
+        });
+
+        function handleImageUpload(e, callback) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => callback(img);
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeTexture() {
+            loadedPatternImg = null;
+            document.getElementById('patternInput').value = "";
+            patternPreview.style.display = 'none';
+            document.getElementById('patternLabel').style.display = 'block';
+            document.getElementById('removeTextureBtn').style.display = 'none';
+            document.getElementById('patternDims').style.display = 'none';
+            document.getElementById('aspectRatioBadge').classList.add('hidden');
+            generateStereogram();
+        }
+
+        function updateImageDims(elementId, img) {
+            const el = document.getElementById(elementId);
+            if(el) el.innerText = `${img.width}x${img.height}`;
+        }
+
+        // --- GERAÇÃO DE RUÍDO ---
+        function getNoisePixel() {
+            const r = Math.floor(Math.random() * 255);
+            const g = Math.floor(Math.random() * 255);
+            const b = Math.floor(Math.random() * 255);
+            return [r, g, b];
+        }
+
+        // --- CORE ALGORITHM ---
+        function generateStereogram() {
+            if (!loadedDepthImg) return;
+
+            const separation = parseInt(document.getElementById('patternWidth').value);
+            const depthFactor = parseInt(document.getElementById('depthFactor').value);
+            // Checkbox agora inverte o comportamento padrão
+            // Padrão (unchecked): Branco = 1 (Perto), Preto = 0 (Longe)
+            // Checked: Branco = 0 (Longe), Preto = 1 (Perto)
+            const invert = document.getElementById('invertDepth').checked;
+            const addGuides = document.getElementById('addGuides').checked;
+
+            // 1. DETERMINAR DIMENSÕES FINAIS
+            let w, h;
+            const maxWidth = 1200;
+
+            if (loadedPatternImg) {
+                const texAspect = loadedPatternImg.width / loadedPatternImg.height;
+                w = Math.min(loadedDepthImg.width, maxWidth);
+                h = Math.round(w / texAspect);
+            } else {
+                w = loadedDepthImg.width;
+                h = loadedDepthImg.height;
+                if (w > maxWidth) {
+                    const ratio = maxWidth / w;
+                    w = maxWidth;
+                    h = Math.round(h * ratio);
+                }
+            }
+
+            const contentHeight = h;
+            canvas.width = w;
+            canvas.height = addGuides ? contentHeight + 40 : contentHeight;
+
+            // 2. PROCESSAR MAPA DE PROFUNDIDADE
+            const dCanvas = document.createElement('canvas');
+            dCanvas.width = w;
+            dCanvas.height = contentHeight;
+            const dCtx = dCanvas.getContext('2d');
+            dCtx.drawImage(loadedDepthImg, 0, 0, w, contentHeight);
+            const depthData = dCtx.getImageData(0, 0, w, contentHeight).data;
+
+            // 3. PREPARAR TEXTURA
+            let patternData = null;
+            let pW = separation;
+            let pH = contentHeight;
+
+            if (loadedPatternImg) {
+                const pCanvas = document.createElement('canvas');
+                pCanvas.width = pW;
+                pCanvas.height = pH;
+                const pCtx = pCanvas.getContext('2d');
+                
+                const ptrn = pCtx.createPattern(loadedPatternImg, 'repeat');
+                pCtx.fillStyle = ptrn;
+                pCtx.fillRect(0, 0, pW, pH);
+                
+                patternData = pCtx.getImageData(0, 0, pW, pH).data;
+            }
+
+            // 4. ALGORITMO DE GERAÇÃO
+            const finalImage = ctx.createImageData(w, contentHeight);
+            const data = finalImage.data;
+
+            for (let y = 0; y < contentHeight; y++) {
+                const links = new Int16Array(w);
+                
+                for (let x = 0; x < w; x++) {
+                    if (x < separation) {
+                        links[x] = x; 
+                    } else {
+                        // Ler valor do pixel (0-255)
+                        let depthVal = depthData[(y * w + x) * 4];
+                        
+                        // Lógica Padrão: Branco(255) = Perto, Preto(0) = Longe.
+                        // Se o utilizador marcar "Inverter", invertemos o valor aqui.
+                        if (invert) {
+                            depthVal = 255 - depthVal;
+                        }
+
+                        // Calcular deslocamento
+                        // Z = 1.0 (Branco/Perto) -> Shift Máximo
+                        // Z = 0.0 (Preto/Longe) -> Shift Mínimo (Zero)
+                        const z = depthVal / 255;
+                        const shift = Math.floor(z * depthFactor);
+                        
+                        // O 'period' de repetição diminui à medida que o objeto se aproxima
+                        links[x] = x - separation + shift;
+                    }
+                }
+
+                for (let x = 0; x < w; x++) {
+                    let r, g, b;
+
+                    if (links[x] < separation || x < separation) {
+                        if (x < separation) {
+                            if (patternData) {
+                                const pIdx = (y * pW + (x % pW)) * 4;
+                                r = patternData[pIdx];
+                                g = patternData[pIdx+1];
+                                b = patternData[pIdx+2];
+                            } else {
+                                [r, g, b] = getNoisePixel();
+                            }
+                        } else {
+                            const prevX = links[x];
+                            const prevIdx = (y * w + prevX) * 4;
+                            r = data[prevIdx];
+                            g = data[prevIdx+1];
+                            b = data[prevIdx+2];
+                        }
+                    } else {
+                        const prevX = links[x];
+                        const prevIdx = (y * w + prevX) * 4;
+                        r = data[prevIdx];
+                        g = data[prevIdx+1];
+                        b = data[prevIdx+2];
+                    }
+
+                    const idx = (y * w + x) * 4;
+                    data[idx] = r;
+                    data[idx+1] = g;
+                    data[idx+2] = b;
+                    data[idx+3] = 255;
+                }
+            }
+
+            // 5. DESENHAR NO CANVAS
+            const yOffset = addGuides ? 20 : 0;
+            ctx.putImageData(finalImage, 0, yOffset);
+
+            // 6. ADICIONAR GUIAS
+            if (addGuides) {
+                ctx.fillStyle = "#111";
+                ctx.fillRect(0, 0, w, 40);
+
+                ctx.fillStyle = "#ff0055";
+                const centerX = w / 2;
+                const guideSep = separation / 2;
+                
+                ctx.beginPath();
+                ctx.arc(centerX - guideSep, 20, 6, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(centerX + guideSep, 20, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.font = "10px sans-serif";
+                ctx.fillStyle = "#888";
+                ctx.textAlign = "center";
+                ctx.fillText("Cruze os olhos até os pontos se unirem", centerX, 35);
+            }
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'meu_estereograma.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>
+
+
