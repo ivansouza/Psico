@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Shader Fractal - Pan & Zoom Interativo</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        /* touch-action: none é CRUCIAL para gestos customizados no celular */
+        canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: sans-serif;
+            font-size: 14px;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px black;
+            background-color: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="instructions">Arrastar: Mover • Pinça/Roda: Zoom • Forma: Auto</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            document.body.innerHTML = '<h1 style="color:white; text-align:center;">WebGL não suportado :(</h1>';
+        }
+
+        // --- GESTÃO DE ESTADO (ZOOM & PAN) ---
+        let cameraOffset = { x: 0, y: 0 };
+        let cameraZoom = 1.0;
+        const MIN_ZOOM = 0.1;
+        const MAX_ZOOM = 50.0;
+
+        // Cache para Pointer Events (Toque/Mouse)
+        let evCache = [];
+        let prevDiff = -1;
+        let isDragging = false;
+
+        // Adiciona eventos de ponteiro
+        canvas.addEventListener('pointerdown', pointerdown_handler);
+        canvas.addEventListener('pointermove', pointermove_handler);
+        canvas.addEventListener('pointerup', pointerup_handler);
+        canvas.addEventListener('pointercancel', pointerup_handler);
+        canvas.addEventListener('pointerout', pointerup_handler);
+        canvas.addEventListener('pointerleave', pointerup_handler);
+        canvas.addEventListener('wheel', wheel_handler, { passive: false });
+
+        function pointerdown_handler(ev) {
+            evCache.push(ev);
+            isDragging = true;
+        }
+
+        function pointermove_handler(ev) {
+            // Atualiza o evento no cache
+            const index = evCache.findIndex((cachedEv) => cachedEv.pointerId === ev.pointerId);
+            if (index >= 0) {
+                // Salva a posição anterior antes de atualizar para calcular o delta
+                const prevX = evCache[index].clientX;
+                const prevY = evCache[index].clientY;
+                
+                evCache[index] = ev; // Atualiza cache
+
+                // Caso 1: Arrastar (Pan) - 1 dedo ou mouse
+                if (evCache.length === 1 && isDragging) {
+                    const deltaX = ev.clientX - prevX;
+                    const deltaY = ev.clientY - prevY;
+                    
+                    // Ajusta a sensibilidade baseada no zoom atual
+                    // Quanto maior o zoom, menor o movimento
+                    const sensitivity = 2.0 / (canvas.height * cameraZoom);
+                    
+                    cameraOffset.x -= deltaX * sensitivity;
+                    cameraOffset.y += deltaY * sensitivity; // Inverte Y do WebGL
+                }
+                
+                // Caso 2: Pinça (Pinch Zoom) - 2 dedos
+                else if (evCache.length === 2) {
+                    // Calcula distância entre os dois pontos
+                    const curDiff = Math.abs(evCache[0].clientX - evCache[1].clientX);
+
+                    if (prevDiff > 0) {
+                        // Se a distância aumentou -> Zoom In
+                        // Se a distância diminuiu -> Zoom Out
+                        const delta = curDiff - prevDiff;
+                        const zoomSpeed = 0.005; // Sensibilidade do pinch
+                        
+                        let newZoom = cameraZoom + (delta * cameraZoom * zoomSpeed);
+                        cameraZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+                    }
+                    prevDiff = curDiff;
+                }
+            }
+        }
+
+        function pointerup_handler(ev) {
+            // Remove o evento do cache
+            const index = evCache.findIndex((cachedEv) => cachedEv.pointerId === ev.pointerId);
+            if (index > -1) {
+                evCache.splice(index, 1);
+            }
+            
+            // Reseta distância do pinch se sobrar menos de 2 dedos
+            if (evCache.length < 2) {
+                prevDiff = -1;
+            }
+            if (evCache.length === 0) {
+                isDragging = false;
+            }
+        }
+
+        function wheel_handler(ev) {
+            ev.preventDefault(); // Impede scroll da página
+            
+            const zoomSpeed = 0.001;
+            const delta = -ev.deltaY;
+            
+            let newZoom = cameraZoom + (delta * cameraZoom * zoomSpeed);
+            cameraZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+        }
+
+
+        // --- WEBGL SETUP ---
+
+        // Redimensiona
+        function resizeCanvas() {
+            const displayWidth  = window.innerWidth;
+            const displayHeight = window.innerHeight;
+            if (canvas.width  !== displayWidth || canvas.height !== displayHeight) {
+                canvas.width  = displayWidth;
+                canvas.height = displayHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Vertex Shader
+        const vsSource = `
+            attribute vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+
+        // Fragment Shader
+        const fsSource = `
+            precision highp float;
+
+            uniform float iTime;
+            uniform vec2 iResolution;
+            uniform vec2 iOffset;   // Posição da Câmera (Pan)
+            uniform float iZoom;    // Nível de Zoom
+
+            // Paleta de cores suave
+            vec3 palette(in float t) {
+                vec3 a = vec3(0.5, 0.5, 0.5);
+                vec3 b = vec3(0.5, 0.5, 0.5);
+                vec3 c = vec3(1.0, 1.0, 1.0);
+                vec3 d = vec3(0.263, 0.416, 0.557);
+                return a + b * cos(6.28318 * (c * t + d));
+            }
+
+            void main() {
+                // Coordenadas normalizadas
+                vec2 uv = (gl_FragCoord.xy * 2.0 - iResolution.xy) / iResolution.y;
+                
+                // Aplica Transformações Interativas (Pan & Zoom)
+                uv /= iZoom;    // Aplica o Zoom
+                uv += iOffset;  // Aplica o deslocamento (Pan)
+                
+                // --- GEOMETRIA DO FRACTAL ---
+                // Mantivemos a animação lenta e hipnótica da forma (param c)
+                // mas removemos a rotação automática da câmera para facilitar a navegação
+                
+                // Julia set parameter animado lentamente
+                vec2 c = vec2(0.285 + 0.05 * sin(iTime * 0.3), 0.01 + 0.05 * cos(iTime * 0.4));
+
+                vec2 z = uv;
+                float iter = 0.0;
+                const float maxIter = 150.0;
+                float escapeRadius = 100.0;
+                
+                for (float i = 0.0; i < maxIter; i++) {
+                    z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+                    if (dot(z, z) > escapeRadius) break;
+                    iter++;
+                }
+
+                // --- COLORAÇÃO ---
+                vec3 col = vec3(0.0);
+
+                if (iter < maxIter) {
+                    float log_zn = log(dot(z, z)) / 2.0;
+                    float nu = log(log_zn / log(2.0)) / log(2.0);
+                    float smoothIter = iter + 1.0 - nu;
+
+                    col = palette(smoothIter * 0.05 + iTime * 0.05);
+                    col += vec3(0.1 / length(z)) * 0.5;
+                }
+
+                col = pow(col, vec3(0.6));
+                
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const program = gl.createProgram();
+        const vertShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        gl.attachShader(program, vertShader);
+        gl.attachShader(program, fragShader);
+        gl.linkProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1, -1,  1, -1, -1,  1,
+            -1,  1,  1, -1,  1,  1,
+        ]), gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        gl.useProgram(program);
+
+        const uTime = gl.getUniformLocation(program, "iTime");
+        const uRes = gl.getUniformLocation(program, "iResolution");
+        // Novos Uniforms
+        const uOffset = gl.getUniformLocation(program, "iOffset");
+        const uZoom = gl.getUniformLocation(program, "iZoom");
+
+        function render(time) {
+            time *= 0.001; 
+            resizeCanvas();
+
+            gl.uniform1f(uTime, time);
+            gl.uniform2f(uRes, canvas.width, canvas.height);
+            
+            // Passa os valores de navegação para o shader
+            gl.uniform2f(uOffset, cameraOffset.x, cameraOffset.y);
+            gl.uniform1f(uZoom, cameraZoom);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
+
+
