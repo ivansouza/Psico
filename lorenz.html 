@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Atrator de Lorenz 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+        
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls-top {
+            pointer-events: auto;
+            align-self: flex-start;
+        }
+
+        select {
+            background-color: rgba(20, 0, 40, 0.8);
+            color: #00ffff; /* Cyan */
+            border: 1px solid #00ffff;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+
+        option { background-color: #000; color: #00ffff; }
+
+        .instructions {
+            color: rgba(200, 255, 255, 0.8);
+            font-size: 14px;
+            text-shadow: 0px 2px 4px black;
+            background-color: rgba(0, 20, 40, 0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="ui-layer">
+        <div class="controls-top">
+            <select id="params-select">
+                <option value="classic">🦋 Lorenz Clássico (Borboleta)</option>
+                <option value="tight">🌪️ Tornado (Rho alto)</option>
+                <option value="gentle">〰️ Suave (Beta baixo)</option>
+                <option value="chaos">⚡ Caos Total</option>
+                <option value="figure8">🎱 Figura 8</option>
+            </select>
+        </div>
+
+        <div class="instructions">
+            👆 <b>Arrastar:</b> Rodar em 3D<br>
+            ✌️ <b>Pinça/Roda:</b> Zoom<br>
+            A Teoria do Caos em tempo real.
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl', { preserveDrawingBuffer: false });
+        const selector = document.getElementById('params-select');
+
+        if (!gl) alert("WebGL não suportado.");
+
+        // --- CONFIGURAÇÃO FÍSICA ---
+        // Parâmetros: sigma, rho, beta
+        const PRESETS = {
+            classic: { s: 10, r: 28, b: 8/3, speed: 0.005, zoom: 15.0 },
+            tight:   { s: 10, r: 99, b: 8/3, speed: 0.002, zoom: 30.0 },
+            gentle:  { s: 10, r: 28, b: 1,   speed: 0.005, zoom: 15.0 },
+            chaos:   { s: 20, r: 50, b: 4,   speed: 0.003, zoom: 20.0 },
+            figure8: { s: 10, r: 13, b: 8/3, speed: 0.005, zoom: 10.0 } // Pré-caótico
+        };
+
+        // Estado
+        let numPoints = 100000; // 100k pontos para desenhar o rastro
+        let pointsData; 
+        let currentParams = PRESETS.classic;
+        
+        // Câmera / Visualização
+        let rotation = { x: 0.5, y: 0.5 }; // Rotação inicial
+        let zoom = 1.0; // Zoom da câmera
+        let autoRotate = true;
+
+        // Input
+        let evCache = [];
+        let prevDiff = -1;
+        let isDragging = false;
+
+        // --- GERAÇÃO DE DADOS (CPU) ---
+        // Resolvemos as equações diferenciais aqui
+        function generateLorenzData(preset) {
+            const data = new Float32Array(numPoints * 3); // x, y, z
+            const colors = new Float32Array(numPoints);   // valor para colorir (velocidade ou z)
+
+            let x = 0.1, y = 0.0, z = 0.0;
+            const dt = preset.speed;
+            const sigma = preset.s;
+            const rho = preset.r;
+            const beta = preset.b;
+
+            // "Aquecer" para chegar ao atrator
+            for(let i=0; i<100; i++) {
+                let dx = sigma * (y - x) * dt;
+                let dy = (x * (rho - z) - y) * dt;
+                let dz = (x * y - beta * z) * dt;
+                x += dx; y += dy; z += dz;
+            }
+
+            let maxZ = 0;
+            let minZ = 1000;
+
+            for (let i = 0; i < numPoints; i++) {
+                // Equações de Lorenz (Euler integration simples)
+                let dx = sigma * (y - x) * dt;
+                let dy = (x * (rho - z) - y) * dt;
+                let dz = (x * y - beta * z) * dt;
+
+                x += dx;
+                y += dy;
+                z += dz;
+
+                data[i * 3]     = x;
+                data[i * 3 + 1] = y;
+                data[i * 3 + 2] = z; // Centralizar visualmente é feito no shader
+
+                if(z > maxZ) maxZ = z;
+                if(z < minZ) minZ = z;
+                
+                // Guardamos a altura normalizada para cor
+                colors[i] = z; 
+            }
+
+            // Normalizar cores no buffer auxiliar para passar ao shader se necessário,
+            // ou apenas passamos o Z bruto e normalizamos no shader.
+            // Vamos passar Z bruto.
+            return { positions: data, minZ, maxZ };
+        }
+
+        let lorenzData;
+        
+        // Buffers WebGL
+        const posBuffer = gl.createBuffer();
+        const colBuffer = gl.createBuffer(); // Se quisermos cores complexas por vértice
+
+        function updateBuffers(type) {
+            currentParams = PRESETS[type];
+            // Ajusta o zoom base do preset
+            // (Não alteramos a variavel 'zoom' do utilizador, mas sim um fator de escala interno se precisassemos)
+            
+            lorenzData = generateLorenzData(currentParams);
+            
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, lorenzData.positions, gl.STATIC_DRAW);
+        }
+
+        // --- SHADERS ---
+        const vsSource = `
+            attribute vec3 aPosition;
+            
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform float uScale;
+            uniform vec3 uCenterOffset; // Para centrar o atrator (geralmente Z sobe muito)
+
+            varying float vAltitude;
+
+            void main() {
+                // Centralizar o modelo: Lorenz cresce para Z positivo.
+                // Subtraimos o offset para o centro de rotação ficar no meio da "borboleta"
+                vec3 centeredPos = aPosition - uCenterOffset;
+                
+                // Aplica escala do zoom
+                vec4 pos = vec4(centeredPos * uScale, 1.0);
+
+                gl_Position = uProjectionMatrix * uModelViewMatrix * pos;
+                
+                // Tamanho do ponto varia com a profundidade para dar sensação 3D
+                // Pontos mais longe = menores
+                gl_PointSize = 120.0 / gl_Position.w; 
+                
+                vAltitude = aPosition.z; // Passa altura original para colorir
+            }
+        `;
+
+        const fsSource = `
+            precision mediump float;
+            varying float vAltitude;
+
+            void main() {
+                // Desenhar circulo suave em vez de quadrado
+                vec2 coord = gl_PointCoord - vec2(0.5);
+                float dist = length(coord);
+                if(dist > 0.5) discard;
+
+                // Gradiente de cor baseado na altura (Z)
+                // Z vai de ~0 a ~50 no clássico
+                float t = clamp(vAltitude / 50.0, 0.0, 1.0);
+
+                // Paleta "Cyberpunk"
+                vec3 colorLow = vec3(0.0, 0.8, 1.0); // Cyan (Baixo)
+                vec3 colorHigh = vec3(1.0, 0.0, 0.5); // Magenta (Alto)
+                
+                vec3 col = mix(colorLow, colorHigh, t);
+                
+                // Alpha suave nas bordas do ponto (glow)
+                float alpha = (1.0 - dist * 2.0) * 0.4; // 0.4 é a opacidade base
+                
+                gl_FragColor = vec4(col * alpha, alpha); // Pré-multiplicado para blend aditivo
+            }
+        `;
+
+        // Utilitários de Matriz (Simples, sem biblioteca externa para manter 1 ficheiro)
+        const Mat4 = {
+            perspective: (fov, aspect, near, far) => {
+                const f = 1.0 / Math.tan(fov / 2);
+                const nf = 1 / (near - far);
+                return [
+                    f / aspect, 0, 0, 0,
+                    0, f, 0, 0,
+                    0, 0, (far + near) * nf, -1,
+                    0, 0, (2 * far * near) * nf, 0
+                ];
+            },
+            rotationXY: (angleX, angleY) => {
+                const cx = Math.cos(angleX), sx = Math.sin(angleX);
+                const cy = Math.cos(angleY), sy = Math.sin(angleY);
+                // Rotação combinada simplificada (Y then X)
+                // Não é perfeita mas serve para visualização orbital
+                return [
+                    cy, sx*sy, -cx*sy, 0,
+                    0, cx, sx, 0,
+                    sy, -sx*cy, cx*cy, 0,
+                    0, 0, -40, 1 // Translação Z camera fixa (-40)
+                ];
+            }
+        };
+
+        // Compilação
+        function createShader(gl, type, source) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, source);
+            gl.compileShader(s);
+            if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(s));
+                return null;
+            }
+            return s;
+        }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const uModelView = gl.getUniformLocation(program, "uModelViewMatrix");
+        const uProjection = gl.getUniformLocation(program, "uProjectionMatrix");
+        const uScale = gl.getUniformLocation(program, "uScale");
+        const uOffset = gl.getUniformLocation(program, "uCenterOffset");
+        const aPos = gl.getAttribLocation(program, "aPosition");
+
+        // --- RENDER LOOP ---
+        function draw() {
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0.02, 0.0, 0.05, 1.0); // Fundo Roxo Escuro quase preto
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE); // Aditivo (Additive Blending) para brilho
+
+            // Rotação Automática suave se não estiver a interagir
+            if (!isDragging && autoRotate) {
+                rotation.y += 0.003;
+            }
+
+            // Matrizes
+            const aspect = canvas.width / canvas.height;
+            const projMatrix = Mat4.perspective(Math.PI / 4, aspect, 0.1, 1000.0);
+            
+            // A matriz de rotação aqui inclui uma translação Z de -40 (câmera)
+            const mvMatrix = Mat4.rotationXY(rotation.x, rotation.y);
+
+            gl.useProgram(program);
+            
+            gl.uniformMatrix4fv(uProjection, false, new Float32Array(projMatrix));
+            gl.uniformMatrix4fv(uModelView, false, new Float32Array(mvMatrix));
+            
+            // Zoom: ajustamos a escala do modelo
+            // O preset define uma "escala base" para caber na tela
+            let finalScale = (1.0 / currentParams.zoom) * zoom; 
+            gl.uniform1f(uScale, finalScale);
+
+            // Centrar o atrator (Z médio do lorenz é aprox 25, X/Y é 0)
+            gl.uniform3f(uOffset, 0.0, 0.0, (lorenzData.maxZ + lorenzData.minZ)/2.0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aPos);
+
+            // Desenhar rastro
+            gl.drawArrays(gl.POINTS, 0, numPoints); // Usamos POINTS para nuvem
+            // Alternativa: LINE_STRIP para linha contínua, mas POINTS com muito brilho fica mais "artístico"
+            // gl.drawArrays(gl.LINE_STRIP, 0, numPoints);
+
+            requestAnimationFrame(draw);
+        }
+
+        // --- INTERAÇÃO ---
+        selector.addEventListener('change', (e) => updateBuffers(e.target.value));
+
+        canvas.addEventListener('pointerdown', ev => {
+            evCache.push(ev);
+            isDragging = true;
+            autoRotate = false; // Para rotação auto ao tocar
+        });
+
+        canvas.addEventListener('pointermove', ev => {
+            const index = evCache.findIndex(e => e.pointerId === ev.pointerId);
+            if (index >= 0) {
+                const prevX = evCache[index].clientX;
+                const prevY = evCache[index].clientY;
+                evCache[index] = ev;
+
+                if (evCache.length === 1 && isDragging) {
+                    // Rodar
+                    const deltaX = ev.clientX - prevX;
+                    const deltaY = ev.clientY - prevY;
+                    rotation.y += deltaX * 0.01;
+                    rotation.x += deltaY * 0.01;
+                } 
+                else if (evCache.length === 2) {
+                    // Zoom
+                    const curDiff = Math.abs(evCache[0].clientX - evCache[1].clientX);
+                    if (prevDiff > 0) {
+                        const delta = curDiff - prevDiff;
+                        zoom += delta * 0.01;
+                        if(zoom < 0.1) zoom = 0.1;
+                    }
+                    prevDiff = curDiff;
+                }
+            }
+        });
+
+        function removeEvent(ev) {
+            const index = evCache.findIndex(e => e.pointerId === ev.pointerId);
+            if (index > -1) evCache.splice(index, 1);
+            if (evCache.length < 2) prevDiff = -1;
+            if (evCache.length === 0) {
+                isDragging = false;
+                // autoRotate = true; // Descomente para voltar a rodar sozinho ao largar
+            }
+        }
+        
+        canvas.addEventListener('pointerup', removeEvent);
+        canvas.addEventListener('pointercancel', removeEvent);
+        canvas.addEventListener('pointerleave', removeEvent);
+        canvas.addEventListener('wheel', (ev) => {
+            ev.preventDefault();
+            zoom -= ev.deltaY * 0.002;
+            if(zoom < 0.1) zoom = 0.1;
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Init
+        updateBuffers('classic');
+        requestAnimationFrame(draw);
+
+    </script>
+</body>
+</html>
+
