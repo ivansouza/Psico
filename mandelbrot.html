@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Explorador Mandelbrot</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+        
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls-top {
+            pointer-events: auto;
+            align-self: flex-start;
+            max-width: 100%;
+        }
+
+        select {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ffcc00; /* Cor dourada para destacar */
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            width: 100%;
+            max-width: 350px;
+        }
+
+        option { background-color: #111; color: white; }
+
+        .instructions {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            text-shadow: 0px 2px 4px black;
+            background-color: rgba(0,0,0,0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #ff4444;
+            font-weight: bold;
+            font-family: monospace;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: none;
+            border: 1px solid #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="ui-layer">
+        <div class="controls-top">
+            <select id="location-select">
+                <option value="-0.5,0.0,1.0">🏠 Vista Geral (Reset)</option>
+                <option value="-0.74364388703,0.1318259042,3000.0">🐴 Vale dos Cavalos Marinhos</option>
+                <option value="-0.1011,0.9563,500.0">🐘 Vale dos Elefantes</option>
+                <option value="-1.768778833,0.004238896,2000.0">⚡ O Mini-Brot (Na cauda)</option>
+                <option value="-0.743644781,0.131825256,100000.0">🌀 Espiral Profunda</option>
+                <option value="-0.16070135,1.0375665,1500.0">❄️ Scepter Valley</option>
+            </select>
+        </div>
+
+        <div id="paused-indicator" class="status">PAUSADO</div>
+
+        <div class="instructions">
+            ✌️ <b>Pinça:</b> Zoom Manual<br>
+            👆 <b>Arrastar:</b> Navegar pelo conjunto<br>
+            Escolha um local famoso acima para saltar.
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl');
+        const pausedIndicator = document.getElementById('paused-indicator');
+        const selector = document.getElementById('location-select');
+
+        if (!gl) {
+            document.body.innerHTML = '<h1 style="color:white;text-align:center;">WebGL não suportado :(</h1>';
+        }
+
+        // --- ESTADO ---
+        // Ponto inicial: Centro do Mandelbrot
+        let cameraOffset = { x: -0.5, y: 0.0 }; 
+        let cameraZoom = 1.0;
+        
+        // Limite de precisão do float (Zoom máximo antes de pixelizar)
+        const PRECISION_LIMIT = 200000.0; 
+        const MIN_ZOOM = 0.5;
+
+        let isPaused = false;
+        let animTime = 0.0;
+        let lastFrameTime = Date.now();
+
+        // Inputs
+        let lastTapTime = 0;
+        let tapStartX = 0;
+        let tapStartY = 0;
+        let evCache = [];
+        let prevDiff = -1;
+        let isDragging = false;
+        let isPinching = false;
+
+        // --- LÓGICA DO DROPDOWN (Teletransporte) ---
+        selector.addEventListener('change', (e) => {
+            const val = e.target.value;
+            const parts = val.split(',');
+            
+            // Define a nova posição da câmara e nível de zoom
+            cameraOffset.x = parseFloat(parts[0]);
+            cameraOffset.y = parseFloat(parts[1]);
+            cameraZoom = parseFloat(parts[2]);
+            
+            // Retira o foco do select para não interferir com teclado/espaço
+            e.target.blur();
+        });
+
+        // --- HANDLERS DE EVENTOS ---
+        canvas.addEventListener('pointerdown', ev => {
+            evCache.push(ev);
+            if (evCache.length === 1) {
+                isDragging = true;
+                tapStartX = ev.clientX;
+                tapStartY = ev.clientY;
+            }
+        });
+
+        canvas.addEventListener('pointermove', ev => {
+            const index = evCache.findIndex(e => e.pointerId === ev.pointerId);
+            if (index >= 0) {
+                const prevX = evCache[index].clientX;
+                const prevY = evCache[index].clientY;
+                evCache[index] = ev; 
+
+                // Arrastar (Pan)
+                if (evCache.length === 1 && isDragging && !isPinching) {
+                    const deltaX = ev.clientX - prevX;
+                    const deltaY = ev.clientY - prevY;
+                    
+                    const sensitivity = 2.0 / (canvas.height * cameraZoom);
+                    
+                    cameraOffset.x -= deltaX * sensitivity;
+                    cameraOffset.y += deltaY * sensitivity;
+                } 
+                // Zoom (Pinch)
+                else if (evCache.length === 2) {
+                    isPinching = true;
+                    const curDiff = Math.abs(evCache[0].clientX - evCache[1].clientX);
+                    if (prevDiff > 0) {
+                        const delta = curDiff - prevDiff;
+                        const zoomSpeed = 0.008; 
+                        let newZoom = cameraZoom + (delta * cameraZoom * zoomSpeed);
+                        
+                        // Loop de Zoom Infinito:
+                        // No Mandelbrot, reiniciar o zoom significa "sair" do detalhe e voltar
+                        // à visão geral, pois a forma não se repete exatamente no mesmo lugar.
+                        if (newZoom > PRECISION_LIMIT) cameraZoom = MIN_ZOOM; 
+                        else cameraZoom = Math.max(MIN_ZOOM, newZoom);
+                    }
+                    prevDiff = curDiff;
+                }
+            }
+        });
+
+        canvas.addEventListener('pointerup', ev => {
+            handleTapLogic(ev);
+            cleanupPointer(ev);
+        });
+        canvas.addEventListener('pointercancel', cleanupPointer);
+        canvas.addEventListener('pointerleave', cleanupPointer);
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+        function cleanupPointer(ev) {
+            const index = evCache.findIndex(e => e.pointerId === ev.pointerId);
+            if (index > -1) evCache.splice(index, 1);
+            if (evCache.length < 2) { prevDiff = -1; isPinching = false; }
+            if (evCache.length === 0) isDragging = false;
+        }
+
+        function handleWheel(ev) {
+            ev.preventDefault();
+            const zoomSpeed = 0.002;
+            const delta = -ev.deltaY;
+            let newZoom = cameraZoom + (delta * cameraZoom * zoomSpeed);
+            if (newZoom > PRECISION_LIMIT) cameraZoom = MIN_ZOOM;
+            else cameraZoom = Math.max(MIN_ZOOM, newZoom);
+        }
+
+        function handleTapLogic(ev) {
+            if (isPinching) return;
+            const dist = Math.hypot(ev.clientX - tapStartX, ev.clientY - tapStartY);
+            if (dist > 10) return;
+            isPaused = !isPaused;
+            pausedIndicator.style.display = isPaused ? 'block' : 'none';
+        }
+
+        // --- WEBGL SETUP ---
+        function resizeCanvas() {
+            if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const vsSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }`;
+
+        const fsSource = `
+            precision highp float;
+            uniform float iTime;
+            uniform vec2 iResolution;
+            uniform vec2 iOffset;
+            uniform float iZoom;
+
+            // Paleta de cores para Mandelbrot (Tons de fogo e azul escuro)
+            vec3 palette(in float t) {
+                vec3 a = vec3(0.5, 0.5, 0.5);
+                vec3 b = vec3(0.5, 0.5, 0.5);
+                vec3 c = vec3(1.0, 1.0, 1.0);
+                vec3 d = vec3(0.00, 0.10, 0.20); 
+                return a + b * cos(6.28318 * (c * t + d));
+            }
+
+            void main() {
+                // Mapeia pixel para coordenada complexa
+                // uv agora representa o próprio valor C
+                vec2 uv = (gl_FragCoord.xy * 2.0 - iResolution.xy) / iResolution.y;
+                vec2 c = (uv / iZoom) + iOffset;
+
+                // Mandelbrot: z começa em 0, c é a posição
+                vec2 z = vec2(0.0);
+                float iter = 0.0;
+                
+                // Aumentamos as iterações conforme o zoom aumenta para manter o detalhe
+                // Base 150 + extra baseado no log do zoom
+                float maxIter = 150.0 + log(iZoom)*40.0;
+                
+                // Limite de segurança para performance
+                if(maxIter > 600.0) maxIter = 600.0;
+
+                float escapeRadius = 100.0;
+                
+                // Otimização Cardioide/Bulbo principal (Evita cálculo dentro do corpo principal)
+                float q = (c.x - 0.25)*(c.x - 0.25) + c.y*c.y;
+                if(q*(q + (c.x - 0.25)) < 0.25 * c.y * c.y) {
+                    iter = maxIter; // Dentro do cardioide
+                } else {
+                    for (float i = 0.0; i < 600.0; i++) {
+                        if (i >= maxIter) break;
+                        
+                        // Z = Z^2 + C
+                        z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+                        
+                        if (dot(z, z) > escapeRadius) break;
+                        iter++;
+                    }
+                }
+
+                vec3 col = vec3(0.0); // Preto dentro do conjunto
+
+                if (iter < maxIter) {
+                    // Smooth coloring
+                    float log_zn = log(dot(z, z)) / 2.0;
+                    float nu = log(log_zn / log(2.0)) / log(2.0);
+                    float smoothIter = iter + 1.0 - nu;
+
+                    // Ajuste de cor
+                    col = palette(smoothIter * 0.02 + iTime * 0.1);
+                    col += vec3(0.1 / length(z)) * 0.2; // Brilho subtil
+                }
+
+                col = pow(col, vec3(0.6));
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null;
+        }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+        const posLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const uTime = gl.getUniformLocation(program, "iTime");
+        const uRes = gl.getUniformLocation(program, "iResolution");
+        const uOffset = gl.getUniformLocation(program, "iOffset");
+        const uZoom = gl.getUniformLocation(program, "iZoom");
+
+        function render() {
+            const now = Date.now();
+            const deltaTime = (now - lastFrameTime) / 1000.0;
+            lastFrameTime = now;
+
+            if (!isPaused) animTime += deltaTime;
+            resizeCanvas();
+
+            gl.uniform1f(uTime, animTime);
+            gl.uniform2f(uRes, canvas.width, canvas.height);
+            gl.uniform2f(uOffset, cameraOffset.x, cameraOffset.y);
+            gl.uniform1f(uZoom, cameraZoom);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
+
