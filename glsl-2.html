@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador Multi-Shader (Corrigido)</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100vh; 
+        }
+
+        /* Mensagem de Erro (caso algo falhe) */
+        #errorLog {
+            position: fixed;
+            top: 10px; left: 10px; right: 10px;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
+            z-index: 100;
+        }
+
+        /* Botão Flutuante (Toggle) */
+        #toggleBtn {
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%; 
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            color: white; 
+            font-size: 24px;
+            cursor: pointer; 
+            z-index: 20; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        #toggleBtn.active { 
+            transform: rotate(45deg); 
+            background: white; 
+            color: black; 
+        }
+
+        /* Painel de Controles */
+        #controlsPanel {
+            position: fixed; 
+            bottom: 85px; 
+            right: 20px; 
+            width: 300px;
+            background: rgba(15, 15, 20, 0.9); 
+            backdrop-filter: blur(20px);
+            padding: 24px; 
+            border-radius: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #eee; 
+            z-index: 10;
+            
+            /* Estado oculto */
+            opacity: 0; 
+            visibility: hidden; 
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            transform-origin: bottom right;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        #controlsPanel.visible { 
+            opacity: 1; 
+            visibility: visible; 
+            transform: translateY(0) scale(1); 
+        }
+
+        /* Elementos do UI */
+        .control-group { margin-bottom: 16px; }
+        
+        label { 
+            font-size: 11px; 
+            color: #aaa; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input[type="range"] { 
+            width: 100%; 
+            height: 4px; 
+            background: rgba(255, 255, 255, 0.2); 
+            border-radius: 2px; 
+            appearance: none; 
+            outline: none; 
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 16px; 
+            height: 16px; 
+            background: #fff; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            transition: transform 0.1s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        select {
+            width: 100%; 
+            padding: 10px; 
+            background: rgba(255, 255, 255, 0.1); 
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3); 
+            border-radius: 8px; 
+            margin-bottom: 20px;
+            outline: none; 
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        option { background: #222; color: white; }
+
+        button#pauseBtn {
+            width: 100%; 
+            padding: 12px; 
+            background: rgba(255, 255, 255, 0.1); 
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-top: 10px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        button#pauseBtn:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        button#pauseBtn.paused { 
+            background: #ff4757; 
+            border-color: #ff4757; 
+            color: white;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Ajuste Mobile */
+        @media (max-width: 480px) {
+            #controlsPanel { width: calc(100% - 80px); right: 20px; bottom: 85px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="errorLog"></div>
+    <canvas id="glcanvas"></canvas>
+
+    <!-- Botão Principal -->
+    <button id="toggleBtn">⚙</button>
+
+    <!-- Menu de Controles -->
+    <div id="controlsPanel">
+        <div class="control-group">
+            <label>Escolher Efeito</label>
+            <select id="shaderSelect">
+                <option value="tunnel">Túnel Geométrico</option>
+                <option value="landscape">Paisagem Fractal</option>
+            </select>
+        </div>
+
+        <!-- Controles: Túnel -->
+        <div id="tunnelControls">
+            <div class="control-group">
+                <label>Velocidade <span id="tunSpeedVal">1.0</span></label>
+                <input type="range" id="tunSpeed" min="0" max="4" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label>Cor (Hue) <span id="tunColorVal">0.0</span></label>
+                <input type="range" id="tunColor" min="0" max="1" step="0.01" value="0">
+            </div>
+            <div class="control-group">
+                <label>Distorção <span id="tunTwistVal">0.2</span></label>
+                <input type="range" id="tunTwist" min="0" max="1" step="0.01" value="0.2">
+            </div>
+            <div class="control-group">
+                <label>Geometria <span id="tunGeoVal">0.57</span></label>
+                <input type="range" id="tunGeo" min="0.3" max="0.9" step="0.01" value="0.57">
+            </div>
+            <div class="control-group">
+                <label>Densidade/Névoa <span id="tunGlowVal">45</span></label>
+                <input type="range" id="tunGlow" min="10" max="100" step="1" value="45" style="direction: rtl">
+            </div>
+        </div>
+
+        <!-- Controles: Paisagem -->
+        <div id="landscapeControls" class="hidden">
+            <div class="control-group">
+                <label>Velocidade <span id="landSpeedVal">0.5</span></label>
+                <input type="range" id="landSpeed" min="0" max="2" step="0.05" value="0.5">
+            </div>
+            <div class="control-group">
+                <label>Zoom/Escala <span id="landScaleVal">0.3</span></label>
+                <input type="range" id="landScale" min="0.1" max="0.8" step="0.01" value="0.3">
+            </div>
+            <div class="control-group">
+                <label>Saturação <span id="landSatVal">0.16</span></label>
+                <input type="range" id="landSat" min="0" max="0.5" step="0.01" value="0.16">
+            </div>
+        </div>
+
+        <button id="pauseBtn">Pausar</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('glcanvas');
+        const gl = canvas.getContext('webgl');
+        const errorLog = document.getElementById('errorLog');
+
+        if (!gl) {
+            errorLog.style.display = 'block';
+            errorLog.innerText = 'Seu navegador não suporta WebGL.';
+        }
+
+        // ==========================================
+        // SHADER SOURCES
+        // ==========================================
+
+        const vsSource = `
+            attribute vec4 position;
+            void main() {
+                gl_Position = position;
+            }
+        `;
+
+        // Funções reutilizáveis (HSV e Rotação)
+        const commonLib = `
+            precision highp float;
+            uniform vec2 resolution;
+            uniform float time;
+
+            vec3 hsv(float h, float s, float v) {
+                vec4 t = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+                vec3 p = abs(fract(vec3(h) + t.xyz) * 6.0 - vec3(t.w));
+                return v * mix(vec3(t.x), clamp(p - vec3(t.x), 0.0, 1.0), s);
+            }
+
+            mat2 rotate2D(float a) {
+                float c = cos(a), s = sin(a);
+                return mat2(c, -s, s, c);
+            }
+        `;
+
+        // 1. SHADER TÚNEL (Corrigido para WebGL 1.0)
+        // Correções: vec3(0.01) para subtrair cor; float explícito nos divisores
+        const fsTunnel = commonLib + `
+            uniform float p_color;
+            uniform float p_twist;
+            uniform float p_geo;
+            uniform float p_glow;
+
+            void main() {
+                vec2 r = resolution;
+                float t = time;
+                vec4 o = vec4(0.0);
+                
+                float i=0., e, R, s;
+                vec3 q = vec3(0.0), p;
+                vec3 d = vec3(gl_FragCoord.xy / r - vec2(0.6, 1.0), 0.5);
+                
+                q.zx -= 1.0;
+
+                for(int k=0; k<99; k++) {
+                    i += 1.0;
+                    // FIX: vec3(0.01) instead of 0.01
+                    o.rgb += vec3(0.01) - hsv(0.1 + p_color, e, min(e * s, 0.7 - e) / p_glow);
+                    
+                    s = 1.0;
+                    q += d * e * R * 0.1;
+                    p = q;
+                    R = length(p);
+                    
+                    p = vec3(
+                        log2(R) - t, 
+                        exp(1.0 - p.z / R), 
+                        atan(p.y, p.x) + sin(t) * p_twist
+                    );
+                    
+                    p.y -= 1.0;
+                    e = p.y;
+                    
+                    for(int j=0; j<20; j++) {
+                        if(s > 600.0) break;
+                        e += dot(sin(p.xy * s) - 0.5, 1.0 - cos(p.zz * s)) / s * p_geo;
+                        s += s;
+                    }
+                }
+                gl_FragColor = vec4(o.rgb, 1.0);
+            }
+        `;
+
+        // 2. SHADER PAISAGEM (Corrigido para WebGL 1.0)
+        // Correções: vec2(3.0) para somas; definição de s_missing
+        const fsLandscape = commonLib + `
+            uniform float p_speed;
+            uniform float p_scale;
+            uniform float p_sat;
+
+            void main() {
+                vec2 r = resolution;
+                float t = time * p_speed;
+                vec4 o = vec4(0.0);
+                
+                float e, i=0., a, g=0., h;
+                float s_missing = 0.0;
+
+                for(int k=0; k<99; k++) {
+                    i += 1.0;
+                    
+                    // FIX: vec2(3.0) instead of 3.0 to prevent vec2 + float error
+                    vec3 p = vec3((gl_FragCoord.xy - r) / r * g + vec2(3.0), g);
+                    
+                    p.zx *= rotate2D(t * 0.1);
+                    
+                    e = p.y;
+                    h = e;
+                    
+                    for(int m=0; m<10; m++) { // Fixed loop count replacement for a loop
+                        if (m == 0) a = 0.8; 
+                        else a *= 0.8;
+                        
+                        if(a <= 0.01) break;
+
+                        p.xz *= rotate2D(4.0);
+                        e -= exp(sin(p.z / a + t) - 3.0) * a;
+                        h += abs(dot(sin(p.zx / a * p_scale) * a, r / r));
+                    }
+                    
+                    g += e = min(e, h * 0.4 - 1.0);
+                    
+                    // FIX: vec3(0.01) and explicit floats
+                    o.rgb += vec3(0.01) - vec3(0.04) / exp(max(s_missing, e) * 8000.0) / h * hsv(g / i * 0.5, p_sat * h, 1.0);
+                }
+                
+                gl_FragColor = vec4(o.rgb, 1.0);
+            }
+        `;
+
+        // ==========================================
+        // WEBGL SETUP & ERROR HANDLING
+        // ==========================================
+
+        function createProgram(fsSource, name) {
+            const vs = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vs, vsSource);
+            gl.compileShader(vs);
+
+            const fs = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fs, fsSource);
+            gl.compileShader(fs);
+
+            if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+                const info = gl.getShaderInfoLog(fs);
+                console.error(`Erro compilando shader ${name}:`, info);
+                errorLog.style.display = 'block';
+                errorLog.innerText += `\nErro em ${name}: ` + info;
+                return null;
+            }
+
+            const prog = gl.createProgram();
+            gl.attachShader(prog, vs);
+            gl.attachShader(prog, fs);
+            gl.linkProgram(prog);
+            
+            if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+                 console.error(`Erro linkando programa ${name}:`, gl.getProgramInfoLog(prog));
+                 return null;
+            }
+            
+            return prog;
+        }
+
+        const progTunnel = createProgram(fsTunnel, "Tunnel");
+        const progLandscape = createProgram(fsLandscape, "Landscape");
+
+        // Se falhar a compilação, paramos aqui para não travar o loop
+        if (!progTunnel || !progLandscape) {
+            throw new Error("Falha crítica nos shaders. Verifique o console.");
+        }
+
+        // Mapear Locations (Uniforms)
+        const locsTunnel = {
+            res: gl.getUniformLocation(progTunnel, 'resolution'),
+            time: gl.getUniformLocation(progTunnel, 'time'),
+            color: gl.getUniformLocation(progTunnel, 'p_color'),
+            twist: gl.getUniformLocation(progTunnel, 'p_twist'),
+            geo: gl.getUniformLocation(progTunnel, 'p_geo'),
+            glow: gl.getUniformLocation(progTunnel, 'p_glow'),
+        };
+
+        const locsLandscape = {
+            res: gl.getUniformLocation(progLandscape, 'resolution'),
+            time: gl.getUniformLocation(progLandscape, 'time'),
+            speed: gl.getUniformLocation(progLandscape, 'p_speed'),
+            scale: gl.getUniformLocation(progLandscape, 'p_scale'),
+            sat: gl.getUniformLocation(progLandscape, 'p_sat'),
+        };
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1, 1, 1, 1, -1, -1, 1, -1
+        ]), gl.STATIC_DRAW);
+
+        // ==========================================
+        // ESTADO E UI
+        // ==========================================
+
+        const state = {
+            active: 'tunnel',
+            paused: false,
+            tunnel: { speed: 1.0, color: 0.0, twist: 0.2, geo: 0.57, glow: 45.0 },
+            landscape: { speed: 0.5, scale: 0.3, sat: 0.16 }
+        };
+
+        const $ = id => document.getElementById(id);
+
+        function bindSlider(id, shaderName, param, displayId) {
+            const el = $(id);
+            el.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                state[shaderName][param] = val;
+                $(displayId).innerText = val.toFixed(2);
+            });
+        }
+
+        bindSlider('tunSpeed', 'tunnel', 'speed', 'tunSpeedVal');
+        bindSlider('tunColor', 'tunnel', 'color', 'tunColorVal');
+        bindSlider('tunTwist', 'tunnel', 'twist', 'tunTwistVal');
+        bindSlider('tunGeo', 'tunnel', 'geo', 'tunGeoVal');
+        bindSlider('tunGlow', 'tunnel', 'glow', 'tunGlowVal');
+
+        bindSlider('landSpeed', 'landscape', 'speed', 'landSpeedVal');
+        bindSlider('landScale', 'landscape', 'scale', 'landScaleVal');
+        bindSlider('landSat', 'landscape', 'sat', 'landSatVal');
+
+        $('shaderSelect').addEventListener('change', (e) => {
+            state.active = e.target.value;
+            if (state.active === 'tunnel') {
+                $('tunnelControls').classList.remove('hidden');
+                $('landscapeControls').classList.add('hidden');
+            } else {
+                $('tunnelControls').classList.add('hidden');
+                $('landscapeControls').classList.remove('hidden');
+            }
+        });
+
+        $('toggleBtn').addEventListener('click', () => {
+            const panel = $('controlsPanel');
+            const btn = $('toggleBtn');
+            panel.classList.toggle('visible');
+            btn.classList.toggle('active');
+            btn.innerText = btn.classList.contains('active') ? "+" : "⚙";
+        });
+
+        $('pauseBtn').addEventListener('click', () => {
+            state.paused = !state.paused;
+            const btn = $('pauseBtn');
+            btn.innerText = state.paused ? "Retomar" : "Pausar";
+            btn.classList.toggle('paused', state.paused);
+        });
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ==========================================
+        // RENDER LOOP
+        // ==========================================
+
+        let totalTime = 0;
+        let lastNow = performance.now();
+
+        function render(now) {
+            const dt = (now - lastNow) * 0.001;
+            lastNow = now;
+
+            if (!state.paused) {
+                const timeFactor = state.active === 'tunnel' ? state.tunnel.speed : 1.0;
+                totalTime += dt * timeFactor;
+            }
+
+            let prog, locs, params;
+
+            if (state.active === 'tunnel') {
+                prog = progTunnel;
+                locs = locsTunnel;
+                params = state.tunnel;
+                
+                gl.useProgram(prog);
+                gl.uniform1f(locs.color, params.color);
+                gl.uniform1f(locs.twist, params.twist);
+                gl.uniform1f(locs.geo, params.geo);
+                gl.uniform1f(locs.glow, params.glow);
+            } else {
+                prog = progLandscape;
+                locs = locsLandscape;
+                params = state.landscape;
+                
+                gl.useProgram(prog);
+                gl.uniform1f(locs.speed, params.speed);
+                gl.uniform1f(locs.scale, params.scale);
+                gl.uniform1f(locs.sat, params.sat);
+            }
+
+            const posLoc = gl.getAttribLocation(prog, 'position');
+            gl.enableVertexAttribArray(posLoc);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+            gl.uniform2f(locs.res, canvas.width, canvas.height);
+            gl.uniform1f(locs.time, totalTime);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
+
