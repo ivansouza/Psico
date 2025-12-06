@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Cósmico Interativo</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100vh; 
+        }
+
+        /* Botão Flutuante (Engrenagem) */
+        #toggleBtn {
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%; 
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            color: white; 
+            font-size: 24px;
+            cursor: pointer; 
+            z-index: 20; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        #toggleBtn.active { 
+            transform: rotate(45deg); 
+            background: white; 
+            color: black; 
+        }
+
+        #toggleBtn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Painel de Controles (Gaveta) */
+        #controlsPanel {
+            position: fixed; 
+            bottom: 85px; 
+            right: 20px; 
+            width: 320px;
+            max-height: 80vh; /* Limite de altura para telas pequenas */
+            overflow-y: auto; /* Scroll se necessário */
+            background: rgba(10, 10, 15, 0.9); 
+            backdrop-filter: blur(20px);
+            padding: 24px; 
+            border-radius: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #eee; 
+            z-index: 10;
+            
+            /* Estado oculto */
+            opacity: 0; 
+            visibility: hidden; 
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            transform-origin: bottom right;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            
+            /* Scrollbar estilizada */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.3) transparent;
+        }
+
+        #controlsPanel.visible { 
+            opacity: 1; 
+            visibility: visible; 
+            transform: translateY(0) scale(1); 
+        }
+        
+        /* Custom scrollbar para Webkit */
+        #controlsPanel::-webkit-scrollbar { width: 6px; }
+        #controlsPanel::-webkit-scrollbar-track { background: transparent; }
+        #controlsPanel::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 20px; }
+
+        /* Estilos dos Sliders */
+        .control-group { margin-bottom: 14px; }
+        
+        label { 
+            font-size: 11px; 
+            color: #88c0d0; /* Um azul ciano suave */
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        input[type="range"] { 
+            width: 100%; 
+            height: 4px; 
+            background: rgba(255, 255, 255, 0.15); 
+            border-radius: 2px; 
+            appearance: none; 
+            outline: none; 
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 16px; 
+            height: 16px; 
+            background: #88c0d0; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            transition: transform 0.1s;
+            border: 2px solid #2e3440;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #fff;
+        }
+
+        /* Divisores de seção */
+        .separator {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin: 15px 0;
+            padding-top: 5px;
+            font-size: 10px;
+            color: #555;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        button#pauseBtn {
+            width: 100%; 
+            padding: 12px; 
+            background: rgba(255, 255, 255, 0.1); 
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-top: 15px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        button#pauseBtn:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        button#pauseBtn.paused { 
+            background: #bf616a; 
+            border-color: #bf616a; 
+            color: white;
+        }
+
+        /* Ajuste Mobile */
+        @media (max-width: 480px) {
+            #controlsPanel { width: calc(100% - 60px); right: 20px; bottom: 85px; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glcanvas"></canvas>
+
+    <!-- Botão de Engrenagem -->
+    <button id="toggleBtn">⚙</button>
+
+    <!-- Painel de Controles -->
+    <div id="controlsPanel">
+        
+        <div class="control-group">
+            <label>Iterações (Complexidade) <span id="val_iter">8</span></label>
+            <input type="range" id="inp_iter" min="1" max="16" step="1" value="8">
+        </div>
+
+        <div class="control-group">
+            <label>Velocidade Rotação <span id="val_rot">0.2</span></label>
+            <input type="range" id="inp_rot" min="-1.0" max="1.0" step="0.01" value="0.2">
+        </div>
+
+        <div class="separator">Geometria</div>
+
+        <div class="control-group">
+            <label>Offset X <span id="val_offX">0.5</span></label>
+            <input type="range" id="inp_offX" min="0" max="1.5" step="0.01" value="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>Offset Y <span id="val_offY">0.65</span></label>
+            <input type="range" id="inp_offY" min="0" max="1.5" step="0.01" value="0.65">
+        </div>
+
+        <div class="separator">Movimento</div>
+
+        <div class="control-group">
+            <label>Veloc. Oscilação <span id="val_oscS">0.8</span></label>
+            <input type="range" id="inp_oscS" min="0" max="5.0" step="0.1" value="0.8">
+        </div>
+
+        <div class="control-group">
+            <label>Amplitude Oscilação <span id="val_oscA">0.1</span></label>
+            <input type="range" id="inp_oscA" min="0" max="0.5" step="0.01" value="0.1">
+        </div>
+
+        <div class="separator">Renderização</div>
+
+        <div class="control-group">
+            <label>Raio do Anel <span id="val_rad">0.15</span></label>
+            <input type="range" id="inp_rad" min="0.01" max="0.5" step="0.01" value="0.15">
+        </div>
+
+        <div class="control-group">
+            <label>Brilho (Espessura) <span id="val_bri">0.002</span></label>
+            <input type="range" id="inp_bri" min="0.0001" max="0.01" step="0.0001" value="0.002">
+        </div>
+
+        <div class="control-group">
+            <label>Exposição Final <span id="val_exp">79.0</span></label>
+            <input type="range" id="inp_exp" min="10" max="200" step="1" value="79">
+        </div>
+
+        <button id="pauseBtn">Pausar Animação</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('glcanvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            alert("WebGL não suportado");
+        }
+
+        // --- SHADER SETUP ---
+
+        const vsSource = `
+            attribute vec4 position;
+            void main() {
+                gl_Position = position;
+            }
+        `;
+
+        // Shader traduzido e parametrizado do código original
+        const fsSource = `
+            precision highp float;
+            
+            uniform vec2 resolution;
+            uniform float time;
+            
+            // Parâmetros Uniforms
+            uniform float u_iter;      // Número de iterações
+            uniform float u_rotSpeed;  // Velocidade de rotação
+            uniform float u_offsetX;   // Offset Base X
+            uniform float u_offsetY;   // Offset Base Y
+            uniform float u_oscSpeed;  // Velocidade da oscilação
+            uniform float u_oscAmp;    // Amplitude da oscilação
+            uniform float u_ringRadius;// Raio do anel (d - .15)
+            uniform float u_brightness;// Multiplicador de brilho (.002)
+            uniform float u_exposure;  // Ganho final (79.)
+
+            void main() {
+                vec2 r = resolution;
+                // Normalização de coordenadas centralizada
+                vec2 p = (gl_FragCoord.xy * 2.0 - r) / r.y;
+                
+                vec3 c = vec3(0.0);
+                
+                // Rotação: float a=t*.2;
+                float a = time * u_rotSpeed;
+                float ca = cos(a);
+                float sa = sin(a);
+                p *= mat2(ca, -sa, sa, ca);
+                
+                // Pre-calcula a oscilação: .1*sin(t*.8)
+                float osc = u_oscAmp * sin(time * u_oscSpeed);
+                vec2 offset = vec2(u_offsetX + osc, u_offsetY + osc);
+
+                // Loop principal
+                for(float i = 0.0; i < 20.0; i++) {
+                    // Limite dinâmico de iterações
+                    if(i >= u_iter) break;
+
+                    // Fórmula Fractal (Circle Inversion / KaliSet variation)
+                    // p=abs(p)/dot(p,p)-vec2(...)
+                    p = abs(p) / dot(p, p) - offset;
+                    
+                    float d = length(p);
+                    
+                    // Cálculo de cor
+                    // c+=vec3(i*.15-p.y,.35,1.-i*.2)*.002/abs(d-.15);
+                    vec3 colBase = vec3(i * 0.15 - p.y, 0.35, 1.0 - i * 0.2);
+                    
+                    c += colBase * u_brightness / abs(d - u_ringRadius);
+                }
+                
+                // Saída final com vignette em cruz
+                // o=vec4(c*abs(p.x*p.y)*79.,1);
+                gl_FragColor = vec4(c * abs(p.x * p.y) * u_exposure, 1.0);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        const program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+
+        // --- LOCATIONS ---
+        const loc = {
+            pos: gl.getAttribLocation(program, 'position'),
+            res: gl.getUniformLocation(program, 'resolution'),
+            time: gl.getUniformLocation(program, 'time'),
+            iter: gl.getUniformLocation(program, 'u_iter'),
+            rotS: gl.getUniformLocation(program, 'u_rotSpeed'),
+            offX: gl.getUniformLocation(program, 'u_offsetX'),
+            offY: gl.getUniformLocation(program, 'u_offsetY'),
+            oscS: gl.getUniformLocation(program, 'u_oscSpeed'),
+            oscA: gl.getUniformLocation(program, 'u_oscAmp'),
+            rad: gl.getUniformLocation(program, 'u_ringRadius'),
+            bri: gl.getUniformLocation(program, 'u_brightness'),
+            exp: gl.getUniformLocation(program, 'u_exposure'),
+        };
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1, 1, 1, 1, -1, -1, 1, -1
+        ]), gl.STATIC_DRAW);
+
+        // --- STATE & UI ---
+        const state = {
+            iter: 8.0,
+            rotS: 0.2,
+            offX: 0.5,
+            offY: 0.65,
+            oscS: 0.8,
+            oscA: 0.1,
+            rad: 0.15,
+            bri: 0.002,
+            exp: 79.0,
+            paused: false
+        };
+
+        const $ = id => document.getElementById(id);
+
+        function bind(id, key, displayId) {
+            const el = $(id);
+            el.addEventListener('input', (e) => {
+                const v = parseFloat(e.target.value);
+                state[key] = v;
+                $(displayId).innerText = Number.isInteger(v) ? v : v.toFixed(3); // Formatação limpa
+            });
+        }
+
+        // Binding Sliders
+        bind('inp_iter', 'iter', 'val_iter');
+        bind('inp_rot', 'rotS', 'val_rot');
+        bind('inp_offX', 'offX', 'val_offX');
+        bind('inp_offY', 'offY', 'val_offY');
+        bind('inp_oscS', 'oscS', 'val_oscS');
+        bind('inp_oscA', 'oscA', 'val_oscA');
+        bind('inp_rad', 'rad', 'val_rad');
+        bind('inp_bri', 'bri', 'val_bri');
+        bind('inp_exp', 'exp', 'val_exp');
+
+        // Toggle UI
+        $('toggleBtn').addEventListener('click', () => {
+            $('controlsPanel').classList.toggle('visible');
+            $('toggleBtn').classList.toggle('active');
+            $('toggleBtn').innerText = $('toggleBtn').classList.contains('active') ? "+" : "⚙";
+        });
+
+        // Pause
+        $('pauseBtn').addEventListener('click', () => {
+            state.paused = !state.paused;
+            const btn = $('pauseBtn');
+            btn.innerText = state.paused ? "Retomar" : "Pausar Animação";
+            btn.classList.toggle('paused', state.paused);
+        });
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- RENDER LOOP ---
+        let totalTime = 0;
+        let lastNow = performance.now();
+
+        function render(now) {
+            const dt = (now - lastNow) * 0.001;
+            lastNow = now;
+
+            if (!state.paused) {
+                totalTime += dt;
+            }
+
+            gl.useProgram(program);
+            
+            gl.enableVertexAttribArray(loc.pos);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.vertexAttribPointer(loc.pos, 2, gl.FLOAT, false, 0, 0);
+
+            // Set Uniforms
+            gl.uniform2f(loc.res, canvas.width, canvas.height);
+            gl.uniform1f(loc.time, totalTime);
+            
+            gl.uniform1f(loc.iter, state.iter);
+            gl.uniform1f(loc.rotS, state.rotS);
+            gl.uniform1f(loc.offX, state.offX);
+            gl.uniform1f(loc.offY, state.offY);
+            gl.uniform1f(loc.oscS, state.oscS);
+            gl.uniform1f(loc.oscA, state.oscA);
+            gl.uniform1f(loc.rad, state.rad);
+            gl.uniform1f(loc.bri, state.bri);
+            gl.uniform1f(loc.exp, state.exp);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
+
