@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Film Strip - Brilho Reduzido</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas { display: block; }
+        #loading {
+            position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); color: #666; font-size: 0.8rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Reduzindo Brilho...</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- 1. CENA ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0.5, 10); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true }); 
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.3;
+        renderer.setClearColor(0x000000, 0); 
+        document.body.appendChild(renderer.domElement);
+
+        // --- 2. PÓS-PROCESSAMENTO (BLOOM SIGNIFICATIVAMENTE REDUZIDO) ---
+        const renderScene = new RenderPass(scene, camera);
+        
+        // --- CHAVE PARA MENOS BRILHO ---
+        // Strength: Reduzido de 0.7 para 0.4
+        // Radius: Reduzido de 0.2 para 0.15 (brilho mais concentrado)
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.15, 0.15);
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;
+        controls.maxDistance = 40;
+
+        // --- 3. TEXTURA (Contorno) ---
+        function createFilmStripTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048; 
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 5; 
+            ctx.fillStyle = '#FFFFFF';
+
+            const frameWidth = 512;
+            const holeSize = 12;
+            const totalFrames = Math.ceil(canvas.width / frameWidth);
+
+            for (let i = 0; i < totalFrames; i++) {
+                const x = i * frameWidth;
+                
+                // Moldura
+                ctx.strokeRect(x, 25, frameWidth, canvas.height - 50);
+
+                // Furos
+                for (let hx = x + 25; hx < x + frameWidth; hx += 40) {
+                    ctx.fillRect(hx, 6, holeSize, holeSize); 
+                    ctx.fillRect(hx, canvas.height - 18, holeSize, holeSize);
+                }
+
+                // Texto "They do it"
+                ctx.save();
+                ctx.translate(x + frameWidth / 2, canvas.height / 2);
+                ctx.font = '900 70px "Arial Black", Arial, sans-serif'; 
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Texto apenas com contorno
+                ctx.strokeText('They do it', 0, 5);
+                
+                ctx.restore();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.repeat.set(2, 1);
+            
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            texture.minFilter = THREE.LinearMipMapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            return texture;
+        }
+
+        const filmTexture = createFilmStripTexture();
+
+        // --- 4. MATERIAL ---
+        const filmMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTexture: { value: filmTexture },
+                uColor1: { value: new THREE.Color('#00FFFF') }, 
+                uColor2: { value: new THREE.Color('#D000FF') }, 
+                uColor3: { value: new THREE.Color('#FF9900') }, 
+                uTime: { value: 0 }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                varying float vProgress;
+                void main() {
+                    vUv = uv;
+                    vProgress = uv.x;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D uTexture;
+                uniform vec3 uColor1;
+                uniform vec3 uColor2;
+                uniform vec3 uColor3;
+                uniform float uTime;
+
+                varying vec2 vUv;
+                varying float vProgress;
+
+                void main() {
+                    vec2 correctUV = vec2(vUv.x, 1.0 - vUv.y);
+                    
+                    vec2 animatedUv = vec2(correctUV.x - uTime * 0.15, correctUV.y);
+                    
+                    vec4 texColor = texture2D(uTexture, animatedUv);
+
+                    // Gradiente
+                    vec3 gradientColor;
+                    float p = fract(vProgress * 0.75); 
+                    
+                    if (p < 0.5) {
+                        gradientColor = mix(uColor1, uColor2, p * 2.0);
+                    } else {
+                        gradientColor = mix(uColor2, uColor3, (p - 0.5) * 2.0);
+                    }
+
+                    // Renderização (Brilho Controlado)
+                    float pixelBrightness = texColor.r;
+
+                    // --- CHAVE PARA MENOS BRILHO NO SHADER ---
+                    // Reduzimos o multiplicador de core de 2.5 para 2.0
+                    vec3 coreColor = vec3(1.0) * pixelBrightness * 2.0; 
+                    
+                    // Reduzimos o multiplicador de tint de 0.8 para 0.6
+                    vec3 tintColor = gradientColor * pixelBrightness * 0.6;
+                    
+                    vec3 finalColor = coreColor + tintColor;
+
+                    // Borda da fita (também menos intensa)
+                    float edge = pow(1.0 - abs(vUv.y - 0.5) * 2.0, 8.0);
+                    finalColor += gradientColor * edge * 0.8; // Reduzido de 1.2
+
+                    float alpha = pixelBrightness + 0.1; 
+
+                    gl_FragColor = vec4(finalColor, alpha);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        // --- 5. GEOMETRIA ---
+        function createSpiralRibbon() {
+            const points = [];
+            const turns = 1.5; 
+            const height = 3.75; 
+            const radius = 1.9;
+            const pointCount = 350;
+
+            for (let i = 0; i <= pointCount; i++) {
+                const t = i / pointCount;
+                const angle = t * Math.PI * 2 * turns;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = (t - 0.5) * height;
+                points.push(new THREE.Vector3(x, y, z));
+            }
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            
+            const ribbonGeo = new THREE.BufferGeometry();
+            const positions = [];
+            const uvs = [];
+            const indices = [];
+            
+            const segments = 400;
+            const width = 1.8 / 2;
+            const half_width = width / 2;
+
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const point = curve.getPointAt(t);
+                const tangent = curve.getTangentAt(t);
+                
+                const normal = new THREE.Vector3(0, 1, 0).cross(tangent).normalize();
+                const binormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
+
+                const p1 = point.clone().add(binormal.clone().multiplyScalar(half_width));
+                const p2 = point.clone().add(binormal.clone().multiplyScalar(-half_width));
+
+                const tilt = Math.sin(t * Math.PI * 3) * 0.15 / 2;
+                p1.y += tilt;
+                p2.y -= tilt;
+
+                positions.push(p1.x, p1.y, p1.z);
+                positions.push(p2.x, p2.y, p2.z);
+
+                uvs.push(t * 2.5, 0); 
+                uvs.push(t * 2.5, 1);
+            }
+
+            for (let i = 0; i < segments; i++) {
+                const a = i * 2;
+                const b = i * 2 + 1;
+                const c = (i + 1) * 2;
+                const d = (i + 1) * 2 + 1;
+                indices.push(a, b, d);
+                indices.push(a, d, c);
+            }
+
+            ribbonGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            ribbonGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            ribbonGeo.setIndex(indices);
+            ribbonGeo.computeVertexNormals();
+
+            return ribbonGeo;
+        }
+
+        const ribbonMesh = new THREE.Mesh(createSpiralRibbon(), filmMaterial);
+        scene.add(ribbonMesh);
+
+        // --- LOOP ---
+        const clock = new THREE.Clock();
+        document.getElementById('loading').style.display = 'none';
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+            
+            filmMaterial.uniforms.uTime.value = t; 
+            
+            ribbonMesh.rotation.y = t * 0.1;
+            ribbonMesh.position.y = Math.sin(t * 0.5) * 0.1;
+            
+            controls.update();
+            composer.render();
+        }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+        animate();
+    </script>
+</body>
+</html>
+
