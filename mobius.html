@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Möbius Drive - Speed Control</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        /* UI Container for Speed Slider */
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #555;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ddeeff;
+        }
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 200px;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #444;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #4488ff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px; /* Centers thumb on track */
+            box-shadow: 0 0 5px rgba(68, 136, 255, 0.8);
+        }
+        input[type=range]:focus::-webkit-slider-runnable-track {
+            background: #555;
+        }
+        /* Firefox styles */
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #444;
+            border-radius: 3px;
+        }
+        input[type=range]::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border: none;
+            border-radius: 50%;
+            background: #4488ff;
+            cursor: pointer;
+        }
+    </style>
+    <!-- Import Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- Speed Control UI -->
+    <div id="ui-container">
+        <label for="speedSlider">Velocidade</label>
+        <input type="range" id="speedSlider" min="0" max="0.8" step="0.01" value="0.15">
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const CONFIG = {
+            stripRadius: 32, 
+            roadWidth: 8,
+            roadThickness: 0.5,
+            curbHeight: 0.4,
+            curbWidth: 0.6,
+            segments: 600, 
+            speed: 0.15, // Default speed matches slider value
+            numStopLights: 12, 
+            carScale: 2.8 
+        };
+
+        // --- Slider Logic ---
+        const slider = document.getElementById('speedSlider');
+        slider.addEventListener('input', (e) => {
+            CONFIG.speed = parseFloat(e.target.value);
+        });
+
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        const skyColor = 0x111122; 
+        scene.background = new THREE.Color(skyColor);
+        scene.fog = new THREE.FogExp2(skyColor, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(65, 45, 75);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.2;
+
+        // --- LIGHTING ---
+        const hemiLight = new THREE.HemisphereLight(0x444488, 0x111122, 0.4); 
+        scene.add(hemiLight);
+
+        const moonLight = new THREE.DirectionalLight(0xaaccff, 0.8);
+        moonLight.position.set(-50, 100, -50);
+        moonLight.castShadow = true;
+        moonLight.shadow.mapSize.set(2048, 2048);
+        const d = 100;
+        moonLight.shadow.camera.left = -d;
+        moonLight.shadow.camera.right = d;
+        moonLight.shadow.camera.top = d;
+        moonLight.shadow.camera.bottom = -d;
+        moonLight.shadow.bias = -0.0005;
+        scene.add(moonLight);
+
+        const fillLight = new THREE.DirectionalLight(0x330044, 0.3);
+        fillLight.position.set(0, -50, 0);
+        scene.add(fillLight);
+
+        // --- MATH HELPERS ---
+        function getMobiusFrame(u) {
+            const origin = new THREE.Vector3(
+                CONFIG.stripRadius * Math.cos(u), 
+                CONFIG.stripRadius * Math.sin(u), 
+                0
+            );
+            
+            const tan = new THREE.Vector3(-Math.sin(u), Math.cos(u), 0).normalize(); 
+            const radialVec = new THREE.Vector3(Math.cos(u), Math.sin(u), 0).normalize();
+            const zVec = new THREE.Vector3(0, 0, 1);
+            
+            const twist = u / 2;
+            const side = radialVec.clone().applyAxisAngle(tan, twist);
+            const up = zVec.clone().applyAxisAngle(tan, twist);
+            
+            const mat = new THREE.Matrix4();
+            mat.makeBasis(side, up, tan); 
+            mat.setPosition(origin);
+            
+            return { matrix: mat, position: origin, normal: up, tangent: tan, side: side };
+        }
+
+        // --- ROAD TEXTURE ---
+        function createRoadTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#222'; 
+            ctx.fillRect(0, 0, 512, 512);
+            for(let i=0; i<20000; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#2a2a2a' : '#111';
+                ctx.fillRect(Math.random()*512, Math.random()*512, 2, 2);
+            }
+            ctx.fillStyle = '#ffcc00'; ctx.fillRect(248, 0, 6, 512); ctx.fillRect(264, 0, 6, 512);
+            ctx.fillStyle = '#eeeeee'; ctx.fillRect(20, 0, 8, 512); ctx.fillRect(484, 0, 8, 512);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1, 100); tex.anisotropy = 16;
+            return tex;
+        }
+
+        const roadMaterial = new THREE.MeshStandardMaterial({ map: createRoadTexture(), roughness: 0.5, metalness: 0.2 });
+        const curbMaterial = new THREE.MeshStandardMaterial({ color: 0xaa2222, roughness: 0.6 });
+        const concreteMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 });
+
+        // --- GEOMETRY ---
+        function generateMobiusRoad() {
+            const geomRoad = new THREE.BufferGeometry();
+            const geomCurb = new THREE.BufferGeometry();
+            const geomConc = new THREE.BufferGeometry();
+            const vRoad = [], vCurb = [], vConc = [], uvRoad = [], uvCurb = [], uvConc = [];
+            const steps = CONFIG.segments; const maxAngle = Math.PI * 4;
+            const rw = CONFIG.roadWidth / 2; const cw = CONFIG.curbWidth; const ch = CONFIG.curbHeight; const th = CONFIG.roadThickness;
+            
+            for(let i = 0; i < steps; i++) {
+                const u1 = (i / steps) * maxAngle; const u2 = ((i + 1) / steps) * maxAngle;
+                const f1 = getMobiusFrame(u1); const f2 = getMobiusFrame(u2);
+                const pushQuad = (arrPos, arrUV, p1, p2, p3, p4, uvY1, uvY2) => {
+                    arrPos.push(p1.x, p1.y, p1.z,  p2.x, p2.y, p2.z,  p3.x, p3.y, p3.z);
+                    arrPos.push(p2.x, p2.y, p2.z,  p4.x, p4.y, p4.z,  p3.x, p3.y, p3.z);
+                    arrUV.push(0, uvY1,  0, uvY2,  1, uvY1); arrUV.push(0, uvY2,  1, uvY2,  1, uvY1);
+                };
+                const r1a = new THREE.Vector3(-rw, 0, 0).applyMatrix4(f1.matrix); const r1b = new THREE.Vector3( rw, 0, 0).applyMatrix4(f1.matrix);
+                const r2a = new THREE.Vector3(-rw, 0, 0).applyMatrix4(f2.matrix); const r2b = new THREE.Vector3( rw, 0, 0).applyMatrix4(f2.matrix);
+                pushQuad(vRoad, uvRoad, r1a, r1b, r2a, r2b, i, i+1);
+                const lc1a = new THREE.Vector3(-rw-cw, ch, 0).applyMatrix4(f1.matrix); const lc1b = new THREE.Vector3(-rw,    ch, 0).applyMatrix4(f1.matrix);
+                const lc2a = new THREE.Vector3(-rw-cw, ch, 0).applyMatrix4(f2.matrix); const lc2b = new THREE.Vector3(-rw,    ch, 0).applyMatrix4(f2.matrix);
+                pushQuad(vCurb, uvCurb, lc1a, lc1b, lc2a, lc2b, 0, 1);
+                const rc1a = new THREE.Vector3(rw,    ch, 0).applyMatrix4(f1.matrix); const rc1b = new THREE.Vector3(rw+cw, ch, 0).applyMatrix4(f1.matrix);
+                const rc2a = new THREE.Vector3(rw,    ch, 0).applyMatrix4(f2.matrix); const rc2b = new THREE.Vector3(rw+cw, ch, 0).applyMatrix4(f2.matrix);
+                pushQuad(vCurb, uvCurb, rc1a, rc1b, rc2a, rc2b, 0, 1);
+                const owL1a = new THREE.Vector3(-rw-cw, -th, 0).applyMatrix4(f1.matrix); const owL1b = new THREE.Vector3(-rw-cw, ch, 0).applyMatrix4(f1.matrix);
+                const owL2a = new THREE.Vector3(-rw-cw, -th, 0).applyMatrix4(f2.matrix); const owL2b = new THREE.Vector3(-rw-cw, ch, 0).applyMatrix4(f2.matrix);
+                pushQuad(vConc, uvConc, owL1a, owL1b, owL2a, owL2b, 0, 1);
+            }
+            geomRoad.setAttribute('position', new THREE.Float32BufferAttribute(vRoad, 3)); geomRoad.setAttribute('uv', new THREE.Float32BufferAttribute(uvRoad, 2)); geomRoad.computeVertexNormals();
+            geomCurb.setAttribute('position', new THREE.Float32BufferAttribute(vCurb, 3)); geomCurb.setAttribute('uv', new THREE.Float32BufferAttribute(uvCurb, 2)); geomCurb.computeVertexNormals();
+            geomConc.setAttribute('position', new THREE.Float32BufferAttribute(vConc, 3)); geomConc.computeVertexNormals();
+            return { road: geomRoad, curb: geomCurb, conc: geomConc };
+        }
+
+        const geoms = generateMobiusRoad();
+        const meshRoad = new THREE.Mesh(geoms.road, roadMaterial); meshRoad.receiveShadow = true; scene.add(meshRoad);
+        const meshCurb = new THREE.Mesh(geoms.curb, curbMaterial); meshCurb.receiveShadow = true; scene.add(meshCurb);
+        const meshConc = new THREE.Mesh(geoms.conc, concreteMaterial); meshConc.receiveShadow = true; scene.add(meshConc);
+
+
+        // --- CAR MODEL ---
+        function createBeetle() {
+            const carGroup = new THREE.Group();
+            
+            const matBody = new THREE.MeshStandardMaterial({ color: 0x2255aa, roughness: 0.3, metalness: 0.5 });
+            const matSilver = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.8 });
+            const matDark = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+            const matGlow = new THREE.MeshBasicMaterial({ color: 0xffffee });
+            const matRed = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+
+            const wheelRadius = 0.35;
+            const wheelGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.3, 24);
+            wheelGeo.rotateZ(Math.PI/2);
+            
+            const wheels = [];
+            const createWheel = (x, z) => {
+                const w = new THREE.Mesh(wheelGeo, matDark);
+                w.position.set(x, wheelRadius, z);
+                carGroup.add(w);
+                return w;
+            };
+            wheels.push(createWheel(0.9, 1.2));
+            wheels.push(createWheel(-0.9, 1.2));
+            wheels.push(createWheel(0.9, -1.2));
+            wheels.push(createWheel(-0.9, -1.2));
+
+            const chassisGeo = new THREE.SphereGeometry(1, 32, 32);
+            chassisGeo.applyMatrix4(new THREE.Matrix4().makeScale(1.2, 0.5, 2.2));
+            const chassis = new THREE.Mesh(chassisGeo, matBody);
+            chassis.position.y = 0.6;
+            chassis.castShadow = true;
+            carGroup.add(chassis);
+
+            const cabinGeo = new THREE.SphereGeometry(0.85, 32, 32);
+            const cabin = new THREE.Mesh(cabinGeo, matBody);
+            cabin.scale.set(1, 0.7, 1.3);
+            cabin.position.set(0, 1.1, -0.2);
+            cabin.castShadow = true;
+            carGroup.add(cabin);
+            
+            const fenderGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 32);
+            fenderGeo.rotateZ(Math.PI/2);
+            const addFender = (x, z) => {
+                const f = new THREE.Mesh(fenderGeo, matBody);
+                f.position.set(x, 0.5, z);
+                carGroup.add(f);
+            };
+            addFender(0.9, 1.2); addFender(-0.9, 1.2);
+            addFender(0.9, -1.2); addFender(-0.9, -1.2);
+
+            const bumperGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.8);
+            bumperGeo.rotateZ(Math.PI/2);
+            const fb = new THREE.Mesh(bumperGeo, matSilver); fb.position.set(0, 0.4, 2.1); carGroup.add(fb);
+            const bb = new THREE.Mesh(bumperGeo, matSilver); bb.position.set(0, 0.4, -2.1); carGroup.add(bb);
+
+            const lightGeo = new THREE.SphereGeometry(0.15);
+            const hL = new THREE.Mesh(lightGeo, matGlow); hL.position.set(0.6, 0.75, 1.95); carGroup.add(hL);
+            const hR = new THREE.Mesh(lightGeo, matGlow); hR.position.set(-0.6, 0.75, 1.95); carGroup.add(hR);
+            const tL = new THREE.Mesh(lightGeo, matRed); tL.position.set(0.6, 0.7, -1.95); carGroup.add(tL);
+            const tR = new THREE.Mesh(lightGeo, matRed); tR.position.set(-0.6, 0.7, -1.95); carGroup.add(tR);
+
+            // Car Headlights
+            const spotL = new THREE.SpotLight(0xffffff, 50, 70, 0.5, 0.5, 1);
+            spotL.position.copy(hL.position);
+            spotL.target.position.set(0.6, -2, 12);
+            carGroup.add(spotL); carGroup.add(spotL.target);
+
+            const spotR = new THREE.SpotLight(0xffffff, 50, 70, 0.5, 0.5, 1);
+            spotR.position.copy(hR.position);
+            spotR.target.position.set(-0.6, -2, 12);
+            carGroup.add(spotR); carGroup.add(spotR.target);
+
+            carGroup.userData = { wheels: wheels };
+            carGroup.scale.set(CONFIG.carScale, CONFIG.carScale, CONFIG.carScale);
+            return carGroup;
+        }
+
+        const car = createBeetle();
+        scene.add(car);
+
+
+        // --- STREET LIGHTS (White & Strong) ---
+        function createStopLights() {
+            const count = CONFIG.numStopLights;
+            
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
+
+            for(let i = 0; i < count; i++) {
+                const u = (i / count) * Math.PI * 2;
+                const frame = getMobiusFrame(u);
+                
+                const curbPos = new THREE.Vector3(CONFIG.roadWidth/2 + CONFIG.curbWidth/2, 0, 0);
+                curbPos.applyMatrix4(frame.matrix);
+                
+                const poleHeight = 12; 
+                const poleGeo = new THREE.CylinderGeometry(0.3, 0.3, poleHeight);
+                const pole = new THREE.Mesh(poleGeo, poleMat);
+                
+                pole.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), frame.normal);
+                const upOffset = frame.normal.clone().multiplyScalar(poleHeight/2);
+                pole.position.copy(curbPos).add(upOffset);
+                scene.add(pole);
+                
+                const boxGeo = new THREE.BoxGeometry(1.5, 0.5, 2.5);
+                const box = new THREE.Mesh(boxGeo, boxMat);
+                const tipPos = curbPos.clone()
+                    .add(frame.normal.clone().multiplyScalar(poleHeight))
+                    .add(frame.side.clone().negate().multiplyScalar(6)); 
+                    
+                box.position.copy(tipPos);
+                box.setRotationFromQuaternion(pole.quaternion);
+                scene.add(box);
+                
+                const bulbGeo = new THREE.PlaneGeometry(1.2, 2.0);
+                const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+                bulb.position.copy(tipPos).add(frame.normal.clone().multiplyScalar(-0.26));
+                bulb.setRotationFromQuaternion(pole.quaternion);
+                bulb.rotateX(Math.PI/2); 
+                scene.add(bulb);
+
+                const spot = new THREE.SpotLight(0xffffff, 150.0);
+                spot.position.copy(tipPos);
+                spot.target.position.copy(tipPos.clone().add(frame.normal.clone().multiplyScalar(-30)));
+                
+                spot.angle = Math.PI / 3; 
+                spot.penumbra = 0.5;      
+                spot.distance = 70;       
+                spot.decay = 1.5;         
+                spot.castShadow = true;
+                
+                scene.add(spot);
+                scene.add(spot.target);
+            }
+        }
+        createStopLights();
+
+
+        // --- ANIMATION ---
+        const clock = new THREE.Clock();
+        let t = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            
+            // Use slider speed
+            t += delta * CONFIG.speed;
+            if (t > Math.PI * 4) t -= Math.PI * 4;
+
+            const centerFrame = getMobiusFrame(t);
+            car.position.copy(centerFrame.position);
+
+            const dt = 0.1; 
+            const frontPos = getMobiusFrame(t + dt).position;
+            const rearPos = getMobiusFrame(t - dt).position;
+            const forward = new THREE.Vector3().subVectors(frontPos, rearPos).normalize();
+
+            const side = centerFrame.side.clone(); 
+            const correctedUp = new THREE.Vector3().crossVectors(forward, side).normalize();
+            const correctedSide = new THREE.Vector3().crossVectors(correctedUp, forward).normalize();
+
+            const rotationMatrix = new THREE.Matrix4();
+            rotationMatrix.makeBasis(correctedSide, correctedUp, forward);
+            car.quaternion.setFromRotationMatrix(rotationMatrix);
+
+            // Wheel rotation speed based on movement speed
+            const wheelRotSpeed = CONFIG.speed * 40; 
+            if(car.userData.wheels) {
+                car.userData.wheels.forEach(w => w.rotateX(wheelRotSpeed * delta * 10)); // Arbitrary multiplier for visual spin
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+
