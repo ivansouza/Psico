@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Infinite Brain Object</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        #ui-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            max-width: 350px;
+            z-index: 10;
+        }
+
+        .lil-gui.root {
+            --background-color: rgba(10, 10, 20, 0.7);
+            --text-color: #d0d0ff;
+            --title-background-color: rgba(20, 20, 40, 0.8);
+            --widget-color: #303050;
+            --hover-color: #404060;
+            --focus-color: #505080;
+            --number-color: #80a0ff;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(100, 100, 255, 0.1);
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="scene-container"></div>
+    <div id="ui-container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+                "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import GUI from 'lil-gui';
+
+        // Setup
+        const container = document.getElementById('scene-container');
+        const renderer = new THREE.WebGLRenderer({ powerPreference: "high-performance", alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        container.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+        // Parâmetros
+        const params = {
+            zoomSpeed: 0.3,
+            displacementStrength: 0.25, // O quanto os gomos "saltam" para fora
+            separation: 0.7, // Separação dos hemisférios
+            colorTissue: '#ffaaaa',
+            colorSulci: '#500000', // Cor dos sulcos profundos
+            rotationSpeed: 0.2
+        };
+
+        // Post Processing
+        const renderTarget = new THREE.WebGLRenderTarget(
+            window.innerWidth, window.innerHeight,
+            { type: THREE.HalfFloatType }
+        );
+        const composer = new EffectComposer(renderer, renderTarget);
+        composer.addPass(new RenderPass(scene, camera));
+        
+        // Bloom sutil para dar ar "orgânico/úmido"
+        composer.addPass(new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.6, 0.3, 0.2 
+        ));
+
+        // Shader
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                iTime: { value: 0 },
+                iResolution: { value: new THREE.Vector3(window.innerWidth, window.innerHeight, 1) },
+                uZoomSpeed: { value: params.zoomSpeed },
+                uDisplacement: { value: params.displacementStrength },
+                uSeparation: { value: params.separation },
+                uColorTissue: { value: new THREE.Color(params.colorTissue) },
+                uColorSulci: { value: new THREE.Color(params.colorSulci) },
+                uRotSpeed: { value: params.rotationSpeed }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float iTime;
+                uniform vec3 iResolution;
+                uniform float uZoomSpeed;
+                uniform float uDisplacement;
+                uniform float uSeparation;
+                uniform vec3 uColorTissue;
+                uniform vec3 uColorSulci;
+                uniform float uRotSpeed;
+
+                varying vec2 vUv;
+
+                // --- MATEMÁTICA AUXILIAR ---
+                mat2 rot(float a) {
+                    float s = sin(a), c = cos(a);
+                    return mat2(c, -s, s, c);
+                }
+
+                // Smooth Minimum (para fundir formas suavemente)
+                float smin(float a, float b, float k) {
+                    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+                    return mix(b, a, h) - k * h * (1.0 - h);
+                }
+
+                // --- TEXTURA CEREBRAL (INFINITE ZOOM) ---
+                float gyroid(vec3 p, float scale) {
+                    p *= scale;
+                    // Bias ajustado para criar tubos arredondados (giros)
+                    return (abs(dot(sin(p), cos(p.yzx))) - 0.5) / scale;
+                }
+
+                float brainTexture(vec3 p) {
+                    float d = 0.0;
+                    float amplitude = 1.0;
+                    // Frequência base inicial
+                    float scaleBase = 2.5;
+                    
+                    // Lógica de Zoom Infinito
+                    float t = iTime * uZoomSpeed;
+                    float zoomPhase = fract(t);
+                    float globalScale = pow(1.8, zoomPhase); // Crescimento exponencial
+                    
+                    // Acumula camadas de detalhe
+                    for (int i = 0; i < 4; i++) {
+                        float scale = scaleBase * globalScale * pow(1.8, float(i));
+                        float noise = gyroid(p, scale);
+                        
+                        // Fade in/out das camadas para evitar "pop" no loop
+                        float fade = 1.0;
+                        if(i == 0) fade = 1.0 - zoomPhase; // Camada macro desaparece
+                        if(i == 3) fade = zoomPhase;       // Camada micro aparece
+                        
+                        d += noise * amplitude * fade;
+                        amplitude *= 0.55;
+                    }
+                    return d;
+                }
+
+                // --- FORMA DO CÉREBRO (SDF) ---
+                float sdBrainBase(vec3 p) {
+                    // Dois elipsoides para os hemisférios
+                    // Deformamos o espaço para achatar ou alongar esferas
+                    
+                    // Simetria no eixo X (mas com deslocamento para separar)
+                    vec3 pLeft = p; pLeft.x += uSeparation * 0.5;
+                    vec3 pRight = p; pRight.x -= uSeparation * 0.5;
+                    
+                    // Escala não-uniforme para formato de cérebro (mais longo em Z, achatado em Y)
+                    // Fator de forma: (0.8 largura, 1.0 altura, 1.2 comprimento)
+                    float dL = length(pLeft / vec3(0.8, 1.0, 1.2)) - 1.0;
+                    float dR = length(pRight / vec3(0.8, 1.0, 1.2)) - 1.0;
+                    
+                    // Multiplicamos pelo menor fator de escala para corrigir a distorção da distância
+                    dL *= 0.8;
+                    dR *= 0.8;
+                    
+                    // União suave entre os hemisférios no centro (corpo caloso)
+                    return smin(dL, dR, 0.3); 
+                }
+
+                float map(vec3 p) {
+                    // 1. Rotação do objeto inteiro
+                    p.yz *= rot(0.3); // Inclinação leve
+                    p.xz *= rot(iTime * uRotSpeed); // Rotação contínua
+                    
+                    // 2. Forma base
+                    float dShape = sdBrainBase(p);
+                    
+                    // 3. Aplicar textura apenas perto da superfície para performance
+                    // (Bounding volume optimization implícito no Raymarching)
+                    float texture = 0.0;
+                    if(dShape < 0.5) { // Só calcula detalhe perto do objeto
+                        texture = brainTexture(p);
+                    }
+                    
+                    // O detalhe é subtraído (displacement negativo cria sulcos)
+                    return dShape + texture * uDisplacement;
+                }
+
+                // --- RAYMARCHING ---
+                vec3 getNormal(vec3 p) {
+                    float d = map(p);
+                    vec2 e = vec2(0.005, 0);
+                    return normalize(vec3(
+                        map(p + e.xyy) - map(p - e.xyy),
+                        map(p + e.yxy) - map(p - e.yxy),
+                        map(p + e.yyx) - map(p - e.yyx)
+                    ));
+                }
+
+                void main() {
+                    vec2 uv = (vUv - 0.5) * 2.0;
+                    uv.x *= iResolution.x / iResolution.y;
+
+                    // Câmera posicionada para ver o objeto inteiro
+                    vec3 ro = vec3(0.0, 0.0, -4.5); 
+                    vec3 rd = normalize(vec3(uv, 1.2)); 
+
+                    float t = 0.0;
+                    float d = 0.0;
+                    int steps = 0;
+                    
+                    for(int i = 0; i < 80; i++) {
+                        vec3 p = ro + rd * t;
+                        d = map(p);
+                        t += d * 0.6; // Passos menores para capturar detalhes finos
+                        if(d < 0.005 || t > 10.0) break;
+                        steps = i;
+                    }
+
+                    vec3 col = vec3(0.0); // Fundo preto
+
+                    if(t < 10.0) {
+                        vec3 p = ro + rd * t;
+                        vec3 n = getNormal(p);
+                        
+                        // Iluminação de Estúdio
+                        vec3 keyLight = normalize(vec3(1.0, 1.0, -1.0));
+                        vec3 fillLight = normalize(vec3(-1.0, 0.0, -1.0));
+                        vec3 rimLight = normalize(vec3(0.0, -1.0, 1.0)); // Luz de trás
+                        
+                        float diff = max(dot(n, keyLight), 0.0);
+                        float fill = max(dot(n, fillLight), 0.0) * 0.3;
+                        float rim = pow(max(dot(n, rimLight), 0.0), 4.0);
+                        
+                        // Cor baseada na "profundidade" do detalhe (Ambient Occlusion Fake)
+                        // Áreas com muitos passos de raymarch são sulcos profundos -> escuros
+                        float ao = 1.0 - (float(steps) / 80.0);
+                        vec3 albedo = mix(uColorSulci, uColorTissue, pow(ao, 3.0));
+                        
+                        // Specular (Brilho úmido)
+                        vec3 ref = reflect(-keyLight, n);
+                        float spec = pow(max(dot(ref, normalize(ro - p)), 0.0), 16.0);
+                        
+                        col = albedo * (diff + fill + 0.1); // +0.1 Ambient
+                        col += vec3(1.0, 0.8, 0.8) * spec * 0.8; // Specular
+                        col += vec3(0.5, 0.0, 0.2) * rim; // Rim light avermelhado
+                    } else {
+                        // Fundo levemente estrelado/ruidoso se quiser, ou preto total
+                        col = vec3(0.01, 0.01, 0.02) * (1.0 - length(uv));
+                    }
+
+                    // Correção de Gama
+                    col = pow(col, vec3(0.4545));
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `
+        });
+
+        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+        scene.add(quad);
+
+        // GUI
+        const gui = new GUI({ container: document.getElementById('ui-container'), title: 'Brain Object' });
+        
+        const fShape = gui.addFolder('Anatomia');
+        fShape.add(params, 'displacementStrength', 0.0, 0.5).name('Profundidade Gomos').onChange(v => material.uniforms.uDisplacement.value = v);
+        fShape.add(params, 'separation', 0.0, 1.5).name('Separação Hemisf.').onChange(v => material.uniforms.uSeparation.value = v);
+        fShape.add(params, 'zoomSpeed', 0.0, 2.0).name('Fluxo Mental (Zoom)').onChange(v => material.uniforms.uZoomSpeed.value = v);
+        
+        const fVis = gui.addFolder('Visual');
+        fVis.addColor(params, 'colorTissue').name('Córtex').onChange(v => material.uniforms.uColorTissue.value.set(v));
+        fVis.addColor(params, 'colorSulci').name('Sulcos').onChange(v => material.uniforms.uColorSulci.value.set(v));
+        fVis.add(params, 'rotationSpeed', 0.0, 1.0).name('Rotação').onChange(v => material.uniforms.uRotSpeed.value = v);
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.iResolution.value.set(window.innerWidth, window.innerHeight, 1);
+        });
+
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.iTime.value = clock.getElapsedTime();
+            composer.render();
+        }
+        animate();
+    </script>
+</body>
+</html>
+
