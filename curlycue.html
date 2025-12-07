@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Curlicue Fractal Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: #050505;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #ddd;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            max-width: 400px;
+            z-index: 10;
+        }
+
+        /* Estilização Customizada do lil-gui para ficar flutuante e transparente */
+        .lil-gui.root {
+            width: 100% !important;
+            --background-color: rgba(20, 20, 20, 0.8);
+            --text-color: #eee;
+            --title-background-color: rgba(30, 30, 30, 0.9);
+            --widget-color: #444;
+            --hover-color: #555;
+            --focus-color: #666;
+            --number-color: #00d2ff;
+            --string-color: #a2ff00;
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .lil-gui .title {
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="ui-container"></div>
+
+    <!-- Importando lil-gui via CDN -->
+    <script type="module">
+        import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Alpha false melhora performance
+
+        // Estado da Aplicação
+        const state = {
+            N: 8000,           // Número de segmentos (Pontos)
+            time: 0.0,         // Parâmetro principal de evolução
+            speed: 0.05,       // Velocidade da animação automática
+            
+            // Constantes da fórmula Python
+            frameFactor: 0.0,  // "frame" no python (termo seno externo)
+            sConstant: 0.5,    // "0.5 * n" no python
+            linearTerm: 0.2,   // "0.2 * n" no python
+            
+            // Visual
+            zoom: 0.8,
+            lineWidth: 1.5,
+            colorSpeed: 2.0,   // Frequência do arco-íris
+            animate: true
+        };
+
+        // Resize Handling
+        let width, height;
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Arrays para armazenar pontos pré-calculados (para evitar alocação de memória no loop)
+        // Isso é mais eficiente que criar objetos {x, y} a cada frame
+        const maxN = 50000; // Limite máximo de alocação
+        const pointsX = new Float32Array(maxN);
+        const pointsY = new Float32Array(maxN);
+
+        // Função Principal de Desenho
+        function draw() {
+            // Limpa a tela
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+
+            // Se estiver animando, incrementa o tempo
+            if (state.animate) {
+                state.time += state.speed * 0.01;
+            }
+
+            // --- FASE 1: CÁLCULO DOS PONTOS ---
+            // Baseado no código Python:
+            // radius = 10 * (n ** 1.5) / (n ** 2 + 1000)
+            // theta = 10 * np.sin(frame) * np.sin(0.5 * n) * time + 0.2 * n * time + np.pi / 2
+            
+            let currentX = 0;
+            let currentY = 0;
+            
+            let minX = 0, maxX = 0;
+            let minY = 0, maxY = 0;
+
+            // Início do array
+            pointsX[0] = 0;
+            pointsY[0] = 0;
+
+            const N = Math.min(state.N, maxN);
+
+            // Pré-cálculo de constantes para o loop
+            const sinFrame = Math.sin(state.frameFactor);
+            const halfPi = Math.PI / 2;
+
+            for (let n = 1; n < N; n++) {
+                // Cálculo do Raio
+                // Otimização JS: n*n é mais rápido que Math.pow(n, 2)
+                const radius = 10 * Math.pow(n, 1.5) / (n * n + 1000);
+                
+                // Cálculo do Ângulo (Theta)
+                // Python: 10 * sin(frame) * sin(0.5 * n) * time + 0.2 * n * time + pi/2
+                // Note: O termo 'time' multiplica a maior parte da equação angular, fazendo a espiral girar/desdobrar
+                const theta = (10 * sinFrame * Math.sin(state.sConstant * n) * state.time) + 
+                              (state.linearTerm * n * state.time) + 
+                              halfPi;
+
+                // Converte polar para cartesiano e soma (acumulativo)
+                currentX += radius * Math.cos(theta);
+                currentY += radius * Math.sin(theta);
+
+                // Salva
+                pointsX[n] = currentX;
+                pointsY[n] = currentY;
+
+                // Atualiza Bounding Box (para centralizar depois)
+                if (currentX < minX) minX = currentX;
+                if (currentX > maxX) maxX = currentX;
+                if (currentY < minY) minY = currentY;
+                if (currentY > maxY) maxY = currentY;
+            }
+
+            // --- FASE 2: CENTRALIZAÇÃO E ESCALA ---
+            
+            // Largura e altura do fractal gerado
+            const fractalW = maxX - minX || 1; // Evita divisão por zero
+            const fractalH = maxY - minY || 1;
+
+            // Fator de escala para caber na tela
+            // state.zoom permite ao usuário ajustar o "fit"
+            const scaleX = width / fractalW;
+            const scaleY = height / fractalH;
+            const scale = Math.min(scaleX, scaleY) * state.zoom;
+
+            // Offset para centralizar
+            // Centro da tela - (Centro do fractal * escala)
+            const centerX = minX + fractalW / 2;
+            const centerY = minY + fractalH / 2;
+            
+            const offsetX = (width / 2) - (centerX * scale);
+            const offsetY = (height / 2) - (centerY * scale);
+
+            // --- FASE 3: RENDERIZAÇÃO ---
+
+            ctx.lineWidth = state.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Desenhamos em lotes para poder mudar a cor gradualmente sem pesar demais
+            // Desenhar um único path de 10k pontos com stroke() no final não permite gradiente
+            // Desenhar 10k paths individuais é lento.
+            // Solução: Desenhar segmentos conectados.
+            
+            ctx.beginPath();
+            
+            // Move para o primeiro ponto transformado
+            ctx.moveTo(pointsX[0] * scale + offsetX, pointsY[0] * scale + offsetY);
+
+            // Para otimizar o gradiente, mudamos a cor a cada X segmentos, em vez de a cada 1
+            const batchSize = 1; 
+            
+            for (let n = 1; n < N; n++) {
+                const px = pointsX[n] * scale + offsetX;
+                const py = pointsY[n] * scale + offsetY;
+                
+                ctx.lineTo(px, py);
+
+                // Aplica stroke e cor a cada ponto para gradiente suave
+                // HSL Hue varia com n para criar arco-íris
+                // Hue cycle: (n * state.colorSpeed) % 360
+                ctx.strokeStyle = `hsl(${(n * state.colorSpeed) % 360}, 70%, 60%)`;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+            }
+            
+            requestAnimationFrame(draw);
+        }
+
+        // --- UI CONFIGURATION (LIL-GUI) ---
+        function initGUI() {
+            const container = document.getElementById('ui-container');
+            const gui = new GUI({ container: container, title: 'Curlicue Controls' });
+
+            const folderMath = gui.addFolder('Matemática');
+            folderMath.add(state, 'N', 1000, 30000, 100).name('Pontos (N)');
+            folderMath.add(state, 'time').name('Tempo (T)').listen(); // Listen permite ver a animação
+            folderMath.add(state, 'frameFactor', 0, Math.PI * 2).name('Frame (Seno)');
+            folderMath.add(state, 'sConstant', 0.1, 2.0).name('Freq. Curva');
+            folderMath.add(state, 'linearTerm', 0.0, 1.0).name('Termo Linear');
+            
+            const folderAnim = gui.addFolder('Animação');
+            folderAnim.add(state, 'animate').name('Animar T');
+            folderAnim.add(state, 'speed', -0.5, 0.5).name('Velocidade');
+
+            const folderVis = gui.addFolder('Visual');
+            folderVis.add(state, 'zoom', 0.1, 2.0).name('Zoom Fit');
+            folderVis.add(state, 'lineWidth', 0.5, 5.0).name('Espessura');
+            folderVis.add(state, 'colorSpeed', 0.1, 5.0).name('Freq. Cor');
+            
+            // Inicialmente fechado em telas pequenas para não atrapalhar
+            if (window.innerWidth < 600) {
+                gui.close();
+            }
+        }
+
+        initGUI();
+        draw();
+
+    </script>
+</body>
+</html>
+
