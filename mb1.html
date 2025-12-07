@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mandelbox Original GLSL Port</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+        }
+
+        #scene-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-hint {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            z-index: 0;
+            pointer-events: none;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* GUI Transparente */
+        .lil-gui.root {
+            position: absolute !important;
+            top: auto !important;
+            bottom: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            right: auto !important;
+            z-index: 100 !important;
+            --width: 90vw !important;
+            max-width: 350px;
+            background-color: rgba(0, 0, 0, 0.3) !important;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            box-shadow: none;
+        }
+
+        .lil-gui .title {
+            background: transparent;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #eee;
+            font-weight: 600;
+        }
+
+        .lil-gui { 
+            font-size: 12px; 
+            --text-color: #ddd;
+            --number-color: #0ff;
+            --widget-color: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="scene-container"></div>
+    <div id="ui-hint">Mandelbox GLSL Original</div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+        class App {
+            constructor() {
+                this.params = {
+                    // Parâmetros extraídos do shader original
+                    scaleFactor: -5.44, // Original era -20.0 * 0.272321
+                    paramX: 0.5,
+                    paramY: 0.5,
+                    paramZ: 0.5,
+                    iterations: 10,
+                    
+                    // Raymarching settings
+                    maxSteps: 120, // Reduzido de 2500 para rodar em tempo real
+                    
+                    // Visual
+                    bloomStrength: 0.8,
+                    pauseRotation: false,
+                    speed: 1.0
+                };
+
+                this.time = 0;
+                this.mouse = new THREE.Vector4(0, 0, 0, 0);
+                this.init();
+            }
+
+            init() {
+                const container = document.getElementById("scene-container");
+
+                // 1. Setup Básico (Camera Ortho para Fullscreen Shader)
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+                
+                // 2. Renderer
+                this.renderer = new THREE.WebGLRenderer({ powerPreference: "high-performance" });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+                container.appendChild(this.renderer.domElement);
+
+                // 3. Post Processing (Bloom suave)
+                // O shader original já tem brilho, então o bloom é só um toque final
+                const renderTarget = new THREE.WebGLRenderTarget(
+                    window.innerWidth, window.innerHeight,
+                    { type: THREE.HalfFloatType }
+                );
+
+                this.composer = new EffectComposer(this.renderer, renderTarget);
+                this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+                this.bloomPass = new UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    this.params.bloomStrength,
+                    0.5,
+                    0.1
+                );
+                this.composer.addPass(this.bloomPass);
+
+                // 4. Shader Material (O Código Portado)
+                const geometry = new THREE.PlaneGeometry(2, 2);
+                
+                this.material = new THREE.ShaderMaterial({
+                    uniforms: {
+                        iTime: { value: 0 },
+                        iResolution: { value: new THREE.Vector3(window.innerWidth, window.innerHeight, 1) },
+                        iMouse: { value: this.mouse },
+                        
+                        // Uniforms customizados para controle
+                        uScale: { value: this.params.scaleFactor },
+                        uParams: { value: new THREE.Vector3(this.params.paramX, this.params.paramY, this.params.paramZ) },
+                        uMaxSteps: { value: this.params.maxSteps }
+                    },
+                    vertexShader: `
+                        void main() {
+                            gl_Position = vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        // Port do Mandelbox.glsl
+                        
+                        uniform float iTime;
+                        uniform vec3 iResolution;
+                        uniform vec4 iMouse;
+                        
+                        // Controles do usuário
+                        uniform float uScale;
+                        uniform vec3 uParams;
+                        uniform float uMaxSteps;
+
+                        #define MaximumDistance 200.
+                        #define MinimumDistance .001
+                        #define PI 3.141592653589793238
+
+                        // TRANSFORM FUNCTIONS //
+                        mat2 Rotate (float angle) {
+                            float s = sin (angle);
+                            float c = cos (angle);
+                            return mat2 (c, -s, s, c);
+                        }
+
+                        vec3 R (vec2 uv, vec3 p, vec3 l, float z) {
+                            vec3 f = normalize (l - p),
+                                r = normalize (cross (vec3 (0, 1, 0), f)),
+                                u = cross (f, r),
+                                c = p + f * z,
+                                i = c + uv.x * r + uv.y * u,
+                                d = normalize (i - p);
+                            return d;
+                        }
+
+                        // Converts a color from the HSV colorspace to RGB
+                        vec3 hsv2rgb (vec3 c) {
+                            vec4 K = vec4 (1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                            vec3 p = abs (fract (c.xxx + K.xyz) * 6.0 - K.www);
+                            return c.z * mix (K.xxx, clamp (p - K.xxx, 0.0, 1.0), c.y);
+                        }
+
+                        // SDF FUNCTIONS //
+                        vec4 sphere (vec4 z) {
+                            float r2 = dot (z.xyz, z.xyz);
+                            if (r2 < 2.0)
+                                z *= (1.0 / r2);
+                            else z *= 0.5;
+                            return z;
+                        }
+
+                        vec3 box (vec3 z) {
+                            return clamp (z, -1.0, 1.0) * 2.0 - z;
+                        }
+
+                        float DE0 (vec3 pos) {
+                            // Removido dependência forte do mouse para funcionar em mobile sem toque inicial
+                            vec3 from = vec3 (0.0);
+                            vec3 z = pos - from;
+                            float r = dot (pos - from, pos - from) * pow (length (z), 2.0);
+                            return (1.0 - smoothstep (0.0, 0.01, r)) * 0.01;
+                        }
+
+                        float DE2 (vec3 pos) {
+                            // Usando uniforms em vez de hardcoded
+                            vec3 params = uParams; 
+                            vec4 scale = vec4 (uScale);
+                            vec4 p = vec4 (pos, 1.0);
+                            vec4 c = vec4 (params, 0.5) - 0.5; 
+
+                            for (float i = 0.0; i < 10.0; i++) {
+                                p.xyz = box (p.xyz);
+                                p = sphere (p);
+                                p = p * scale + c;
+                            }
+
+                            return length (p.xyz) / p.w;
+                        }
+
+                        float DE (vec3 pos) {
+                            float d0 = DE0 (pos);
+                            float d2 = DE2 (pos);
+                            return max (d0, d2);
+                        }
+
+                        // Raymarcher
+                        vec4 RayMarcher (vec3 ro, vec3 rd) {
+                            float steps = 0.0;
+                            float totalDistance = 0.0;
+                            float minDistToScene = 100.0;
+                            vec3 minDistToScenePos = ro;
+                            
+                            // Otimização: Não precisamos calcular minDistToOrigin toda vez se não usarmos
+                            // Mantido para fidelidade visual se necessário no futuro
+                            
+                            vec4 col = vec4 (0.0, 0.0, 0.0, 1.0);
+                            vec3 curPos = ro;
+                            bool hit = false;
+
+                            // Loop dinâmico baseado no uniform uMaxSteps
+                            for (float i = 0.0; i < 500.0; i++) {
+                                if (i >= uMaxSteps) break;
+                                
+                                steps += 1.0;
+                                vec3 p = ro + totalDistance * rd;
+                                float distance = DE (p);
+                                curPos = ro + rd * totalDistance;
+                                
+                                if (minDistToScene > distance) {
+                                    minDistToScene = distance;
+                                    minDistToScenePos = curPos;
+                                }
+                                
+                                totalDistance += distance;
+                                
+                                if (distance < MinimumDistance) {
+                                    hit = true;
+                                    break;
+                                } else if (distance > MaximumDistance) {
+                                    break;
+                                }
+                            }
+
+                            if (hit) {
+                                col.rgb = vec3 (0.8 + (length (curPos) / 10.0), 1.0, 0.8);
+                                col.rgb = hsv2rgb (col.rgb);
+                            }
+
+                            // Glow calculation do código original
+                            col.rgb /= steps * 0.08; 
+                            col.rgb /= pow (distance (ro, minDistToScenePos), 2.0);
+                            col.rgb *= 20.0;
+
+                            return col;
+                        }
+
+                        void main() {
+                            // Normalização de coordenadas
+                            vec2 uv = (gl_FragCoord.xy - 0.5 * iResolution.xy) / iResolution.y;
+
+                            vec3 ro = vec3 (0, 0, -2.0); // Ray origin
+                            
+                            // Rotação da câmera (fórmula original)
+                            ro.yz *= Rotate ((iTime * PI + 1.0) / 20.0);
+                            ro.xz *= Rotate (iTime * 2.0 * PI / 10.0);
+                            
+                            vec3 rd = R (uv, ro, vec3 (0, 0, 1), 1.);
+
+                            vec4 col = RayMarcher (ro, rd);
+
+                            // Tone mapping básico para evitar estouro
+                            col.rgb = col.rgb / (col.rgb + vec3(1.0));
+                            col.rgb = pow(col.rgb, vec3(1.0/2.2)); // Gamma
+
+                            gl_FragColor = vec4 (col.rgb, 1.0);
+                        }
+                    `
+                });
+
+                const plane = new THREE.Mesh(geometry, this.material);
+                this.scene.add(plane);
+
+                // 5. Eventos
+                window.addEventListener("resize", () => this.onResize());
+                window.addEventListener("mousemove", (e) => {
+                    this.mouse.x = e.clientX;
+                    this.mouse.y = window.innerHeight - e.clientY;
+                });
+                
+                // 6. Clock
+                this.clock = new THREE.Clock();
+
+                // 7. GUI
+                this.setupGUI();
+
+                // 8. Loop
+                this.animate();
+            }
+
+            setupGUI() {
+                this.gui = new GUI({ title: 'Config Mandelbox', width: 320 });
+                this.gui.close();
+
+                const fParams = this.gui.addFolder('Fractal Maths');
+                fParams.add(this.params, 'scaleFactor', -20.0, 0.0).name('Escala (Scale)').onChange(v => this.material.uniforms.uScale.value = v);
+                fParams.add(this.params, 'paramX', 0, 1).name('Box X').onChange(v => this.material.uniforms.uParams.value.x = v);
+                fParams.add(this.params, 'paramY', 0, 1).name('Box Y').onChange(v => this.material.uniforms.uParams.value.y = v);
+                fParams.add(this.params, 'paramZ', 0, 1).name('Box Z').onChange(v => this.material.uniforms.uParams.value.z = v);
+                
+                const fRender = this.gui.addFolder('Render & Movimento');
+                fRender.add(this.params, 'maxSteps', 50, 300, 1).name('Qualidade (Passos)').onChange(v => this.material.uniforms.uMaxSteps.value = v);
+                fRender.add(this.params, 'bloomStrength', 0, 3).name('Bloom Extra').onChange(v => this.bloomPass.strength = v);
+                fRender.add(this.params, 'pauseRotation').name('Pausar Rotação');
+                fRender.add(this.params, 'speed', 0, 5).name('Velocidade');
+            }
+
+            onResize() {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                this.renderer.setSize(w, h);
+                this.composer.setSize(w, h);
+                this.material.uniforms.iResolution.value.set(w, h, 1);
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const dt = this.clock.getDelta();
+                if (!this.params.pauseRotation) {
+                    this.time += dt * this.params.speed;
+                }
+                
+                this.material.uniforms.iTime.value = this.time;
+                this.composer.render();
+            }
+        }
+
+        new App();
+    </script>
+</body>
+</html>
+
+
