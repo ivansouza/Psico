@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spirograph WebGL Minimal</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', sans-serif;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Painel Compacto e Transparente */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            min-width: 600px;
+            max-width: 90vw;
+            
+            /* Transparência e Blur */
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 20px;
+            
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: opacity 0.3s;
+        }
+
+        /* Se o mouse não estiver em cima, fica ainda mais transparente */
+        #controls:hover {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #00ffcc;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+            opacity: 0.8;
+        }
+
+        .slider-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            width: 60px;
+        }
+
+        label {
+            font-size: 0.65rem;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #00ffcc;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            -webkit-appearance: none;
+            margin-top: 4px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            background: #fff;
+            margin-top: -4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        /* Botão Minimalista */
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+            height: fit-content;
+        }
+        button:hover {
+            background: #00ffcc;
+            color: #000;
+        }
+
+        #status {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        @media (max-width: 700px) {
+            #controls {
+                flex-wrap: wrap;
+                justify-content: center;
+                bottom: 10px;
+                width: 90vw;
+                min-width: 0;
+            }
+            .section {
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="glCanvas"></canvas>
+
+    <div id="controls">
+        <div id="status">Desenhando...</div>
+
+        <!-- Raios -->
+        <div class="section">
+            <div class="section-title">Raios</div>
+            <div class="slider-row">
+                <div class="control-group">
+                    <label>R1 <span id="val-r1">4</span></label>
+                    <input type="range" id="r1" min="0" max="10" step="0.1" value="4">
+                </div>
+                <div class="control-group">
+                    <label>R2 <span id="val-r2">4</span></label>
+                    <input type="range" id="r2" min="0" max="10" step="0.1" value="4">
+                </div>
+                <div class="control-group">
+                    <label>R3 <span id="val-r3">1.3</span></label>
+                    <input type="range" id="r3" min="0" max="10" step="0.1" value="1.3">
+                </div>
+            </div>
+        </div>
+
+        <!-- Separador Vertical Visual -->
+        <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.1);"></div>
+
+        <!-- Frequências -->
+        <div class="section">
+            <div class="section-title">Rotação</div>
+            <div class="slider-row">
+                <div class="control-group">
+                    <label>W1 <span id="val-w1">44</span></label>
+                    <input type="range" id="w1" min="-100" max="100" step="1" value="44">
+                </div>
+                <div class="control-group">
+                    <label>W2 <span id="val-w2">-17</span></label>
+                    <input type="range" id="w2" min="-100" max="100" step="1" value="-17">
+                </div>
+                <div class="control-group">
+                    <label>W3 <span id="val-w3">-54</span></label>
+                    <input type="range" id="w3" min="-100" max="100" step="1" value="-54">
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-restart">Reiniciar</button>
+    </div>
+
+    <!-- SHADER: Vertex -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute float a_theta; 
+        uniform float u_aspect;
+        
+        uniform float r1, r2, r3;
+        uniform float w1, w2, w3;
+        uniform float p1, p2, p3;
+
+        varying float v_theta; 
+
+        void main() {
+            float angle1 = a_theta * w1 + p1;
+            float angle2 = a_theta * w2 + p2;
+            float angle3 = a_theta * w3 + p3;
+
+            float x = r1 * cos(angle1) + r2 * cos(angle2) + r3 * cos(angle3);
+            float y = r1 * sin(angle1) + r2 * sin(angle2) + r3 * sin(angle3);
+
+            vec2 position = vec2(x, y) / 10.0;
+            
+            if (u_aspect > 1.0) {
+                position.x /= u_aspect;
+            } else {
+                position.y *= u_aspect;
+            }
+
+            gl_Position = vec4(position, 0.0, 1.0);
+            gl_PointSize = 2.0; 
+            v_theta = a_theta;
+        }
+    </script>
+
+    <!-- SHADER: Fragment -->
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying float v_theta;
+        
+        vec3 hsl2rgb(vec3 c) {
+            vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+            return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+        }
+
+        void main() {
+            float hue = v_theta / (2.0 * 3.14159); 
+            // Cor um pouco mais vibrante para contrastar com UI minimalista
+            vec3 color = hsl2rgb(vec3(hue, 0.9, 0.6));
+            gl_FragColor = vec4(color, 1.0);
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) alert('WebGL não suportado.');
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vsSource = document.getElementById('vertex-shader').text;
+        const fsSource = document.getElementById('fragment-shader').text;
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const numPoints = 20000; 
+        const thetaData = new Float32Array(numPoints);
+        for (let i = 0; i < numPoints; i++) thetaData[i] = (i / (numPoints - 1)) * 2 * Math.PI;
+
+        const thetaBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, thetaBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, thetaData, gl.STATIC_DRAW);
+
+        const aThetaLoc = gl.getAttribLocation(program, 'a_theta');
+        gl.enableVertexAttribArray(aThetaLoc);
+        gl.vertexAttribPointer(aThetaLoc, 1, gl.FLOAT, false, 0, 0);
+
+        const uLocs = {
+            aspect: gl.getUniformLocation(program, 'u_aspect'),
+            r1: gl.getUniformLocation(program, 'r1'),
+            r2: gl.getUniformLocation(program, 'r2'),
+            r3: gl.getUniformLocation(program, 'r3'),
+            w1: gl.getUniformLocation(program, 'w1'),
+            w2: gl.getUniformLocation(program, 'w2'),
+            w3: gl.getUniformLocation(program, 'w3'),
+            p1: gl.getUniformLocation(program, 'p1'),
+            p2: gl.getUniformLocation(program, 'p2'),
+            p3: gl.getUniformLocation(program, 'p3')
+        };
+
+        const params = {
+            r1: 4, r2: 4, r3: 1.3,
+            w1: 44, w2: -17, w3: -54,
+            p1: 0, p2: 0, p3: 0
+        };
+
+        let pointsToDraw = 0;
+        let animationSpeed = 100;
+        let isAnimating = true;
+
+        function updateUniforms() {
+            gl.uniform1f(uLocs.r1, params.r1);
+            gl.uniform1f(uLocs.r2, params.r2);
+            gl.uniform1f(uLocs.r3, params.r3);
+            gl.uniform1f(uLocs.w1, params.w1);
+            gl.uniform1f(uLocs.w2, params.w2);
+            gl.uniform1f(uLocs.w3, params.w3);
+            gl.uniform1f(uLocs.p1, params.p1);
+            gl.uniform1f(uLocs.p2, params.p2);
+            gl.uniform1f(uLocs.p3, params.p3);
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.uniform1f(uLocs.aspect, canvas.width / canvas.height);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function render() {
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            updateUniforms();
+
+            if (isAnimating && pointsToDraw < numPoints) {
+                pointsToDraw += animationSpeed;
+                if (pointsToDraw > numPoints) pointsToDraw = numPoints;
+                if(pointsToDraw >= numPoints) document.getElementById('status').innerText = "";
+            }
+
+            gl.drawArrays(gl.LINE_STRIP, 0, pointsToDraw);
+            requestAnimationFrame(render);
+        }
+
+        function bindInput(id, paramKey) {
+            const el = document.getElementById(id);
+            const valSpan = document.getElementById('val-' + id);
+            el.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                params[paramKey] = val;
+                valSpan.innerText = val;
+                pointsToDraw = 0;
+                document.getElementById('status').innerText = "Atualizando...";
+            });
+        }
+
+        ['r1', 'r2', 'r3', 'w1', 'w2', 'w3'].forEach(k => bindInput(k, k));
+
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            pointsToDraw = 0;
+            document.getElementById('status').innerText = "Reiniciando...";
+        });
+
+        render();
+    </script>
+</body>
+</html>
+
