@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Uploader Lenticular - Efeito Tilt</title>
+    <!-- Tailwind CSS para estilização e responsividade -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #173c2c; /* Cor de fundo */
+            touch-action: none; /* Previne scroll padrão para permitir touchmove */
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        /* Container que aparece antes do efeito 3D */
+        #ui-container {
+            z-index: 20;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(23, 60, 44, 0.95);
+            transition: opacity 0.5s ease;
+        }
+        .file-input-label {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        /* Esconde o elemento input padrão, usando o label como botão */
+        input[type="file"] {
+            display: none;
+        }
+        #status-message {
+            color: white;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Interface de upload e permissão -->
+<div id="ui-container" class="p-4">
+    <h1 class="text-2xl font-bold text-white mb-6 text-center">Crie seu Efeito Lenticular</h1>
+    <p id="status-message" class="text-sm text-gray-300 mb-6 text-center">Selecione duas imagens (Quadratas são recomendadas).</p>
+    
+    <div class="flex flex-col sm:flex-row gap-4 mb-8 w-full max-w-sm">
+        <!-- Input Imagem 1 -->
+        <label id="label-img-1" class="file-input-label w-full p-4 bg-red-600 hover:bg-red-700 text-white font-bold text-center rounded-xl shadow-lg transition duration-150 ease-in-out">
+            <span>Imagem 1 (Esq.)</span>
+            <input type="file" id="image-input-1" accept="image/*">
+        </label>
+        
+        <!-- Input Imagem 2 -->
+        <label id="label-img-2" class="file-input-label w-full p-4 bg-green-600 hover:bg-green-700 text-white font-bold text-center rounded-xl shadow-lg transition duration-150 ease-in-out">
+            <span>Imagem 2 (Dir.)</span>
+            <input type="file" id="image-input-2" accept="image/*">
+        </label>
+    </div>
+
+    <!-- Botão de Iniciar, desabilitado até ambas as imagens serem carregadas -->
+    <button id="permission-btn" class="px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-extrabold text-lg rounded-full shadow-2xl disabled:opacity-50 transition duration-150 ease-in-out" disabled>
+        Toque para Iniciar o Efeito
+    </button>
+</div>
+
+<script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    // Variáveis globais para o Three.js
+    let renderer, scene, camera, mesh, lenticularMaterial;
+    let textureLoader;
+
+    // Rastreamento de texturas carregadas
+    let loadedTexture1 = null;
+    let loadedTexture2 = null;
+
+    // Variáveis de controle de inclinação (tilt)
+    let tiltAlvo = 0;
+    let tiltAtual = 0;
+    let isAnimating = false;
+
+    // Elementos da interface
+    const uiContainer = document.getElementById('ui-container');
+    const btn = document.getElementById('permission-btn');
+    const statusMessage = document.getElementById('status-message');
+    const input1 = document.getElementById('image-input-1');
+    const input2 = document.getElementById('image-input-2');
+    const label1 = document.getElementById('label-img-1');
+    const label2 = document.getElementById('label-img-2');
+
+    // --- 1. CONFIGURAÇÃO INICIAL DA CENA ---
+    function setupScene() {
+        scene = new THREE.Scene();
+        // Câmera ortográfica para projeção 2D fullscreen
+        camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+        camera.position.z = 1;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.domElement.style.visibility = 'hidden'; // Esconde o canvas inicialmente
+        document.body.appendChild(renderer.domElement);
+
+        textureLoader = new THREE.TextureLoader();
+        
+        // Carrega uma textura placeholder mínima para iniciar os uniforms sem erro
+        const placeholderTexture = textureLoader.load('https://placehold.co/1x1/000000/000000?text='); 
+
+        // --- 2. SHADER LENTICULAR ---
+        lenticularMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTexture1:      { value: placeholderTexture }, // Será substituído
+                uTexture2:      { value: placeholderTexture }, // Será substituído
+                uTilt:          { value: 0.0 },
+                uResolution:    { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                uStripCount:    { value: 80.0 },  // Quantidade de "lenticules"
+                uStripeStrength:{ value: 0.35 }   // Força da textura de linha
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D uTexture1;
+                uniform sampler2D uTexture2;
+                uniform float uTilt;           // de -1 (esquerda) a +1 (direita)
+                uniform float uStripCount;     // número de tiras verticais 
+                uniform float uStripeStrength; // força da textura da tira 
+                        
+                varying vec2 vUv;
+        
+                void main() {
+                    // Mapeia o tilt de [-1, 1] para [0, 1]
+                    float t = clamp(uTilt * 0.7 + 0.5, 0.0, 1.0);
+        
+                    vec4 color1 = texture2D(uTexture1, vUv);
+                    vec4 color2 = texture2D(uTexture2, vUv);
+        
+                    // Padrão de tiras: cria a sensação "nervurada" lenticular
+                    float phase   = vUv.x * uStripCount + uTilt * 1.5;
+                    float stripes = step(0.5, fract(phase)); // 0 ou 1 por tira vertical 
+        
+                    // Combina o tilt global com a modulação sutil da tira 
+                    float mixVal = mix(t, stripes, uStripeStrength);
+        
+                    // Suaviza as extremidades
+                    mixVal = smoothstep(0.15, 0.85, mixVal);
+        
+                    // Combinação final das cores
+                    gl_FragColor = mix(color1, color2, mixVal);
+                }
+            `
+        });
+
+        // --- 3. PLANO FULLSCREEN ---
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        mesh = new THREE.Mesh(geometry, lenticularMaterial);
+        scene.add(mesh);
+    }
+
+    // --- 4. LÓGICA DE CARREGAMENTO DE IMAGEM ---
+    function loadAndApplyTexture(file, textureIndex) {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const imageURL = e.target.result;
+            
+            // 1. Cria uma nova textura Three.js a partir da URL de dados
+            textureLoader.load(imageURL, (texture) => {
+                // 2. Aplica a textura no uniform correto e atualiza o estado da UI
+                if (textureIndex === 1) {
+                    loadedTexture1 = texture;
+                    lenticularMaterial.uniforms.uTexture1.value = texture;
+                    label1.classList.add('bg-gray-500');
+                    label1.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    label1.querySelector('span').textContent = 'Imagem 1 (OK)';
+                } else if (textureIndex === 2) {
+                    loadedTexture2 = texture;
+                    lenticularMaterial.uniforms.uTexture2.value = texture;
+                    label2.classList.add('bg-gray-500');
+                    label2.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    label2.querySelector('span').textContent = 'Imagem 2 (OK)';
+                }
+
+                // 3. Verifica se ambas estão prontas para habilitar o botão de início
+                if (loadedTexture1 && loadedTexture2) {
+                    statusMessage.textContent = "Ambas as imagens carregadas. Toque para iniciar!";
+                    btn.disabled = false;
+                }
+            }, 
+            undefined, // Callback de progresso
+            (error) => {
+                console.error('Erro ao carregar a textura:', error);
+                statusMessage.textContent = `Erro ao carregar Imagem ${textureIndex}. Tente outra.`;
+            });
+        };
+        // Lê o arquivo como Data URL (base64)
+        reader.readAsDataURL(file);
+    }
+
+    // Ouvintes de evento para os inputs de arquivo
+    input1.addEventListener('change', (e) => loadAndApplyTexture(e.target.files[0], 1));
+    input2.addEventListener('change', (e) => loadAndApplyTexture(e.target.files[0], 2));
+
+    // --- 5. FUNÇÕES DE ORIENTAÇÃO E FALLBACK ---
+
+    function handleOrientacao(event) {
+        // Evento principal: tilt do dispositivo (acelerômetro/giroscópio)
+        const tilt = event.gamma; // Movimento esquerda-direita
+        if (tilt !== null) {
+            // Normaliza o tilt (gamma) para o range do shader
+            tiltAlvo = tilt / 45.0; 
+        }
+    }
+    
+    function addFallbackListeners() {
+        // Adiciona ouvintes para mouse e toque (em caso de falha do deviceorientation)
+        const halfWidth = window.innerWidth / 2;
+
+        function updateTiltFromClientX(clientX) {
+            // Mapeia a posição X do mouse/touch (0 a width) para tiltAlvo (-1 a 1)
+            tiltAlvo = (clientX - halfWidth) / halfWidth;
+            // Limita para evitar valores extremos
+            tiltAlvo = Math.max(-1, Math.min(1, tiltAlvo));
+        }
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            updateTiltFromClientX(e.clientX);
+        });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                // Previne o scroll padrão da página
+                e.preventDefault(); 
+                updateTiltFromClientX(e.touches[0].clientX);
+            }
+        }, { passive: false });
+    }
+
+    // --- 6. LOOP DE ANIMAÇÃO ---
+    function animate() {
+        if (!isAnimating) return;
+        requestAnimationFrame(animate);
+        
+        // OTIMIZAÇÃO: Aumentamos o fator de amortecimento (damping) para uma resposta mais rápida.
+        // 0.3 = Resposta mais rápida | 0.1 = Resposta mais suave/lenta (original)
+        tiltAtual += (tiltAlvo - tiltAtual) * 0.3;
+        lenticularMaterial.uniforms.uTilt.value = tiltAtual;
+        
+        renderer.render(scene, camera);
+    }
+    
+    // Inicializa o setup do Three.js
+    window.onload = function() {
+        setupScene();
+    }
+
+
+    // --- 7. PERMISSÕES E INÍCIO DO EFEITO ---
+    
+    btn.addEventListener('click', () => {
+        if (!loadedTexture1 || !loadedTexture2) return;
+
+        // 1. Esconde a interface de upload com transição
+        uiContainer.style.opacity = '0';
+        setTimeout(() => { 
+            uiContainer.style.display = 'none'; 
+            renderer.domElement.style.visibility = 'visible';
+            isAnimating = true;
+            animate(); // Inicia o loop de animação
+            addFallbackListeners(); // Adiciona o fallback para mouse/touch
+        }, 500);
+
+        // 2. Tenta solicitar permissão de orientação (necessário no iOS 13+)
+        let permissionGranted = false;
+
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+
+            DeviceOrientationEvent.requestPermission()
+                .then(state => {
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientacao);
+                        permissionGranted = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Falha na solicitação de permissão de sensor:', error);
+                })
+                .finally(() => {
+                    if (!permissionGranted) {
+                        console.warn('Permissão de Orientação Negada ou Falha. Usando controle por Mouse/Touch.');
+                    }
+                });
+        } else {
+            // Android / iOS mais antigos / Browsers que não precisam de permissão explícita
+            window.addEventListener('deviceorientation', handleOrientacao);
+            console.log('Tentando usar deviceorientation nativo.');
+        }
+    });
+
+    // --- 8. TRATAMENTO DE REDIMENSIONAMENTO ---
+    window.addEventListener('resize', () => {
+        if (renderer && lenticularMaterial) {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            lenticularMaterial.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+        }
+    });
+</script>
+</body>
+</html>
+
