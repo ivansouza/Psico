@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AC/DC: Completa & Estável</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #111;
+            color: #eee;
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between;
+            overflow: hidden;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* HEADER */
+        #amp-head {
+            width: 100%; background: #000; padding: 10px 0;
+            text-align: center; border-bottom: 4px solid #d4af37;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8); z-index: 10;
+        }
+        h1 { font-family: 'Arial Black', sans-serif; font-size: 1.8rem; margin: 0; color: #fff; }
+        h2 { font-size: 0.8rem; color: #888; letter-spacing: 2px; margin-top: 5px; text-transform: uppercase; }
+
+        /* INDICADORES */
+        #info-panel {
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            margin-top: 10px; width: 90%;
+        }
+
+        #section-badge {
+            background: #333; color: #d4af37;
+            padding: 4px 12px; border-radius: 12px;
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+            border: 1px solid #555; transition: all 0.2s;
+        }
+
+        #tab-display {
+            background: #222; border: 2px solid #444; border-radius: 6px;
+            padding: 10px; width: 100%; max-width: 350px; height: 100px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 0 20px #000;
+        }
+        #tab-lines {
+            font-family: 'Courier New', monospace; font-weight: bold; font-size: 1.1rem;
+            line-height: 1.2; color: #aaa; white-space: pre;
+        }
+        .tab-active { color: #d4af37 !important; text-shadow: 0 0 8px #d4af37; transform: scale(1.02); }
+
+        /* BOTÃO */
+        #stage {
+            flex-grow: 1; width: 100%; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; gap: 20px;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+
+        #stomp-box {
+            width: 65vw; height: 65vw; max-width: 220px; max-height: 220px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, #1e1e1e, #111);
+            border: 3px solid #555;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 2px 5px rgba(255,255,255,0.1);
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; position: relative; transition: transform 0.05s;
+        }
+
+        #action-text {
+            font-family: 'Arial Black', sans-serif; font-size: 2rem; color: #555; pointer-events: none;
+        }
+
+        #stomp-box:active, .stomp-active { 
+            transform: scale(0.96); border-color: #d4af37; background: #111;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+        .stomp-active #action-text { color: #fff; text-shadow: 0 0 15px #fff; }
+
+        #mute-btn {
+            width: 60vw; max-width: 200px; padding: 12px;
+            background: #400; color: #faa; border: 2px solid #800; border-radius: 8px;
+            font-weight: bold; text-transform: uppercase; cursor: pointer;
+        }
+        #mute-btn:active { background: #800; color: #fff; transform: translateY(2px); }
+
+        /* CONTROLES */
+        #controls {
+            width: 100%; padding: 20px; background: #000;
+            display: flex; justify-content: center; border-top: 1px solid #333;
+        }
+        .ctrl-btn {
+            background: #333; border: 1px solid #555; color: #bbb;
+            padding: 12px 30px; font-weight: bold; text-transform: uppercase;
+            border-radius: 4px; cursor: pointer;
+        }
+        .ctrl-btn.active { background: #d4af37; color: #000; border-color: #fff; }
+
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #btn-start {
+            margin-top: 20px; padding: 20px 50px; font-size: 1.5rem;
+            background: #cc0000; color: #fff; border: none; border-radius: 4px;
+            font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1 style="color:#fff">AC<span style="color:#c00">⚡</span>DC</h1>
+        <p style="color:#888; margin-top:10px;">Show Completo</p>
+        <button id="btn-start">PLUGAR</button>
+    </div>
+
+    <div id="amp-head">
+        <h1>AC<span style="color:#c00">⚡</span>DC</h1>
+        <h2>Back in Black</h2>
+    </div>
+
+    <div id="stage">
+        <div id="info-panel">
+            <div id="section-badge">Intro</div>
+            <div id="tab-display">
+                <div id="tab-lines">E|---
+B|---
+G|---
+D|---
+A|---
+E|---</div>
+            </div>
+        </div>
+
+        <div id="stomp-box">
+            <span id="action-text">TOCAR</span>
+        </div>
+        
+        <button id="mute-btn">🔇 ABAFAR</button>
+    </div>
+
+    <div id="controls">
+        <button class="ctrl-btn" id="btn-demo">▶ Auto Demo</button>
+    </div>
+
+<script>
+const AudioCore = (() => {
+    let ctx = null; let master = null; let drive = null; let activeVoices = []; 
+
+    const F = {
+        E2: 82.4, G2: 98.0, A2: 110.0, As2: 116.5, B2: 123.5, 
+        D3: 146.8, E3: 164.8, G3: 196.0, A3: 220.0, B3: 246.9, Fs3: 185.0,
+        Cs4: 277.2, D4: 293.7, E4: 329.6, G4: 392.0, Fs4: 370.0
+    };
+
+    // --- BLOCOS DA MÚSICA ---
+
+    // 1. INTRO/VERSO A (Com solo agudo)
+    const PART_A = [
+        { t:'c', n:[F.E2,F.B2,F.E3], txt:'E5', d:['k','c'], ms:1800, tab:"E5 (Hold)", sec:"Verso" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['s'], ms:200, tab:"D5", sec:"Verso" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['k'], ms:200, tab:"D5", sec:"Verso" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['s'], ms:700, tab:"D5", sec:"Verso" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['k'], ms:200, tab:"A5", sec:"Verso" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['s'], ms:200, tab:"A5", sec:"Verso" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['k'], ms:800, tab:"A5", sec:"Verso" },
+        // LICK 1
+        { t:'s', n:F.G4, txt:'^G', d:['h'], ms:150, tab:"e|-3^-", sec:"Verso" },
+        { t:'s', n:F.E4, txt:'E', d:['h'], ms:150, tab:"e|-0--", sec:"Verso" },
+        { t:'s', n:F.D4, txt:'D', d:['h'], ms:150, tab:"B|-3--", sec:"Verso" },
+        { t:'s', n:F.B3, txt:'B', d:['k','s'], ms:900, tab:"B|-0--", sec:"Verso" }
+    ];
+
+    // 2. INTRO/VERSO B (Com solo grave)
+    const PART_B = [
+        { t:'c', n:[F.E2,F.B2,F.E3], txt:'E5', d:['k','c'], ms:1800, tab:"E5 (Hold)", sec:"Verso" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['s'], ms:200, tab:"D5", sec:"Verso" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['k'], ms:200, tab:"D5", sec:"Verso" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['s'], ms:700, tab:"D5", sec:"Verso" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['k'], ms:200, tab:"A5", sec:"Verso" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['s'], ms:200, tab:"A5", sec:"Verso" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['k'], ms:800, tab:"A5", sec:"Verso" },
+        // LICK 2
+        { t:'s', n:F.G2, txt:'G', d:['h'], ms:200, tab:"E|-3-", sec:"Verso" },
+        { t:'s', n:F.A2, txt:'A', d:['h'], ms:200, tab:"A|-0-", sec:"Verso" },
+        { t:'s', n:F.As2, txt:'A#', d:['h'], ms:200, tab:"A|-1-", sec:"Verso" },
+        { t:'s', n:F.B2, txt:'B', d:['k','c'], ms:1000, tab:"A|-2-", sec:"Verso" }
+    ];
+
+    // 3. REFRÃO ("Cause I'm back!")
+    const CHORUS = [
+        // A5 - E5 - B5 (longo)
+        { t:'c', n:[F.A2,F.E3], txt:'A5', d:['s'], ms:450, tab:"A5", sec:"Refrão" },
+        { t:'c', n:[F.E2,F.B2], txt:'E5', d:['k'], ms:450, tab:"E5", sec:"Refrão" },
+        { t:'c', n:[F.B2,F.Fs3,F.B3], txt:'B5', d:['c','k'], ms:1300, tab:"B5 (Long)", sec:"Refrão" },
+        
+        // A5 - B5 (longo)
+        { t:'c', n:[F.A2,F.E3], txt:'A5', d:['s'], ms:450, tab:"A5", sec:"Refrão" },
+        { t:'c', n:[F.B2,F.Fs3,F.B3], txt:'B5', d:['c','k'], ms:1300, tab:"B5 (Long)", sec:"Refrão" },
+
+        // G5 - D5 - A5 (longo)
+        { t:'c', n:[F.G2,F.D3,F.G3], txt:'G5', d:['s'], ms:450, tab:"G5", sec:"Refrão" },
+        { t:'c', n:[F.D3,F.A3,F.D4], txt:'D5', d:['k'], ms:450, tab:"D5", sec:"Refrão" },
+        { t:'c', n:[F.A2,F.E3,F.A3], txt:'A5', d:['c','k'], ms:1300, tab:"A5 (Long)", sec:"Refrão" },
+
+        // A5 - B5 (volta)
+        { t:'c', n:[F.A2,F.E3], txt:'A5', d:['s'], ms:450, tab:"A5", sec:"Refrão" },
+        { t:'c', n:[F.B2,F.Fs3,F.B3], txt:'B5', d:['c','k'], ms:1300, tab:"B5 (Long)", sec:"Refrão" }
+    ];
+
+    // Montagem da Música
+    const FULL_SONG = [...PART_A, ...PART_B, ...CHORUS, ...PART_A, ...PART_B];
+    let idx = 0;
+
+    function init() {
+        if(ctx) return true;
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            ctx = new AC();
+            master = ctx.createGain(); master.gain.value = 0.5;
+
+            // Distorção Otimizada
+            drive = ctx.createWaveShaper();
+            drive.curve = makeDistortionCurve(1000);
+            drive.oversample = 'none'; // Performance
+
+            const eq = ctx.createBiquadFilter(); 
+            eq.type = 'lowpass'; eq.frequency.value = 3200;
+
+            drive.connect(eq); eq.connect(master); master.connect(ctx.destination);
+            return true;
+        } catch(e) { return false; }
+    }
+
+    function makeDistortionCurve(k) {
+        const n = 44100, c = new Float32Array(n);
+        for(let i=0; i<n; ++i) {
+            const x = i * 2 / n - 1;
+            c[i] = (3+k)*x*20 * (Math.PI/180) / (Math.PI + k*Math.abs(x));
+        }
+        return c;
+    }
+
+    function killOld() {
+        const t = ctx.currentTime;
+        while(activeVoices.length > 4) {
+            const v = activeVoices.shift();
+            try {
+                v.g.gain.cancelScheduledValues(t);
+                v.g.gain.setValueAtTime(0, t);
+                v.oscs.forEach(o => { o.stop(t); o.disconnect(); });
+            } catch(e){}
+        }
+        activeVoices.forEach(v => {
+            try {
+                v.g.gain.cancelScheduledValues(t);
+                v.g.gain.setValueAtTime(v.g.gain.value, t);
+                v.g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+                v.oscs.forEach(o => o.stop(t + 0.1)); 
+            } catch(e){}
+        });
+        activeVoices = [];
+    }
+
+    function muteAll() {
+        if(!ctx) return;
+        killOld();
+    }
+
+    function playStep() {
+        if(!init()) return;
+        if(ctx.state === 'suspended') ctx.resume();
+
+        killOld();
+
+        const s = FULL_SONG[idx];
+        const t = ctx.currentTime;
+        const v = { oscs: [], g: ctx.createGain() };
+        
+        v.g.gain.setValueAtTime(0, t);
+        v.g.gain.linearRampToValueAtTime(0.7, t + 0.02);
+        v.g.gain.setTargetAtTime(0.3, t + 0.02, 2.0); 
+        v.g.connect(drive);
+
+        if(s.t === 'c') {
+            s.n.forEach(f => createOsc(f, t, 'sawtooth', v));
+        } else {
+            createOsc(s.n, t, 'sawtooth', v, -5);
+            createOsc(s.n, t, 'sawtooth', v, 5);
+        }
+
+        activeVoices.push(v);
+        if(s.d) s.d.forEach(type => playDrum(type, t));
+
+        const info = { txt:s.txt, tab:s.tab, delay:s.ms, sec:s.sec };
+        idx = (idx + 1) % FULL_SONG.length;
+        return info;
+    }
+
+    function createOsc(f, t, type, v, det=0) {
+        const o = ctx.createOscillator();
+        o.type = type; o.frequency.value = f;
+        if(det) o.detune.value = det;
+        o.connect(v.g); o.start(t);
+        v.oscs.push(o);
+    }
+
+    function playDrum(type, t) {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(master);
+
+        if(type==='k'){
+            o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(0.01,t+0.5);
+            g.gain.setValueAtTime(1.2,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5);
+            o.start(t); o.stop(t+0.5);
+        } else if(type==='s'){
+            o.type='triangle'; o.frequency.setValueAtTime(200,t);
+            g.gain.setValueAtTime(0.7,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+            o.start(t); o.stop(t+0.2); playNoise(t, 0.2);
+        } else if(type==='c'){ playNoise(t, 0.8); }
+        else if(type==='h'){ playNoise(t, 0.05); }
+    }
+
+    function playNoise(t, dur) {
+        const b = ctx.createBuffer(1, 22050, 44100);
+        const d = b.getChannelData(0);
+        for(let i=0; i<d.length; i++) d[i] = Math.random()*2-1;
+        const src = ctx.createBufferSource(); src.buffer = b;
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+        src.connect(g); g.connect(master); src.start(t);
+    }
+
+    return { playStep, muteAll, init };
+})();
+
+// UI LOGIC
+const btnStart=document.getElementById('btn-start'), overlay=document.getElementById('overlay');
+const stompBox=document.getElementById('stomp-box'), muteBtn=document.getElementById('mute-btn');
+const actionText=document.getElementById('action-text'), tabLines=document.getElementById('tab-lines');
+const btnDemo=document.getElementById('btn-demo'), secBadge=document.getElementById('section-badge');
+
+btnStart.onclick = () => { AudioCore.init(); overlay.style.display='none'; };
+
+function trigger() {
+    const info = AudioCore.playStep();
+    if(!info) return;
+
+    actionText.innerText = info.txt;
+    secBadge.innerText = info.sec;
+
+    // Muda cor do badge no refrão
+    if(info.sec === "Refrão") {
+        secBadge.style.color = "#ff5555"; secBadge.style.borderColor = "#ff5555";
+    } else {
+        secBadge.style.color = "#d4af37"; secBadge.style.borderColor = "#555";
+    }
+    
+    if(info.tab !== tabLines.textContent) tabLines.textContent = info.tab;
+    tabLines.classList.remove('tab-active');
+    void tabLines.offsetWidth; 
+    tabLines.classList.add('tab-active');
+
+    stompBox.classList.add('stomp-active');
+    setTimeout(()=>stompBox.classList.remove('stomp-active'), 80);
+    return info;
+}
+
+function handleTap(e) { 
+    if(e&&e.cancelable) e.preventDefault(); 
+    if(isDemo) stopDemo(); 
+    trigger(); 
+}
+function handleMute(e) {
+    if(e&&e.cancelable) e.preventDefault();
+    if(isDemo) stopDemo();
+    AudioCore.muteAll();
+    actionText.innerText = "🔇";
+}
+
+stompBox.addEventListener('mousedown', handleTap);
+stompBox.addEventListener('touchstart', handleTap, {passive:false});
+muteBtn.addEventListener('mousedown', handleMute);
+muteBtn.addEventListener('touchstart', handleMute, {passive:false});
+document.addEventListener('keydown', e => { if(e.code==='Space') handleTap(); });
+
+let isDemo=false, tmr=null;
+btnDemo.onclick = () => { isDemo ? stopDemo() : startDemo(); };
+function startDemo() {
+    isDemo=true; btnDemo.classList.add('active'); btnDemo.innerText="PARAR";
+    const loop = () => {
+        if(!isDemo) return;
+        const info = trigger();
+        tmr = setTimeout(loop, info.delay);
+    };
+    loop();
+}
+function stopDemo() {
+    isDemo=false; clearTimeout(tmr); 
+    btnDemo.classList.remove('active'); btnDemo.innerText="▶ Auto Demo";
+}
+</script>
+</body>
+</html>
+
