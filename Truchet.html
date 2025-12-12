@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azulejos Truchet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Desabilitar seleção e comportamentos de toque padrão no canvas */
+        canvas {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* Impede scroll ao arrastar o dedo no canvas */
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans flex flex-col items-center min-h-screen p-4">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-3xl font-bold mb-2 text-blue-400">Azulejos Truchet</h1>
+        <p class="text-sm text-gray-400">Clique ou toque num azulejo para girá-lo.</p>
+    </header>
+
+    <!-- Área Principal: Canvas -->
+    <div class="relative shadow-2xl rounded-lg overflow-hidden border border-gray-700 bg-black">
+        <canvas id="truchetCanvas"></canvas>
+    </div>
+
+    <!-- Painel de Controles -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+        
+        <!-- Controles de Ação -->
+        <div class="flex flex-col gap-4">
+            <h3 class="font-semibold text-lg border-b border-gray-600 pb-2">Ações</h3>
+            <div class="flex gap-2">
+                <button id="btnRandom" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition">
+                    Aleatório
+                </button>
+                <button id="btnReset" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition">
+                    Reiniciar
+                </button>
+            </div>
+            <div class="flex gap-2">
+                <button id="btnPattern1" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded transition text-sm">
+                    Listras
+                </button>
+                <button id="btnPattern2" class="flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-2 px-4 rounded transition text-sm">
+                    Xadrez
+                </button>
+            </div>
+        </div>
+
+        <!-- Controles de Configuração -->
+        <div class="flex flex-col gap-4">
+            <h3 class="font-semibold text-lg border-b border-gray-600 pb-2">Configurações</h3>
+            
+            <!-- Mostrar Grade -->
+            <div class="flex justify-between items-center bg-gray-700 p-2 rounded">
+                <label class="text-sm font-bold text-white" for="showGridInput">Mostrar Grade</label>
+                <input type="checkbox" id="showGridInput" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" checked>
+            </div>
+
+            <!-- Tamanho do Azulejo -->
+            <div>
+                <label class="block text-sm font-medium mb-1">Tamanho: <span id="tileSizeVal" class="text-blue-300">40</span>px</label>
+                <input type="range" id="tileSizeInput" min="30" max="100" value="40" step="10" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <!-- Espessura da Linha -->
+            <div>
+                <label class="block text-sm font-medium mb-1">Espessura: <span id="lineWidthVal" class="text-blue-300">4</span>px</label>
+                <input type="range" id="lineWidthInput" min="1" max="20" value="4" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <!-- Cores -->
+            <div class="flex justify-between items-center">
+                <label class="text-sm font-medium">Cor da Linha:</label>
+                <input type="color" id="colorInput" value="#60a5fa" class="h-8 w-16 bg-transparent border-none cursor-pointer">
+            </div>
+            <div class="flex justify-between items-center">
+                <label class="text-sm font-medium">Cor de Fundo:</label>
+                <input type="color" id="bgInput" value="#000000" class="h-8 w-16 bg-transparent border-none cursor-pointer">
+            </div>
+        </div>
+    </div>
+
+<script>
+const canvas = document.getElementById('truchetCanvas');
+const ctx = canvas.getContext('2d');
+
+// Elementos de UI
+const tileSizeInput = document.getElementById('tileSizeInput');
+const tileSizeVal = document.getElementById('tileSizeVal');
+const lineWidthInput = document.getElementById('lineWidthInput');
+const lineWidthVal = document.getElementById('lineWidthVal');
+const colorInput = document.getElementById('colorInput');
+const bgInput = document.getElementById('bgInput');
+const showGridInput = document.getElementById('showGridInput');
+
+// Estado da Aplicação
+let tileSize = 40;
+let cols = 0;
+let rows = 0;
+let tiles = []; 
+let lineWidth = 4;
+let lineColor = '#60a5fa';
+let bgColor = '#000000';
+let showGrid = true;
+
+function init() {
+    resizeCanvas();
+    createGrid();
+    draw();
+
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        createGrid(true); // Tenta preservar o desenho ao redimensionar
+        draw();
+    });
+}
+
+function resizeCanvas() {
+    // Calcula tamanho disponível, deixando margem para a UI
+    const maxWidth = Math.min(window.innerWidth - 32, 800);
+    const maxHeight = Math.min(window.innerHeight - 300, 600);
+    
+    // Arredonda para o múltiplo mais próximo do tamanho do azulejo
+    const w = Math.floor(maxWidth / tileSize) * tileSize;
+    const h = Math.floor(maxHeight / tileSize) * tileSize;
+
+    // Define tamanho interno do canvas
+    canvas.width = w;
+    canvas.height = h;
+
+    // Recalcula colunas e linhas
+    cols = Math.floor(w / tileSize);
+    rows = Math.floor(h / tileSize);
+}
+
+function createGrid(preserve = false) {
+    const newTiles = [];
+    for (let i = 0; i < cols; i++) {
+        newTiles[i] = [];
+        for (let j = 0; j < rows; j++) {
+            // Se estiver preservando e a posição existia, mantém
+            if (preserve && tiles[i] && tiles[i][j] !== undefined) {
+                newTiles[i][j] = tiles[i][j];
+            } else {
+                newTiles[i][j] = Math.random() > 0.5 ? 1 : 0;
+            }
+        }
+    }
+    tiles = newTiles;
+}
+
+function draw() {
+    // 1. Limpar fundo
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Desenhar Grade (Se ativado)
+    if (showGrid) {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.4)'; 
+        
+        for (let i = 0; i < cols; i++) {
+            for (let j = 0; j < rows; j++) {
+                ctx.strokeRect(i * tileSize, j * tileSize, tileSize, tileSize);
+            }
+        }
+    }
+
+    // 3. Configurar estilo das linhas
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = lineColor;
+    ctx.lineCap = 'round';
+
+    // 4. Desenhar azulejos
+    for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+            drawTile(i, j, tiles[i][j]);
+        }
+    }
+}
+
+function drawTile(i, j, type) {
+    const x = i * tileSize;
+    const y = j * tileSize;
+    const r = tileSize / 2;
+
+    ctx.beginPath();
+    
+    if (type === 0) {
+        // Arcos verticais
+        ctx.arc(x, y, r, 0, Math.PI / 2, false);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(x + tileSize, y + tileSize, r, Math.PI, 1.5 * Math.PI, false);
+        ctx.stroke();
+    } else {
+        // Arcos horizontais
+        ctx.arc(x + tileSize, y, r, Math.PI / 2, Math.PI, false);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(x, y + tileSize, r, 1.5 * Math.PI, 0, false);
+        ctx.stroke();
+    }
+}
+
+// === LÓGICA DE CLIQUE CORRIGIDA ===
+function handleInput(e) {
+    // Prevenir comportamentos padrão do navegador (scroll, zoom, seleção)
+    if (e.cancelable) e.preventDefault();
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    let clientX, clientY;
+    if (e.type === 'touchstart' || e.type === 'touchmove') {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+
+    // Cálculo CORRIGIDO de escala:
+    // Garante que a coordenada do clique seja mapeada corretamente para o tamanho interno do canvas
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+
+    const i = Math.floor(x / tileSize);
+    const j = Math.floor(y / tileSize);
+
+    // Verifica se o clique foi dentro da grade válida
+    if (i >= 0 && i < cols && j >= 0 && j < rows) {
+        // Inverte o estado do azulejo
+        tiles[i][j] = tiles[i][j] === 0 ? 1 : 0;
+        requestAnimationFrame(draw);
+    }
+}
+
+// Adicionar eventos
+canvas.addEventListener('mousedown', handleInput);
+// touchstart com passive: false é crucial para permitir e.preventDefault()
+canvas.addEventListener('touchstart', handleInput, {passive: false});
+
+// --- Listeners da Interface ---
+
+document.getElementById('btnRandom').addEventListener('click', () => {
+    createGrid();
+    draw();
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+    for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+            tiles[i][j] = 0;
+        }
+    }
+    draw();
+});
+
+document.getElementById('btnPattern1').addEventListener('click', () => {
+    for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+            tiles[i][j] = (i % 2 === 0) ? 0 : 1;
+        }
+    }
+    draw();
+});
+
+document.getElementById('btnPattern2').addEventListener('click', () => {
+    for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+            tiles[i][j] = ((i + j) % 2 === 0) ? 0 : 1;
+        }
+    }
+    draw();
+});
+
+showGridInput.addEventListener('change', (e) => {
+    showGrid = e.target.checked;
+    draw();
+});
+
+tileSizeInput.addEventListener('input', (e) => {
+    tileSize = parseInt(e.target.value);
+    tileSizeVal.textContent = tileSize;
+    resizeCanvas();
+    createGrid(); 
+    draw();
+});
+
+lineWidthInput.addEventListener('input', (e) => {
+    lineWidth = parseInt(e.target.value);
+    lineWidthVal.textContent = lineWidth;
+    draw();
+});
+
+colorInput.addEventListener('input', (e) => {
+    lineColor = e.target.value;
+    draw();
+});
+
+bgInput.addEventListener('input', (e) => {
+    bgColor = e.target.value;
+    draw();
+});
+
+// Inicia o app
+init();
+
+</script>
+</body>
+</html>
+
