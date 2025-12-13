@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gravity & Moving Gap (Slower)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1rem;
+            margin: 0;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #ball-count {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff3333;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.4);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #444;
+            font-size: 0.9rem;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Balls</h1>
+        <p id="ball-count">1</p>
+    </div>
+
+    <div id="instructions">Tap screen to restart</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- CONFIGURAÇÕES / SETTINGS ---
+        const BACKGROUND_COLOR = '#050505';
+        const BORDER_COLOR = '#ffffff';
+        const BORDER_THICKNESS = 10;
+        const BALL_RADIUS = 8;    
+        const INITIAL_BALLS = 1;
+        const MAX_BALLS = 10000;  // Limit 10k
+        
+        // Physics (Slower & Smoother)
+        const GRAVITY = 0.15;        // Reduzido de 0.25
+        const BOUNCE_DAMPING = 0.85; 
+        const FRICTION_X = 0.999;
+        const SPAWN_SPEED_FACTOR = 1.1; // Aceleração menor ao multiplicar
+        const MAX_SPEED = 10;           // Reduzido de 20 para evitar rastros/blur
+        
+        // Gap (Opening)
+        let gap = {
+            width: 150,
+            x: 0,
+            speed: 2, // Gap mais lento (era 4)
+            height: BORDER_THICKNESS
+        };
+
+        const canvas = document.getElementById('gameCanvas');
+        // alpha: false ajuda a evitar rastros de transparência e melhora performance
+        const ctx = canvas.getContext('2d', { alpha: false }); 
+        const countElement = document.getElementById('ball-count');
+
+        let width, height;
+        let balls = [];
+
+        // --- BALL CLASS ---
+        class Ball {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = BALL_RADIUS;
+                
+                // Color optimization
+                const hue = Math.floor(Math.random() * 40); 
+                this.color = `hsl(${hue}, 100%, 50%)`;
+            }
+
+            update() {
+                // Physics
+                this.vy += GRAVITY;
+                this.vx *= FRICTION_X;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // --- COLLISIONS ---
+                const leftLimit = BORDER_THICKNESS + this.radius;
+                const rightLimit = width - BORDER_THICKNESS - this.radius;
+                const topLimit = BORDER_THICKNESS + this.radius;
+                const bottomWallY = height - BORDER_THICKNESS - this.radius;
+
+                // Walls
+                if (this.x < leftLimit) {
+                    this.x = leftLimit;
+                    this.vx *= -1 * BOUNCE_DAMPING;
+                } else if (this.x > rightLimit) {
+                    this.x = rightLimit;
+                    this.vx *= -1 * BOUNCE_DAMPING;
+                }
+
+                if (this.y < topLimit) {
+                    this.y = topLimit;
+                    this.vy *= -1 * BOUNCE_DAMPING;
+                }
+
+                // Floor / Gap
+                if (this.y > bottomWallY) {
+                    // Is inside gap area?
+                    const inGap = (this.x > gap.x && this.x < gap.x + gap.width);
+
+                    if (!inGap) {
+                        // Hit the floor
+                        this.y = bottomWallY;
+                        
+                        // Prevent infinite micro-bouncing
+                        if (Math.abs(this.vy) < GRAVITY * 2) {
+                             this.vy = 0;
+                        } else {
+                            this.vy *= -1 * BOUNCE_DAMPING;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            isEscaped() {
+                return (this.y - this.radius > height);
+            }
+        }
+
+        // --- SYSTEM ---
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            gap.width = Math.min(180, width * 0.4);
+            if (gap.x + gap.width > width) gap.x = width - gap.width - BORDER_THICKNESS;
+        }
+
+        function updateGap() {
+            gap.x += gap.speed;
+            if (gap.x <= 0) {
+                gap.x = 0;
+                gap.speed *= -1;
+            }
+            if (gap.x + gap.width >= width) {
+                gap.x = width - gap.width;
+                gap.speed *= -1;
+            }
+        }
+
+        function spawnInitialBall() {
+            balls = [];
+            // Velocidade inicial reduzida proporcionalmente
+            balls.push(new Ball(width / 2, height * 0.3, (Math.random() - 0.5) * 3, 0));
+        }
+
+        function multiplyBalls(originBall) {
+            // CHECK MAX LIMIT 10k
+            if (balls.length >= MAX_BALLS) return;
+
+            let speed = Math.sqrt(originBall.vx**2 + originBall.vy**2);
+            speed = Math.min(speed * SPAWN_SPEED_FACTOR, MAX_SPEED);
+            // Velocidade mínima reduzida para 3 (era 5)
+            speed = Math.max(speed, 3);
+
+            // Create 2 balls
+            for (let i = 0; i < 2; i++) {
+                if (balls.length >= MAX_BALLS) break;
+
+                const newX = Math.random() * (width - 100) + 50;
+                const newY = height * 0.15; 
+                
+                const angle = Math.random() * Math.PI; 
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.abs(Math.sin(angle) * speed);
+
+                balls.push(new Ball(newX, newY, vx, vy));
+            }
+        }
+
+        function drawWorld() {
+            // Clear screen COMPLETE (No trails)
+            ctx.fillStyle = BACKGROUND_COLOR;
+            ctx.fillRect(0, 0, width, height);
+
+            // Walls
+            ctx.lineWidth = BORDER_THICKNESS;
+            ctx.strokeStyle = BORDER_COLOR;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(BORDER_THICKNESS/2, height); 
+            ctx.lineTo(BORDER_THICKNESS/2, 0);      
+            ctx.lineTo(width - BORDER_THICKNESS/2, 0); 
+            ctx.lineTo(width - BORDER_THICKNESS/2, height); 
+            ctx.stroke();
+
+            // Floor split
+            ctx.beginPath();
+            ctx.moveTo(0, height - BORDER_THICKNESS/2);
+            ctx.lineTo(gap.x, height - BORDER_THICKNESS/2);
+            
+            ctx.moveTo(gap.x + gap.width, height - BORDER_THICKNESS/2);
+            ctx.lineTo(width, height - BORDER_THICKNESS/2);
+            
+            // Sombra leve apenas no chão
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#ffffff";
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Importante: Resetar sombra para não afetar as bolas
+        }
+
+        function animate() {
+            updateGap();
+            drawWorld();
+            
+            let ballsEscaped = [];
+
+            for (let i = 0; i < balls.length; i++) {
+                const ball = balls[i];
+                ball.update();
+                ball.draw();
+                
+                if (ball.isEscaped()) {
+                    ballsEscaped.push(ball);
+                }
+            }
+
+            // Remove and multiply
+            for (let i = 0; i < ballsEscaped.length; i++) {
+                const ball = ballsEscaped[i];
+                const index = balls.indexOf(ball);
+                if (index > -1) {
+                    balls.splice(index, 1);
+                    multiplyBalls(ball);
+                }
+            }
+
+            countElement.innerText = balls.length;
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('pointerdown', () => {
+             // Restart on click/tap
+             spawnInitialBall();
+        });
+
+        resize();
+        spawnInitialBall();
+        animate();
+
+    </script>
+</body>
+</html>
