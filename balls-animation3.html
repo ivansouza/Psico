@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ball Collisions (3k Limit)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1rem;
+            margin: 0;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #ball-count {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff3333;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.4);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #444;
+            font-size: 0.9rem;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Slider Styles */
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(2px);
+        }
+
+        label {
+            display: block;
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Balls</h1>
+        <p id="ball-count">1</p>
+    </div>
+
+    <div id="controls">
+        <label for="gap-slider">Gap Size</label>
+        <input type="range" id="gap-slider" min="20" max="300" value="150">
+    </div>
+
+    <div id="instructions">Tap screen to restart</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- CONFIGURAÇÕES / SETTINGS ---
+        const BACKGROUND_COLOR = '#050505';
+        const BORDER_COLOR = '#ffffff';
+        const BORDER_THICKNESS = 10;
+        const BALL_RADIUS = 7;    // Slightly smaller for better flow
+        const MAX_BALLS = 3000;   // Reduced limit for collision performance
+        
+        // Physics
+        const GRAVITY = 0.15;
+        const BOUNCE_DAMPING = 0.85; 
+        const FRICTION_X = 0.999;
+        const SPAWN_SPEED_FACTOR = 1.1;
+        const MAX_SPEED = 10;
+        
+        // Grid Optimization Settings
+        // The cell size should be slightly larger than the ball diameter
+        const GRID_CELL_SIZE = BALL_RADIUS * 2.2;
+
+        // Gap (Opening)
+        let gap = {
+            width: 150,
+            x: 0,
+            speed: 2,
+            height: BORDER_THICKNESS
+        };
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); 
+        const countElement = document.getElementById('ball-count');
+        const gapSlider = document.getElementById('gap-slider');
+
+        let width, height;
+        let balls = [];
+        let grid = []; // Spatial Grid
+        let gridCols = 0;
+        let gridRows = 0;
+
+        // --- BALL CLASS ---
+        class Ball {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = BALL_RADIUS;
+                this.id = Math.random(); // Unique ID for collision checks
+                
+                const hue = Math.floor(Math.random() * 40); 
+                this.color = `hsl(${hue}, 100%, 50%)`;
+            }
+
+            update() {
+                // Physics
+                this.vy += GRAVITY;
+                this.vx *= FRICTION_X;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // --- WALL COLLISIONS ---
+                const leftLimit = BORDER_THICKNESS + this.radius;
+                const rightLimit = width - BORDER_THICKNESS - this.radius;
+                const topLimit = BORDER_THICKNESS + this.radius;
+                const bottomWallY = height - BORDER_THICKNESS - this.radius;
+
+                // Walls
+                if (this.x < leftLimit) {
+                    this.x = leftLimit;
+                    this.vx *= -1 * BOUNCE_DAMPING;
+                } else if (this.x > rightLimit) {
+                    this.x = rightLimit;
+                    this.vx *= -1 * BOUNCE_DAMPING;
+                }
+
+                if (this.y < topLimit) {
+                    this.y = topLimit;
+                    this.vy *= -1 * BOUNCE_DAMPING;
+                }
+
+                // Floor / Gap
+                if (this.y > bottomWallY) {
+                    const inGap = (this.x > gap.x && this.x < gap.x + gap.width);
+
+                    if (!inGap) {
+                        this.y = bottomWallY;
+                        if (Math.abs(this.vy) < GRAVITY * 2) {
+                             this.vy = 0;
+                        } else {
+                            this.vy *= -1 * BOUNCE_DAMPING;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            isEscaped() {
+                return (this.y - this.radius > height);
+            }
+        }
+
+        // --- SPATIAL GRID SYSTEM ---
+        function initGrid() {
+            gridCols = Math.ceil(width / GRID_CELL_SIZE);
+            gridRows = Math.ceil(height / GRID_CELL_SIZE);
+            grid = new Array(gridCols * gridRows).fill(null).map(() => []);
+        }
+
+        function clearGrid() {
+            // Reset grid arrays without creating new objects (garbage collection optimization)
+            for (let i = 0; i < grid.length; i++) {
+                grid[i].length = 0;
+            }
+        }
+
+        function addToGrid(ball) {
+            // Determine which cell the ball is in
+            // Clamp values to ensure they stay within grid bounds
+            let col = Math.floor(ball.x / GRID_CELL_SIZE);
+            let row = Math.floor(ball.y / GRID_CELL_SIZE);
+            
+            if (col < 0) col = 0;
+            if (col >= gridCols) col = gridCols - 1;
+            if (row < 0) row = 0;
+            if (row >= gridRows) row = gridRows - 1;
+
+            const index = row * gridCols + col;
+            grid[index].push(ball);
+        }
+
+        function resolveCollisions() {
+            const diameter = BALL_RADIUS * 2;
+            const diameterSq = diameter * diameter;
+
+            // Iterate through each populated cell
+            for (let i = 0; i < grid.length; i++) {
+                const cell = grid[i];
+                if (cell.length < 2) continue; // No collisions possible in this cell if < 2 balls
+
+                // Check collisions within the cell
+                for (let a = 0; a < cell.length; a++) {
+                    const b1 = cell[a];
+                    
+                    for (let b = a + 1; b < cell.length; b++) {
+                        const b2 = cell[b];
+
+                        // Fast distance check (Squared distance)
+                        const dx = b2.x - b1.x;
+                        const dy = b2.y - b1.y;
+                        const distSq = dx * dx + dy * dy;
+
+                        if (distSq < diameterSq && distSq > 0) {
+                            // COLLISION DETECTED
+                            const dist = Math.sqrt(distSq);
+                            
+                            // 1. Resolve Overlap (prevent sticking)
+                            const overlap = 0.5 * (diameter - dist);
+                            const nx = dx / dist; // Normal vector X
+                            const ny = dy / dist; // Normal vector Y
+
+                            b1.x -= overlap * nx;
+                            b1.y -= overlap * ny;
+                            b2.x += overlap * nx;
+                            b2.y += overlap * ny;
+
+                            // 2. Resolve Velocity (Elastic Collision)
+                            // Tangent vector
+                            const tx = -ny;
+                            const ty = nx;
+
+                            // Dot Product Tangent
+                            const dpTan1 = b1.vx * tx + b1.vy * ty;
+                            const dpTan2 = b2.vx * tx + b2.vy * ty;
+
+                            // Dot Product Normal
+                            const dpNorm1 = b1.vx * nx + b1.vy * ny;
+                            const dpNorm2 = b2.vx * nx + b2.vy * ny;
+
+                            // Conservation of momentum (Swap normal velocities for equal mass)
+                            const m1 = dpNorm2;
+                            const m2 = dpNorm1;
+
+                            // Update velocities
+                            b1.vx = tx * dpTan1 + nx * m1;
+                            b1.vy = ty * dpTan1 + ny * m1;
+                            b2.vx = tx * dpTan2 + nx * m2;
+                            b2.vy = ty * dpTan2 + ny * m2;
+
+                            // Damping for collision
+                            b1.vx *= 0.99; b1.vy *= 0.99;
+                            b2.vx *= 0.99; b2.vy *= 0.99;
+                        }
+                    }
+                }
+            }
+            
+            // Note: A perfect grid implementation would check neighbor cells too.
+            // For performance/simplicity in JS with 3k balls, we check intra-cell only.
+            // Since cell size > diameter, most collisions are caught. 
+            // Edge cases on cell borders might miss a frame of collision, which is acceptable here.
+        }
+
+        // --- SYSTEM ---
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            const maxGap = Math.floor(width * 0.8);
+            gapSlider.max = maxGap;
+            
+            if (gap.width > maxGap) {
+                gap.width = maxGap;
+                gapSlider.value = maxGap;
+            }
+            if (gap.x + gap.width > width) gap.x = width - gap.width - BORDER_THICKNESS;
+
+            initGrid();
+        }
+
+        gapSlider.addEventListener('input', (e) => {
+            gap.width = parseInt(e.target.value);
+            if (gap.x + gap.width > width) {
+                gap.x = width - gap.width;
+            }
+        });
+
+        function updateGap() {
+            gap.x += gap.speed;
+            if (gap.x <= 0) {
+                gap.x = 0;
+                gap.speed *= -1;
+            }
+            if (gap.x + gap.width >= width) {
+                gap.x = width - gap.width;
+                gap.speed *= -1;
+            }
+        }
+
+        function spawnInitialBall() {
+            balls = [];
+            balls.push(new Ball(width / 2, height * 0.3, (Math.random() - 0.5) * 3, 0));
+        }
+
+        function multiplyBalls(originBall) {
+            if (balls.length >= MAX_BALLS) return;
+
+            let speed = Math.sqrt(originBall.vx**2 + originBall.vy**2);
+            speed = Math.min(speed * SPAWN_SPEED_FACTOR, MAX_SPEED);
+            speed = Math.max(speed, 3);
+
+            for (let i = 0; i < 2; i++) {
+                if (balls.length >= MAX_BALLS) break;
+
+                const newX = Math.random() * (width - 100) + 50;
+                const newY = height * 0.15; 
+                
+                const angle = Math.random() * Math.PI; 
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.abs(Math.sin(angle) * speed);
+
+                balls.push(new Ball(newX, newY, vx, vy));
+            }
+        }
+
+        function drawWorld() {
+            ctx.fillStyle = BACKGROUND_COLOR;
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.lineWidth = BORDER_THICKNESS;
+            ctx.strokeStyle = BORDER_COLOR;
+            ctx.lineCap = 'round';
+
+            // Walls
+            ctx.beginPath();
+            ctx.moveTo(BORDER_THICKNESS/2, height); 
+            ctx.lineTo(BORDER_THICKNESS/2, 0);      
+            ctx.lineTo(width - BORDER_THICKNESS/2, 0); 
+            ctx.lineTo(width - BORDER_THICKNESS/2, height); 
+            ctx.stroke();
+
+            // Floor
+            ctx.beginPath();
+            ctx.moveTo(0, height - BORDER_THICKNESS/2);
+            ctx.lineTo(gap.x, height - BORDER_THICKNESS/2);
+            ctx.moveTo(gap.x + gap.width, height - BORDER_THICKNESS/2);
+            ctx.lineTo(width, height - BORDER_THICKNESS/2);
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#ffffff";
+            ctx.stroke();
+            ctx.shadowBlur = 0; 
+        }
+
+        function animate() {
+            updateGap();
+            drawWorld();
+            
+            clearGrid();
+
+            let ballsEscaped = [];
+
+            // 1. Update Positions & Add to Grid
+            for (let i = 0; i < balls.length; i++) {
+                const ball = balls[i];
+                ball.update();
+                addToGrid(ball); 
+                
+                if (ball.isEscaped()) {
+                    ballsEscaped.push(ball);
+                }
+            }
+
+            // 2. Resolve Ball-Ball Collisions
+            resolveCollisions();
+
+            // 3. Draw Balls (After physics resolution for smooth look)
+            for (let i = 0; i < balls.length; i++) {
+                balls[i].draw();
+            }
+
+            // 4. Handle Logic (Spawning/Removing)
+            for (let i = 0; i < ballsEscaped.length; i++) {
+                const ball = ballsEscaped[i];
+                const index = balls.indexOf(ball);
+                if (index > -1) {
+                    balls.splice(index, 1);
+                    multiplyBalls(ball);
+                }
+            }
+
+            countElement.innerText = balls.length;
+            requestAnimationFrame(animate);
+        }
+
+        document.getElementById('controls').addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+        });
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('pointerdown', () => {
+             spawnInitialBall();
+        });
+
+        // Init
+        resize();
+        gap.width = parseInt(gapSlider.value);
+        spawnInitialBall();
+        animate();
+
+    </script>
+</body>
+</html>
