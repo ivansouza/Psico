@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gravity & Slider Gap</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1rem;
+            margin: 0;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #ball-count {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff3333;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.4);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #444;
+            font-size: 0.9rem;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Slider Styles */
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            z-index: 20; /* Above UI layer to be clickable */
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(2px);
+        }
+
+        label {
+            display: block;
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Balls</h1>
+        <p id="ball-count">1</p>
+    </div>
+
+    <!-- Controle do Slider -->
+    <div id="controls">
+        <label for="gap-slider">Gap Size</label>
+        <input type="range" id="gap-slider" min="20" max="300" value="150">
+    </div>
+
+    <div id="instructions">Tap screen to restart</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- CONFIGURAÇÕES / SETTINGS ---
+        const BACKGROUND_COLOR = '#050505';
+        const BORDER_COLOR = '#ffffff';
+        const BORDER_THICKNESS = 10;
+        const BALL_RADIUS = 8;    
+        const INITIAL_BALLS = 1;
+        const MAX_BALLS = 10000;  
+        
+        // Physics (Slow & Smooth)
+        const GRAVITY = 0.15;        
+        const BOUNCE_DAMPING = 0.85; 
+        const FRICTION_X = 0.999;
+        const SPAWN_SPEED_FACTOR = 1.1; 
+        const MAX_SPEED = 10;           
+        
+        // Gap (Opening)
+        let gap = {
+            width: 150,
+            x: 0,
+            speed: 2, 
+            height: BORDER_THICKNESS
+        };
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); 
+        const countElement = document.getElementById('ball-count');
+        const gapSlider = document.getElementById('gap-slider');
+
+        let width, height;
+        let balls = [];
+
+        // --- BALL CLASS ---
+        class Ball {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = BALL_RADIUS;
+                
+                const hue = Math.floor(Math.random() * 40); 
+                this.color = `hsl(${hue}, 100%, 50%)`;
+            }
+
+            update() {
+                // Physics
+                this.vy += GRAVITY;
+                this.vx *= FRICTION_X;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // --- COLLISIONS ---
+                const leftLimit = BORDER_THICKNESS + this.radius;
+                const rightLimit = width - BORDER_THICKNESS - this.radius;
+                const topLimit = BORDER_THICKNESS + this.radius;
+                const bottomWallY = height - BORDER_THICKNESS - this.radius;
+
+                // Walls
+                if (this.x < leftLimit) {
+                    this.x = leftLimit;
+                    this.vx *= -1 * BOUNCE_DAMPING;
+                } else if (this.x > rightLimit) {
+                    this.x = rightLimit;
+                    this.vx *= -1 * BOUNCE_DAMPING;
+                }
+
+                if (this.y < topLimit) {
+                    this.y = topLimit;
+                    this.vy *= -1 * BOUNCE_DAMPING;
+                }
+
+                // Floor / Gap
+                if (this.y > bottomWallY) {
+                    const inGap = (this.x > gap.x && this.x < gap.x + gap.width);
+
+                    if (!inGap) {
+                        this.y = bottomWallY;
+                        
+                        if (Math.abs(this.vy) < GRAVITY * 2) {
+                             this.vy = 0;
+                        } else {
+                            this.vy *= -1 * BOUNCE_DAMPING;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            isEscaped() {
+                return (this.y - this.radius > height);
+            }
+        }
+
+        // --- SYSTEM ---
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Adjust slider maximum based on screen width
+            const maxGap = Math.floor(width * 0.8);
+            gapSlider.max = maxGap;
+            
+            // Ensure gap isn't wider than screen
+            if (gap.width > maxGap) {
+                gap.width = maxGap;
+                gapSlider.value = maxGap;
+            }
+
+            // Keep gap inside screen
+            if (gap.x + gap.width > width) gap.x = width - gap.width - BORDER_THICKNESS;
+        }
+
+        // Slider Event Listener
+        gapSlider.addEventListener('input', (e) => {
+            gap.width = parseInt(e.target.value);
+            // Safety check if gap becomes too big during movement
+            if (gap.x + gap.width > width) {
+                gap.x = width - gap.width;
+            }
+        });
+
+        function updateGap() {
+            gap.x += gap.speed;
+            
+            // Bounce gap logic
+            if (gap.x <= 0) {
+                gap.x = 0;
+                gap.speed *= -1;
+            }
+            if (gap.x + gap.width >= width) {
+                gap.x = width - gap.width;
+                gap.speed *= -1;
+            }
+        }
+
+        function spawnInitialBall() {
+            balls = [];
+            balls.push(new Ball(width / 2, height * 0.3, (Math.random() - 0.5) * 3, 0));
+        }
+
+        function multiplyBalls(originBall) {
+            if (balls.length >= MAX_BALLS) return;
+
+            let speed = Math.sqrt(originBall.vx**2 + originBall.vy**2);
+            speed = Math.min(speed * SPAWN_SPEED_FACTOR, MAX_SPEED);
+            speed = Math.max(speed, 3);
+
+            for (let i = 0; i < 2; i++) {
+                if (balls.length >= MAX_BALLS) break;
+
+                const newX = Math.random() * (width - 100) + 50;
+                const newY = height * 0.15; 
+                
+                const angle = Math.random() * Math.PI; 
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.abs(Math.sin(angle) * speed);
+
+                balls.push(new Ball(newX, newY, vx, vy));
+            }
+        }
+
+        function drawWorld() {
+            ctx.fillStyle = BACKGROUND_COLOR;
+            ctx.fillRect(0, 0, width, height);
+
+            // Walls
+            ctx.lineWidth = BORDER_THICKNESS;
+            ctx.strokeStyle = BORDER_COLOR;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(BORDER_THICKNESS/2, height); 
+            ctx.lineTo(BORDER_THICKNESS/2, 0);      
+            ctx.lineTo(width - BORDER_THICKNESS/2, 0); 
+            ctx.lineTo(width - BORDER_THICKNESS/2, height); 
+            ctx.stroke();
+
+            // Floor split
+            ctx.beginPath();
+            ctx.moveTo(0, height - BORDER_THICKNESS/2);
+            ctx.lineTo(gap.x, height - BORDER_THICKNESS/2);
+            
+            ctx.moveTo(gap.x + gap.width, height - BORDER_THICKNESS/2);
+            ctx.lineTo(width, height - BORDER_THICKNESS/2);
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#ffffff";
+            ctx.stroke();
+            ctx.shadowBlur = 0; 
+        }
+
+        function animate() {
+            updateGap();
+            drawWorld();
+            
+            let ballsEscaped = [];
+
+            for (let i = 0; i < balls.length; i++) {
+                const ball = balls[i];
+                ball.update();
+                ball.draw();
+                
+                if (ball.isEscaped()) {
+                    ballsEscaped.push(ball);
+                }
+            }
+
+            for (let i = 0; i < ballsEscaped.length; i++) {
+                const ball = ballsEscaped[i];
+                const index = balls.indexOf(ball);
+                if (index > -1) {
+                    balls.splice(index, 1);
+                    multiplyBalls(ball);
+                }
+            }
+
+            countElement.innerText = balls.length;
+            requestAnimationFrame(animate);
+        }
+
+        // Prevent restarting when clicking on the slider
+        document.getElementById('controls').addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+        });
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('pointerdown', () => {
+             spawnInitialBall();
+        });
+
+        // Init
+        resize();
+        gap.width = parseInt(gapSlider.value); // Sync initial gap with slider
+        spawnInitialBall();
+        animate();
+
+    </script>
+</body>
+</html>
