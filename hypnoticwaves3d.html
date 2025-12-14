@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ondas Hipnóticas 3D</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: black; user-select: none; }
+        
+        /* Customização dos Sliders para combinar com o tema transparente */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+        
+        /* Transições suaves */
+        #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .hidden-sidebar { transform: translateX(100%); }
+        .show-sidebar { transform: translateX(0); }
+    </style>
+</head>
+<body class="font-sans text-white">
+
+    <!-- Container do Canvas 3D -->
+    <div id="canvas-container" class="absolute inset-0 cursor-move z-0" title="Arraste para girar em 3D"></div>
+
+    <!-- Dica Flutuante -->
+    <div class="absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-2 text-white/40 bg-black/20 px-4 py-2 rounded-full pointer-events-none text-xs backdrop-blur-sm z-10">
+        <i data-lucide="rotate-3d" class="w-4 h-4"></i>
+        <span>Arraste para girar</span>
+    </div>
+
+    <!-- Botão Abrir/Fechar Menu -->
+    <button id="toggle-btn" class="absolute top-4 right-4 z-50 p-3 bg-white/5 backdrop-blur-md rounded-full hover:bg-white/20 transition-all border border-white/10 shadow-lg group">
+        <i data-lucide="settings" id="icon-settings" class="w-5 h-5 text-gray-200 group-hover:text-white transition-colors"></i>
+        <i data-lucide="x" id="icon-close" class="w-5 h-5 text-gray-200 group-hover:text-white hidden transition-colors"></i>
+    </button>
+
+    <!-- Painel Lateral Transparente (Glassmorphism) -->
+    <div id="sidebar" class="hidden-sidebar absolute top-0 right-0 h-full w-80 sm:w-96 bg-black/10 backdrop-blur-md border-l border-white/10 z-40 overflow-y-auto">
+        <div class="p-6 pt-20 space-y-8 pb-24">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <h2 class="text-sm font-bold text-gray-200 uppercase tracking-widest" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5)">Controles 3D</h2>
+                <button id="btn-random" class="flex items-center gap-1 text-[10px] bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-100 border border-indigo-400/30 px-3 py-1.5 rounded-full transition-colors">
+                    <i data-lucide="zap" class="w-3 h-3"></i> Random
+                </button>
+            </div>
+
+            <!-- Grupo 1: Geometria -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-blue-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="box" class="w-3 h-3"></i> Geometria
+                </h3>
+                
+                <!-- Slider Template -->
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Qtd. Braços</label>
+                        <span id="val-numArms" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">20</span>
+                    </div>
+                    <input type="range" id="inp-numArms" min="1" max="50" step="1" value="20" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Torção (Twist)</label>
+                        <span id="val-twist" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.0</span>
+                    </div>
+                    <input type="range" id="inp-twist" min="-5" max="5" step="0.1" value="0" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Densidade</label>
+                        <span id="val-particlesPerArm" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">100</span>
+                    </div>
+                    <input type="range" id="inp-particlesPerArm" min="20" max="200" step="10" value="100" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Grupo 2: Onda -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-green-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="layers" class="w-3 h-3"></i> Onda (Z)
+                </h3>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Amplitude</label>
+                        <span id="val-amplitude" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">15</span>
+                    </div>
+                    <input type="range" id="inp-amplitude" min="0" max="80" step="1" value="15" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Frequência</label>
+                        <span id="val-frequency" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">2.0</span>
+                    </div>
+                    <input type="range" id="inp-frequency" min="0.1" max="5" step="0.1" value="2" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Velocidade</label>
+                        <span id="val-speed" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.05</span>
+                    </div>
+                    <input type="range" id="inp-speed" min="0" max="0.3" step="0.01" value="0.05" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Grupo 3: Visual -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="eye" class="w-3 h-3"></i> Renderização
+                </h3>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Tamanho Ponto</label>
+                        <span id="val-pointSize" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">1.5</span>
+                    </div>
+                    <input type="range" id="inp-pointSize" min="0.1" max="4" step="0.1" value="1.5" class="w-full">
+                </div>
+
+                <div class="flex items-center justify-between bg-white/10 backdrop-blur-sm p-3 rounded-lg mt-2 border border-white/5">
+                    <label class="text-sm text-gray-200 font-medium">Cor</label>
+                    <div class="flex items-center gap-3">
+                        <span id="val-color-text" class="text-[10px] font-mono text-gray-300 uppercase">#00FFCC</span>
+                        <div class="relative w-6 h-6 rounded-full overflow-hidden border border-white/20">
+                             <input type="color" id="inp-color" value="#00ffcc" class="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 bg-transparent border-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão Play/Pause -->
+            <div class="pt-4">
+                <button id="btn-playpause" class="w-full flex justify-center items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all text-xs tracking-widest uppercase border backdrop-blur-sm bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
+                    <i data-lucide="pause" class="w-4 h-4"></i>
+                    <span>Pausar Tempo</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO INICIAL (STATE) ---
+        const config = {
+            numArms: 20,
+            particlesPerArm: 100,
+            frequency: 2,
+            amplitude: 15,
+            twist: 0,
+            speed: 0.05,
+            color: '#00ffcc',
+            pointSize: 1.5,
+            spread: 50
+        };
+
+        let isPlaying = true;
+        let time = 0;
+        let frameId;
+        
+        // --- THREE.JS SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x000000, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.z = 80;
+        camera.position.y = -40;
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // --- SISTEMA DE PARTÍCULAS ---
+        const maxParticles = 30000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(maxParticles * 3);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        // Textura redonda via Canvas
+        function getDotTexture() {
+            const c = document.createElement('canvas');
+            c.width = 32; c.height = 32;
+            const ctx = c.getContext('2d');
+            ctx.beginPath();
+            ctx.arc(16, 16, 14, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            return new THREE.CanvasTexture(c);
+        }
+
+        const material = new THREE.PointsMaterial({
+            color: config.color,
+            size: config.pointSize,
+            map: getDotTexture(),
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            alphaTest: 0.1
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // --- LÓGICA DE ATUALIZAÇÃO ---
+        function updateParticles() {
+            const pos = particles.geometry.attributes.position.array;
+            let i = 0;
+            const totalParticles = config.numArms * config.particlesPerArm;
+
+            for (let arm = 0; arm < config.numArms; arm++) {
+                for (let p = 0; p < config.particlesPerArm; p++) {
+                    const t = p / config.particlesPerArm; 
+                    const r = t * config.spread;
+                    
+                    // Ângulo + Twist
+                    const angle = (arm / config.numArms) * Math.PI * 2 + (t * config.twist);
+                    
+                    const x = Math.cos(angle) * r;
+                    const y = Math.sin(angle) * r;
+
+                    // Onda Z
+                    const wave = Math.sin((r * config.frequency * 0.1) - time);
+                    const z = wave * config.amplitude;
+
+                    pos[i] = x;
+                    pos[i+1] = y;
+                    pos[i+2] = z;
+                    i += 3;
+                }
+            }
+
+            // Esconder partículas não usadas
+            for (let j = i; j < maxParticles * 3; j++) {
+                pos[j] = 0;
+            }
+
+            geometry.setDrawRange(0, totalParticles);
+            particles.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // --- CONTROLES DE CÂMERA (MOUSE/TOUCH) ---
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let rotationTarget = { x: 0.6, y: 0 };
+
+        function handleStart(x, y) {
+            isDragging = true;
+            previousMousePosition = { x, y };
+        }
+
+        function handleMove(x, y) {
+            if (!isDragging) return;
+            const deltaMove = {
+                x: x - previousMousePosition.x,
+                y: y - previousMousePosition.y
+            };
+            
+            // Ajustar rotação
+            rotationTarget.y += deltaMove.x * 0.005;
+            rotationTarget.x += deltaMove.y * 0.005;
+            
+            previousMousePosition = { x, y };
+        }
+
+        function handleEnd() { isDragging = false; }
+
+        // Mouse Events
+        container.addEventListener('mousedown', (e) => handleStart(e.clientX, e.clientY));
+        container.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+        container.addEventListener('mouseup', handleEnd);
+        container.addEventListener('mouseleave', handleEnd);
+
+        // Touch Events
+        container.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 1) handleStart(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+        container.addEventListener('touchmove', (e) => {
+            if(e.touches.length === 1) {
+                e.preventDefault(); // Evita scroll da página
+                handleMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, {passive: false});
+        container.addEventListener('touchend', handleEnd);
+
+        // --- LOOP DE ANIMAÇÃO ---
+        function animate() {
+            frameId = requestAnimationFrame(animate);
+
+            if (isPlaying) {
+                time += config.speed;
+            }
+
+            // Suavização da câmera (lerp)
+            scene.rotation.x += (rotationTarget.x - scene.rotation.x) * 0.1;
+            scene.rotation.y += (rotationTarget.y - scene.rotation.y) * 0.1;
+
+            updateParticles();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- UI E INTERAÇÃO ---
+        
+        // 1. Mapeamento de inputs
+        const inputs = {
+            numArms: document.getElementById('inp-numArms'),
+            twist: document.getElementById('inp-twist'),
+            particlesPerArm: document.getElementById('inp-particlesPerArm'),
+            amplitude: document.getElementById('inp-amplitude'),
+            frequency: document.getElementById('inp-frequency'),
+            speed: document.getElementById('inp-speed'),
+            pointSize: document.getElementById('inp-pointSize'),
+            color: document.getElementById('inp-color')
+        };
+
+        const displays = {
+            numArms: document.getElementById('val-numArms'),
+            twist: document.getElementById('val-twist'),
+            particlesPerArm: document.getElementById('val-particlesPerArm'),
+            amplitude: document.getElementById('val-amplitude'),
+            frequency: document.getElementById('val-frequency'),
+            speed: document.getElementById('val-speed'),
+            pointSize: document.getElementById('val-pointSize'),
+            color: document.getElementById('val-color-text')
+        };
+
+        // 2. Atualizar valores
+        function updateConfigFromUI() {
+            // Numbers
+            for (const key in inputs) {
+                if (key !== 'color') {
+                    const val = parseFloat(inputs[key].value);
+                    config[key] = val;
+                    if(displays[key]) displays[key].innerText = val.toFixed(key === 'numArms' || key === 'amplitude' || key === 'particlesPerArm' ? 0 : (key === 'speed' ? 2 : 1));
+                }
+            }
+            
+            // Color
+            config.color = inputs.color.value;
+            displays.color.innerText = config.color;
+
+            // Updates Materiais
+            particles.material.size = config.pointSize;
+            particles.material.color.set(config.color);
+        }
+
+        // Adicionar Listeners
+        for (const key in inputs) {
+            inputs[key].addEventListener('input', updateConfigFromUI);
+        }
+
+        // 3. Toggle Sidebar
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const iconSettings = document.getElementById('icon-settings');
+        const iconClose = document.getElementById('icon-close');
+        let sidebarOpen = false;
+
+        toggleBtn.addEventListener('click', () => {
+            sidebarOpen = !sidebarOpen;
+            if (sidebarOpen) {
+                sidebar.classList.remove('hidden-sidebar');
+                sidebar.classList.add('show-sidebar');
+                iconSettings.classList.add('hidden');
+                iconClose.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('hidden-sidebar');
+                sidebar.classList.remove('show-sidebar');
+                iconSettings.classList.remove('hidden');
+                iconClose.classList.add('hidden');
+            }
+        });
+
+        // 4. Random Button
+        document.getElementById('btn-random').addEventListener('click', () => {
+            // Gerar valores aleatórios
+            const rVal = (min, max) => Math.random() * (max - min) + min;
+            
+            inputs.numArms.value = Math.floor(rVal(5, 40));
+            inputs.twist.value = rVal(-3, 3);
+            inputs.frequency.value = rVal(0.5, 4);
+            inputs.amplitude.value = rVal(5, 50);
+            inputs.color.value = '#' + Math.floor(Math.random()*16777215).toString(16);
+            
+            updateConfigFromUI();
+        });
+
+        // 5. Play/Pause
+        const playBtn = document.getElementById('btn-playpause');
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const icon = playBtn.querySelector('i');
+            const span = playBtn.querySelector('span');
+            
+            if (isPlaying) {
+                // Style para Play
+                playBtn.classList.remove('bg-green-500/20', 'text-green-300', 'border-green-500/30');
+                playBtn.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/30');
+                span.innerText = "Pausar Tempo";
+                // Recriar icone pause (Lucide não troca dinamicamente sem re-render, então simplificamos o texto ou usamos replace)
+                playBtn.innerHTML = ''; 
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', 'pause');
+                newIcon.className = "w-4 h-4 mr-2";
+                playBtn.appendChild(newIcon);
+                const newSpan = document.createElement('span');
+                newSpan.innerText = "Pausar Tempo";
+                playBtn.appendChild(newSpan);
+            } else {
+                // Style para Pause
+                playBtn.classList.add('bg-green-500/20', 'text-green-300', 'border-green-500/30');
+                playBtn.classList.remove('bg-red-500/20', 'text-red-300', 'border-red-500/30');
+                
+                playBtn.innerHTML = ''; 
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', 'play');
+                newIcon.className = "w-4 h-4 mr-2";
+                playBtn.appendChild(newIcon);
+                const newSpan = document.createElement('span');
+                newSpan.innerText = "Retomar";
+                playBtn.appendChild(newSpan);
+            }
+            lucide.createIcons();
+        });
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // Inicializar Icones
+        lucide.createIcons();
+
+    </script>
+</body>
+</html>
+
