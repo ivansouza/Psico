@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Globo de Neve Synthwave V25</title>
+    <title>Snow Globe V26</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #010103; user-select: none; -webkit-user-select: none; font-family: monospace; }
         canvas { display: block; }
@@ -14,11 +14,11 @@
             z-index: 10;
         }
         
-        /* Botão Shake - Movido mais para a direita (perto da borda) */
+        /* Shake Button - Bottom Right */
         #shakeBtn {
             position: absolute;
             bottom: 30px;
-            right: 10px; /* Mais para a direita */
+            right: 10px; /* Aligned to right */
             background: rgba(0, 255, 255, 0.1);
             border: 1px solid rgba(0, 255, 255, 0.4);
             color: rgba(255, 255, 255, 0.8);
@@ -32,7 +32,7 @@
             transition: all 0.3s ease;
             z-index: 20; 
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
-            white-space: nowrap; /* Impede quebra de texto */
+            white-space: nowrap;
         }
         #shakeBtn:hover {
             background: rgba(0, 255, 255, 0.2);
@@ -42,16 +42,16 @@
         }
         #shakeBtn:active { transform: scale(0.95); }
 
-        /* Container do Slider - Movido mais para a esquerda */
+        /* Slider Container - Bottom Left */
         #controls {
             position: absolute;
             bottom: 30px;
-            left: 10px; /* Mais para a esquerda */
-            width: 180px; /* Largura um pouco menor para não encostar */
+            left: 10px; /* Aligned to left */
+            width: 180px;
             z-index: 20;
             color: rgba(0, 255, 255, 0.8);
             text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
-            background: rgba(0, 0, 0, 0.3); /* Fundo leve para leitura */
+            background: rgba(0, 0, 0, 0.3);
             padding: 10px;
             border-radius: 8px;
             backdrop-filter: blur(2px);
@@ -59,7 +59,7 @@
         
         label { display: block; margin-bottom: 5px; font-size: 0.8rem; }
         
-        /* Slider Estilizado */
+        /* Styled Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
@@ -87,7 +87,7 @@
     </style>
 </head>
 <body>
-    <div id="loading">CALIBRANDO PARTÍCULAS...</div>
+    <div id="loading">CALIBRATING PARTICLES...</div>
     
     <div id="controls">
         <label for="snowCount">SNOW DENSITY: <span id="countVal">1200</span></label>
@@ -96,6 +96,7 @@
 
     <button id="shakeBtn">SHAKE GLOBE</button>
     
+    <!-- Three.js Import Map -->
     <script type="importmap">
         {
             "imports": {
@@ -113,6 +114,7 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
+        // --- SCENE SETUP ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x010103); 
         scene.fog = new THREE.FogExp2(0x010103, 0.03);
@@ -134,15 +136,18 @@
         controls.maxPolarAngle = Math.PI / 2.2; 
         controls.enablePan = false; 
 
+        // Lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
         const pointLight = new THREE.PointLight(0x00ffff, 1.5, 20);
         pointLight.position.set(2, 4, 2);
         scene.add(pointLight);
 
+        // Constants
         const GLOBE_RADIUS = 2.5;
         const FLOOR_Y = -1.4;
 
+        // Tree Positions & Scales
         const treeData = [
             { x: 0, z: -0.5, s: 0.9 },
             { x: -1.0, z: 0.2, s: 0.7 },
@@ -152,6 +157,7 @@
 
         // --- SHADERS ---
 
+        // Reusable Noise Function Chunk
         const noiseChunk = `
             vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
             float snoise(vec2 v){
@@ -178,6 +184,7 @@
             }
         `;
 
+        // 1. Hologram Trees (Solid with Scanlines)
         const hologramVertexShader = `
             varying vec2 vUv;
             varying vec3 vPos;
@@ -195,18 +202,27 @@
             varying vec3 vPos;
             varying vec3 vNormal;
             void main() {
+                // Moving scanlines
                 float lines = fract(vPos.y * 5.0 - time * 0.2);
-                float isLine = step(0.4, lines); 
-                vec3 baseColor = color * 0.6;
+                float isLine = step(0.4, lines); // Solid band logic
+                
+                vec3 baseColor = color * 0.6; // Darker base to avoid excessive bloom
+                
+                // Simple directional lighting
                 vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
                 float diff = max(dot(vNormal, lightDir), 0.2);
                 vec3 litColor = baseColor * (diff + 0.3); 
+                
+                // Opacity logic: Solid lines, semi-transparent gaps
                 float alpha = isLine * 0.7 + 0.3; 
-                if(isLine < 0.5) { litColor *= 0.5; }
+                
+                if(isLine < 0.5) { litColor *= 0.5; } // Darker in gaps
+                
                 gl_FragColor = vec4(litColor, alpha);
             }
         `;
 
+        // 2. Terrain (Snow + Dirt)
         const terrainVertexShader = `
             varying vec3 vPos;
             varying vec2 vUv;
@@ -216,7 +232,9 @@
                 vUv = uv;
                 vec3 localPos = position;
                 float dist = length(localPos.xy);
+                // Mask edges to blend with sphere
                 float edgeMask = smoothstep(uRadius, uRadius - 0.6, dist);
+                // Displacement for uneven terrain look
                 float displacement = snoise(localPos.xy * 2.5) * 0.25 * edgeMask;
                 localPos.z += displacement;
                 vPos = (modelMatrix * vec4(localPos, 1.0)).xyz;
@@ -231,9 +249,11 @@
             void main() {
                 float n = snoise(vPos.xz * 3.5);
                 vec3 dirtColor = vec3(0.1, 0.08, 0.12);
-                vec3 snowColor = vec3(0.5, 0.6, 0.7);
+                vec3 snowColor = vec3(0.5, 0.6, 0.7); // Grey-ish snow
                 float mixFactor = smoothstep(-0.3, 0.3, n);
                 vec3 finalColor = mix(dirtColor, snowColor, mixFactor);
+                
+                // Add sparkles to snow areas
                 if (mixFactor > 0.4) {
                     float sparkle = snoise(vPos.xz * 25.0 + time * 1.0);
                     if (sparkle > 0.7) finalColor += 0.15;
@@ -242,6 +262,7 @@
             }
         `;
 
+        // 3. Wood Base (Procedural)
         const woodVertexShader = `
             varying vec3 vPos;
             varying vec2 vUv;
@@ -261,23 +282,30 @@
             void main() {
                 float scale = 4.0;
                 vec3 distortedPos = vPos * scale;
-                distortedPos.x += snoise(vPos.yz * 0.5) * 0.5;
+                distortedPos.x += snoise(vPos.yz * 0.5) * 0.5; // Distort coordinates
+                
+                // Wood rings pattern
                 float dist = length(distortedPos.xz);
                 float ring = sin(dist * 10.0 + snoise(distortedPos.xy) * 2.0);
                 ring = smoothstep(-0.4, 0.8, ring);
+                
                 vec3 darkWood = vec3(0.15, 0.05, 0.02);
                 vec3 lightWood = vec3(0.35, 0.15, 0.05);
                 vec3 woodColor = mix(darkWood, lightWood, ring);
+                
+                // Specular highlight (Varnish effect)
                 vec3 lightDir = normalize(vec3(1.0, 2.0, 1.0));
                 float diff = max(dot(vNormal, lightDir), 0.0);
                 vec3 viewDir = normalize(cameraPosition - vPos);
                 vec3 reflectDir = reflect(-lightDir, vNormal);
                 float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
+                
                 vec3 finalColor = woodColor * (diff * 0.8 + 0.2) + vec3(0.2) * spec;
                 gl_FragColor = vec4(finalColor, 1.0);
             }
         `;
 
+        // 4. Glass Globe
         const glassVertexShader = `
             varying vec3 vNormal;
             varying vec3 vViewPosition;
@@ -294,6 +322,7 @@
             void main() {
                 vec3 normal = normalize(vNormal);
                 vec3 viewDir = normalize(vViewPosition);
+                // Fresnel effect for edge glow
                 float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
                 vec3 glassColor = vec3(0.1, 0.3, 0.8);
                 float alpha = fresnel * 0.4 + 0.05;
@@ -301,12 +330,13 @@
             }
         `;
 
-        // --- CONSTRUÇÃO ---
+        // --- WORLD CONSTRUCTION ---
         const worldGroup = new THREE.Group();
         scene.add(worldGroup);
 
         const floorRadius = Math.sqrt(GLOBE_RADIUS*GLOBE_RADIUS - FLOOR_Y*FLOOR_Y);
 
+        // Terrain Surface
         const circleSurfaceGeo = new THREE.CircleGeometry(floorRadius - 0.05, 64); 
         const terrainMaterial = new THREE.ShaderMaterial({
             vertexShader: terrainVertexShader,
@@ -319,6 +349,7 @@
         surfaceMesh.position.y = FLOOR_Y;
         worldGroup.add(surfaceMesh);
 
+        // Solid Snow Base (Underground)
         const solidSnowMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff, roughness: 0.1, metalness: 0.1,
             emissive: 0xeeeeee, emissiveIntensity: 0.15, side: THREE.DoubleSide 
@@ -329,6 +360,7 @@
         const baseMesh = new THREE.Mesh(baseGeo, solidSnowMaterial);
         worldGroup.add(baseMesh);
 
+        // Trees
         const treeMaterial = new THREE.ShaderMaterial({
             vertexShader: hologramVertexShader,
             fragmentShader: hologramFragmentShader,
@@ -349,6 +381,7 @@
             worldGroup.add(g);
         });
 
+        // Glass Sphere
         const sphereGeo = new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64);
         const glassMaterial = new THREE.ShaderMaterial({
             vertexShader: glassVertexShader,
@@ -359,6 +392,7 @@
         globe.renderOrder = 1; 
         scene.add(globe);
 
+        // Wooden Base
         const woodGeo = new THREE.BoxGeometry(3.5, 0.4, 3.5);
         const woodMaterial = new THREE.ShaderMaterial({
             vertexShader: woodVertexShader,
@@ -369,13 +403,13 @@
         woodBase.position.y = -2.7;
         scene.add(woodBase);
 
-        // --- SISTEMA DE NEVE DINÂMICO ---
+        // --- DYNAMIC SNOW SYSTEM ---
         const MAX_PARTICLES = 5000;
         let activeParticleCount = 1200; 
 
         const pPos = new Float32Array(MAX_PARTICLES*3);
         const pVel = []; 
-        const pState = []; 
+        const pState = []; // 0 = falling, 1 = stuck
         const SPAWN_SHELL_RADIUS = GLOBE_RADIUS - 0.25; 
 
         function resetParticle(i, shake = false) {
@@ -387,6 +421,7 @@
             let py = r * Math.cos(phi);
             let pz = r * Math.sin(phi) * Math.sin(theta);
             
+            // If normal spawn, ensure it's on the shell surface
             if (!shake) {
                  px = SPAWN_SHELL_RADIUS * Math.sin(phi) * Math.cos(theta);
                  py = SPAWN_SHELL_RADIUS * Math.cos(phi);
@@ -405,10 +440,10 @@
                 z: (Math.random() - 0.5) * 0.01 
             };
             
-            pState[i] = 0; 
+            pState[i] = 0; // Reset to falling state
         }
 
-        // Inicializar com MAXIMO
+        // Initialize particles
         for(let i=0; i<MAX_PARTICLES; i++){
             pVel.push({});
             pState.push(0);
@@ -426,7 +461,7 @@
         const snow = new THREE.Points(pGeo, pMat);
         scene.add(snow);
 
-        // --- COLISÃO ---
+        // --- COLLISION DETECTION ---
         function checkTreeCollision(x, y, z) {
             for (let t of treeData) {
                 const dx = x - t.x;
@@ -457,7 +492,7 @@
             }
         }
 
-        // --- CONTROLES UI ---
+        // --- UI CONTROLS ---
         const slider = document.getElementById('snowCount');
         const countLabel = document.getElementById('countVal');
         const btn = document.getElementById('shakeBtn');
@@ -468,6 +503,7 @@
             snow.geometry.setDrawRange(0, activeParticleCount);
         });
 
+        // Prevent interaction propagation to canvas
         [slider, btn].forEach(el => {
             el.addEventListener('pointerdown', (e) => e.stopPropagation());
             el.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -476,11 +512,16 @@
 
         btn.addEventListener('click', shakeGlobe);
 
+        // --- POST-PROCESSING ---
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
+        
+        // Bloom Effect
         const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
         bloom.threshold = 0.2; bloom.strength = 0.5; bloom.radius = 0.5;
         composer.addPass(bloom);
+        
+        // CRT Scanline Effect
         const crtShader = {
             uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
             vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -493,17 +534,23 @@
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
+            
+            // Update Uniforms
             treeMaterial.uniforms.time.value = t;
             terrainMaterial.uniforms.time.value = t;
             woodMaterial.uniforms.cameraPosition.value = camera.position;
+            
             controls.update();
 
+            // Calculate Wind
             const windX = Math.sin(t * 0.5) * 0.003 + Math.cos(t * 1.2) * 0.001; 
             const windZ = Math.cos(t * 0.7) * 0.003 + Math.sin(t * 0.9) * 0.001;
 
             const pos = snow.geometry.attributes.position.array;
             
+            // Particle Loop (Optimized to active count)
             for(let i=0; i<activeParticleCount; i++){
+                // Melting logic: stuck particles have a chance to recycle
                 if (pState[i] === 1) {
                     if (Math.random() < 0.002) { 
                         resetParticle(i);
@@ -513,23 +560,27 @@
 
                 const ix = i*3; const iy = i*3+1; const iz = i*3+2;
                 
+                // Gravity & Wind
                 if (pVel[i].y > -0.02) pVel[i].y -= 0.001; 
                 
                 pos[iy] += pVel[i].y;
                 pos[ix] += windX + pVel[i].x;
                 pos[iz] += windZ + pVel[i].z;
                 
+                // Damping
                 pVel[i].x *= 0.98;
                 pVel[i].z *= 0.98;
 
                 const x = pos[ix]; const y = pos[iy]; const z = pos[iz];
 
+                // Tree Collision
                 if (checkTreeCollision(x, y, z)) {
                     if (Math.random() < 0.3) { pState[i] = 1; } 
                     else { resetParticle(i); }
                     continue; 
                 }
 
+                // Floor Collision
                 if (y < FLOOR_Y + 0.05) { 
                     if (Math.random() < 0.2) {
                         pState[i] = 1;
@@ -540,6 +591,7 @@
                     continue;
                 }
 
+                // Globe Boundary
                 const distSq = x*x + y*y + z*z;
                 if (distSq > (GLOBE_RADIUS - 0.15) ** 2) {
                     resetParticle(i);
@@ -561,3 +613,4 @@
     </script>
 </body>
 </html>
+
