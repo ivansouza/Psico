@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globo de Neve Synthwave V25</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #010103; user-select: none; -webkit-user-select: none; font-family: monospace; }
+        canvas { display: block; }
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #ffffff; font-size: 1.5rem; pointer-events: none;
+            text-shadow: 0 0 5px #ffffff;
+            z-index: 10;
+        }
+        
+        /* Botão Shake - Movido mais para a direita (perto da borda) */
+        #shakeBtn {
+            position: absolute;
+            bottom: 30px;
+            right: 10px; /* Mais para a direita */
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+            z-index: 20; 
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+            white-space: nowrap; /* Impede quebra de texto */
+        }
+        #shakeBtn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+            border-color: rgba(0, 255, 255, 0.8);
+        }
+        #shakeBtn:active { transform: scale(0.95); }
+
+        /* Container do Slider - Movido mais para a esquerda */
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 10px; /* Mais para a esquerda */
+            width: 180px; /* Largura um pouco menor para não encostar */
+            z-index: 20;
+            color: rgba(0, 255, 255, 0.8);
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.3); /* Fundo leve para leitura */
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(2px);
+        }
+        
+        label { display: block; margin-bottom: 5px; font-size: 0.8rem; }
+        
+        /* Slider Estilizado */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px #00ffff;
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(0, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">CALIBRANDO PARTÍCULAS...</div>
+    
+    <div id="controls">
+        <label for="snowCount">SNOW DENSITY: <span id="countVal">1200</span></label>
+        <input type="range" id="snowCount" min="0" max="5000" value="1200" step="100">
+    </div>
+
+    <button id="shakeBtn">SHAKE GLOBE</button>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x010103); 
+        scene.fog = new THREE.FogExp2(0x010103, 0.03);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2.5, 9.0); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.3; 
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.4;
+        controls.maxPolarAngle = Math.PI / 2.2; 
+        controls.enablePan = false; 
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x00ffff, 1.5, 20);
+        pointLight.position.set(2, 4, 2);
+        scene.add(pointLight);
+
+        const GLOBE_RADIUS = 2.5;
+        const FLOOR_Y = -1.4;
+
+        const treeData = [
+            { x: 0, z: -0.5, s: 0.9 },
+            { x: -1.0, z: 0.2, s: 0.7 },
+            { x: 1.0, z: 0.2, s: 0.7 },
+            { x: 0.4, z: -1.0, s: 0.5 }
+        ];
+
+        // --- SHADERS ---
+
+        const noiseChunk = `
+            vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+            float snoise(vec2 v){
+                const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+                vec2 i  = floor(v + dot(v, C.yy) );
+                vec2 x0 = v -   i + dot(i, C.xx);
+                vec2 i1;
+                i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                vec4 x12 = x0.xyxy + C.xxzz;
+                x12.xy -= i1;
+                i = mod(i, 289.0);
+                vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+                vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+                m = m*m ; m = m*m ;
+                vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                vec3 h = abs(x) - 0.5;
+                vec3 ox = floor(x + 0.5);
+                vec3 a0 = x - ox;
+                m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+                vec3 g;
+                g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                return 130.0 * dot(m, g);
+            }
+        `;
+
+        const hologramVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vPos;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vPos = position;
+                vNormal = normal;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const hologramFragmentShader = `
+            uniform float time;
+            uniform vec3 color;
+            varying vec3 vPos;
+            varying vec3 vNormal;
+            void main() {
+                float lines = fract(vPos.y * 5.0 - time * 0.2);
+                float isLine = step(0.4, lines); 
+                vec3 baseColor = color * 0.6;
+                vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
+                float diff = max(dot(vNormal, lightDir), 0.2);
+                vec3 litColor = baseColor * (diff + 0.3); 
+                float alpha = isLine * 0.7 + 0.3; 
+                if(isLine < 0.5) { litColor *= 0.5; }
+                gl_FragColor = vec4(litColor, alpha);
+            }
+        `;
+
+        const terrainVertexShader = `
+            varying vec3 vPos;
+            varying vec2 vUv;
+            uniform float uRadius;
+            ${noiseChunk}
+            void main() {
+                vUv = uv;
+                vec3 localPos = position;
+                float dist = length(localPos.xy);
+                float edgeMask = smoothstep(uRadius, uRadius - 0.6, dist);
+                float displacement = snoise(localPos.xy * 2.5) * 0.25 * edgeMask;
+                localPos.z += displacement;
+                vPos = (modelMatrix * vec4(localPos, 1.0)).xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(localPos, 1.0);
+            }
+        `;
+        const terrainFragmentShader = `
+            varying vec3 vPos;
+            varying vec2 vUv;
+            uniform float time;
+            ${noiseChunk}
+            void main() {
+                float n = snoise(vPos.xz * 3.5);
+                vec3 dirtColor = vec3(0.1, 0.08, 0.12);
+                vec3 snowColor = vec3(0.5, 0.6, 0.7);
+                float mixFactor = smoothstep(-0.3, 0.3, n);
+                vec3 finalColor = mix(dirtColor, snowColor, mixFactor);
+                if (mixFactor > 0.4) {
+                    float sparkle = snoise(vPos.xz * 25.0 + time * 1.0);
+                    if (sparkle > 0.7) finalColor += 0.15;
+                }
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        const woodVertexShader = `
+            varying vec3 vPos;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vPos = position;
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const woodFragmentShader = `
+            varying vec3 vPos;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            ${noiseChunk}
+            void main() {
+                float scale = 4.0;
+                vec3 distortedPos = vPos * scale;
+                distortedPos.x += snoise(vPos.yz * 0.5) * 0.5;
+                float dist = length(distortedPos.xz);
+                float ring = sin(dist * 10.0 + snoise(distortedPos.xy) * 2.0);
+                ring = smoothstep(-0.4, 0.8, ring);
+                vec3 darkWood = vec3(0.15, 0.05, 0.02);
+                vec3 lightWood = vec3(0.35, 0.15, 0.05);
+                vec3 woodColor = mix(darkWood, lightWood, ring);
+                vec3 lightDir = normalize(vec3(1.0, 2.0, 1.0));
+                float diff = max(dot(vNormal, lightDir), 0.0);
+                vec3 viewDir = normalize(cameraPosition - vPos);
+                vec3 reflectDir = reflect(-lightDir, vNormal);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
+                vec3 finalColor = woodColor * (diff * 0.8 + 0.2) + vec3(0.2) * spec;
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        const glassVertexShader = `
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                vViewPosition = -mvPosition.xyz;
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `;
+        const glassFragmentShader = `
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            void main() {
+                vec3 normal = normalize(vNormal);
+                vec3 viewDir = normalize(vViewPosition);
+                float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
+                vec3 glassColor = vec3(0.1, 0.3, 0.8);
+                float alpha = fresnel * 0.4 + 0.05;
+                gl_FragColor = vec4(glassColor, alpha);
+            }
+        `;
+
+        // --- CONSTRUÇÃO ---
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        const floorRadius = Math.sqrt(GLOBE_RADIUS*GLOBE_RADIUS - FLOOR_Y*FLOOR_Y);
+
+        const circleSurfaceGeo = new THREE.CircleGeometry(floorRadius - 0.05, 64); 
+        const terrainMaterial = new THREE.ShaderMaterial({
+            vertexShader: terrainVertexShader,
+            fragmentShader: terrainFragmentShader,
+            uniforms: { time: { value: 0 }, uRadius: { value: floorRadius } },
+            side: THREE.DoubleSide
+        });
+        const surfaceMesh = new THREE.Mesh(circleSurfaceGeo, terrainMaterial);
+        surfaceMesh.rotation.x = -Math.PI / 2;
+        surfaceMesh.position.y = FLOOR_Y;
+        worldGroup.add(surfaceMesh);
+
+        const solidSnowMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff, roughness: 0.1, metalness: 0.1,
+            emissive: 0xeeeeee, emissiveIntensity: 0.15, side: THREE.DoubleSide 
+        });
+        const startTheta = Math.acos(FLOOR_Y / GLOBE_RADIUS); 
+        const thetaLength = Math.PI - startTheta;
+        const baseGeo = new THREE.SphereGeometry(GLOBE_RADIUS - 0.06, 64, 32, 0, Math.PI * 2, startTheta, thetaLength);
+        const baseMesh = new THREE.Mesh(baseGeo, solidSnowMaterial);
+        worldGroup.add(baseMesh);
+
+        const treeMaterial = new THREE.ShaderMaterial({
+            vertexShader: hologramVertexShader,
+            fragmentShader: hologramFragmentShader,
+            uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x00cc33) } },
+            transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending 
+        });
+
+        treeData.forEach(d => {
+            const g = new THREE.Group();
+            for(let i=0; i<3; i++) {
+                const geo = new THREE.ConeGeometry(0.7-(i*0.15), 1.4, 32, 1, true);
+                geo.translate(0, 0.7+(i*0.7), 0);
+                const mesh = new THREE.Mesh(geo, treeMaterial);
+                g.add(mesh);
+            }
+            g.position.set(d.x, FLOOR_Y, d.z); 
+            g.scale.set(d.s, d.s, d.s);
+            worldGroup.add(g);
+        });
+
+        const sphereGeo = new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64);
+        const glassMaterial = new THREE.ShaderMaterial({
+            vertexShader: glassVertexShader,
+            fragmentShader: glassFragmentShader,
+            transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const globe = new THREE.Mesh(sphereGeo, glassMaterial);
+        globe.renderOrder = 1; 
+        scene.add(globe);
+
+        const woodGeo = new THREE.BoxGeometry(3.5, 0.4, 3.5);
+        const woodMaterial = new THREE.ShaderMaterial({
+            vertexShader: woodVertexShader,
+            fragmentShader: woodFragmentShader,
+            uniforms: { cameraPosition: { value: camera.position } }
+        });
+        const woodBase = new THREE.Mesh(woodGeo, woodMaterial);
+        woodBase.position.y = -2.7;
+        scene.add(woodBase);
+
+        // --- SISTEMA DE NEVE DINÂMICO ---
+        const MAX_PARTICLES = 5000;
+        let activeParticleCount = 1200; 
+
+        const pPos = new Float32Array(MAX_PARTICLES*3);
+        const pVel = []; 
+        const pState = []; 
+        const SPAWN_SHELL_RADIUS = GLOBE_RADIUS - 0.25; 
+
+        function resetParticle(i, shake = false) {
+            const r = shake ? Math.random() * SPAWN_SHELL_RADIUS : SPAWN_SHELL_RADIUS;
+            const phi = shake ? Math.acos(2 * Math.random() - 1) : Math.random() * 1.2; 
+            const theta = Math.random() * Math.PI * 2;
+            
+            let px = r * Math.sin(phi) * Math.cos(theta);
+            let py = r * Math.cos(phi);
+            let pz = r * Math.sin(phi) * Math.sin(theta);
+            
+            if (!shake) {
+                 px = SPAWN_SHELL_RADIUS * Math.sin(phi) * Math.cos(theta);
+                 py = SPAWN_SHELL_RADIUS * Math.cos(phi);
+                 pz = SPAWN_SHELL_RADIUS * Math.sin(phi) * Math.sin(theta);
+            } else {
+                py = Math.abs(py); 
+            }
+
+            pPos[i*3] = px;
+            pPos[i*3+1] = py;
+            pPos[i*3+2] = pz;
+            
+            pVel[i] = { 
+                y: -0.015 - Math.random() * 0.02, 
+                x: (Math.random() - 0.5) * 0.01, 
+                z: (Math.random() - 0.5) * 0.01 
+            };
+            
+            pState[i] = 0; 
+        }
+
+        // Inicializar com MAXIMO
+        for(let i=0; i<MAX_PARTICLES; i++){
+            pVel.push({});
+            pState.push(0);
+            resetParticle(i, true);
+            pPos[i*3+1] = Math.max(FLOOR_Y, pPos[i*3+1]); 
+        }
+
+        const pGeo = new THREE.BufferGeometry();
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        pGeo.setDrawRange(0, activeParticleCount);
+
+        const pMat = new THREE.PointsMaterial({
+            color: 0xffffff, size: 0.06, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending
+        });
+        const snow = new THREE.Points(pGeo, pMat);
+        scene.add(snow);
+
+        // --- COLISÃO ---
+        function checkTreeCollision(x, y, z) {
+            for (let t of treeData) {
+                const dx = x - t.x;
+                const dz = z - t.z;
+                const distXZ = Math.sqrt(dx*dx + dz*dz);
+                const relY = y - FLOOR_Y;
+                const treeHeight = 2.8 * t.s;
+                
+                if (relY > 0 && relY < treeHeight) {
+                    const maxRadius = 0.8 * t.s;
+                    const currentRadius = maxRadius * (1.0 - (relY / treeHeight));
+                    if (distXZ < currentRadius) {
+                        return true; 
+                    }
+                }
+            }
+            return false;
+        }
+
+        function shakeGlobe() {
+            controls.autoRotateSpeed = 20.0;
+            setTimeout(() => { controls.autoRotateSpeed = 0.4; }, 1000);
+            for(let i=0; i<activeParticleCount; i++){
+                resetParticle(i, true);
+                pVel[i].y = 0.1 + Math.random() * 0.1;
+                pVel[i].x = (Math.random() - 0.5) * 0.1;
+                pVel[i].z = (Math.random() - 0.5) * 0.1;
+            }
+        }
+
+        // --- CONTROLES UI ---
+        const slider = document.getElementById('snowCount');
+        const countLabel = document.getElementById('countVal');
+        const btn = document.getElementById('shakeBtn');
+
+        slider.addEventListener('input', (e) => {
+            activeParticleCount = parseInt(e.target.value);
+            countLabel.innerText = activeParticleCount;
+            snow.geometry.setDrawRange(0, activeParticleCount);
+        });
+
+        [slider, btn].forEach(el => {
+            el.addEventListener('pointerdown', (e) => e.stopPropagation());
+            el.addEventListener('mousedown', (e) => e.stopPropagation());
+            el.addEventListener('touchstart', (e) => e.stopPropagation());
+        });
+
+        btn.addEventListener('click', shakeGlobe);
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloom.threshold = 0.2; bloom.strength = 0.5; bloom.radius = 0.5;
+        composer.addPass(bloom);
+        const crtShader = {
+            uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
+            vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `uniform sampler2D tDiffuse; uniform float time; varying vec2 vUv; void main() { vec4 c = texture2D(tDiffuse, vUv); float scan = sin(vUv.y * 800.0) * 0.02; c.rgb -= scan; gl_FragColor = c; }`
+        };
+        composer.addPass(new ShaderPass(crtShader));
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+            treeMaterial.uniforms.time.value = t;
+            terrainMaterial.uniforms.time.value = t;
+            woodMaterial.uniforms.cameraPosition.value = camera.position;
+            controls.update();
+
+            const windX = Math.sin(t * 0.5) * 0.003 + Math.cos(t * 1.2) * 0.001; 
+            const windZ = Math.cos(t * 0.7) * 0.003 + Math.sin(t * 0.9) * 0.001;
+
+            const pos = snow.geometry.attributes.position.array;
+            
+            for(let i=0; i<activeParticleCount; i++){
+                if (pState[i] === 1) {
+                    if (Math.random() < 0.002) { 
+                        resetParticle(i);
+                    }
+                    continue;
+                }
+
+                const ix = i*3; const iy = i*3+1; const iz = i*3+2;
+                
+                if (pVel[i].y > -0.02) pVel[i].y -= 0.001; 
+                
+                pos[iy] += pVel[i].y;
+                pos[ix] += windX + pVel[i].x;
+                pos[iz] += windZ + pVel[i].z;
+                
+                pVel[i].x *= 0.98;
+                pVel[i].z *= 0.98;
+
+                const x = pos[ix]; const y = pos[iy]; const z = pos[iz];
+
+                if (checkTreeCollision(x, y, z)) {
+                    if (Math.random() < 0.3) { pState[i] = 1; } 
+                    else { resetParticle(i); }
+                    continue; 
+                }
+
+                if (y < FLOOR_Y + 0.05) { 
+                    if (Math.random() < 0.2) {
+                        pState[i] = 1;
+                        pos[iy] = FLOOR_Y + 0.05; 
+                    } else {
+                        resetParticle(i); 
+                    }
+                    continue;
+                }
+
+                const distSq = x*x + y*y + z*z;
+                if (distSq > (GLOBE_RADIUS - 0.15) ** 2) {
+                    resetParticle(i);
+                }
+            }
+            snow.geometry.attributes.position.needsUpdate = true;
+            composer.render();
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.getElementById('loading').style.display = 'none';
+        animate();
+    </script>
+</body>
+</html>
