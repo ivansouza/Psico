@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hypnotic 3D Waves</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: black; user-select: none; }
+        
+        /* Custom Sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+        
+        #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .hidden-sidebar { transform: translateX(100%); }
+        .show-sidebar { transform: translateX(0); }
+    </style>
+</head>
+<body class="font-sans text-white">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 cursor-move z-0" title="Drag to rotate camera in 3D"></div>
+
+    <!-- Floating Tip -->
+    <div class="absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-2 text-white/40 bg-black/20 px-4 py-2 rounded-full pointer-events-none text-xs backdrop-blur-sm z-10">
+        <i data-lucide="rotate-3d" class="w-4 h-4"></i>
+        <span>Drag to move camera</span>
+    </div>
+
+    <!-- Toggle Menu Button -->
+    <button id="toggle-btn" class="absolute top-4 right-4 z-50 p-3 bg-white/5 backdrop-blur-md rounded-full hover:bg-white/20 transition-all border border-white/10 shadow-lg group">
+        <i data-lucide="settings" id="icon-settings" class="w-5 h-5 text-gray-200 group-hover:text-white transition-colors"></i>
+        <i data-lucide="x" id="icon-close" class="w-5 h-5 text-gray-200 group-hover:text-white hidden transition-colors"></i>
+    </button>
+
+    <!-- Transparent Sidebar -->
+    <div id="sidebar" class="hidden-sidebar absolute top-0 right-0 h-full w-80 sm:w-96 bg-black/10 backdrop-blur-md border-l border-white/10 z-40 overflow-y-auto">
+        <div class="p-6 pt-20 space-y-8 pb-24">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <h2 class="text-sm font-bold text-gray-200 uppercase tracking-widest" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5)">3D Controls</h2>
+                <button id="btn-random" class="flex items-center gap-1 text-[10px] bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-100 border border-indigo-400/30 px-3 py-1.5 rounded-full transition-colors">
+                    <i data-lucide="zap" class="w-3 h-3"></i> Random
+                </button>
+            </div>
+
+            <!-- Group 1: Motion -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-yellow-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="activity" class="w-3 h-3"></i> Motion
+                </h3>
+
+                <!-- Rotation Control -->
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3 text-white/50"></i> Rotation Speed
+                        </label>
+                        <span id="val-rotationSpeed" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.00</span>
+                    </div>
+                    <input type="range" id="inp-rotationSpeed" min="-0.05" max="0.05" step="0.001" value="0.002" class="w-full">
+                </div>
+
+                <!-- Wave Speed Control -->
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium flex items-center gap-1">
+                            <i data-lucide="waves" class="w-3 h-3 text-white/50"></i> Wave Speed
+                        </label>
+                        <span id="val-speed" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.05</span>
+                    </div>
+                    <input type="range" id="inp-speed" min="0" max="0.3" step="0.01" value="0.05" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Group 2: Geometry -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-blue-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="box" class="w-3 h-3"></i> Geometry
+                </h3>
+                
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Arm Count</label>
+                        <span id="val-numArms" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">20</span>
+                    </div>
+                    <input type="range" id="inp-numArms" min="1" max="50" step="1" value="20" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Twist</label>
+                        <span id="val-twist" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.0</span>
+                    </div>
+                    <input type="range" id="inp-twist" min="-5" max="5" step="0.1" value="0" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Density</label>
+                        <span id="val-particlesPerArm" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">100</span>
+                    </div>
+                    <input type="range" id="inp-particlesPerArm" min="20" max="200" step="10" value="100" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Group 3: Wave Shape -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-green-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="layers" class="w-3 h-3"></i> Shape (Z)
+                </h3>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Amplitude</label>
+                        <span id="val-amplitude" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">15</span>
+                    </div>
+                    <input type="range" id="inp-amplitude" min="0" max="80" step="1" value="15" class="w-full">
+                </div>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Frequency</label>
+                        <span id="val-frequency" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">2.0</span>
+                    </div>
+                    <input type="range" id="inp-frequency" min="0.1" max="5" step="0.1" value="2" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Group 4: Visual -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="eye" class="w-3 h-3"></i> Visual
+                </h3>
+
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium">Point Size</label>
+                        <span id="val-pointSize" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">1.5</span>
+                    </div>
+                    <input type="range" id="inp-pointSize" min="0.1" max="4" step="0.1" value="1.5" class="w-full">
+                </div>
+
+                <div class="flex items-center justify-between bg-white/10 backdrop-blur-sm p-3 rounded-lg mt-2 border border-white/5">
+                    <label class="text-sm text-gray-200 font-medium">Color</label>
+                    <div class="flex items-center gap-3">
+                        <span id="val-color-text" class="text-[10px] font-mono text-gray-300 uppercase">#00FFCC</span>
+                        <div class="relative w-6 h-6 rounded-full overflow-hidden border border-white/20">
+                             <input type="color" id="inp-color" value="#00ffcc" class="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 bg-transparent border-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Play/Pause Button -->
+            <div class="pt-4">
+                <button id="btn-playpause" class="w-full flex justify-center items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all text-xs tracking-widest uppercase border backdrop-blur-sm bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
+                    <i data-lucide="pause" class="w-4 h-4"></i>
+                    <span>Pause</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- INITIAL CONFIGURATION (STATE) ---
+        const config = {
+            numArms: 20,
+            particlesPerArm: 100,
+            frequency: 2,
+            amplitude: 15,
+            twist: 0,
+            speed: 0.05,       // Wave speed
+            rotationSpeed: 0.002, // Automatic rotation speed
+            color: '#00ffcc',
+            pointSize: 1.5,
+            spread: 50
+        };
+
+        let isPlaying = true;
+        let time = 0;
+        let frameId;
+        
+        // --- THREE.JS SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x000000, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.z = 80;
+        camera.position.y = -40;
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // --- PARTICLE SYSTEM ---
+        const maxParticles = 30000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(maxParticles * 3);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        function getDotTexture() {
+            const c = document.createElement('canvas');
+            c.width = 32; c.height = 32;
+            const ctx = c.getContext('2d');
+            ctx.beginPath();
+            ctx.arc(16, 16, 14, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            return new THREE.CanvasTexture(c);
+        }
+
+        const material = new THREE.PointsMaterial({
+            color: config.color,
+            size: config.pointSize,
+            map: getDotTexture(),
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            alphaTest: 0.1
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // --- UPDATE LOGIC ---
+        function updateParticles() {
+            const pos = particles.geometry.attributes.position.array;
+            let i = 0;
+            const totalParticles = config.numArms * config.particlesPerArm;
+
+            // Auto Rotation
+            if (isPlaying) {
+                particles.rotation.z += config.rotationSpeed;
+            }
+
+            for (let arm = 0; arm < config.numArms; arm++) {
+                for (let p = 0; p < config.particlesPerArm; p++) {
+                    const t = p / config.particlesPerArm; 
+                    const r = t * config.spread;
+                    
+                    const angle = (arm / config.numArms) * Math.PI * 2 + (t * config.twist);
+                    
+                    const x = Math.cos(angle) * r;
+                    const y = Math.sin(angle) * r;
+
+                    const wave = Math.sin((r * config.frequency * 0.1) - time);
+                    const z = wave * config.amplitude;
+
+                    pos[i] = x;
+                    pos[i+1] = y;
+                    pos[i+2] = z;
+                    i += 3;
+                }
+            }
+
+            for (let j = i; j < maxParticles * 3; j++) {
+                pos[j] = 0;
+            }
+
+            geometry.setDrawRange(0, totalParticles);
+            particles.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // --- CAMERA CONTROLS (MOUSE/TOUCH) ---
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let rotationTarget = { x: 0.6, y: 0 };
+
+        function handleStart(x, y) {
+            isDragging = true;
+            previousMousePosition = { x, y };
+        }
+
+        function handleMove(x, y) {
+            if (!isDragging) return;
+            const deltaMove = {
+                x: x - previousMousePosition.x,
+                y: y - previousMousePosition.y
+            };
+            rotationTarget.y += deltaMove.x * 0.005;
+            rotationTarget.x += deltaMove.y * 0.005;
+            previousMousePosition = { x, y };
+        }
+
+        function handleEnd() { isDragging = false; }
+
+        container.addEventListener('mousedown', (e) => handleStart(e.clientX, e.clientY));
+        container.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+        container.addEventListener('mouseup', handleEnd);
+        container.addEventListener('mouseleave', handleEnd);
+
+        container.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 1) handleStart(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+        container.addEventListener('touchmove', (e) => {
+            if(e.touches.length === 1) {
+                e.preventDefault();
+                handleMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, {passive: false});
+        container.addEventListener('touchend', handleEnd);
+
+        // --- ANIMATION LOOP ---
+        function animate() {
+            frameId = requestAnimationFrame(animate);
+
+            if (isPlaying) {
+                time += config.speed;
+            }
+
+            scene.rotation.x += (rotationTarget.x - scene.rotation.x) * 0.1;
+            scene.rotation.y += (rotationTarget.y - scene.rotation.y) * 0.1;
+
+            updateParticles();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- UI & INTERACTION ---
+        const inputs = {
+            numArms: document.getElementById('inp-numArms'),
+            twist: document.getElementById('inp-twist'),
+            particlesPerArm: document.getElementById('inp-particlesPerArm'),
+            amplitude: document.getElementById('inp-amplitude'),
+            frequency: document.getElementById('inp-frequency'),
+            speed: document.getElementById('inp-speed'),
+            rotationSpeed: document.getElementById('inp-rotationSpeed'),
+            pointSize: document.getElementById('inp-pointSize'),
+            color: document.getElementById('inp-color')
+        };
+
+        const displays = {
+            numArms: document.getElementById('val-numArms'),
+            twist: document.getElementById('val-twist'),
+            particlesPerArm: document.getElementById('val-particlesPerArm'),
+            amplitude: document.getElementById('val-amplitude'),
+            frequency: document.getElementById('val-frequency'),
+            speed: document.getElementById('val-speed'),
+            rotationSpeed: document.getElementById('val-rotationSpeed'),
+            pointSize: document.getElementById('val-pointSize'),
+            color: document.getElementById('val-color-text')
+        };
+
+        function updateConfigFromUI() {
+            for (const key in inputs) {
+                if (key !== 'color') {
+                    const val = parseFloat(inputs[key].value);
+                    config[key] = val;
+                    if(displays[key]) {
+                        // Specific formatting for small numbers
+                        const digits = (key === 'speed' || key === 'rotationSpeed') ? 3 : (key === 'twist' || key === 'frequency' || key === 'pointSize' ? 1 : 0);
+                        displays[key].innerText = val.toFixed(digits);
+                    }
+                }
+            }
+            config.color = inputs.color.value;
+            displays.color.innerText = config.color;
+
+            particles.material.size = config.pointSize;
+            particles.material.color.set(config.color);
+        }
+
+        for (const key in inputs) {
+            inputs[key].addEventListener('input', updateConfigFromUI);
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const iconSettings = document.getElementById('icon-settings');
+        const iconClose = document.getElementById('icon-close');
+        let sidebarOpen = false;
+
+        toggleBtn.addEventListener('click', () => {
+            sidebarOpen = !sidebarOpen;
+            if (sidebarOpen) {
+                sidebar.classList.remove('hidden-sidebar');
+                sidebar.classList.add('show-sidebar');
+                iconSettings.classList.add('hidden');
+                iconClose.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('hidden-sidebar');
+                sidebar.classList.remove('show-sidebar');
+                iconSettings.classList.remove('hidden');
+                iconClose.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('btn-random').addEventListener('click', () => {
+            const rVal = (min, max) => Math.random() * (max - min) + min;
+            inputs.numArms.value = Math.floor(rVal(5, 40));
+            inputs.twist.value = rVal(-3, 3);
+            inputs.frequency.value = rVal(0.5, 4);
+            inputs.amplitude.value = rVal(5, 50);
+            inputs.rotationSpeed.value = rVal(-0.02, 0.02);
+            inputs.color.value = '#' + Math.floor(Math.random()*16777215).toString(16);
+            updateConfigFromUI();
+        });
+
+        const playBtn = document.getElementById('btn-playpause');
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const span = playBtn.querySelector('span');
+            
+            if (isPlaying) {
+                playBtn.classList.remove('bg-green-500/20', 'text-green-300', 'border-green-500/30');
+                playBtn.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/30');
+                playBtn.innerHTML = ''; 
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', 'pause');
+                newIcon.className = "w-4 h-4 mr-2";
+                playBtn.appendChild(newIcon);
+                const newSpan = document.createElement('span');
+                newSpan.innerText = "Pause";
+                playBtn.appendChild(newSpan);
+            } else {
+                playBtn.classList.add('bg-green-500/20', 'text-green-300', 'border-green-500/30');
+                playBtn.classList.remove('bg-red-500/20', 'text-red-300', 'border-red-500/30');
+                playBtn.innerHTML = ''; 
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', 'play');
+                newIcon.className = "w-4 h-4 mr-2";
+                playBtn.appendChild(newIcon);
+                const newSpan = document.createElement('span');
+                newSpan.innerText = "Resume";
+                playBtn.appendChild(newSpan);
+            }
+            lucide.createIcons();
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        lucide.createIcons();
+
+    </script>
+</body>
+</html>
+
