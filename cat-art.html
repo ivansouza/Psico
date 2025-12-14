@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TRS-80 Multicolor Floor Cat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'VT323', monospace; 
+            touch-action: none; 
+        }
+        
+        #container { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Scanlines */
+        .scanlines {
+            width: 100%; height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0,0,0,0) 50%,
+                rgba(0,0,0,0.25) 50%
+            );
+            background-size: 100% 4px;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        /* Texto Glitch estilo TRS-80 */
+        .glitch-text {
+            position: absolute;
+            top: 20px; left: 20px;
+            color: #ADFF2F; 
+            font-size: 28px;
+            line-height: 1.1;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 20px; width: 100%;
+            text-align: center;
+            color: #ADFF2F;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0px #000;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Vinheta CRT */
+        .crt-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,1) 100%);
+        }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<div id="container">
+    <div id="ui-layer">
+        <div class="scanlines"></div>
+        <div class="crt-overlay"></div>
+        <div class="glitch-text" id="glitchText">
+            TRS-80 MODEL III<br>
+            BASIC REV. 1.3<br>
+            > RUN "COLOR_FLOOR"
+        </div>
+        <div class="hint">_CURSOR_ACTIVE_</div>
+    </div>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000); 
+    scene.fog = new THREE.Fog(0x000000, 20, 100);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(20, 20, 30); 
+
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: false, 
+        powerPreference: "high-performance" 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.minDistance = 10;
+    controls.maxDistance = 80;
+    controls.target.set(0, 0, 0);
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+
+    const material = new THREE.MeshLambertMaterial({
+        color: 0xEFEFDD, 
+        flatShading: true,
+        emissive: 0x111111 
+    });
+
+    const catGroup = new THREE.Group();
+    scene.add(catGroup);
+
+    // ==========================================
+    // GEOMETRIA DO GATO
+    // ==========================================
+    const spineCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(4, 2.0, 0),
+        new THREE.Vector3(1, 2.5, 0),
+        new THREE.Vector3(-2, 4.0, 0),
+        new THREE.Vector3(-4, 5.0, 0)
+    ]);
+    const bodyGeo = new THREE.TubeGeometry(spineCurve, 12, 2.3, 8, false);
+    bodyGeo.scale(1, 0.85, 1);
+    const body = new THREE.Mesh(bodyGeo, material);
+    catGroup.add(body);
+    const neckPlug = new THREE.Mesh(new THREE.IcosahedronGeometry(2.1, 0), material);
+    neckPlug.position.copy(spineCurve.points[0]); catGroup.add(neckPlug);
+    const buttPlug = new THREE.Mesh(new THREE.IcosahedronGeometry(2.4, 0), material); 
+    buttPlug.scale.set(1, 0.8, 1); buttPlug.position.copy(spineCurve.points[3]); catGroup.add(buttPlug);
+
+    const tailCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-4.0, 5.0, 0),
+        new THREE.Vector3(-5.5, 7.0, 0),
+        new THREE.Vector3(-5.0, 9.5, 0),
+        new THREE.Vector3(-3.5, 11.0, 0)
+    ]);
+    const tailGeo = new THREE.TubeGeometry(tailCurve, 8, 0.7, 6, false);
+    const tail = new THREE.Mesh(tailGeo, material); catGroup.add(tail);
+    const tailTip = new THREE.Mesh(new THREE.IcosahedronGeometry(0.7, 0), material);
+    tailTip.position.set(-3.5, 11.0, 0); catGroup.add(tailTip);
+
+    const neckGeo = new THREE.CylinderGeometry(1.4, 1.8, 2.5, 6);
+    const neck = new THREE.Mesh(neckGeo, material);
+    neck.position.set(4.8, 2.2, 0); neck.rotation.z = -Math.PI / 3; catGroup.add(neck);
+    const headGroup = new THREE.Group();
+    headGroup.position.set(6.2, 2.8, 0); catGroup.add(headGroup);
+    const headMain = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9, 0), material);
+    headMain.scale.set(1.1, 0.9, 1); headGroup.add(headMain);
+    const earGeo = new THREE.ConeGeometry(0.6, 1.6, 4);
+    const earL = new THREE.Mesh(earGeo, material);
+    earL.position.set(0, 1.5, 0.8); earL.rotation.set(-0.3, 0, -0.2); headGroup.add(earL);
+    const earR = new THREE.Mesh(earGeo, material);
+    earR.position.set(0, 1.5, -0.8); earR.rotation.set(0.3, 0, -0.2); headGroup.add(earR);
+    headGroup.rotation.z = -0.6;
+
+    const shoulderGeo = new THREE.IcosahedronGeometry(1.8, 0);
+    const shoulderL = new THREE.Mesh(shoulderGeo, material);
+    shoulderL.position.set(3.5, 2.0, 1.3); catGroup.add(shoulderL);
+    const shoulderR = new THREE.Mesh(shoulderGeo, material);
+    shoulderR.position.set(3.5, 2.0, -1.3); catGroup.add(shoulderR);
+    const armGeo = new THREE.CylinderGeometry(0.7, 0.6, 7.5, 6);
+    const armL = new THREE.Mesh(armGeo, material);
+    armL.position.set(6.5, 0.5, 1.6); armL.rotation.z = Math.PI / 2; armL.rotation.y = -0.25; catGroup.add(armL);
+    const armR = new THREE.Mesh(armGeo, material);
+    armR.position.set(6.5, 0.5, -1.6); armR.rotation.z = Math.PI / 2; armR.rotation.y = 0.25; catGroup.add(armR);
+
+    const thighGeo = new THREE.ConeGeometry(2.2, 4.5, 6);
+    const thighL = new THREE.Mesh(thighGeo, material);
+    thighL.position.set(-3.5, 3.5, 1.5); thighL.rotation.set(0.6, 0.2, -0.4); catGroup.add(thighL);
+    const thighR = new THREE.Mesh(thighGeo, material);
+    thighR.position.set(-3.5, 3.5, -1.5); thighR.rotation.set(-0.6, -0.2, -0.4); catGroup.add(thighR);
+    const legGeo = new THREE.CylinderGeometry(0.75, 0.6, 6.5, 6);
+    const legL = new THREE.Mesh(legGeo, material);
+    legL.position.set(-4.2, 1.2, 2.0); legL.rotation.x = 0.3; catGroup.add(legL);
+    const legR = new THREE.Mesh(legGeo, material);
+    legR.position.set(-4.2, 1.2, -2.0); legR.rotation.x = -0.3; catGroup.add(legR);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
+
+    // --- CHÃO MULTICOLOR (INFINITE FLOOR) ---
+    const vertexShader = `
+        varying vec2 vUv; 
+        void main() { 
+            vUv = uv; 
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+        }
+    `;
+    
+    // Shader atualizado para multicolor sem preto
+    const fragmentShader = `
+        uniform float time;
+        varying vec2 vUv;
+        
+        // Função para converter HUE para RGB
+        vec3 hsv2rgb(vec3 c) {
+            vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+            vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+            return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+        }
+
+        void main() {
+            // Padrão de scroll
+            float scroll = vUv.y * 20.0 - time * 2.0;
+            
+            // Gera cores baseadas na posição e tempo
+            // HUE baseado na posição X e Y para criar um arco-íris em movimento
+            float hue = vUv.x * 0.5 + vUv.y * 0.2 + time * 0.1;
+            vec3 rainbowColor = hsv2rgb(vec3(hue, 0.8, 1.0)); // Saturação 0.8, Brilho 1.0
+            
+            // HUE secundário para as "linhas"
+            float hue2 = vUv.x * 0.5 + vUv.y * 0.2 + time * 0.1 + 0.5; // Cor oposta
+            vec3 rainbowColor2 = hsv2rgb(vec3(hue2, 0.8, 1.0));
+
+            // Alterna entre duas paletas de arco-íris
+            float line = step(0.5, sin(scroll)); 
+            vec3 finalColor = mix(rainbowColor, rainbowColor2, line);
+
+            // Fade out para o horizonte (para preto)
+            float dist = distance(vUv, vec2(0.5, 0.5));
+            float mask = 1.0 - smoothstep(0.0, 0.5, dist); 
+            
+            gl_FragColor = vec4(finalColor, 1.0 * mask);
+        }
+    `;
+    
+    const planeMat = new THREE.ShaderMaterial({
+        uniforms: { time: { value: 0 } }, 
+        vertexShader, 
+        fragmentShader, 
+        side: THREE.DoubleSide,
+        transparent: true
+    });
+
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), planeMat);
+    floor.rotation.x = -Math.PI / 2; 
+    floor.position.y = -2.5; 
+    scene.add(floor);
+
+    const glitchElement = document.getElementById('glitchText');
+    const lines = ["IMPED M ORGRYIDVE", "OACOON", "RSVEN ORENMUSS", "STATUS: MULTICOLOR_OK"];
+    let frame = 0;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        frame++;
+        const time = performance.now() / 1000;
+
+        if(frame % 2 === 0) {
+            planeMat.uniforms.time.value = time; 
+            controls.update();
+            catGroup.position.y = Math.sin(time) * 0.2; 
+        }
+
+        if(frame % 30 === 0) {
+            let html = "";
+            lines.forEach(line => {
+                let glitchedLine = line.split('').map(c => Math.random() > 0.95 ? String.fromCharCode(33 + Math.random()*20) : c).join('');
+                html += glitchedLine + "<br>";
+            });
+            glitchElement.innerHTML = html;
+        }
+        
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+</script>
+</body>
+</html>
