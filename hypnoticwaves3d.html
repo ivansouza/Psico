@@ -17,7 +17,7 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: black; user-select: none; }
         
-        /* Customização dos Sliders para combinar com o tema transparente */
+        /* Customização dos Sliders */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -40,7 +40,6 @@
             border-radius: 2px;
         }
         
-        /* Transições suaves */
         #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .hidden-sidebar { transform: translateX(100%); }
         .show-sidebar { transform: translateX(0); }
@@ -49,12 +48,12 @@
 <body class="font-sans text-white">
 
     <!-- Container do Canvas 3D -->
-    <div id="canvas-container" class="absolute inset-0 cursor-move z-0" title="Arraste para girar em 3D"></div>
+    <div id="canvas-container" class="absolute inset-0 cursor-move z-0" title="Arraste para girar a câmera em 3D"></div>
 
     <!-- Dica Flutuante -->
     <div class="absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-2 text-white/40 bg-black/20 px-4 py-2 rounded-full pointer-events-none text-xs backdrop-blur-sm z-10">
         <i data-lucide="rotate-3d" class="w-4 h-4"></i>
-        <span>Arraste para girar</span>
+        <span>Arraste para mover a câmera</span>
     </div>
 
     <!-- Botão Abrir/Fechar Menu -->
@@ -63,7 +62,7 @@
         <i data-lucide="x" id="icon-close" class="w-5 h-5 text-gray-200 group-hover:text-white hidden transition-colors"></i>
     </button>
 
-    <!-- Painel Lateral Transparente (Glassmorphism) -->
+    <!-- Painel Lateral Transparente -->
     <div id="sidebar" class="hidden-sidebar absolute top-0 right-0 h-full w-80 sm:w-96 bg-black/10 backdrop-blur-md border-l border-white/10 z-40 overflow-y-auto">
         <div class="p-6 pt-20 space-y-8 pb-24">
             
@@ -75,13 +74,43 @@
                 </button>
             </div>
 
-            <!-- Grupo 1: Geometria -->
+            <!-- Grupo 1: Movimento (Novo) -->
+            <div class="space-y-5">
+                <h3 class="text-xs font-bold text-yellow-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+                   <i data-lucide="activity" class="w-3 h-3"></i> Movimento
+                </h3>
+
+                <!-- Novo Controle de Giro -->
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3 h-3 text-white/50"></i> Velocidade Giro
+                        </label>
+                        <span id="val-rotationSpeed" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.00</span>
+                    </div>
+                    <input type="range" id="inp-rotationSpeed" min="-0.05" max="0.05" step="0.001" value="0.002" class="w-full">
+                </div>
+
+                <!-- Controle de Velocidade da Onda -->
+                <div class="space-y-2 group">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs text-gray-300 font-medium flex items-center gap-1">
+                            <i data-lucide="waves" class="w-3 h-3 text-white/50"></i> Velocidade Onda
+                        </label>
+                        <span id="val-speed" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.05</span>
+                    </div>
+                    <input type="range" id="inp-speed" min="0" max="0.3" step="0.01" value="0.05" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Grupo 2: Geometria -->
             <div class="space-y-5">
                 <h3 class="text-xs font-bold text-blue-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
                    <i data-lucide="box" class="w-3 h-3"></i> Geometria
                 </h3>
                 
-                <!-- Slider Template -->
                 <div class="space-y-2 group">
                     <div class="flex justify-between items-center">
                         <label class="text-xs text-gray-300 font-medium">Qtd. Braços</label>
@@ -109,10 +138,10 @@
 
             <hr class="border-white/10">
 
-            <!-- Grupo 2: Onda -->
+            <!-- Grupo 3: Forma da Onda -->
             <div class="space-y-5">
                 <h3 class="text-xs font-bold text-green-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
-                   <i data-lucide="layers" class="w-3 h-3"></i> Onda (Z)
+                   <i data-lucide="layers" class="w-3 h-3"></i> Forma (Z)
                 </h3>
 
                 <div class="space-y-2 group">
@@ -130,22 +159,14 @@
                     </div>
                     <input type="range" id="inp-frequency" min="0.1" max="5" step="0.1" value="2" class="w-full">
                 </div>
-
-                <div class="space-y-2 group">
-                    <div class="flex justify-between items-center">
-                        <label class="text-xs text-gray-300 font-medium">Velocidade</label>
-                        <span id="val-speed" class="text-[10px] font-mono text-gray-200 bg-white/10 px-2 rounded backdrop-blur-sm">0.05</span>
-                    </div>
-                    <input type="range" id="inp-speed" min="0" max="0.3" step="0.01" value="0.05" class="w-full">
-                </div>
             </div>
 
             <hr class="border-white/10">
 
-            <!-- Grupo 3: Visual -->
+            <!-- Grupo 4: Visual -->
             <div class="space-y-5">
                 <h3 class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
-                   <i data-lucide="eye" class="w-3 h-3"></i> Renderização
+                   <i data-lucide="eye" class="w-3 h-3"></i> Visual
                 </h3>
 
                 <div class="space-y-2 group">
@@ -171,7 +192,7 @@
             <div class="pt-4">
                 <button id="btn-playpause" class="w-full flex justify-center items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all text-xs tracking-widest uppercase border backdrop-blur-sm bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
                     <i data-lucide="pause" class="w-4 h-4"></i>
-                    <span>Pausar Tempo</span>
+                    <span>Pausar</span>
                 </button>
             </div>
 
@@ -186,7 +207,8 @@
             frequency: 2,
             amplitude: 15,
             twist: 0,
-            speed: 0.05,
+            speed: 0.05,       // Velocidade da onda
+            rotationSpeed: 0.002, // Velocidade do giro automático
             color: '#00ffcc',
             pointSize: 1.5,
             spread: 50
@@ -218,7 +240,6 @@
         const positions = new Float32Array(maxParticles * 3);
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-        // Textura redonda via Canvas
         function getDotTexture() {
             const c = document.createElement('canvas');
             c.width = 32; c.height = 32;
@@ -250,18 +271,21 @@
             let i = 0;
             const totalParticles = config.numArms * config.particlesPerArm;
 
+            // Rotação Automática (Giro)
+            if (isPlaying) {
+                particles.rotation.z += config.rotationSpeed;
+            }
+
             for (let arm = 0; arm < config.numArms; arm++) {
                 for (let p = 0; p < config.particlesPerArm; p++) {
                     const t = p / config.particlesPerArm; 
                     const r = t * config.spread;
                     
-                    // Ângulo + Twist
                     const angle = (arm / config.numArms) * Math.PI * 2 + (t * config.twist);
                     
                     const x = Math.cos(angle) * r;
                     const y = Math.sin(angle) * r;
 
-                    // Onda Z
                     const wave = Math.sin((r * config.frequency * 0.1) - time);
                     const z = wave * config.amplitude;
 
@@ -272,7 +296,6 @@
                 }
             }
 
-            // Esconder partículas não usadas
             for (let j = i; j < maxParticles * 3; j++) {
                 pos[j] = 0;
             }
@@ -297,29 +320,24 @@
                 x: x - previousMousePosition.x,
                 y: y - previousMousePosition.y
             };
-            
-            // Ajustar rotação
             rotationTarget.y += deltaMove.x * 0.005;
             rotationTarget.x += deltaMove.y * 0.005;
-            
             previousMousePosition = { x, y };
         }
 
         function handleEnd() { isDragging = false; }
 
-        // Mouse Events
         container.addEventListener('mousedown', (e) => handleStart(e.clientX, e.clientY));
         container.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
         container.addEventListener('mouseup', handleEnd);
         container.addEventListener('mouseleave', handleEnd);
 
-        // Touch Events
         container.addEventListener('touchstart', (e) => {
             if(e.touches.length === 1) handleStart(e.touches[0].clientX, e.touches[0].clientY);
         }, {passive: false});
         container.addEventListener('touchmove', (e) => {
             if(e.touches.length === 1) {
-                e.preventDefault(); // Evita scroll da página
+                e.preventDefault();
                 handleMove(e.touches[0].clientX, e.touches[0].clientY);
             }
         }, {passive: false});
@@ -333,7 +351,6 @@
                 time += config.speed;
             }
 
-            // Suavização da câmera (lerp)
             scene.rotation.x += (rotationTarget.x - scene.rotation.x) * 0.1;
             scene.rotation.y += (rotationTarget.y - scene.rotation.y) * 0.1;
 
@@ -343,8 +360,6 @@
         animate();
 
         // --- UI E INTERAÇÃO ---
-        
-        // 1. Mapeamento de inputs
         const inputs = {
             numArms: document.getElementById('inp-numArms'),
             twist: document.getElementById('inp-twist'),
@@ -352,6 +367,7 @@
             amplitude: document.getElementById('inp-amplitude'),
             frequency: document.getElementById('inp-frequency'),
             speed: document.getElementById('inp-speed'),
+            rotationSpeed: document.getElementById('inp-rotationSpeed'),
             pointSize: document.getElementById('inp-pointSize'),
             color: document.getElementById('inp-color')
         };
@@ -363,36 +379,34 @@
             amplitude: document.getElementById('val-amplitude'),
             frequency: document.getElementById('val-frequency'),
             speed: document.getElementById('val-speed'),
+            rotationSpeed: document.getElementById('val-rotationSpeed'),
             pointSize: document.getElementById('val-pointSize'),
             color: document.getElementById('val-color-text')
         };
 
-        // 2. Atualizar valores
         function updateConfigFromUI() {
-            // Numbers
             for (const key in inputs) {
                 if (key !== 'color') {
                     const val = parseFloat(inputs[key].value);
                     config[key] = val;
-                    if(displays[key]) displays[key].innerText = val.toFixed(key === 'numArms' || key === 'amplitude' || key === 'particlesPerArm' ? 0 : (key === 'speed' ? 2 : 1));
+                    if(displays[key]) {
+                        // Formatação específica para números pequenos
+                        const digits = (key === 'speed' || key === 'rotationSpeed') ? 3 : (key === 'twist' || key === 'frequency' || key === 'pointSize' ? 1 : 0);
+                        displays[key].innerText = val.toFixed(digits);
+                    }
                 }
             }
-            
-            // Color
             config.color = inputs.color.value;
             displays.color.innerText = config.color;
 
-            // Updates Materiais
             particles.material.size = config.pointSize;
             particles.material.color.set(config.color);
         }
 
-        // Adicionar Listeners
         for (const key in inputs) {
             inputs[key].addEventListener('input', updateConfigFromUI);
         }
 
-        // 3. Toggle Sidebar
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-btn');
         const iconSettings = document.getElementById('icon-settings');
@@ -414,46 +428,36 @@
             }
         });
 
-        // 4. Random Button
         document.getElementById('btn-random').addEventListener('click', () => {
-            // Gerar valores aleatórios
             const rVal = (min, max) => Math.random() * (max - min) + min;
-            
             inputs.numArms.value = Math.floor(rVal(5, 40));
             inputs.twist.value = rVal(-3, 3);
             inputs.frequency.value = rVal(0.5, 4);
             inputs.amplitude.value = rVal(5, 50);
+            inputs.rotationSpeed.value = rVal(-0.02, 0.02);
             inputs.color.value = '#' + Math.floor(Math.random()*16777215).toString(16);
-            
             updateConfigFromUI();
         });
 
-        // 5. Play/Pause
         const playBtn = document.getElementById('btn-playpause');
         playBtn.addEventListener('click', () => {
             isPlaying = !isPlaying;
-            const icon = playBtn.querySelector('i');
             const span = playBtn.querySelector('span');
             
             if (isPlaying) {
-                // Style para Play
                 playBtn.classList.remove('bg-green-500/20', 'text-green-300', 'border-green-500/30');
                 playBtn.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/30');
-                span.innerText = "Pausar Tempo";
-                // Recriar icone pause (Lucide não troca dinamicamente sem re-render, então simplificamos o texto ou usamos replace)
                 playBtn.innerHTML = ''; 
                 const newIcon = document.createElement('i');
                 newIcon.setAttribute('data-lucide', 'pause');
                 newIcon.className = "w-4 h-4 mr-2";
                 playBtn.appendChild(newIcon);
                 const newSpan = document.createElement('span');
-                newSpan.innerText = "Pausar Tempo";
+                newSpan.innerText = "Pausar";
                 playBtn.appendChild(newSpan);
             } else {
-                // Style para Pause
                 playBtn.classList.add('bg-green-500/20', 'text-green-300', 'border-green-500/30');
                 playBtn.classList.remove('bg-red-500/20', 'text-red-300', 'border-red-500/30');
-                
                 playBtn.innerHTML = ''; 
                 const newIcon = document.createElement('i');
                 newIcon.setAttribute('data-lucide', 'play');
@@ -466,17 +470,14 @@
             lucide.createIcons();
         });
 
-        // Resize
         window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // Inicializar Icones
         lucide.createIcons();
 
     </script>
 </body>
 </html>
-
