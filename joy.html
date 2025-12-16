@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joy Division - Configuração Específica</title>
+    <title>Joy Division - Salvar no Painel</title>
     <style>
         body, html {
             margin: 0;
@@ -24,7 +24,6 @@
             top: 0;
             left: 0;
             z-index: 1;
-            cursor: crosshair;
         }
         
         #menu-toggle {
@@ -100,6 +99,13 @@
             transition: 0.3s; letter-spacing: 1px; border-radius: 2px;
         }
         .btn:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.05); }
+        
+        /* Botão de Salvar Destacado */
+        #saveBtn {
+            border-color: #0f8; color: #0f8; margin-top: 30px;
+        }
+        #saveBtn:hover { background: rgba(0, 255, 136, 0.1); }
+
         input[type="file"] { display: none; }
 
         #debug { position: fixed; bottom: 10px; left: 10px; color: #f55; font-size: 12px; pointer-events: none; }
@@ -125,53 +131,6 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.5);
         }
         #toast.show { opacity: 1; }
-
-        /* Modal de Confirmação */
-        #modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        #modal-overlay.visible { opacity: 1; pointer-events: all; }
-
-        .modal-box {
-            background: #111;
-            border: 1px solid #444;
-            padding: 25px;
-            width: 300px;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            text-align: center;
-        }
-        .modal-box p {
-            color: #eee; font-size: 12px; margin-bottom: 20px; line-height: 1.5;
-        }
-        .modal-actions {
-            display: flex; gap: 10px; justify-content: center;
-        }
-        .modal-btn {
-            padding: 10px 20px;
-            border: 1px solid #444;
-            background: transparent;
-            color: #ccc;
-            cursor: pointer;
-            font-size: 11px;
-            text-transform: uppercase;
-            border-radius: 4px;
-            transition: 0.2s;
-        }
-        .modal-btn.confirm { border-color: #0f8; color: #0f8; }
-        .modal-btn:hover { background: rgba(255,255,255,0.1); }
-        .modal-btn.confirm:hover { background: rgba(0, 255, 136, 0.1); }
-
     </style>
 </head>
 <body>
@@ -179,7 +138,7 @@
     <button id="menu-toggle">⚙️</button>
 
     <div id="controls">
-        <h3>Parâmetros Iniciais</h3>
+        <h3>Parâmetros</h3>
         <label for="fileInput" class="btn">📂 Carregar Silhueta</label>
         <input type="file" id="fileInput" accept="image/*">
         
@@ -197,6 +156,8 @@
         </div>
         
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        <label style="color: #666; font-size: 9px; text-align: center; display: block;">Na Silhueta</label>
+        <br>
         
         <div class="control-group">
             <label>Amplitude Relativa</label>
@@ -207,7 +168,7 @@
             <input type="range" id="baseFreq" min="1" max="200" value="168">
         </div>
         <div class="control-group">
-            <label>Modulação</label>
+            <label>Modulação (Freq por Intensidade)</label>
             <input type="range" id="freqMod" min="0" max="100" value="10">
         </div>
         <div class="control-group">
@@ -222,25 +183,16 @@
         <button id="invertBtn" class="btn">Inverter (Preto/Branco)</button>
         <button id="fitBtn" class="btn">Ajustar Tela</button>
         
-        <div style="font-size: 9px; color: #555; text-align: center; margin-top: 20px; line-height: 1.4;">
-            Clique na tela para salvar/copiar
-        </div>
+        <!-- Novo Botão de Salvar -->
+        <button id="saveBtn" class="btn">💾 Salvar Configurações</button>
+        
     </div>
 
-    <div id="modal-overlay">
-        <div class="modal-box">
-            <p>Deseja copiar as configurações atuais (JSON) para a área de transferência?</p>
-            <div class="modal-actions">
-                <button class="modal-btn" onclick="closeModal()">Cancelar</button>
-                <button class="modal-btn confirm" onclick="confirmCopy()">Copiar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast">JSON Copiado!</div>
+    <div id="toast">Configurações Salvas!</div>
     <div id="debug"></div>
     <canvas id="glCanvas"></canvas>
 
+    <!-- Vertex Shader -->
     <script id="vs" type="x-shader/x-vertex">
         attribute vec2 a_position;
         varying vec2 v_uv;
@@ -250,6 +202,7 @@
         }
     </script>
 
+    <!-- Fragment Shader -->
     <script id="fs" type="x-shader/x-fragment">
         precision highp float;
 
@@ -420,30 +373,7 @@
         let invert = false;
         let fitMode = 0.0;
 
-        function copyToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showToast("JSON Copiado!");
-            } catch (err) {
-                console.error('Erro', err);
-            }
-            document.body.removeChild(textArea);
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
-        }
-
+        // --- STORAGE LOGIC ---
         function saveConfig() {
             const config = {
                 speed: document.getElementById('speed').value,
@@ -457,13 +387,15 @@
                 invert: invert,
                 fitMode: fitMode
             };
-            const jsonStr = JSON.stringify(config, null, 2);
-            localStorage.setItem('joyDivisionParamsFinal', jsonStr);
-            return jsonStr;
+            localStorage.setItem('joyDivisionParamsClean', JSON.stringify(config));
+            
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
         function loadConfig() {
-            const saved = localStorage.getItem('joyDivisionParamsFinal');
+            const saved = localStorage.getItem('joyDivisionParamsClean');
             if (saved) {
                 try {
                     const config = JSON.parse(saved);
@@ -477,22 +409,16 @@
                     if(config.thickness) document.getElementById('thickness').value = config.thickness;
                     if(config.invert !== undefined) invert = config.invert;
                     if(config.fitMode !== undefined) fitMode = config.fitMode;
-                } catch(e) {}
+                } catch(e) {
+                    console.error("Erro config", e);
+                }
             }
         }
 
-        const modal = document.getElementById('modal-overlay');
-        function openModal() { modal.classList.add('visible'); }
-        function closeModal() { modal.classList.remove('visible'); }
-        window.closeModal = closeModal;
-        window.confirmCopy = function() {
-            const json = saveConfig();
-            copyToClipboard(json);
-            closeModal();
-        };
-
-        canvas.addEventListener('mousedown', (e) => { if (e.target === canvas) openModal(); });
-        canvas.addEventListener('touchstart', (e) => { if (e.target === canvas) openModal(); });
+        // --- UI Events ---
+        
+        // Botão Salvar
+        document.getElementById('saveBtn').addEventListener('click', saveConfig);
 
         loadConfig();
 
@@ -574,3 +500,4 @@
     </script>
 </body>
 </html>
+
