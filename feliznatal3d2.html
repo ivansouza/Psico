@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Natal de Cristal 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            outline: none;
+        }
+        #ui-container {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: #ffffff;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 215, 0, 0.4);
+            opacity: 0.9;
+        }
+        .instructions {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+            letter-spacing: 1.5px;
+            font-weight: 300;
+            text-transform: uppercase;
+        }
+        
+        /* Ajustes para celular */
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; letter-spacing: 4px; }
+            #ui-container { bottom: 30px; }
+            .instructions { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1>FELIZ NATAL</h1>
+        <p class="instructions">Arraste para girar &bull; Pinch para zoom</p>
+    </div>
+
+    <!-- Three.js Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
+        
+        // Arrays para gerenciar os dados de movimento de cada instância
+        const particlesData = [];
+        const particleMeshes = []; 
+        const dummy = new THREE.Object3D();
+
+        // Configurações
+        const COUNT_PER_SHAPE = 600; 
+        const RANGE_Y = 150;
+        const RANGE_XZ = 150;
+
+        function init() {
+            // 1. Cena e Câmera
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050510, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+            camera.position.set(0, 0, 40);
+
+            // Luzes
+            const ambientLight = new THREE.AmbientLight(0x444444);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(10, 50, 20);
+            scene.add(dirLight);
+
+            // Luzes coloridas (Natal: Vermelho e Verde)
+            const pLight1 = new THREE.PointLight(0xff0000, 2, 50); // Vermelho
+            pLight1.position.set(0, 10, 10);
+            scene.add(pLight1);
+            
+            const pLight2 = new THREE.PointLight(0x00ff00, 2, 50); // Verde
+            pLight2.position.set(10, -10, -10);
+            scene.add(pLight2);
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true; 
+            document.body.appendChild(renderer.domElement);
+
+            // 4. Controles
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            controls.enablePan = false;
+            controls.minDistance = 5;
+            controls.maxDistance = 100;
+
+            // 5. Criar Geometrias (Cristais)
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 0.1,
+                roughness: 0.1, 
+                flatShading: true,
+                emissive: 0x111122,
+            });
+
+            const geometries = [
+                new THREE.IcosahedronGeometry(0.4, 0),
+                new THREE.OctahedronGeometry(0.3, 0),
+                new THREE.TetrahedronGeometry(0.35, 0),
+                new THREE.DodecahedronGeometry(0.35, 0)
+            ];
+
+            geometries.forEach((geo) => {
+                const mesh = new THREE.InstancedMesh(geo, material, COUNT_PER_SHAPE);
+                mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                scene.add(mesh);
+                particleMeshes.push(mesh);
+
+                for (let i = 0; i < COUNT_PER_SHAPE; i++) {
+                    const data = {
+                        position: new THREE.Vector3(
+                            (Math.random() - 0.5) * RANGE_XZ,
+                            (Math.random() - 0.5) * RANGE_Y,
+                            (Math.random() - 0.5) * RANGE_XZ
+                        ),
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * 0.1,
+                            -(0.05 + Math.random() * 0.15), 
+                            (Math.random() - 0.5) * 0.1 
+                        ),
+                        rotationSpeed: new THREE.Vector3(
+                            Math.random() * 0.05,
+                            Math.random() * 0.05,
+                            Math.random() * 0.05
+                        ),
+                        rotation: new THREE.Euler(Math.random(), Math.random(), Math.random()),
+                        scale: 0.5 + Math.random() * 1.5,
+                        swaySpeed: Math.random() * 2,
+                        swayOffset: Math.random() * Math.PI * 2
+                    };
+                    
+                    data.meshIndex = particleMeshes.length - 1;
+                    data.instanceIndex = i;
+                    particlesData.push(data);
+
+                    dummy.position.copy(data.position);
+                    dummy.rotation.copy(data.rotation);
+                    dummy.scale.set(data.scale, data.scale, data.scale);
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(i, dummy.matrix);
+                }
+            });
+
+            window.addEventListener('resize', onWindowResize, false);
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = clock.getElapsedTime();
+            controls.update();
+
+            particlesData.forEach(p => {
+                // Física
+                p.position.y += p.velocity.y;
+                
+                // Balanço
+                p.position.x += Math.sin(time * p.swaySpeed + p.swayOffset) * 0.02 + p.velocity.x;
+                p.position.z += Math.cos(time * p.swaySpeed + p.swayOffset) * 0.02 + p.velocity.z;
+
+                // Rotação
+                p.rotation.x += p.rotationSpeed.x;
+                p.rotation.y += p.rotationSpeed.y;
+                p.rotation.z += p.rotationSpeed.z;
+
+                // Loop
+                if (p.position.y < -RANGE_Y / 2) {
+                    p.position.y = RANGE_Y / 2;
+                    p.position.x = (Math.random() - 0.5) * RANGE_XZ; 
+                    p.position.z = (Math.random() - 0.5) * RANGE_XZ;
+                }
+
+                // Update Matrix
+                dummy.position.copy(p.position);
+                dummy.rotation.copy(p.rotation);
+                dummy.scale.set(p.scale, p.scale, p.scale);
+                dummy.updateMatrix();
+
+                particleMeshes[p.meshIndex].setMatrixAt(p.instanceIndex, dummy.matrix);
+            });
+
+            particleMeshes.forEach(mesh => {
+                mesh.instanceMatrix.needsUpdate = true;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
