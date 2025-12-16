@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joy Division - Configuração Específica</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            color: #eee;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            cursor: crosshair;
+        }
+        
+        #menu-toggle {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #menu-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+            transform: rotate(90deg);
+        }
+
+        #controls {
+            position: absolute;
+            top: 0;
+            right: -320px;
+            width: 280px;
+            height: 100%;
+            background: rgba(8, 8, 8, 0.96);
+            border-left: 1px solid #333;
+            padding: 90px 25px 30px 25px;
+            box-sizing: border-box;
+            z-index: 100;
+            transition: right 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            overflow-y: auto;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+        }
+        
+        #controls.open { right: 0; }
+
+        h3 { 
+            font-size: 11px; margin-bottom: 25px; color: #fff; 
+            text-transform: uppercase; letter-spacing: 2px; 
+            border-bottom: 1px solid #444; padding-bottom: 10px;
+            text-align: center;
+        }
+
+        .control-group { margin-bottom: 20px; }
+        label { display: block; font-size: 10px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        input[type=range] { 
+            width: 100%; -webkit-appearance: none; background: transparent; cursor: pointer; 
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 2px; background: #444; border-radius: 1px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 14px; width: 14px; 
+            border-radius: 50%; background: #eee; margin-top: -6px; 
+            box-shadow: 0 0 10px rgba(255,255,255,0.1); transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); background: #fff; }
+
+        .btn {
+            display: block; width: 100%; padding: 12px;
+            background: transparent; border: 1px solid #444; color: #ccc;
+            text-align: center; cursor: pointer; font-size: 10px;
+            text-transform: uppercase; margin-bottom: 15px;
+            transition: 0.3s; letter-spacing: 1px; border-radius: 2px;
+        }
+        .btn:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.05); }
+        input[type="file"] { display: none; }
+
+        #debug { position: fixed; bottom: 10px; left: 10px; color: #f55; font-size: 12px; pointer-events: none; }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 10, 0.9);
+            border: 1px solid #0f8;
+            color: #0f8;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 500;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        #toast.show { opacity: 1; }
+
+        /* Modal de Confirmação */
+        #modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #modal-overlay.visible { opacity: 1; pointer-events: all; }
+
+        .modal-box {
+            background: #111;
+            border: 1px solid #444;
+            padding: 25px;
+            width: 300px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            text-align: center;
+        }
+        .modal-box p {
+            color: #eee; font-size: 12px; margin-bottom: 20px; line-height: 1.5;
+        }
+        .modal-actions {
+            display: flex; gap: 10px; justify-content: center;
+        }
+        .modal-btn {
+            padding: 10px 20px;
+            border: 1px solid #444;
+            background: transparent;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+        .modal-btn.confirm { border-color: #0f8; color: #0f8; }
+        .modal-btn:hover { background: rgba(255,255,255,0.1); }
+        .modal-btn.confirm:hover { background: rgba(0, 255, 136, 0.1); }
+
+    </style>
+</head>
+<body>
+
+    <button id="menu-toggle">⚙️</button>
+
+    <div id="controls">
+        <h3>Parâmetros Iniciais</h3>
+        <label for="fileInput" class="btn">📂 Carregar Silhueta</label>
+        <input type="file" id="fileInput" accept="image/*">
+        
+        <div class="control-group">
+            <label>Velocidade de Scan</label>
+            <input type="range" id="speed" min="0" max="100" value="84">
+        </div>
+        <div class="control-group">
+            <label>Densidade de Linhas</label>
+            <input type="range" id="density" min="10" max="400" value="22">
+        </div>
+        <div class="control-group">
+            <label>Influência Vizinha (Coupling)</label>
+            <input type="range" id="coupling" min="0" max="100" value="0">
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        
+        <div class="control-group">
+            <label>Amplitude Relativa</label>
+            <input type="range" id="amplitude" min="0" max="5.0" step="0.1" value="0.1">
+        </div>
+        <div class="control-group">
+            <label>Frequência Base</label>
+            <input type="range" id="baseFreq" min="1" max="200" value="168">
+        </div>
+        <div class="control-group">
+            <label>Modulação</label>
+            <input type="range" id="freqMod" min="0" max="100" value="10">
+        </div>
+        <div class="control-group">
+            <label>Velocidade da Vibração</label>
+            <input type="range" id="vibSpeed" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label>Espessura da Linha</label>
+            <input type="range" id="thickness" min="0.1" max="5.0" step="0.1" value="1.2">
+        </div>
+        
+        <button id="invertBtn" class="btn">Inverter (Preto/Branco)</button>
+        <button id="fitBtn" class="btn">Ajustar Tela</button>
+        
+        <div style="font-size: 9px; color: #555; text-align: center; margin-top: 20px; line-height: 1.4;">
+            Clique na tela para salvar/copiar
+        </div>
+    </div>
+
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <p>Deseja copiar as configurações atuais (JSON) para a área de transferência?</p>
+            <div class="modal-actions">
+                <button class="modal-btn" onclick="closeModal()">Cancelar</button>
+                <button class="modal-btn confirm" onclick="confirmCopy()">Copiar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">JSON Copiado!</div>
+    <div id="debug"></div>
+    <canvas id="glCanvas"></canvas>
+
+    <script id="vs" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        varying vec2 v_uv;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_uv = a_position * 0.5 + 0.5;
+        }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform sampler2D u_image;
+        uniform vec2 u_resolution;
+        uniform float u_time;
+        uniform bool u_hasTexture;
+        uniform bool u_invert;
+        uniform float u_imgAspect;
+        
+        uniform float u_density;
+        uniform float u_speed;
+        uniform float u_amplitude;
+        uniform float u_baseFreq;
+        uniform float u_freqMod; 
+        uniform float u_vibSpeed;
+        uniform float u_fitMode;
+        uniform float u_thickness;
+        uniform float u_coupling;
+
+        varying vec2 v_uv;
+
+        float getPixelWeight(vec2 screenUV) {
+            float screenAspect = u_resolution.x / u_resolution.y;
+            vec2 imgUV = screenUV;
+            imgUV -= 0.5;
+
+            if (u_fitMode < 0.5) { 
+                if (screenAspect > u_imgAspect) { imgUV.y *= screenAspect / u_imgAspect; } 
+                else { imgUV.x *= u_imgAspect / screenAspect; }
+            } else { 
+                if (screenAspect > u_imgAspect) { imgUV.x *= screenAspect / u_imgAspect; } 
+                else { imgUV.y *= u_imgAspect / screenAspect; }
+            }
+
+            imgUV += 0.5;
+
+            if (imgUV.x < 0.0 || imgUV.x > 1.0 || imgUV.y < 0.0 || imgUV.y > 1.0) return 0.0;
+
+            vec4 tex = texture2D(u_image, vec2(imgUV.x, 1.0 - imgUV.y));
+            float brightness = (tex.r + tex.g + tex.b) / 3.0;
+            float alpha = tex.a;
+            
+            float w = 0.0;
+            if (u_invert) {
+                w = 1.0 - brightness;
+            } else {
+                w = alpha * brightness; 
+                if (alpha > 0.9) w = brightness;
+            }
+            return w;
+        }
+
+        float getBlurredWeight(vec2 pos) {
+            float total = 0.0;
+            float step = 0.003; 
+            total += getPixelWeight(pos) * 0.4;
+            total += getPixelWeight(pos + vec2(0.0, step)) * 0.2;
+            total += getPixelWeight(pos - vec2(0.0, step)) * 0.2;
+            total += getPixelWeight(pos + vec2(0.0, step * 2.0)) * 0.1;
+            total += getPixelWeight(pos - vec2(0.0, step * 2.0)) * 0.1;
+            return total;
+        }
+
+        float calculateBaseVibration(float lineX, float uvY, float time, float spacing) {
+            float weight = 0.0;
+            if (u_hasTexture) {
+                weight = getBlurredWeight(vec2(lineX, uvY));
+            } else {
+                vec2 p = vec2(lineX, uvY) * 2.0 - 1.0;
+                p.x *= u_resolution.x / u_resolution.y; 
+                float angle = atan(p.y, p.x);
+                float radius = length(p);
+                float starShape = 0.35 + 0.1 * cos(angle * 12.0 - time * 0.5);
+                weight = smoothstep(starShape + 0.05, starShape - 0.05, radius);
+            }
+
+            if (weight < 0.05) return 0.0;
+
+            float dynamicFreq = u_baseFreq + (weight * u_freqMod * 2.0);
+            float vibration = sin(uvY * dynamicFreq + time * u_vibSpeed * 0.2);
+            
+            return vibration * weight * u_amplitude * spacing * 4.0;
+        }
+
+        void main() {
+            vec2 uv = v_uv;
+
+            float spacing = 1.0 / u_density;
+            float move = u_time * u_speed * 0.001;
+            float worldX = uv.x - move;
+            
+            float lineIndex = floor(worldX / spacing + 0.5);
+            float lineCenterScreenX = (lineIndex * spacing) + move;
+            
+            float dispSelf = calculateBaseVibration(lineCenterScreenX, uv.y, u_time, spacing);
+            float dispLeft = calculateBaseVibration(lineCenterScreenX - spacing, uv.y, u_time, spacing);
+            float dispRight = calculateBaseVibration(lineCenterScreenX + spacing, uv.y, u_time, spacing);
+            
+            float influence = u_coupling * 0.01;
+            float finalDisp = dispSelf;
+            
+            if (abs(dispLeft) * influence > abs(finalDisp)) finalDisp = dispLeft * influence;
+            if (abs(dispRight) * influence > abs(finalDisp)) finalDisp = dispRight * influence;
+            
+            float actualStringPos = lineCenterScreenX + finalDisp;
+
+            float dist = abs(uv.x - actualStringPos);
+            float pxSize = 1.0 / u_resolution.x;
+            float thickness = max(u_thickness * pxSize, 0.0001); 
+            
+            float line = smoothstep(thickness + pxSize, thickness, dist);
+            
+            float activity = smoothstep(0.0, 0.002, abs(finalDisp));
+            
+            vec3 color = vec3(0.95);
+            if (activity > 0.5) color = vec3(1.0); 
+
+            float alpha = 0.2 + (activity * 0.8);
+
+            gl_FragColor = vec4(color * line * alpha, 1.0);
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById("glCanvas");
+        const gl = canvas.getContext("webgl", { alpha: false, antialias: true });
+        const debug = document.getElementById('debug');
+
+        if (!gl) debug.innerText = "Erro: WebGL não disponível.";
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return null;
+            return shader;
+        }
+
+        const program = gl.createProgram();
+        const vs = createShader(gl, gl.VERTEX_SHADER, document.getElementById("vs").text);
+        const fs = createShader(gl, gl.FRAGMENT_SHADER, document.getElementById("fs").text);
+        
+        if (vs && fs) {
+            gl.attachShader(program, vs);
+            gl.attachShader(program, fs);
+            gl.linkProgram(program);
+        }
+        gl.useProgram(program);
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+        const aPos = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+
+        let imgAspect = 1.0;
+        let hasTexture = false;
+        let invert = false;
+        let fitMode = 0.0;
+
+        function copyToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("JSON Copiado!");
+            } catch (err) {
+                console.error('Erro', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function saveConfig() {
+            const config = {
+                speed: document.getElementById('speed').value,
+                density: document.getElementById('density').value,
+                coupling: document.getElementById('coupling').value,
+                amplitude: document.getElementById('amplitude').value,
+                baseFreq: document.getElementById('baseFreq').value,
+                freqMod: document.getElementById('freqMod').value,
+                vibSpeed: document.getElementById('vibSpeed').value,
+                thickness: document.getElementById('thickness').value,
+                invert: invert,
+                fitMode: fitMode
+            };
+            const jsonStr = JSON.stringify(config, null, 2);
+            localStorage.setItem('joyDivisionParamsFinal', jsonStr);
+            return jsonStr;
+        }
+
+        function loadConfig() {
+            const saved = localStorage.getItem('joyDivisionParamsFinal');
+            if (saved) {
+                try {
+                    const config = JSON.parse(saved);
+                    if(config.speed) document.getElementById('speed').value = config.speed;
+                    if(config.density) document.getElementById('density').value = config.density;
+                    if(config.coupling) document.getElementById('coupling').value = config.coupling;
+                    if(config.amplitude) document.getElementById('amplitude').value = config.amplitude;
+                    if(config.baseFreq) document.getElementById('baseFreq').value = config.baseFreq;
+                    if(config.freqMod) document.getElementById('freqMod').value = config.freqMod;
+                    if(config.vibSpeed) document.getElementById('vibSpeed').value = config.vibSpeed;
+                    if(config.thickness) document.getElementById('thickness').value = config.thickness;
+                    if(config.invert !== undefined) invert = config.invert;
+                    if(config.fitMode !== undefined) fitMode = config.fitMode;
+                } catch(e) {}
+            }
+        }
+
+        const modal = document.getElementById('modal-overlay');
+        function openModal() { modal.classList.add('visible'); }
+        function closeModal() { modal.classList.remove('visible'); }
+        window.closeModal = closeModal;
+        window.confirmCopy = function() {
+            const json = saveConfig();
+            copyToClipboard(json);
+            closeModal();
+        };
+
+        canvas.addEventListener('mousedown', (e) => { if (e.target === canvas) openModal(); });
+        canvas.addEventListener('touchstart', (e) => { if (e.target === canvas) openModal(); });
+
+        loadConfig();
+
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = new Image();
+                img.onload = () => {
+                    hasTexture = true;
+                    imgAspect = img.width / img.height;
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        const menuBtn = document.getElementById('menu-toggle');
+        const controls = document.getElementById('controls');
+        menuBtn.onclick = () => {
+            controls.classList.toggle('open');
+            menuBtn.style.transform = controls.classList.contains('open') ? "rotate(90deg)" : "rotate(0deg)";
+        };
+
+        document.getElementById('invertBtn').onclick = () => invert = !invert;
+        document.getElementById('fitBtn').onclick = () => fitMode = 1.0 - fitMode;
+
+        const uLocs = {
+            res: gl.getUniformLocation(program, "u_resolution"),
+            time: gl.getUniformLocation(program, "u_time"),
+            hasTex: gl.getUniformLocation(program, "u_hasTexture"),
+            invert: gl.getUniformLocation(program, "u_invert"),
+            imgAspect: gl.getUniformLocation(program, "u_imgAspect"),
+            density: gl.getUniformLocation(program, "u_density"),
+            speed: gl.getUniformLocation(program, "u_speed"),
+            amplitude: gl.getUniformLocation(program, "u_amplitude"),
+            baseFreq: gl.getUniformLocation(program, "u_baseFreq"),
+            freqMod: gl.getUniformLocation(program, "u_freqMod"),
+            vibSpeed: gl.getUniformLocation(program, "u_vibSpeed"),
+            fitMode: gl.getUniformLocation(program, "u_fitMode"),
+            thickness: gl.getUniformLocation(program, "u_thickness"),
+            coupling: gl.getUniformLocation(program, "u_coupling"),
+        };
+
+        function loop(now) {
+            now *= 0.001;
+            
+            if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+
+            gl.uniform2f(uLocs.res, canvas.width, canvas.height);
+            gl.uniform1f(uLocs.time, now);
+            gl.uniform1i(uLocs.hasTex, hasTexture);
+            gl.uniform1i(uLocs.invert, invert);
+            gl.uniform1f(uLocs.imgAspect, imgAspect);
+            
+            gl.uniform1f(uLocs.density, document.getElementById('density').value);
+            gl.uniform1f(uLocs.speed, document.getElementById('speed').value);
+            gl.uniform1f(uLocs.amplitude, document.getElementById('amplitude').value);
+            gl.uniform1f(uLocs.baseFreq, document.getElementById('baseFreq').value);
+            gl.uniform1f(uLocs.freqMod, document.getElementById('freqMod').value);
+            gl.uniform1f(uLocs.vibSpeed, document.getElementById('vibSpeed').value);
+            gl.uniform1f(uLocs.thickness, document.getElementById('thickness').value);
+            gl.uniform1f(uLocs.coupling, document.getElementById('coupling').value);
+            gl.uniform1f(uLocs.fitMode, fitMode);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+    </script>
+</body>
+</html>
