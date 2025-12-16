@@ -154,7 +154,7 @@
         let currentEnvMap = null;
 
         // URL fornecida pelo usuário
-        const USER_HDRI_URL = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKhkqiVTkGlMSlzMzimk4vSeym5xkyq-im3XijwS7DAdBSqknBJUKrYgNn&s=10";
+        const USER_HDRI_URL = "https://super.abril.com.br/wp-content/uploads/2018/07/566f1d4c82bee174ca031716thinkstockphotos-468978752.jpeg";
 
         function updateKnotGeometry() {
             if (knotMesh) {
@@ -185,10 +185,12 @@
             document.getElementById('load-btn').disabled = true;
 
             const loader = new THREE.TextureLoader();
+            // Tenta definir crossOrigin para 'anonymous' para contornar CORS
             loader.setCrossOrigin('anonymous'); 
 
             loader.load(url, (texture) => {
                 try {
+                    // Nota: Imagens JPEG comuns podem não ter a informação HDRI necessária, mas vamos processar como equirretangular.
                     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
                     texture.dispose(); 
                     
@@ -276,7 +278,7 @@
             camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
             camera.position.set(0, 0, 4.5);
             
-            // 2. Inicialização do Ambiente com a URL do Usuário (isInitialLoad = true)
+            // 2. Inicialização do Ambiente com a URL do Usuário
             loadEnvironmentMap(USER_HDRI_URL, true); 
 
             // 3. Iluminação (Assistência)
