@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nó Torcido de Inox Final</title>
+    <!-- Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Inter', sans-serif; }
+        canvas { display: block; }
+        
+        /* Controles flutuantes no canto inferior direito */
+        #ui-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(30, 30, 30, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            width: 300px;
+            display: flex; 
+            flex-direction: column;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+            z-index: 20;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        /* CORREÇÃO: Força o estado oculto no carregamento */
+        #ui-controls.hidden {
+            display: none !important; 
+        }
+        
+        /* Estilização para inputs e sliders */
+        .control-group label {
+            font-size: 0.875rem; 
+            font-weight: 600;
+            color: #d1d5db; 
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: #4b5563; 
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #2563eb; 
+            cursor: pointer;
+        }
+        
+        /* Ícone de Engrenagem */
+        #gear-icon {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            padding: 8px;
+            background-color: #2563eb;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 30;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        #gear-icon:hover {
+            background-color: #1d4ed8;
+            transform: rotate(30deg);
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            pointer-events: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Painel de Controles (Contém a classe 'hidden' para iniciar fechado) -->
+    <div id="ui-controls" class="hidden">
+        <h2 class="text-xl font-bold text-white mb-2 border-b border-gray-700 pb-2">Controles do Inox</h2>
+
+        <!-- Grupo 1: Brilho (Exposição) -->
+        <div class="control-group">
+            <label for="exposure-slider">Brilho do Ambiente (Exposição)</label>
+            <input type="range" id="exposure-slider" min="0.1" max="5.0" step="0.1" value="0.8">
+            <span id="exposure-value" class="text-xs text-gray-400 mt-1">0.8</span>
+        </div>
+
+        <!-- Grupo 2: Formato do Nó (P e Q) -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="control-group">
+                <label for="p-input">Voltas (P)</label>
+                <input type="number" id="p-input" min="1" max="10" value="3" class="w-full bg-gray-700 text-white rounded p-2 text-sm border border-gray-600 focus:border-blue-500">
+            </div>
+            <div class="control-group">
+                <label for="q-input">Loops (Q)</label>
+                <input type="number" id="q-input" min="1" max="10" value="2" class="w-full bg-gray-700 text-white rounded p-2 text-sm border border-gray-600 focus:border-blue-500">
+            </div>
+        </div>
+        <button id="update-geometry-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded transition duration-200 shadow-md">
+            Atualizar Formato do Nó
+        </button>
+
+        <!-- Grupo 3: Carregar Imagem de Ambiente -->
+        <div class="control-group border-t border-gray-700 pt-3 mt-3">
+            <label for="env-file">Carregar Imagem de Ambiente</label>
+            <input type="file" id="env-file" accept="image/*" class="w-full text-xs rounded" />
+            <button id="load-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition duration-200 shadow-md">
+                Aplicar Ambiente
+            </button>
+            <div id="loading-status" class="text-xs text-gray-400 mt-1">Ambiente carregado da URL.</div>
+        </div>
+
+    </div>
+    
+    <!-- Ícone de Engrenagem (Toggle) - Sempre Visível -->
+    <svg id="gear-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.564L8.92 4.887c-.585.183-.96.772-.96 1.397V7.5c0 .483-.355.9-.816.945l-1.63.162A1.875 1.875 0 0 0 4.25 10.5v3c0 .878.627 1.609 1.455 1.761l1.63.162c.46.045.815.462.815.945v1.216c0 .626.375 1.215.96 1.397l.308 1.823c.151.901.933 1.564 1.85 1.564h1.844c.916 0 1.698-.663 1.85-1.564l.308-1.823c.585-.182.96-.771.96-1.397v-1.216c0-.483.355-.9.816-.945l1.63-.162A1.875 1.875 0 0 0 19.75 13.5v-3c0-.878-.627-1.609-1.456-1.761l-1.63-.162a1.875 1.875 0 0 1-.815-.945V6.284c0-.626-.375-1.215-.96-1.397l-.307-1.823A1.875 1.875 0 0 0 12.922 2.25h-1.844ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" clip-rule="evenodd" />
+    </svg>
+
+    <div id="info">Modelo 3D Nó Torcido em Inox.</div>
+    
+    <!-- Importando Three.js e OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/pmrem/PMREMGenerator.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, knotMesh;
+        let pmremGenerator;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        let torusP = 3;
+        let torusQ = 2;
+        let currentEnvMap = null;
+
+        // URL fornecida pelo usuário
+        const USER_HDRI_URL = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKhkqiVTkGlMSlzMzimk4vSeym5xkyq-im3XijwS7DAdBSqknBJUKrYgNn&s=10";
+
+        function updateKnotGeometry() {
+            if (knotMesh) {
+                scene.remove(knotMesh);
+                knotMesh.geometry.dispose();
+            }
+
+            const geometry = new THREE.TorusKnotGeometry(1.0, 0.35, 100, 16, torusP, torusQ);
+            
+            const material = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff, 
+                metalness: 1.0,  
+                roughness: 0.05,  
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.0,
+                envMap: currentEnvMap,
+            });
+            
+            knotMesh = new THREE.Mesh(geometry, material);
+            knotMesh.castShadow = true;
+            knotMesh.receiveShadow = true;
+            scene.add(knotMesh);
+        }
+
+        // Função para carregar e aplicar o mapa de ambiente (usado para URL e Upload)
+        function loadEnvironmentMap(url, isInitialLoad = false) {
+            document.getElementById('loading-status').textContent = "Carregando ambiente...";
+            document.getElementById('load-btn').disabled = true;
+
+            const loader = new THREE.TextureLoader();
+            loader.setCrossOrigin('anonymous'); 
+
+            loader.load(url, (texture) => {
+                try {
+                    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+                    texture.dispose(); 
+                    
+                    scene.environment = envMap;
+                    currentEnvMap = envMap; 
+                    
+                    if (isInitialLoad && !knotMesh) {
+                        updateKnotGeometry();
+                    } else if (knotMesh) {
+                        knotMesh.material.envMap = envMap;
+                        knotMesh.material.needsUpdate = true;
+                    }
+
+                    scene.background = null; 
+                    
+                    document.getElementById('loading-status').textContent = "Reflexo aplicado com sucesso!";
+                    document.getElementById('load-btn').disabled = false;
+                } catch (error) {
+                    console.error("Erro ao processar PMREMGenerator:", error);
+                    document.getElementById('loading-status').textContent = "Erro ao processar imagem. Tente Upload de arquivo.";
+                    document.getElementById('load-btn').disabled = false;
+                }
+            }, (xhr) => {
+                const percent = (xhr.loaded / xhr.total) * 100;
+                document.getElementById('loading-status').textContent = `Carregando: ${Math.round(percent)}%`;
+            }, (error) => {
+                console.error("Erro ao carregar textura:", error);
+                // Se a URL falhar, tenta carregar um ambiente de fallback genérico
+                loadFallbackEnvironment(); 
+            });
+        }
+
+        // Adiciona uma função de fallback para garantir que o nó não fique preto se a URL falhar
+        function loadFallbackEnvironment() {
+             document.getElementById('loading-status').textContent = "Falha na URL. Usando ambiente de fallback (Branco/Cinza).";
+             document.getElementById('load-btn').disabled = false;
+             
+             // Cria um mapa de ambiente simples (Branco/Cinza) SÍNCRONO
+             const size = 64;
+             const canvas = document.createElement('canvas');
+             canvas.width = size;
+             canvas.height = size;
+             const ctx = canvas.getContext('2d');
+             ctx.fillStyle = '#808080'; 
+             ctx.fillRect(0, 0, size, size);
+             ctx.fillStyle = '#ffffff';
+             ctx.fillRect(size/4, size/4, size/2, size/2);
+             
+             const texture = new THREE.CanvasTexture(canvas);
+             const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+             texture.dispose();
+             
+             currentEnvMap = envMap;
+             scene.environment = envMap;
+             
+             if (!knotMesh) {
+                updateKnotGeometry();
+             } else {
+                knotMesh.material.envMap = envMap;
+                knotMesh.material.needsUpdate = true;
+             }
+        }
+        
+        function init() {
+            // --- 1. Configuração do Renderizador ---
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setClearColor(0x111111); 
+            
+            renderer.physicallyCorrectLights = true; 
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            
+            const initialExposure = parseFloat(document.getElementById('exposure-slider').value);
+            renderer.toneMappingExposure = initialExposure; 
+            
+            renderer.shadowMap.enabled = false; 
+            document.body.appendChild(renderer.domElement);
+
+            pmremGenerator = new THREE.PMREMGenerator(renderer);
+            pmremGenerator.compileEquirectangularShader(); 
+
+            // Cena e Câmera
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera.position.set(0, 0, 4.5);
+            
+            // 2. Inicialização do Ambiente com a URL do Usuário (isInitialLoad = true)
+            loadEnvironmentMap(USER_HDRI_URL, true); 
+
+            // 3. Iluminação (Assistência)
+            scene.add(new THREE.AmbientLight(0xffffff, 0.1)); 
+
+            // 4. Controles Orbitais
+            if (THREE.OrbitControls) {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.target.set(0, 0, 0); 
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.minDistance = 2.0;
+                controls.maxDistance = 10.0;
+                controls.update();
+            }
+            
+            attachEventListeners();
+            animate();
+        }
+
+        function handleFileLoad() {
+            const input = document.getElementById('env-file');
+            if (input.files.length === 0) {
+                document.getElementById('loading-status').textContent = "Selecione um arquivo primeiro.";
+                return;
+            }
+
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                loadEnvironmentMap(event.target.result, false); 
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Event Listeners para Controles da UI ---
+        function attachEventListeners() {
+            const controlsPanel = document.getElementById('ui-controls');
+            const gearIcon = document.getElementById('gear-icon');
+            const exposureSlider = document.getElementById('exposure-slider');
+            const exposureValueSpan = document.getElementById('exposure-value');
+            const pInput = document.getElementById('p-input');
+            const qInput = document.getElementById('q-input');
+            const updateGeometryBtn = document.getElementById('update-geometry-btn');
+
+            // Toggle do painel
+            gearIcon.addEventListener('click', () => {
+                controlsPanel.classList.toggle('hidden');
+            });
+
+            // Ajuste de Exposição (Brilho)
+            exposureSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                renderer.toneMappingExposure = value;
+                exposureValueSpan.textContent = value.toFixed(1);
+            });
+
+            // Atualização da Geometria (Torus Knot P e Q)
+            updateGeometryBtn.addEventListener('click', () => {
+                const newP = parseInt(pInput.value);
+                const newQ = parseInt(qInput.value);
+
+                if (newP >= 1 && newQ >= 1) {
+                    torusP = newP;
+                    torusQ = newQ;
+                    updateKnotGeometry();
+                } else {
+                    document.getElementById('loading-status').textContent = "Erro: P e Q devem ser >= 1.";
+                    setTimeout(() => document.getElementById('loading-status').textContent = "Pronto para carregar imagem.", 3000);
+                }
+            });
+
+            // Carregamento de Imagem
+            document.getElementById('load-btn').addEventListener('click', handleFileLoad);
+        }
+
+
+        // --- Loop de Animação ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (controls) controls.update(); 
+            
+            if (knotMesh && controls && controls.enabled && !controls.active) {
+                knotMesh.rotation.y += 0.005; 
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Tratamento de Resize ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
