@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monitorização de Jobs 3D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background: #020617; color: #fff; font-family: 'Inter', sans-serif; touch-action: none; }
+        canvas { display: block; z-index: 1; }
+        
+        .ui-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .main-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #22d3ee;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+        }
+
+        /* Etiquetas de números - VISIBILIDADE REFORÇADA */
+        .permanent-value {
+            position: absolute;
+            font-size: 12px;
+            color: #ffffff;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            pointer-events: none;
+            background: rgba(34, 211, 238, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #22d3ee;
+            white-space: nowrap;
+            z-index: 50; /* Garante que fica sobre o canvas */
+            transform: translate(-50%, -100%);
+            box-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+        }
+
+        #detail-card {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #22d3ee;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.5);
+            z-index: 200;
+            width: 85%;
+            max-width: 320px;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 10px;
+            color: #94a3b8;
+            font-family: 'Orbitron', sans-serif;
+            pointer-events: none;
+            z-index: 40;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-header">
+        <h1 class="main-title text-xl font-bold uppercase">Jobs executados por dia</h1>
+        <p class="text-slate-400 text-[10px] uppercase tracking-tighter mt-1">Clique nos pontos para detalhes completos</p>
+    </div>
+
+    <div id="detail-card" onclick="this.style.display='none'">
+        <span id="detail-date" class="text-cyan-400 text-xs font-bold uppercase">--</span>
+        <span id="detail-value" class="text-white text-4xl font-black my-1">--</span>
+        <span class="text-slate-400 text-[10px] uppercase font-bold">Jobs com Sucesso</span>
+        <p class="text-slate-500 text-[8px] mt-4 uppercase underline">Toque para fechar</p>
+    </div>
+
+    <script id="vShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="fShader" type="x-shader/x-fragment">
+        uniform float uTime;
+        varying vec2 vUv;
+        void main() {
+            vec3 color = vec3(0.13, 0.82, 0.93);
+            float pulse = smoothstep(0.4, 0.5, sin(vUv.x * 20.0 - uTime * 4.0) * 0.5 + 0.5);
+            float edge = smoothstep(0.0, 0.2, vUv.y) * smoothstep(1.0, 0.8, vUv.y);
+            gl_FragColor = vec4(mix(color * 0.5, color * 2.0, pulse), edge * 0.9);
+        }
+    </script>
+
+    <script>
+        const dataSet = [
+            { d: "01.dez", v: 64 }, { d: "02.dez", v: 65 }, { d: "03.dez", v: 64 },
+            { d: "04.dez", v: 62 }, { d: "05.dez", v: 63 }, { d: "06.dez", v: 49 },
+            { d: "07.dez", v: 33 }, { d: "08.dez", v: 64 }, { d: "09.dez", v: 63 },
+            { d: "10.dez", v: 63 }, { d: "11.dez", v: 62 }, { d: "12.dez", v: 63 },
+            { d: "13.dez", v: 49 }, { d: "14.dez", v: 33 }, { d: "15.dez", v: 65 },
+            { d: "16.dez", v: 64 }, { d: "17.dez", v: 27 }
+        ];
+
+        let scene, camera, renderer, controls, raycaster, mouse;
+        let startPos = new THREE.Vector2();
+        const labels = [];
+        const interactiveObjs = [];
+        
+        const scaleX = window.innerWidth < 768 ? 1.4 : 2.0;
+        const scaleY = 0.18;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x020617, 20, 90);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(15, 15, 35);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // LUZES
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
+            // GRELHA (GRID) MAIS CLARA
+            const grid = new THREE.GridHelper(100, 50, 0x22d3ee, 0x1e293b);
+            grid.material.opacity = 0.4;
+            grid.material.transparent = true;
+            scene.add(grid);
+
+            // GRÁFICO (RIBBON)
+            const points = dataSet.map((item, i) => new THREE.Vector3(
+                (i - (dataSet.length / 2)) * scaleX,
+                item.v * scaleY,
+                0
+            ));
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, 200, 0.15, 8, false);
+            const tubeMat = new THREE.ShaderMaterial({
+                vertexShader: document.getElementById('vShader').textContent,
+                fragmentShader: document.getElementById('fShader').textContent,
+                transparent: true,
+                uniforms: { uTime: { value: 0 } }
+            });
+            scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+
+            // PONTOS E ETIQUETAS
+            const sphereGeo = new THREE.SphereGeometry(0.4, 24, 24);
+            
+            points.forEach((p, i) => {
+                const mat = new THREE.MeshPhongMaterial({ color: 0x22d3ee, emissive: 0x114455 });
+                const sphere = new THREE.Mesh(sphereGeo, mat);
+                sphere.position.copy(p);
+                sphere.userData = dataSet[i];
+                scene.add(sphere);
+                interactiveObjs.push(sphere);
+
+                // Linha guia
+                const lPoints = [p, new THREE.Vector3(p.x, 0, 0)];
+                const lGeo = new THREE.BufferGeometry().setFromPoints(lPoints);
+                scene.add(new THREE.Line(lGeo, new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.5 })));
+
+                // ETIQUETA DE NÚMERO
+                const el = document.createElement('div');
+                el.className = 'permanent-value';
+                el.innerText = dataSet[i].v;
+                document.body.appendChild(el);
+                labels.push({ element: el, pos: p.clone().add(new THREE.Vector3(0, 1.2, 0)) });
+            });
+
+            // ESCALA Y
+            [0, 20, 40, 60].forEach(v => {
+                const el = document.createElement('div');
+                el.className = 'axis-label';
+                el.innerText = v;
+                document.body.appendChild(el);
+                labels.push({ element: el, pos: new THREE.Vector3(-(dataSet.length/2)*scaleX - 3, v * scaleY, 0) });
+            });
+
+            window.addEventListener('pointerdown', (e) => startPos.set(e.clientX, e.clientY));
+            window.addEventListener('pointerup', onTouch);
+            window.addEventListener('resize', onResize);
+            
+            animate();
+        }
+
+        function onTouch(event) {
+            const dist = startPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+            if (dist > 10) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.params.Mesh = { threshold: 0.8 };
+            const intersects = raycaster.intersectObjects(interactiveObjs);
+
+            if (intersects.length > 0) {
+                const data = intersects[0].object.userData;
+                document.getElementById('detail-date').innerText = data.d;
+                document.getElementById('detail-value').innerText = data.v;
+                document.getElementById('detail-card').style.display = 'flex';
+                
+                interactiveObjs.forEach(o => o.material.emissive.set(0x114455));
+                intersects[0].object.material.emissive.set(0x00ffff);
+            } else {
+                document.getElementById('detail-card').style.display = 'none';
+                interactiveObjs.forEach(o => o.material.emissive.set(0x114455));
+            }
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now() * 0.001;
+            
+            scene.traverse(o => {
+                if(o.material && o.material.uniforms && o.material.uniforms.uTime) {
+                    o.material.uniforms.uTime.value = time;
+                }
+            });
+
+            controls.update();
+            
+            // ATUALIZAR POSIÇÃO DAS ETIQUETAS
+            labels.forEach(l => {
+                const vector = l.pos.clone().project(camera);
+                if (vector.z < 1) {
+                    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-(vector.y * 0.5 - 0.5)) * window.innerHeight;
+                    l.element.style.left = `${x}px`;
+                    l.element.style.top = `${y}px`;
+                    l.element.style.display = 'block';
+                } else {
+                    l.element.style.display = 'none';
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
