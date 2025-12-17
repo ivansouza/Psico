@@ -141,10 +141,10 @@
         .item { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; color: #ccc; }
         .color-box { width: 12px; height: 12px; border-radius: 3px; }
 
-        /* Floating Labels */
+        /* Floating Labels (Still used for axes names) */
         .axis-label {
             position: absolute;
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.95);
             font-weight: 700;
             font-size: 13px;
             pointer-events: none;
@@ -155,6 +155,7 @@
             border-radius: 4px;
             border: 1px solid rgba(255,255,255,0.1);
             white-space: nowrap;
+            z-index: 10;
         }
 
         /* Footer Instructions */
@@ -277,8 +278,6 @@
     scene.fog = new THREE.FogExp2(0x050505, 0.015);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    
-    // Initial Camera Position
     camera.position.set(20.16, 13.58, -38.52);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -289,36 +288,96 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    // Initial Target
     controls.target.set(0, 0, 0);
+
+    // --- Helper: Create Formula Texture ---
+    function createFormulaTexture(type) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // High resolution for sharp text
+        canvas.width = 1024;
+        canvas.height = 256;
+        
+        // Clear background (transparent)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = type === 'Re' ? '#ff00ff' : '#00ff00';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        // Font setup
+        const mainFont = "bold 60px 'Segoe UI', Arial, sans-serif";
+        const subFont = "bold 40px 'Segoe UI', Arial, sans-serif";
+        
+        ctx.font = mainFont;
+        
+        // Parts of the formula
+        const prefix = type === 'Re' ? "Re f = " : "Im f = ";
+        const base = "e";
+        const exponent = "-γ(t-t₀)²";
+        const suffix = type === 'Re' ? " cos(ωt)" : " sin(ωt)";
+        
+        // Measure widths to position correctly
+        const prefixWidth = ctx.measureText(prefix).width;
+        const baseWidth = ctx.measureText(base).width;
+        ctx.font = subFont;
+        const expWidth = ctx.measureText(exponent).width;
+        ctx.font = mainFont;
+        const suffixWidth = ctx.measureText(suffix).width;
+        
+        const totalWidth = prefixWidth + baseWidth + expWidth + suffixWidth;
+        let currentX = cx - totalWidth / 2;
+        
+        // Draw Prefix
+        ctx.fillText(prefix, currentX + prefixWidth/2, cy);
+        currentX += prefixWidth;
+        
+        // Draw Base 'e'
+        ctx.fillText(base, currentX + baseWidth/2, cy);
+        currentX += baseWidth;
+        
+        // Draw Superscript
+        ctx.font = subFont;
+        // Shift Y up for superscript
+        ctx.fillText(exponent, currentX + expWidth/2, cy - 25); 
+        currentX += expWidth;
+        
+        // Draw Suffix
+        ctx.font = mainFont;
+        ctx.fillText(suffix, currentX + suffixWidth/2, cy);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        return texture;
+    }
+
+    const texReal = createFormulaTexture('Re');
+    const texImag = createFormulaTexture('Im');
 
     // --- Geometry Management ---
     
     let waveMesh, lineReal, lineImag, gridReal, gridImag;
+    let planeFormulaReal, planeFormulaImag;
     let points3D = [], pointsReal = [], pointsImag = [];
 
     function updateWaveGeometry() {
         // Remove old geometries
-        if (waveMesh) {
-            waveMesh.geometry.dispose();
-            scene.remove(waveMesh);
-        }
-        if (lineReal) {
-            lineReal.geometry.dispose();
-            scene.remove(lineReal);
-        }
-        if (lineImag) {
-            lineImag.geometry.dispose();
-            scene.remove(lineImag);
-        }
+        if (waveMesh) { waveMesh.geometry.dispose(); scene.remove(waveMesh); }
+        if (lineReal) { lineReal.geometry.dispose(); scene.remove(lineReal); }
+        if (lineImag) { lineImag.geometry.dispose(); scene.remove(lineImag); }
         if (gridReal) scene.remove(gridReal);
         if (gridImag) scene.remove(gridImag);
+        if (planeFormulaReal) scene.remove(planeFormulaReal);
+        if (planeFormulaImag) scene.remove(planeFormulaImag);
 
-        points3D = [];
-        pointsReal = [];
-        pointsImag = [];
+        points3D = []; pointsReal = []; pointsImag = [];
 
-        // Update wall offsets based on amplitude to avoid overlap
+        // Update offsets
         const dynamicOffset = params.amplitude + 2.0;
         const floorY = -dynamicOffset;
         const wallX = -dynamicOffset;
@@ -326,7 +385,6 @@
         // Recalculate points
         for (let i = 0; i <= params.resolution; i++) {
             const t = params.tMin + (params.tMax - params.tMin) * (i / params.resolution);
-            
             const envelope = params.amplitude * Math.exp(-params.gamma * t * t);
             const real = envelope * Math.cos(params.omega * t);
             const imag = envelope * Math.sin(params.omega * t);
@@ -337,30 +395,21 @@
             pointsImag.push(new THREE.Vector3(wallX, p.y, p.z));
         }
 
-        // Create Main Tube
+        // 1. Main Tube
         const curvePath = new THREE.CatmullRomCurve3(points3D);
         const tubeGeo = new THREE.TubeGeometry(curvePath, 800, 0.08, 8, false);
         const tubeMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
         waveMesh = new THREE.Mesh(tubeGeo, tubeMat);
         scene.add(waveMesh);
 
-        // Create Projection Lines
-        lineReal = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(pointsReal),
-            new THREE.LineBasicMaterial({ color: 0xff00ff, opacity: 0.6, transparent: true })
-        );
+        // 2. Projections
+        lineReal = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pointsReal), new THREE.LineBasicMaterial({ color: 0xff00ff, opacity: 0.6, transparent: true }));
         scene.add(lineReal);
-
-        lineImag = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(pointsImag),
-            new THREE.LineBasicMaterial({ color: 0x00ff00, opacity: 0.6, transparent: true })
-        );
+        lineImag = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pointsImag), new THREE.LineBasicMaterial({ color: 0x00ff00, opacity: 0.6, transparent: true }));
         scene.add(lineImag);
 
-        // Update Grids to follow walls
-        const gridColor = 0x333333;
-        const subGridColor = 0x111111;
-        
+        // 3. Grids
+        const gridColor = 0x333333; const subGridColor = 0x111111;
         gridReal = new THREE.GridHelper(60, 30, gridColor, subGridColor);
         gridReal.position.y = floorY;
         scene.add(gridReal);
@@ -370,7 +419,38 @@
         gridImag.position.x = wallX;
         scene.add(gridImag);
 
-        // Update label positions for animation loop
+        // 4. Formula Planes (3D Text)
+        const planeGeo = new THREE.PlaneGeometry(16, 4); // Aspect ratio similar to canvas
+        
+        // Real Formula on Floor
+        // Posição ajustada: X movido para além da amplitude máxima da onda
+        const labelMargin = 2.0; // Margem extra
+        const labelPosX = params.amplitude + labelMargin; 
+        
+        const matReal = new THREE.MeshBasicMaterial({ map: texReal, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+        planeFormulaReal = new THREE.Mesh(planeGeo, matReal);
+        // Position X: params.amplitude + margin (Top of 2D graph)
+        // Position Y: floorY (On the grid plane)
+        // Position Z: 0 (Center time)
+        planeFormulaReal.position.set(labelPosX, floorY + 0.1, 0); 
+        planeFormulaReal.rotation.x = -Math.PI / 2; // Lie flat
+        planeFormulaReal.rotation.z = -Math.PI / 2; // Rotate text to be readable along Z
+        scene.add(planeFormulaReal);
+
+        // Imag Formula on Wall
+        // Posição ajustada: Y movido para além da amplitude máxima da onda
+        const labelPosY = params.amplitude + labelMargin;
+
+        const matImag = new THREE.MeshBasicMaterial({ map: texImag, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+        planeFormulaImag = new THREE.Mesh(planeGeo, matImag);
+        // Position X: wallX (On the grid plane)
+        // Position Y: params.amplitude + margin (Top of 2D graph)
+        // Position Z: 0
+        planeFormulaImag.position.set(wallX + 0.1, labelPosY, 0); 
+        planeFormulaImag.rotation.y = Math.PI / 2; // Stick to wall
+        scene.add(planeFormulaImag);
+
+        // Update labels global positions
         labelPositions.floorY = floorY;
         labelPositions.wallX = wallX;
     }
@@ -382,13 +462,9 @@
     const arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 1, 0xffff00);
     slicerGroup.add(arrowHelper);
 
-    // Slicer Plane (now reactive to size)
     let slicerPlane;
     function updateSlicerPlane() {
-        if(slicerPlane) {
-            slicerPlane.geometry.dispose();
-            slicerGroup.remove(slicerPlane);
-        }
+        if(slicerPlane) { slicerPlane.geometry.dispose(); slicerGroup.remove(slicerPlane); }
         const size = (params.amplitude + 2.0) * 2.2;
         slicerPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(size, size),
@@ -400,26 +476,21 @@
     const sphereGeo = new THREE.SphereGeometry(0.2, 16, 16);
     const pointMain = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xffff00 }));
     slicerGroup.add(pointMain);
-    
     const pointReal = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xff00ff }));
     scene.add(pointReal);
-    
     const pointImag = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
     scene.add(pointImag);
 
     // Time Axis
-    const timeAxisGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, params.tMin), new THREE.Vector3(0, 0, params.tMax)
-    ]);
+    const timeAxisGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, params.tMin), new THREE.Vector3(0, 0, params.tMax)]);
     scene.add(new THREE.Line(timeAxisGeo, new THREE.LineBasicMaterial({ color: 0x555555, dashed: true })));
 
-
-    // --- HTML Labels ---
-    const labelPositions = { floorY: -5.5, wallX: -5.5 }; // Initial values
+    // --- HTML Labels (Axis Only) ---
+    const labelPositions = { floorY: -5.5, wallX: -5.5 };
     const labels = {
         real: { el: document.createElement('div'), text: 'Re' },
         imag: { el: document.createElement('div'), text: 'Im' },
-        time: { el: document.createElement('div'), text: 'Time (t)' }
+        time: { el: document.createElement('div'), text: 't' }
     };
 
     const labelContainer = document.getElementById('labels-container');
@@ -429,21 +500,12 @@
         labelContainer.appendChild(l.el);
     });
 
-    // --- Loading & Saving Logic ---
-
+    // --- State Logic ---
     function getStateObject() {
         return {
             params: params,
-            camera: { 
-                x: parseFloat(camera.position.x.toFixed(2)), 
-                y: parseFloat(camera.position.y.toFixed(2)), 
-                z: parseFloat(camera.position.z.toFixed(2)) 
-            },
-            target: { 
-                x: parseFloat(controls.target.x.toFixed(2)), 
-                y: parseFloat(controls.target.y.toFixed(2)), 
-                z: parseFloat(controls.target.z.toFixed(2)) 
-            }
+            camera: { x: parseFloat(camera.position.x.toFixed(2)), y: parseFloat(camera.position.y.toFixed(2)), z: parseFloat(camera.position.z.toFixed(2)) },
+            target: { x: parseFloat(controls.target.x.toFixed(2)), y: parseFloat(controls.target.y.toFixed(2)), z: parseFloat(controls.target.z.toFixed(2)) }
         };
     }
 
@@ -452,80 +514,45 @@
         if (savedData) {
             try {
                 const state = JSON.parse(savedData);
-                
-                // Load Params
                 if (state.params) {
                     params = { ...defaultParams, ...state.params };
-                    // Update UI
-                    ui.inpAmp.value = params.amplitude;
-                    ui.valAmp.textContent = params.amplitude;
-                    ui.inpOmega.value = params.omega;
-                    ui.valOmega.textContent = params.omega;
-                    ui.inpGamma.value = params.gamma;
-                    ui.valGamma.textContent = params.gamma;
+                    ui.inpAmp.value = params.amplitude; ui.valAmp.textContent = params.amplitude;
+                    ui.inpOmega.value = params.omega; ui.valOmega.textContent = params.omega;
+                    ui.inpGamma.value = params.gamma; ui.valGamma.textContent = params.gamma;
                 }
-
-                // Load Camera
                 if (state.camera) {
                     camera.position.set(state.camera.x, state.camera.y, state.camera.z);
                     controls.target.set(state.target.x, state.target.y, state.target.z);
                     controls.update();
                 }
-                
-                console.log("State loaded successfully!");
-            } catch (e) {
-                console.error("Error loading saved state", e);
-            }
+            } catch (e) { console.error("Error loading saved state", e); }
         }
     }
 
     function saveState() {
-        const state = getStateObject();
-        localStorage.setItem('waveSimState', JSON.stringify(state));
-        
-        // Visual feedback
+        localStorage.setItem('waveSimState', JSON.stringify(getStateObject()));
         const originalText = ui.btnSave.innerHTML;
         ui.btnSave.innerHTML = "<span>✅</span> Saved!";
         ui.btnSave.style.background = "#2e7d32";
-        setTimeout(() => {
-            ui.btnSave.innerHTML = originalText;
-            ui.btnSave.style.background = "";
-        }, 1500);
+        setTimeout(() => { ui.btnSave.innerHTML = originalText; ui.btnSave.style.background = ""; }, 1500);
     }
 
     function copyState() {
-        const state = getStateObject();
-        const jsonString = JSON.stringify(state, null, 2);
-
-        // Fallback robust copy method for iframes
         const textarea = document.createElement('textarea');
-        textarea.value = jsonString;
+        textarea.value = JSON.stringify(getStateObject(), null, 2);
         document.body.appendChild(textarea);
         textarea.select();
-        
         try {
             document.execCommand('copy');
-            
-            // Feedback
             const originalText = ui.btnCopy.innerHTML;
             ui.btnCopy.innerHTML = "<span>✅</span> Copied!";
             ui.btnCopy.style.background = "#006064";
-            setTimeout(() => {
-                ui.btnCopy.innerHTML = originalText;
-                ui.btnCopy.style.background = "";
-            }, 1500);
-            
-        } catch (err) {
-            console.error('Failed to copy', err);
-            ui.btnCopy.innerHTML = "<span>❌</span> Error";
-        }
-        
+            setTimeout(() => { ui.btnCopy.innerHTML = originalText; ui.btnCopy.style.background = ""; }, 1500);
+        } catch (err) { ui.btnCopy.innerHTML = "<span>❌</span> Error"; }
         document.body.removeChild(textarea);
     }
 
-    // --- Initialization ---
-    
-    // Update geometry and UI with current default params
+    // --- Init ---
     ui.inpAmp.value = params.amplitude;
     ui.valAmp.textContent = params.amplitude;
     ui.inpOmega.value = params.omega;
@@ -536,63 +563,36 @@
     updateWaveGeometry();
     updateSlicerPlane();
 
-    // --- UI Event Listeners ---
-
+    // --- Event Listeners ---
     function handleParamChange() {
         params.amplitude = parseFloat(ui.inpAmp.value);
         params.omega = parseFloat(ui.inpOmega.value);
         params.gamma = parseFloat(ui.inpGamma.value);
-
         ui.valAmp.textContent = params.amplitude.toFixed(1);
         ui.valOmega.textContent = params.omega.toFixed(1);
         ui.valGamma.textContent = params.gamma.toFixed(3);
-
         updateWaveGeometry();
         updateSlicerPlane();
     }
-
     ui.inpAmp.addEventListener('input', handleParamChange);
     ui.inpOmega.addEventListener('input', handleParamChange);
     ui.inpGamma.addEventListener('input', handleParamChange);
-    
     ui.btnSave.addEventListener('click', saveState);
     ui.btnCopy.addEventListener('click', copyState);
-
     ui.btnSettings.addEventListener('click', (e) => {
-        e.stopPropagation();
-        isMenuVisible = !isMenuVisible;
-        if (isMenuVisible) {
-            ui.container.classList.add('visible');
-            ui.btnSettings.style.transform = "rotate(90deg)";
-            ui.btnSettings.style.background = "#00ffff";
-            ui.btnSettings.style.color = "#000";
-        } else {
-            ui.container.classList.remove('visible');
-            ui.btnSettings.style.transform = "rotate(0deg)";
-            ui.btnSettings.style.background = "";
-            ui.btnSettings.style.color = "";
-        }
+        e.stopPropagation(); isMenuVisible = !isMenuVisible;
+        if (isMenuVisible) { ui.container.classList.add('visible'); ui.btnSettings.style.transform = "rotate(90deg)"; ui.btnSettings.style.background = "#00ffff"; ui.btnSettings.style.color = "#000"; }
+        else { ui.container.classList.remove('visible'); ui.btnSettings.style.transform = "rotate(0deg)"; ui.btnSettings.style.background = ""; ui.btnSettings.style.color = ""; }
     });
 
     let isPaused = false;
     let time = params.tMin;
     const timeSpeed = 0.08;
 
-    ui.btnPause.addEventListener('click', () => {
-        isPaused = !isPaused;
-        ui.btnPause.textContent = isPaused ? "Resume" : "Pause";
-        ui.btnPause.style.background = isPaused ? "#ff9800" : "";
-    });
+    ui.btnPause.addEventListener('click', () => { isPaused = !isPaused; ui.btnPause.textContent = isPaused ? "Resume" : "Pause"; ui.btnPause.style.background = isPaused ? "#ff9800" : ""; });
+    ui.btnReset.addEventListener('click', () => { time = params.tMin; isPaused = false; ui.btnPause.textContent = "Pause"; ui.btnPause.style.background = ""; });
 
-    ui.btnReset.addEventListener('click', () => {
-        time = params.tMin;
-        isPaused = false;
-        ui.btnPause.textContent = "Pause";
-        ui.btnPause.style.background = "";
-    });
-
-    // --- Animation Loop ---
-    
+    // --- Loop ---
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
@@ -602,57 +602,42 @@
             if (time > params.tMax) time = params.tMin;
         }
 
-        // 1. Update Z position
         slicerGroup.position.z = time;
-
-        // 2. Calculate current phasor
         const envelope = params.amplitude * Math.exp(-params.gamma * time * time);
         const real = envelope * Math.cos(params.omega * time);
         const imag = envelope * Math.sin(params.omega * time);
 
-        const localVec = new THREE.Vector3(real, imag, 0);
-        const len = localVec.length();
-
+        const len = Math.sqrt(real*real + imag*imag);
         if (len > 0.001) {
-            arrowHelper.setDirection(localVec.normalize());
+            arrowHelper.setDirection(new THREE.Vector3(real, imag, 0).normalize());
             arrowHelper.setLength(len);
-        } else {
-            arrowHelper.setLength(0.001); // Avoid zero scale errors
         }
 
-        // 3. Update Spheres
-        pointMain.position.set(real, imag, 0); // Local
-        pointReal.position.set(real, labelPositions.floorY, time); // Global
-        pointImag.position.set(labelPositions.wallX, imag, time); // Global
+        pointMain.position.set(real, imag, 0);
+        pointReal.position.set(real, labelPositions.floorY, time);
+        pointImag.position.set(labelPositions.wallX, imag, time);
 
-        // 4. Update Labels
         updateLabels(real, imag);
-
         renderer.render(scene, camera);
     }
 
     function updateLabels(currentReal, currentImag) {
         const widthHalf = window.innerWidth / 2;
         const heightHalf = window.innerHeight / 2;
-
-        // Ideal positions for labels
         const posReal = new THREE.Vector3(params.amplitude + 1, labelPositions.floorY, 0);
         const posImag = new THREE.Vector3(labelPositions.wallX, params.amplitude + 1, 0);
         const posTime = new THREE.Vector3(0, 0, params.tMax + 2);
 
         function projectAndSet(obj, pos3D) {
             const v = pos3D.clone().project(camera);
-            if (v.z < 1) {
+            if (v.z < 1 && v.z > -1) {
                 obj.el.style.display = 'block';
                 const x = (v.x * widthHalf) + widthHalf;
                 const y = -(v.y * heightHalf) + heightHalf;
                 obj.el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
                 obj.el.style.left = '0'; obj.el.style.top = '0';
-            } else {
-                obj.el.style.display = 'none';
-            }
+            } else { obj.el.style.display = 'none'; }
         }
-
         projectAndSet(labels.real, posReal);
         projectAndSet(labels.imag, posImag);
         projectAndSet(labels.time, posTime);
@@ -665,7 +650,7 @@
     });
 
     animate();
-
 </script>
 </body>
 </html>
+
