@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Máquina de Fourier</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; color: white; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        canvas { display: block; }
+        
+        /* Título */
+        #app-title {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            font-size: 1.2rem; color: #b8860b; font-weight: 300; text-transform: uppercase;
+            letter-spacing: 3px; pointer-events: none; z-index: 10;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+
+        /* Botões Superiores */
+        .top-btn {
+            position: absolute; top: 20px;
+            width: 44px; height: 44px;
+            background: rgba(30, 30, 30, 0.8);
+            border: 2px solid #b8860b;
+            border-radius: 50%;
+            cursor: pointer; z-index: 20;
+            display: flex; justify-content: center; align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .top-btn:hover { background: #333; transform: scale(1.1); box-shadow: 0 0 15px #b8860b; }
+        .top-btn svg { width: 22px; height: 22px; fill: #b8860b; }
+
+        #settings-btn { right: 20px; }
+        #play-btn { right: 75px; }
+
+        /* Painel Modal */
+        #settings-modal {
+            position: absolute; top: 80px; right: 20px; width: 250px;
+            background: rgba(25, 25, 25, 0.95); border: 1px solid #b8860b; border-radius: 12px;
+            padding: 20px; color: #eee; z-index: 20; display: none;
+            backdrop-filter: blur(10px); box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+        }
+        #settings-modal.active { display: block; }
+        
+        h2 { margin: 0 0 20px 0; color: #b8860b; font-size: 1.1rem; border-bottom: 1px solid #444; padding-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; color: #ccc; }
+        .control-group span { color: #b8860b; font-weight: bold; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #444; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #b8860b; cursor: pointer; }
+        
+        /* Instruções */
+        #controls-info {
+            position: absolute; bottom: 20px; width: 100%; text-align: center;
+            font-size: 0.8rem; color: #888; pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-weight: 500; letter-spacing: 0.5px;
+        }
+        .key { color: #b8860b; font-weight: bold; }
+    </style>
+</head>
+<body>
+    
+    <div id="app-title">Máquina de Fourier</div>
+
+    <!-- Play/Pause -->
+    <button id="play-btn" class="top-btn" title="Pausar/Tocar">
+        <svg viewBox="0 0 24 24" id="play-icon"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> 
+    </button>
+
+    <!-- Config -->
+    <button id="settings-btn" class="top-btn" title="Configurações">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+    </button>
+
+    <div id="settings-modal">
+        <h2>Configurações</h2>
+        <div class="control-group">
+            <label>Velocidade <span id="val-speed">0.8</span></label>
+            <input type="range" id="inp-speed" min="0" max="3" step="0.1" value="0.8">
+        </div>
+        <div class="control-group">
+            <label>Termos (Rodas) <span id="val-terms">7</span></label>
+            <input type="range" id="inp-terms" min="1" max="50" step="1" value="7">
+        </div>
+    </div>
+
+    <div id="controls-info">
+        <span><span class="key">Arraste a Manivela</span> para girar manualmente</span> | 
+        <span><span class="key">Clique Esq</span> Orbitar</span> |
+        <span><span class="key">Scroll</span> Zoom</span>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { PMREMGenerator } from 'three';
+
+        let CONFIG = {
+            waveSpeed: 0.8,
+            historySize: 800,
+            baseRadius: 3.5,
+            terms: 7
+        };
+
+        let isPlaying = true;
+        let time = 0;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000); 
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(51.28, 13.86, 74.11);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(-5.02, 4.01, 16.09);
+
+        // --- Iluminação Omni-Direcional ---
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        function createOmniRainbowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const numStrips = 100;
+            const stripWidth = canvas.width / numStrips;
+            for (let i = 0; i < numStrips; i++) {
+                const hue = (i / numStrips) * 360;
+                ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
+                ctx.fillRect(i * stripWidth, 0, stripWidth * 0.85, canvas.height);
+            }
+            const numHoriz = 40;
+            const stripHeight = canvas.height / numHoriz;
+            for (let j = 0; j < numHoriz; j++) {
+                const hue = (j / numHoriz) * 360;
+                ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.5)`; 
+                ctx.fillRect(0, j * stripHeight, canvas.width, stripHeight * 0.5);
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.mapping = THREE.EquirectangularReflectionMapping; 
+            return texture;
+        }
+        
+        const envTexture = createOmniRainbowTexture();
+        const envMap = pmremGenerator.fromEquirectangular(envTexture).texture;
+        scene.environment = envMap;
+        scene.environmentRotation = new THREE.Euler(0, 0, 0);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        dirLight.position.set(10, 20, 20);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.bias = -0.0001;
+        scene.add(dirLight);
+
+        // --- Materiais ---
+        const brassMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1.0, roughness: 0.15, envMapIntensity: 1.5 });
+        const steelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1.0, roughness: 0.2, envMapIntensity: 1.5 });
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5, roughness: 0.5 });
+        const tipMat = new THREE.MeshStandardMaterial({ color: 0xff0044, emissive: 0xff0000, emissiveIntensity: 1.0 });
+        const waveMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 });
+        const borderMat = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.3 });
+
+        // --- Grids ---
+        const machineSize = 24; 
+        const waveLength = 60;  
+        const halfMachine = machineSize / 2;
+
+        function createRectGrid(w, h, sw, sh, c) {
+            const m = new THREE.LineBasicMaterial({ color: c, opacity: 0.2, transparent: true });
+            const g = new THREE.BufferGeometry();
+            const v = [];
+            const sx = w / sw;
+            const sy = h / sh;
+            for (let i = 0; i <= sw; i++) { const x = -w/2 + i * sx; v.push(x, -h/2, 0, x, h/2, 0); }
+            for (let i = 0; i <= sh; i++) { const y = -h/2 + i * sy; v.push(-w/2, y, 0, w/2, y, 0); }
+            g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+            return new THREE.LineSegments(g, m);
+        }
+
+        const floorGrid = createRectGrid(machineSize, waveLength, 12, 30, 0x0088ff);
+        floorGrid.rotation.x = -Math.PI / 2; floorGrid.position.set(0, -halfMachine, waveLength / 2); scene.add(floorGrid);
+        const sideGrid = createRectGrid(waveLength, machineSize, 30, 12, 0x00ff00);
+        sideGrid.rotation.y = -Math.PI / 2; sideGrid.position.set(-halfMachine, 0, waveLength / 2); scene.add(sideGrid);
+        const backGrid = createRectGrid(machineSize, machineSize, 12, 12, 0xff4444);
+        backGrid.position.set(0, 0, 0); scene.add(backGrid);
+
+        function createFrame(w, h, x, y, z, rx, ry, rz) {
+            const geo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(w, h));
+            const mesh = new THREE.LineSegments(geo, borderMat);
+            mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz); scene.add(mesh);
+        }
+        createFrame(machineSize, waveLength, 0, -halfMachine, waveLength/2, -Math.PI/2, 0, 0);
+        createFrame(waveLength, machineSize, -halfMachine, 0, waveLength/2, 0, -Math.PI/2, 0);
+        createFrame(machineSize, machineSize, 0, 0, 0, 0, 0, 0);
+
+        // --- Textos ---
+        const loader = new FontLoader();
+        loader.load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', function (font) {
+            function addText(message, size, color, x, y, z, rx, ry, rz, mirrorX = false) {
+                const geo = new TextGeometry(message, { font: font, size: size, height: 0.1 });
+                geo.center();
+                const mat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.6 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(x, y, z);
+                mesh.rotation.set(rx, ry, rz);
+                if (mirrorX) mesh.scale.x = -1;
+                scene.add(mesh);
+            }
+            addText("Amplitude X", 1.2, 0xff5555, 0, halfMachine - 2, 0, 0, 0, 0);
+            addText("Amplitude Y", 1.2, 0x55ff55, -halfMachine + 2, 0, 0, 0, 0, Math.PI / 2);
+            addText("Tempo (Z)  ---->", 1.2, 0x5588ff, -halfMachine, halfMachine - 2, waveLength / 2, 0, -Math.PI / 2, 0, true);
+        });
+
+        // --- Máquina ---
+        const machineRoot = new THREE.Group();
+        scene.add(machineRoot);
+        
+        const baseGeo = new THREE.CylinderGeometry(0.5, 0.8, 2, 32);
+        const baseMesh = new THREE.Mesh(baseGeo, darkMat);
+        baseMesh.rotation.x = Math.PI/2; baseMesh.position.z = -1.2; baseMesh.receiveShadow = true;
+        machineRoot.add(baseMesh);
+
+        let parts = [];
+        let trailPoints = [];
+        let pen;
+        // Objeto especial para interação (Hitbox da Manivela)
+        let crankHitBox; 
+
+        const trailGeo = new THREE.BufferGeometry();
+        const trailMesh = new THREE.Line(trailGeo, waveMat);
+        trailMesh.frustumCulled = false; 
+        scene.add(trailMesh);
+
+        function createUnit(index, radius, parent) {
+            const group = new THREE.Group();
+            
+            const wheel = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.25, 64), brassMat);
+            wheel.rotation.x = Math.PI/2; wheel.castShadow = true; wheel.receiveShadow = true;
+            const slit = new THREE.Mesh(new THREE.BoxGeometry(radius*1.5, 0.1, 0.26), darkMat);
+            wheel.add(slit);
+            group.add(wheel);
+
+            const armLen = radius;
+            const arm = new THREE.Mesh(new THREE.BoxGeometry(armLen, 0.15, 0.15), steelMat);
+            arm.position.set(armLen/2, 0, 0.2); arm.castShadow = true;
+            group.add(arm);
+
+            const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 32), darkMat);
+            pin.rotation.x = Math.PI/2; pin.position.set(armLen, 0, 0.2);
+            group.add(pin);
+
+            // Adicionar Manivela na roda 0
+            if(index === 0) {
+                const crank = new THREE.Mesh(new THREE.BoxGeometry(radius*0.6, 0.3, 0.1), steelMat);
+                crank.position.set(radius*0.4, 0, 0.4);
+                group.add(crank);
+                const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8), darkMat);
+                knob.rotation.x = Math.PI/2; knob.position.set(radius*0.7, 0, 0.8);
+                group.add(knob);
+
+                // Hitbox invisível maior para facilitar o clique
+                crankHitBox = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.5), new THREE.MeshBasicMaterial({ visible: false }));
+                crankHitBox.position.set(radius*0.7, 0, 0.5);
+                crankHitBox.name = "crankHandle";
+                group.add(crankHitBox);
+            }
+
+            const attach = new THREE.Group();
+            attach.position.set(armLen, 0, 0); attach.position.z += 0.15; 
+            group.add(attach);
+            parent.add(group);
+            return { group, attach, n: index * 2 + 1 };
+        }
+
+        function rebuild() {
+            while(machineRoot.children.length > 1) { machineRoot.remove(machineRoot.children[1]); }
+            parts = []; trailPoints = [];
+            let current = machineRoot;
+            for(let i=0; i<CONFIG.terms; i++) {
+                const n = i*2+1;
+                const r = CONFIG.baseRadius * (4/(n*Math.PI));
+                const p = createUnit(i, r, current);
+                parts.push(p);
+                current = p.attach;
+            }
+            pen = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 32), tipMat);
+            pen.rotation.x = -Math.PI/2; pen.position.z = 0.5;
+            current.add(pen);
+        }
+
+        rebuild();
+
+        // --- Lógica de Interação (Raycasting) ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isDraggingCrank = false;
+        let previousMouseX = 0;
+
+        window.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+
+        function onPointerDown(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(crankHitBox, true);
+
+            if (intersects.length > 0) {
+                isDraggingCrank = true;
+                controls.enabled = false;
+                document.body.style.cursor = 'grabbing';
+                previousMouseX = event.clientX;
+                if(isPlaying) togglePlay(); 
+            }
+        }
+
+        function onPointerMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (!isDraggingCrank) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(crankHitBox, true);
+                if (intersects.length > 0) document.body.style.cursor = 'grab';
+                else document.body.style.cursor = 'default';
+            }
+
+            if (isDraggingCrank) {
+                const deltaX = event.clientX - previousMouseX;
+                previousMouseX = event.clientX;
+                time += deltaX * 0.01; 
+                updateMachinePositions();
+            }
+        }
+
+        function onPointerUp() {
+            if (isDraggingCrank) {
+                isDraggingCrank = false;
+                controls.enabled = true;
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function updateMachinePositions() {
+            parts.forEach((p, i) => {
+                const targetRot = p.n * time;
+                const parentRot = i > 0 ? parts[i-1].n * time : 0;
+                p.group.rotation.z = targetRot - parentRot;
+            });
+
+            if(pen) {
+                const v = new THREE.Vector3();
+                pen.getWorldPosition(v);
+                trailPoints.unshift({ x: v.x, y: v.y, z: 0 });
+                const speedZ = 0.1 * CONFIG.waveSpeed; 
+                
+                const pointsToRender = [];
+                for(let i=0; i < trailPoints.length; i++) {
+                    if(isPlaying || isDraggingCrank) {
+                         trailPoints[i].z += isDraggingCrank ? 0.2 : speedZ;
+                    }
+                    if(trailPoints[i].z <= waveLength) {
+                        pointsToRender.push(trailPoints[i].x, trailPoints[i].y, trailPoints[i].z);
+                    }
+                }
+                if(trailPoints.length > CONFIG.historySize) trailPoints.pop();
+                trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(pointsToRender, 3));
+            }
+        }
+
+        // --- Animação Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Ciclagem de Cores
+            scene.environmentRotation.y += 0.01; 
+            scene.environmentRotation.z += 0.005; 
+
+            if (isPlaying && !isDraggingCrank) {
+                time += 0.02 * CONFIG.waveSpeed;
+                updateMachinePositions();
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- UI ---
+        const $ = (id) => document.getElementById(id);
+        const playBtn = $('play-btn');
+        const playIcon = `<path d="M8 5v14l11-7z"/>`;
+        const pauseIcon = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            playBtn.innerHTML = `<svg viewBox="0 0 24 24">${isPlaying ? pauseIcon : playIcon}</svg>`;
+        }
+
+        playBtn.onclick = togglePlay;
+        $('settings-btn').onclick = () => $('settings-modal').classList.toggle('active');
+        
+        $('inp-speed').oninput = (e) => { 
+            CONFIG.waveSpeed = parseFloat(e.target.value); 
+            $('val-speed').innerText = CONFIG.waveSpeed;
+        };
+        
+        $('inp-terms').oninput = (e) => { 
+            const val = parseInt(e.target.value);
+            $('val-terms').innerText = val;
+            if(val !== CONFIG.terms) {
+                CONFIG.terms = val;
+                rebuild();
+            }
+        };
+        
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
