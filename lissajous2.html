@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Lissajous - Fase Dinâmica</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Inter', sans-serif; }
+        canvas { display: block; }
+        
+        /* Painel Lateral Compacto e Quase Transparente */
+        .settings-panel {
+            position: absolute;
+            bottom: 85px; 
+            right: 20px;
+            width: 210px;
+            background: rgba(10, 10, 10, 0.25); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 0.6rem;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .settings-panel.open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Área de Sensibilidade Aumentada para a Engrenagem */
+        .settings-toggle-container {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 70px; 
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+        }
+
+        .settings-toggle {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+        }
+
+        .settings-toggle-container:hover .settings-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(30deg);
+        }
+
+        .control-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1px; 
+        }
+
+        /* Checkbox customizado */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+            cursor: pointer;
+        }
+
+        .checkbox-group input {
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            accent-color: #ff3333;
+        }
+        
+        input[type=range] { 
+            width: 100%; 
+            accent-color: #ff3333;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.15);
+            height: 3px;
+            border-radius: 2px;
+            appearance: none;
+            margin: 2px 0;
+        }
+
+        .label-container {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            line-height: 1;
+            text-shadow: 0 1px 3px rgba(0,0,0,1);
+        }
+        
+        .label-val { color: #00ffcc; font-family: monospace; }
+
+        .equation-box {
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-family: serif;
+            font-size: 0.7rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 1px;
+            line-height: 1.1;
+        }
+
+        h3 { 
+            font-size: 0.7rem; 
+            font-weight: 900; 
+            letter-spacing: 0.12em; 
+            margin-bottom: 1px; 
+            color: rgba(255,255,255,0.7);
+        }
+    </style>
+</head>
+<body>
+
+<div class="settings-toggle-container" id="toggleBtn">
+    <div class="settings-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    </div>
+</div>
+
+<div class="settings-panel" id="sidePanel">
+    <h3>AJUSTES</h3>
+    
+    <div class="control-group">
+        <div class="label-container">
+            <span>ωₓ</span>
+            <span class="label-val" id="valFreqX">4.00</span>
+        </div>
+        <input type="range" id="freqX" min="1" max="20" step="0.1" value="4.0">
+    </div>
+
+    <div class="control-group">
+        <div class="label-container">
+            <span>ωᵧ</span>
+            <span class="label-val" id="valFreqY">2.80</span>
+        </div>
+        <input type="range" id="freqY" min="1" max="20" step="0.1" value="2.8">
+    </div>
+
+    <div class="control-group">
+        <div class="label-container">
+            <span>Fase φ (graus)</span>
+            <span class="label-val" id="valPhase">90.00°</span>
+        </div>
+        <input type="range" id="phase" min="0" max="360" step="1" value="90">
+        <label class="checkbox-group">
+            <input type="checkbox" id="autoPhase">
+            <span style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase;">Auto-Variação</span>
+        </label>
+    </div>
+
+    <div class="control-group">
+        <div class="label-container">
+            <span>Amp</span>
+            <span class="label-val" id="valAmp">3.00</span>
+        </div>
+        <input type="range" id="amp" min="1" max="6" step="0.1" value="3.0">
+    </div>
+
+    <div class="control-group">
+        <div class="label-container">
+            <span>Vel</span>
+            <span class="label-val" id="valSpeed">1.00</span>
+        </div>
+        <input type="range" id="speed" min="0" max="3" step="0.1" value="1.0">
+    </div>
+
+    <div class="equation-box">
+        <div class="text-blue-400 opacity-80">x = A sen(ωₓ t)</div>
+        <div class="text-green-400 opacity-80">y = A sen(ωᵧ t - φ)</div>
+    </div>
+</div>
+
+<script>
+    let scene, camera, renderer, clock, controls;
+    let lissajousLine, waveXLine, waveYLine;
+    let tracerX, tracerY, tracerMain;
+    let connectionLines = [];
+    
+    const params = {
+        freqX: 4.00,
+        freqY: 2.80,
+        phase: 1.5708, // 90 graus em radianos
+        amp: 3.00,
+        speed: 1.00,
+        autoPhase: false
+    };
+
+    function init() {
+        scene = new THREE.Scene();
+        clock = new THREE.Clock();
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0.28, 0.27, -30.36);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.target.set(2.25, 0.84, 0.07);
+        controls.update();
+
+        // Grelhas nítidas
+        const gridXY = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
+        gridXY.rotation.x = Math.PI / 2;
+        scene.add(gridXY);
+
+        const gridXWave = new THREE.GridHelper(20, 10, 0x333333, 0x1a1a1a);
+        gridXWave.position.set(0, 8.5, -10);
+        scene.add(gridXWave);
+
+        const gridYWave = new THREE.GridHelper(20, 10, 0x333333, 0x1a1a1a);
+        gridYWave.position.set(8.5, 0, -10);
+        gridYWave.rotation.z = Math.PI / 2;
+        scene.add(gridYWave);
+
+        setupGeometries();
+        setupUI();
+
+        window.addEventListener('resize', onWindowResize, false);
+        animate();
+    }
+
+    function setupGeometries() {
+        const lissajousGeometry = new THREE.BufferGeometry();
+        const lissajousPoints = new Float32Array(4000 * 3);
+        lissajousGeometry.setAttribute('position', new THREE.BufferAttribute(lissajousPoints, 3));
+        lissajousLine = new THREE.Line(lissajousGeometry, new THREE.LineBasicMaterial({ color: 0xff1111, linewidth: 2 }));
+        scene.add(lissajousLine);
+
+        const waveMatX = new THREE.LineBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.8 });
+        const waveMatY = new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.8 });
+        
+        waveXLine = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(600 * 3), 3)), waveMatX);
+        waveYLine = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(600 * 3), 3)), waveMatY);
+        
+        scene.add(waveXLine, waveYLine);
+
+        tracerMain = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        tracerX = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0x0088ff }));
+        tracerY = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0x00ff88 }));
+        scene.add(tracerMain, tracerX, tracerY);
+
+        const connMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.15, opacity: 0.35, transparent: true });
+        connectionLines[0] = new THREE.Line(new THREE.BufferGeometry(), connMat);
+        connectionLines[1] = new THREE.Line(new THREE.BufferGeometry(), connMat);
+        scene.add(connectionLines[0], connectionLines[1]);
+    }
+
+    function updatePhysics(time, deltaTime) {
+        // Variação automática da fase se ativada
+        if (params.autoPhase) {
+            // Incrementa a fase baseado no tempo (aprox. 45 graus por segundo)
+            const phaseIncrement = deltaTime * 0.8; 
+            params.phase = (params.phase + phaseIncrement) % (Math.PI * 2);
+            
+            // Atualiza UI
+            const deg = (params.phase * 180 / Math.PI).toFixed(2);
+            document.getElementById('valPhase').innerText = deg + "°";
+            document.getElementById('phase').value = Math.floor(params.phase * 180 / Math.PI);
+        }
+
+        const pos = lissajousLine.geometry.attributes.position.array;
+        const res = 4000;
+        for (let i = 0; i < res; i++) {
+            let t = (i / res) * Math.PI * 14; 
+            pos[i * 3] = params.amp * Math.sin(params.freqX * t);
+            pos[i * 3 + 1] = params.amp * Math.sin(params.freqY * t - params.phase);
+            pos[i * 3 + 2] = 0;
+        }
+        lissajousLine.geometry.attributes.position.needsUpdate = true;
+
+        const currentT = time * params.speed;
+        const curX = params.amp * Math.sin(params.freqX * currentT);
+        const curY = params.amp * Math.sin(params.freqY * currentT - params.phase);
+        tracerMain.position.set(curX, curY, 0);
+
+        const xP = waveXLine.geometry.attributes.position.array;
+        const yP = waveYLine.geometry.attributes.position.array;
+        const offset = 8.5; 
+
+        for (let i = 0; i < 600; i++) {
+            let tz = i * 0.05;
+            let t = currentT - tz;
+            xP[i * 3] = params.amp * Math.sin(params.freqX * t);
+            xP[i * 3 + 1] = offset;
+            xP[i * 3 + 2] = -tz;
+            yP[i * 3] = offset;
+            yP[i * 3 + 1] = params.amp * Math.sin(params.freqY * t - params.phase);
+            yP[i * 3 + 2] = -tz;
+        }
+        waveXLine.geometry.attributes.position.needsUpdate = true;
+        waveYLine.geometry.attributes.position.needsUpdate = true;
+
+        tracerX.position.set(curX, offset, 0);
+        tracerY.position.set(offset, curY, 0);
+
+        connectionLines[0].geometry.setFromPoints([tracerMain.position, tracerX.position]);
+        connectionLines[1].geometry.setFromPoints([tracerMain.position, tracerY.position]);
+        connectionLines[0].computeLineDistances();
+        connectionLines[1].computeLineDistances();
+    }
+
+    function setupUI() {
+        const toggleBtn = document.getElementById('toggleBtn');
+        const panel = document.getElementById('sidePanel');
+        
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.classList.toggle('open');
+        });
+
+        const bind = (id, param, labelId) => {
+            const el = document.getElementById(id);
+            const lbl = document.getElementById(labelId);
+            el.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (param === 'phase') {
+                    params.phase = val * (Math.PI / 180);
+                    lbl.innerText = val.toFixed(2) + "°";
+                } else {
+                    params[param] = val;
+                    lbl.innerText = val.toFixed(2);
+                }
+            });
+        };
+
+        const autoPhaseCheck = document.getElementById('autoPhase');
+        autoPhaseCheck.addEventListener('change', (e) => {
+            params.autoPhase = e.target.checked;
+            document.getElementById('phase').disabled = e.target.checked;
+            if (e.target.checked) {
+                document.getElementById('phase').style.opacity = "0.3";
+            } else {
+                document.getElementById('phase').style.opacity = "1";
+            }
+        });
+
+        bind('freqX', 'freqX', 'valFreqX');
+        bind('freqY', 'freqY', 'valFreqY');
+        bind('phase', 'phase', 'valPhase');
+        bind('amp', 'amp', 'valAmp');
+        bind('speed', 'speed', 'valSpeed');
+
+        window.addEventListener('mousedown', (e) => {
+            if (!panel.contains(e.target) && !toggleBtn.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const deltaTime = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+        
+        if (controls) controls.update();
+        updatePhysics(elapsedTime, deltaTime);
+        renderer.render(scene, camera);
+    }
+
+    init();
+</script>
+</body>
+</html>
