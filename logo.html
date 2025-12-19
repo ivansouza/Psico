@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SEABI 3D Studio - Modo Cinema</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/TTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; color: white; }
+        canvas { display: block; }
+        
+        /* Botão de Engrenagem */
+        #gear-button {
+            position: absolute; top: 15px; right: 15px; z-index: 200;
+            background: rgba(0, 0, 0, 0.6); border: 1px solid #00d4ff;
+            color: #00d4ff; border-radius: 50%; width: 44px; height: 44px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s; backdrop-filter: blur(5px);
+        }
+        #gear-button:hover { background: #00d4ff; color: #000; transform: rotate(45deg); }
+
+        /* Painel de Edição */
+        #editor-ui {
+            position: absolute; top: 15px; left: 15px; z-index: 100;
+            background: rgba(0, 0, 0, 0.85); padding: 15px; border-radius: 8px;
+            border: 1px solid #00d4ff; width: 220px; backdrop-filter: blur(10px);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+        }
+        #editor-ui.hidden { transform: translateX(-250px); opacity: 0; pointer-events: none; }
+
+        h3 { margin: 0 0 10px 0; font-size: 14px; color: #00d4ff; text-transform: uppercase; letter-spacing: 1px; }
+        
+        select, button {
+            width: 100%; padding: 8px; margin-bottom: 8px;
+            background: #222; color: #fff; border: 1px solid #444; border-radius: 4px;
+            cursor: pointer; font-size: 12px;
+        }
+
+        .controls-hint { font-size: 10px; color: #888; margin-top: 5px; line-height: 1.4; }
+
+        #bottom-ui {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; gap: 10px; transition: opacity 0.3s;
+        }
+        #bottom-ui.hidden { opacity: 0; pointer-events: none; }
+
+        .action-btn {
+            background: rgba(0, 212, 255, 0.2); color: #00d4ff; border: 1px solid #00d4ff;
+            padding: 10px 20px; font-weight: bold; border-radius: 5px; 
+            text-transform: uppercase; font-size: 12px; cursor: pointer; backdrop-filter: blur(5px);
+        }
+        .action-btn:hover { background: #00d4ff; color: #000; }
+
+        #loading {
+            position: absolute; width: 100%; height: 100%; background: black;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(0,212,255,0.3); border-top-color: #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #toast {
+            position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+            background: #00d4ff; color: #000; padding: 12px 24px; border-radius: 4px;
+            font-weight: bold; font-size: 14px; z-index: 300; transition: top 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        A SINCRONIZAR ESTÚDIO...
+    </div>
+
+    <div id="toast">Configuração copiada!</div>
+
+    <button id="gear-button" title="Configurações">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+
+    <div id="editor-ui">
+        <h3>Estúdio SEABI</h3>
+        <label style="font-size: 11px;">Mover Elemento:</label>
+        <select id="object-selector">
+            <option value="none">Nenhum</option>
+            <option value="light_main">Luz Principal</option>
+            <option value="light_p1">Luz Ciano (P1)</option>
+            <option value="light_p2">Luz Laranja (P2)</option>
+            <option value="logo_group">Logótipo</option>
+            <option value="globe">Globo</option>
+            <option value="text_seabi">Texto SEABI</option>
+            <option value="text_desc">Texto Legenda</option>
+        </select>
+
+        <button id="btn-rotation">Giro Automático: OFF</button>
+        
+        <div class="controls-hint">
+            <b>Atalhos:</b><br>
+            • [G] Mover | [R] Rodar<br>
+            • Orbitar: Esq. Mouse<br>
+            • Pan: Dir. Mouse
+        </div>
+    </div>
+
+    <div id="bottom-ui">
+        <button id="btn-export" class="action-btn">Exportar Estado JSON</button>
+    </div>
+
+    <!-- Shaders do Globo -->
+    <script id="globeVertex" type="x-shader/x-vertex">
+        varying vec2 vUv; varying vec3 vNormal;
+        void main() {
+            vUv = uv; vNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="globeFragment" type="x-shader/x-fragment">
+        varying vec2 vUv; varying vec3 vNormal;
+        void main() {
+            float dots = step(0.9, mod(vUv.x * 120.0, 1.0)) * step(0.9, mod(vUv.y * 60.0, 1.0));
+            vec3 color = vec3(0.0, 0.6, 1.0);
+            float fresnel = pow(1.1 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
+            gl_FragColor = vec4(color * dots * 3.0 + color * fresnel * 1.5, dots > 0.1 ? 0.95 : 0.15);
+        }
+    </script>
+
+    <script>
+        // CONFIGURAÇÃO FORNECIDA
+        const config = {
+          "camera": {
+            "pos": { "x": -12.273066591890961, "y": -0.16420535165817274, "z": 11.641730618272563 },
+            "target": { "x": -0.7093171676505763, "y": 0.4388145741443712, "z": 0.20383674623685946 }
+          },
+          "lights": {
+            "main": { "x": 3.0540076527608573, "y": -0.6059384861531321, "z": 15.720937409482502 },
+            "p1": { "x": 2.9786774256248876, "y": -1.4714936993598045, "z": 9 },
+            "p2": { "x": -14.057020349065922, "y": -1.0203862792768026, "z": 9.647600516400209 }
+          },
+          "logo": {
+            "rotY": -38.03799999999938
+          },
+          "objects": {
+            "globe": { "x": 0, "y": 0, "z": 0 },
+            "seabiText": { "x": 0, "y": -0.2, "z": 0 },
+            "descText": { "x": 0, "y": -1.2, "z": 0 }
+          }
+        };
+
+        let scene, camera, renderer, orbit, transform, logoGroup, font;
+        let mainLight, p1, p2;
+        let selectableObjects = {};
+        let isRotating = false; 
+        let uiVisible = true;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(config.camera.pos.x, config.camera.pos.y, config.camera.pos.z);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            orbit = new THREE.OrbitControls(camera, renderer.domElement);
+            orbit.enableDamping = true;
+            orbit.target.set(config.camera.target.x, config.camera.target.y, config.camera.target.z);
+
+            transform = new THREE.TransformControls(camera, renderer.domElement);
+            transform.addEventListener('dragging-changed', (e) => { orbit.enabled = !e.value; });
+            scene.add(transform);
+
+            // Luzes
+            scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+            scene.add(new THREE.HemisphereLight(0xffffff, 0x333333, 1.8));
+
+            const gizmoGeo = new THREE.SphereGeometry(0.2, 16, 16);
+
+            mainLight = new THREE.PointLight(0xffffff, 18, 100);
+            mainLight.position.set(config.lights.main.x, config.lights.main.y, config.lights.main.z);
+            mainLight.add(new THREE.Mesh(gizmoGeo, new THREE.MeshBasicMaterial({ color: 0xffffff })));
+            scene.add(mainLight);
+            selectableObjects['light_main'] = mainLight;
+
+            p1 = new THREE.PointLight(0x00ffff, 12, 60);
+            p1.position.set(config.lights.p1.x, config.lights.p1.y, config.lights.p1.z);
+            p1.add(new THREE.Mesh(gizmoGeo, new THREE.MeshBasicMaterial({ color: 0x00ffff })));
+            scene.add(p1);
+            selectableObjects['light_p1'] = p1;
+
+            p2 = new THREE.PointLight(0xffaa00, 10, 60);
+            p2.position.set(config.lights.p2.x, config.lights.p2.y, config.lights.p2.z);
+            p2.add(new THREE.Mesh(gizmoGeo, new THREE.MeshBasicMaterial({ color: 0xffaa00 })));
+            scene.add(p2);
+            selectableObjects['light_p2'] = p2;
+
+            logoGroup = new THREE.Group();
+            logoGroup.rotation.y = config.logo.rotY;
+            scene.add(logoGroup);
+            selectableObjects['logo_group'] = logoGroup;
+
+            createLogoElements();
+
+            new THREE.TTFLoader().load('https://raw.githubusercontent.com/google/fonts/main/ofl/archivo/Archivo%5Bwdth%2Cwght%5D.ttf', (json) => {
+                font = new THREE.FontLoader().parse(json);
+                addTexts();
+                document.getElementById('loading').style.display = 'none';
+            });
+
+            setupUI();
+            animate();
+        }
+
+        function createLogoElements() {
+            const globe = new THREE.Mesh(new THREE.SphereGeometry(2.8, 64, 64), new THREE.ShaderMaterial({
+                vertexShader: document.getElementById('globeVertex').textContent,
+                fragmentShader: document.getElementById('globeFragment').textContent,
+                transparent: true, side: THREE.DoubleSide
+            }));
+            globe.position.set(config.objects.globe.x, config.objects.globe.y, config.objects.globe.z);
+            logoGroup.add(globe);
+            selectableObjects['globe'] = globe;
+
+            const colors = [0x00ffff, 0x39ff14, 0xff00ff, 0xffff00];
+            for (let i = 0; i < 4; i++) {
+                const h = 1.0 + (i * 0.7);
+                const mat = new THREE.MeshStandardMaterial({ color: colors[i], metalness: 1, roughness: 0.05, emissive: colors[i], emissiveIntensity: 0.5 });
+                mat.onBeforeCompile = (s) => {
+                    s.uniforms.uR = { value: 2.8 }; s.uniforms.uO = { value: (i-1.5)*0.62 };
+                    s.vertexShader = `uniform float uR; uniform float uO;\n` + s.vertexShader.replace('#include <begin_vertex>', `
+                        vec3 pos = position; float r = uR + pos.z; float a = (pos.x * 0.45) + uO;
+                        vec3 transformed = vec3(r * sin(a), pos.y, r * cos(a));
+                    `);
+                };
+                const bar = new THREE.Mesh(new THREE.BoxGeometry(1.35, h, 0.45, 30, 1, 1), mat);
+                bar.position.y = h/2 - 0.2;
+                logoGroup.add(bar);
+            }
+
+            const arrowPts = [];
+            for(let i=0; i<=40; i++){
+                const t = i/40; const r = 3.4; const lon = (t-0.5)*2.7; const lat = (t-0.5)*1.6 + 0.3;
+                arrowPts.push(new THREE.Vector3(r*Math.cos(lat)*Math.sin(lon), r*Math.sin(lat), r*Math.cos(lat)*Math.cos(lon)));
+            }
+            const arrowMat = new THREE.MeshStandardMaterial({color: 0xffcc00, metalness: 1, roughness: 0.05, emissive: 0xffaa00, emissiveIntensity: 0.8});
+            const curve = new THREE.CatmullRomCurve3(arrowPts);
+            logoGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 60, 0.18, 12, false), arrowMat));
+
+            const db = new THREE.Group();
+            const silver = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 1, roughness: 0.02, emissive: 0x0066cc, emissiveIntensity: 0.3});
+            for(let i=0; i<3; i++){
+                const d = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.35, 32), silver);
+                d.position.y = i * 0.5; db.add(d);
+            }
+            db.position.set(2.7 * Math.sin(1.1), -0.3, 2.7 * Math.cos(1.1));
+            db.lookAt(0, -0.3, 0); db.rotateX(Math.PI); logoGroup.add(db);
+        }
+
+        function addTexts() {
+            const createT = (txt, size, h, y, z, c, id) => {
+                const geo = new THREE.TextGeometry(txt, { font: font, size: size, height: h, curveSegments: 12, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.02 });
+                geo.center();
+                const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.05, emissive: 0x444444, emissiveIntensity: 0.2 });
+                mat.onBeforeCompile = (s) => {
+                    s.uniforms.uR = { value: 4.2 }; s.uniforms.uC = { value: c };
+                    s.vertexShader = `uniform float uR; uniform float uC;\n` + s.vertexShader.replace('#include <begin_vertex>', `
+                        vec3 pos = position; float r = uR + pos.z; float a = (pos.x * uC);
+                        vec3 transformed = vec3(r * sin(a), pos.y, r * cos(a));
+                    `);
+                };
+                const m = new THREE.Mesh(geo, mat);
+                if (id === 'text_seabi') m.position.set(config.objects.seabiText.x, config.objects.seabiText.y, config.objects.seabiText.z);
+                if (id === 'text_desc') m.position.set(config.objects.descText.x, config.objects.descText.y, config.objects.descText.z);
+                logoGroup.add(m);
+                selectableObjects[id] = m;
+            };
+            createT('SEABI', 1.0, 0.4, config.objects.seabiText.y, config.objects.seabiText.z, 0.45, 'text_seabi');
+            createT('SEÇÃO DE ADMINISTRAÇÃO DE ESTRUTURAS DE BI', 0.16, 0.1, config.objects.descText.y, config.objects.descText.z, 0.38, 'text_desc');
+        }
+
+        function setupUI() {
+            const gear = document.getElementById('gear-button');
+            const editor = document.getElementById('editor-ui');
+            const bottom = document.getElementById('bottom-ui');
+            const selector = document.getElementById('object-selector');
+
+            gear.onclick = () => {
+                uiVisible = !uiVisible;
+                editor.classList.toggle('hidden', !uiVisible);
+                bottom.classList.toggle('hidden', !uiVisible);
+                
+                // Se escondermos a UI, também escondemos os gizmos de luz e o transform helper
+                mainLight.children[0].visible = uiVisible;
+                p1.children[0].visible = uiVisible;
+                p2.children[0].visible = uiVisible;
+                if (!uiVisible) transform.detach();
+            };
+
+            selector.onchange = (e) => {
+                const id = e.target.value;
+                if (id === 'none') transform.detach();
+                else transform.attach(selectableObjects[id]);
+            };
+
+            document.getElementById('btn-rotation').onclick = (e) => {
+                isRotating = !isRotating;
+                e.target.innerText = isRotating ? "Giro Automático: ON" : "Giro Automático: OFF";
+            };
+
+            document.getElementById('btn-export').onclick = () => {
+                const data = {
+                    camera: { pos: camera.position, target: orbit.target },
+                    lights: { main: mainLight.position, p1: p1.position, p2: p2.position },
+                    logo: { rotY: logoGroup.rotation.y },
+                    objects: { globe: selectableObjects['globe'].position, seabiText: selectableObjects['text_seabi'].position, descText: selectableObjects['text_desc'].position },
+                    timestamp: new Date().toISOString()
+                };
+                const ta = document.createElement('textarea'); ta.value = JSON.stringify(data, null, 2);
+                document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+                document.body.removeChild(ta);
+                const t = document.getElementById('toast'); t.style.top = '20px'; setTimeout(() => t.style.top = '-100px', 2500);
+            };
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'g') transform.setMode('translate');
+                if (e.key.toLowerCase() === 'r') transform.setMode('rotate');
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isRotating && !transform.object) {
+                logoGroup.rotation.y -= 0.008;
+            }
+            orbit.update();
+            renderer.render(scene, camera);
+        }
+
+            window.onload = init;
+            window.onresize = () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            };
+    </script>
+</body>
+</html>
+
