@@ -44,7 +44,7 @@
         .section-title { 
             font-weight: bold; margin-bottom: 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
             padding-bottom: 10px; font-size: 13px; color: #fff; text-align: left; 
-            text-transform: uppercase; letter-spacing: 2px;
+            text-transform: uppercase; letter-spacing: 2px; cursor: pointer;
         }
 
         .control-group { margin-bottom: 16px; }
@@ -71,8 +71,8 @@
     </style>
 </head>
 <body>
-    <div id="loading">A SINCRONIZAR TERMINAL...</div>
-    <div id="toast">Configuração Guardada!</div>
+    <div id="loading">A CALIBRAR ÓPTICA QDSP-6064...</div>
+    <div id="toast">Ação Concluída!</div>
 
     <div id="gear-icon" onclick="toggleUI(event)">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -82,7 +82,7 @@
     </div>
     
     <div id="ui-window" onclick="event.stopPropagation()">
-        <div class="section-title">QDSP-6064 MEMORY</div>
+        <div id="ui-title" class="section-title">QDSP-6064 MEMORY</div>
         
         <div class="control-group">
             <label>Brilho LED <span id="val-emit" class="val-display">800</span></label>
@@ -95,23 +95,23 @@
         </div>
 
         <div class="control-group">
-            <label>Poder da Lente <span id="val-mag" class="val-display">12.00</span></label>
-            <input type="range" id="input-mag" min="1.0" max="25.0" step="0.5" value="12.0">
+            <label>Poder da Lente <span id="val-mag" class="val-display">1.00</span></label>
+            <input type="range" id="input-mag" min="1.0" max="25.0" step="0.5" value="1.0">
         </div>
 
         <div class="control-group">
-            <label>Nitidez Display <span id="val-sharp" class="val-display">0.90</span></label>
-            <input type="range" id="input-sharp" min="0.0" max="1.0" step="0.01" value="0.90">
+            <label>Nitidez Display <span id="val-sharp" class="val-display">0.80</span></label>
+            <input type="range" id="input-sharp" min="0.0" max="1.0" step="0.01" value="0.80">
         </div>
 
         <div class="control-group">
-            <label>Opacidade Display <span id="val-alpha" class="val-display">0.95</span></label>
-            <input type="range" id="input-alpha" min="0.0" max="1.0" step="0.01" value="0.95">
+            <label>Opacidade Display <span id="val-alpha" class="val-display">0.92</span></label>
+            <input type="range" id="input-alpha" min="0.0" max="1.0" step="0.01" value="0.92">
         </div>
 
         <div class="control-group">
-            <label>Estúdio <span id="val-light" class="val-display">0.40</span></label>
-            <input type="range" id="input-light" min="0" max="5" step="0.1" value="0.4">
+            <label>Estúdio <span id="val-light" class="val-display">1.10</span></label>
+            <input type="range" id="input-light" min="0" max="5" step="0.1" value="1.1">
         </div>
 
         <div class="checkbox-group">
@@ -120,11 +120,12 @@
         </div>
         
         <div style="font-size: 8px; opacity: 0.4; text-align: center; margin-top: 15px; line-height: 1.4;">
-            TOQUE 3 VEZES RÁPIDO PARA GUARDAR<br>(USA PONTEIRO DE ALTA VELOCIDADE)
+            TOQUE 2 VEZES NO TÍTULO PARA COPIAR JSON<br>
+            TOQUE 3 VEZES NA TELA PARA GUARDAR
         </div>
     </div>
 
-    <div id="ui-label">QDSP-6064 | MEMÓRIA PERSISTENTE OTIMIZADA</div>
+    <div id="ui-label">QDSP-6064 | CONFIGURAÇÃO DE FÁBRICA ATUALIZADA</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -140,16 +141,25 @@
         let orbitDirection = -1;
         const ROTATE_LIMIT = 1.57; 
 
+        // Parâmetros Iniciais conforme o JSON fornecido pelo usuário
         let params = {
             emissiveIntensity: 800,
             ior: 3.8,
-            magnification: 12.0,
-            sharpness: 0.90,
-            opacity: 0.95,
-            lightIntensity: 0.4,
-            autoRotate: false,
-            cameraPos: { x: 0, y: 0.8, z: 8.5 },
-            cameraTarget: { x: 0, y: 0, z: 0 }
+            magnification: 1.0,
+            sharpness: 0.8,
+            opacity: 0.92,
+            lightIntensity: 1.1,
+            autoRotate: true,
+            cameraPos: {
+                x: 12.070529703242643,
+                y: 3.2643492617340257,
+                z: 11.842114002466948
+            },
+            cameraTarget: {
+                x: -0.25313588023033134,
+                y: 0.4350403748474412,
+                z: 0.30231288943098744
+            }
         };
 
         const segmentMap = {
@@ -159,16 +169,17 @@
             '9': [1,1,1,1,0,1,1,0], ' ': [0,0,0,0,0,0,0,0]
         };
 
-        // Lógica de Triplo Clique Mobile
         let tapCount = 0;
         let lastTapTime = 0;
+        let titleTapCount = 0;
+        let lastTitleTapTime = 0;
 
         window.onload = function() {
             try {
-                loadSettings();
+                loadSettings(); // Tenta carregar do localStorage se existir
                 init();
                 setupUI();
-                setupTripleTap();
+                setupGestures();
                 animate();
             } catch (e) {
                 console.error(e);
@@ -178,7 +189,7 @@
         };
 
         function loadSettings() {
-            const saved = localStorage.getItem('qdsp6064_mobile_state');
+            const saved = localStorage.getItem('qdsp6064_custom_v1');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -190,42 +201,63 @@
         function saveSettings() {
             params.cameraPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
             params.cameraTarget = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
-            localStorage.setItem('qdsp6064_mobile_state', JSON.stringify(params));
-            
+            localStorage.setItem('qdsp6064_custom_v1', JSON.stringify(params));
+            showToast("Configuração Guardada!");
+        }
+
+        function showToast(msg) {
             const toast = document.getElementById('toast');
+            toast.innerText = msg;
             toast.classList.add('active');
             setTimeout(() => toast.classList.remove('active'), 2500);
         }
 
-        function setupTripleTap() {
-            // Usamos pointerdown para evitar o lag de 300ms do mobile click
+        function copyToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("JSON Copiado!");
+            } catch (err) {
+                showToast("Erro ao copiar.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function setupGestures() {
             window.addEventListener('pointerdown', (e) => {
-                // Impedir gravação se clicar em botões ou sliders
                 if (e.target.closest('#ui-window') || e.target.closest('#gear-icon')) return;
-
                 const now = Date.now();
-                if (now - lastTapTime < 400) {
-                    tapCount++;
-                } else {
-                    tapCount = 1;
-                }
+                if (now - lastTapTime < 400) tapCount++;
+                else tapCount = 1;
                 lastTapTime = now;
-
-                if (tapCount === 3) {
-                    saveSettings();
-                    tapCount = 0;
-                }
+                if (tapCount === 3) { saveSettings(); tapCount = 0; }
             }, { passive: true });
+
+            const title = document.getElementById('ui-title');
+            title.addEventListener('pointerdown', (e) => {
+                const now = Date.now();
+                if (now - lastTitleTapTime < 400) titleTapCount++;
+                else titleTapCount = 1;
+                lastTitleTapTime = now;
+                if (titleTapCount === 2) { 
+                    const exportData = {
+                        ...params,
+                        cameraPos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                        cameraTarget: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
+                        timestamp: new Date().toISOString()
+                    };
+                    copyToClipboard(JSON.stringify(exportData, null, 2));
+                    titleTapCount = 0; 
+                }
+            });
         }
 
         function toggleUI(e) {
             if(e) e.stopPropagation();
             document.getElementById('ui-window').classList.toggle('active');
-        }
-
-        function fitCamera() {
-            const aspect = window.innerWidth / window.innerHeight;
-            if (aspect < 1) camera.position.z = 8.5 / aspect;
         }
 
         function setupUI() {
@@ -297,11 +329,10 @@
             ambientLight = new THREE.AmbientLight(0xffffff, params.lightIntensity * 0.2);
             scene.add(ambientLight);
             directionalLight = new THREE.DirectionalLight(0xffffff, params.lightIntensity);
-            directionalLight.position.set(2, 8, 10);
+            directionalLight.position.set(5, 10, 15);
             scene.add(directionalLight);
 
             createBubbleClock();
-            if(!localStorage.getItem('qdsp6064_mobile_state')) fitCamera();
         }
 
         function createBubbleClock() {
