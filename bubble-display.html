@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QDSP-6064 Bubble Display Simulator</title>
+    <style>
+        body { margin: 0; background-color: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff3300; font-family: monospace; letter-spacing: 2px; z-index: 2000;
+        }
+
+        /* Notificação de Gravação */
+        #toast {
+            position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 50, 0, 0.9); color: white; padding: 10px 25px;
+            border-radius: 20px; font-weight: bold; font-size: 12px; z-index: 3000;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 0 20px rgba(255, 50, 0, 0.5);
+        }
+        #toast.active { top: 20px; }
+
+        #gear-icon {
+            position: absolute; top: 20px; right: 20px; width: 44px; height: 44px;
+            background: rgba(30, 0, 0, 0.4); border: 1px solid rgba(170, 0, 0, 0.5);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 1100; color: #ff3300;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #gear-icon:hover { background: rgba(60, 0, 0, 0.6); transform: rotate(45deg); }
+
+        #ui-window {
+            position: absolute; top: 80px; right: 20px; width: 270px;
+            background: transparent; border: none; padding: 10px; color: #ff7777;
+            font-size: 11px; z-index: 1000; display: none; user-select: none;
+        }
+        #ui-window.active { display: block; animation: fadeIn 0.3s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .section-title { 
+            font-weight: bold; margin-bottom: 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+            padding-bottom: 10px; font-size: 13px; color: #fff; text-align: left; 
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .control-group { margin-bottom: 16px; }
+        .control-group label { display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; color: rgba(255, 68, 68, 0.8); }
+        
+        input[type=range] { 
+            width: 100%; cursor: pointer; accent-color: #ff0000;
+            background: rgba(255, 255, 255, 0.1); height: 4px; border-radius: 2px; appearance: none;
+        }
+        
+        .val-display { float: right; color: #ffffff; font-family: monospace; opacity: 0.9; font-size: 10px; }
+
+        .checkbox-group { 
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; cursor: pointer; margin-top: 15px; padding: 5px 0;
+        }
+        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; accent-color: #ff0000; }
+
+        #ui-label {
+            position: absolute; bottom: 20px; width: 100%; text-align: center;
+            color: rgba(255, 50, 0, 0.25); font-size: 10px; letter-spacing: 4px; pointer-events: none;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">A CARREGAR MEMÓRIA...</div>
+    <div id="toast">Definições Guardadas!</div>
+
+    <div id="gear-icon" onclick="toggleUI()">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </div>
+    
+    <div id="ui-window">
+        <div class="section-title">QDSP-6064 OPTICS</div>
+        
+        <div class="control-group">
+            <label>Brilho LED <span id="val-emit" class="val-display">800</span></label>
+            <input type="range" id="input-emit" min="0" max="2500" value="800">
+        </div>
+
+        <div class="control-group">
+            <label>Refração (IOR) <span id="val-ior" class="val-display">3.80</span></label>
+            <input type="range" id="input-ior" min="1.0" max="5.0" step="0.1" value="3.8">
+        </div>
+
+        <div class="control-group">
+            <label>Poder da Lente <span id="val-mag" class="val-display">12.00</span></label>
+            <input type="range" id="input-mag" min="1.0" max="25.0" step="0.5" value="12.0">
+        </div>
+
+        <div class="control-group">
+            <label>Nitidez Display <span id="val-sharp" class="val-display">0.90</span></label>
+            <input type="range" id="input-sharp" min="0.0" max="1.0" step="0.01" value="0.90">
+        </div>
+
+        <div class="control-group">
+            <label>Opacidade Display <span id="val-alpha" class="val-display">0.95</span></label>
+            <input type="range" id="input-alpha" min="0.0" max="1.0" step="0.01" value="0.95">
+        </div>
+
+        <div class="control-group">
+            <label>Estúdio <span id="val-light" class="val-display">0.40</span></label>
+            <input type="range" id="input-light" min="0" max="5" step="0.1" value="0.4">
+        </div>
+
+        <div class="checkbox-group">
+            <label for="check-rotate" style="margin-bottom:0; cursor:pointer; flex:1">Oscilação (±90°)</label>
+            <input type="checkbox" id="check-rotate">
+        </div>
+        
+        <div style="font-size: 8px; opacity: 0.4; text-align: center; margin-top: 15px;">
+            TRIPLO CLIQUE PARA GUARDAR ESTADO INICIAL
+        </div>
+    </div>
+
+    <div id="ui-label">QDSP-6064 | Triplo Clique para Memorizar</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let ambientLight, directionalLight;
+        const digitData = [];
+        const lensMaterials = [];
+        const ledGroups = [];
+        let barMaterial;
+        
+        let orbitDirection = -1;
+        const ROTATE_LIMIT = 1.57; 
+
+        // Parâmetros com carregamento de LocalStorage
+        let params = {
+            emissiveIntensity: 800,
+            ior: 3.8,
+            magnification: 12.0,
+            sharpness: 0.90,
+            opacity: 0.95,
+            lightIntensity: 0.4,
+            autoRotate: false
+        };
+
+        const segmentMap = {
+            '0': [1,1,1,1,1,1,0,0], '1': [0,1,1,0,0,0,0,0], '2': [1,1,0,1,1,0,1,0],
+            '3': [1,1,1,1,0,0,1,0], '4': [0,1,1,0,0,1,1,0], '5': [1,0,1,1,0,1,1,0],
+            '6': [1,0,1,1,1,1,1,0], '7': [1,1,1,0,0,0,0,0], '8': [1,1,1,1,1,1,1,0],
+            '9': [1,1,1,1,0,1,1,0], ' ': [0,0,0,0,0,0,0,0]
+        };
+
+        // Lógica de Triplo Clique
+        let clickCount = 0;
+        let lastClickTime = 0;
+
+        window.onload = function() {
+            try {
+                loadInitialSettings();
+                init();
+                setupUI();
+                setupTripleClick();
+                animate();
+            } catch (e) {
+                console.error(e);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+
+        function loadInitialSettings() {
+            const saved = localStorage.getItem('qdsp6064_settings');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    params = { ...params, ...parsed };
+                    console.log("Definições carregadas da memória.");
+                } catch(e) { console.warn("Erro ao ler LocalStorage."); }
+            }
+        }
+
+        function setupTripleClick() {
+            window.addEventListener('click', (e) => {
+                const now = Date.now();
+                if (now - lastClickTime < 500) {
+                    clickCount++;
+                } else {
+                    clickCount = 1;
+                }
+                lastClickTime = now;
+
+                if (clickCount === 3) {
+                    saveSettings();
+                    clickCount = 0;
+                }
+            });
+        }
+
+        function saveSettings() {
+            localStorage.setItem('qdsp6064_settings', JSON.stringify(params));
+            const toast = document.getElementById('toast');
+            toast.classList.add('active');
+            setTimeout(() => toast.classList.remove('active'), 2500);
+        }
+
+        function toggleUI() {
+            const win = document.getElementById('ui-window');
+            win.classList.toggle('active');
+        }
+
+        function setupUI() {
+            const bindControl = (id, valId, paramKey, callback) => {
+                const el = document.getElementById(id);
+                const disp = document.getElementById(valId);
+                
+                // Sincronizar UI com params iniciais
+                el.value = params[paramKey];
+                disp.innerText = params[paramKey].toFixed(2);
+
+                el.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    params[paramKey] = val;
+                    disp.innerText = val.toFixed(2);
+                    if(callback) callback(val);
+                });
+            };
+
+            bindControl('input-emit', 'val-emit', 'emissiveIntensity');
+            bindControl('input-ior', 'val-ior', 'ior', (val) => { 
+                lensMaterials.forEach(m => m.ior = val); 
+            });
+            
+            bindControl('input-mag', 'val-mag', 'magnification', (val) => {
+                lensMaterials.forEach(m => m.thickness = val);
+                const zOffset = (val / 50); 
+                ledGroups.forEach(group => { group.position.z = -0.04 - zOffset; });
+            });
+
+            bindControl('input-sharp', 'val-sharp', 'sharpness', (val) => {
+                const roughness = 1.0 - val;
+                lensMaterials.forEach(m => {
+                    m.roughness = roughness * 0.85; m.clearcoat = val; m.clearcoatRoughness = roughness;
+                });
+                if(barMaterial) { barMaterial.roughness = roughness * 0.4; barMaterial.clearcoat = val * 0.8; }
+            });
+
+            bindControl('input-alpha', 'val-alpha', 'opacity', (val) => { 
+                lensMaterials.forEach(m => m.transmission = val);
+                if(barMaterial) barMaterial.transmission = val;
+            });
+
+            bindControl('input-light', 'val-light', 'lightIntensity', (val) => {
+                directionalLight.intensity = val;
+                ambientLight.intensity = val * 0.2;
+            });
+
+            const rotCheck = document.getElementById('check-rotate');
+            rotCheck.checked = params.autoRotate;
+            rotCheck.addEventListener('change', (e) => {
+                params.autoRotate = e.target.checked;
+                controls.autoRotate = params.autoRotate;
+            });
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.2, 8.5); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 3.5; 
+            renderer.physicallyCorrectLights = true;
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = params.autoRotate;
+            controls.autoRotateSpeed = -3.0;
+
+            ambientLight = new THREE.AmbientLight(0xffffff, params.lightIntensity * 0.2);
+            scene.add(ambientLight);
+            
+            directionalLight = new THREE.DirectionalLight(0xffffff, params.lightIntensity);
+            directionalLight.position.set(2, 8, 10);
+            scene.add(directionalLight);
+
+            createBubbleClock();
+        }
+
+        function createBubbleClock() {
+            const digitCount = 6;
+            const spacing = 1.05;
+            const boxThickness = 0.08; 
+            const lensRadius = 0.52; 
+            
+            barMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x330000, transparent: true, transmission: params.opacity, 
+                ior: 1.49, thickness: 0.1, roughness: (1.0 - params.sharpness) * 0.4,
+                metalness: 0.05, clearcoat: params.sharpness * 0.8
+            });
+
+            const group = new THREE.Group();
+            const barGeo = new THREE.BoxGeometry(digitCount * spacing + 0.4, 1.0, boxThickness);
+            const bar = new THREE.Mesh(barGeo, barMaterial);
+            bar.renderOrder = 2;
+            group.add(bar);
+
+            const startX = -((digitCount - 1) * spacing) / 2;
+            
+            for(let i = 0; i < digitCount; i++) {
+                const dx = startX + (i * spacing);
+                const lensMat = new THREE.MeshPhysicalMaterial({
+                    color: 0xff0000, transparent: true, transmission: params.opacity, 
+                    ior: params.ior, thickness: params.magnification,
+                    roughness: (1.0 - params.sharpness) * 0.8, specularIntensity: 2.0,
+                    clearcoat: params.sharpness, clearcoatRoughness: 1.0 - params.sharpness,
+                    depthWrite: true
+                });
+                lensMaterials.push(lensMat);
+
+                const lensGeo = new THREE.SphereGeometry(lensRadius, 64, 48, 0, Math.PI * 2, 0, Math.PI / 2);
+                const lens = new THREE.Mesh(lensGeo, lensMat);
+                lens.rotation.x = Math.PI / 2; lens.position.set(dx, 0, boxThickness / 2); 
+                lens.renderOrder = 10; group.add(lens);
+
+                const ledContainer = new THREE.Group();
+                const zOffset = (params.magnification / 50);
+                ledContainer.position.set(dx, 0, -boxThickness / 2 - zOffset); 
+                ledContainer.scale.set(0.48, 0.48, 1);
+                group.add(ledContainer);
+                ledGroups.push(ledContainer);
+
+                const segments = [];
+                const makeSeg = (px, py, rot, isDot = false) => {
+                    const geo = isDot ? new THREE.CircleGeometry(0.08, 16) : new THREE.PlaneGeometry(0.4, 0.04);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xff0000, emissiveIntensity: 0 });
+                    const s = new THREE.Mesh(geo, mat);
+                    s.position.set(px, py, 0); s.rotation.z = rot; ledContainer.add(s);
+                    return s;
+                };
+
+                segments.push(makeSeg(0, 0.35, 0)); segments.push(makeSeg(0.18, 0.18, Math.PI/2));
+                segments.push(makeSeg(0.18, -0.18, Math.PI/2)); segments.push(makeSeg(0, -0.35, 0));
+                segments.push(makeSeg(-0.18, -0.18, Math.PI/2)); segments.push(makeSeg(-0.18, 0.18, Math.PI/2));
+                segments.push(makeSeg(0, 0, 0)); segments.push(makeSeg(0.35, -0.35, 0, true));
+                digitData.push(segments);
+            }
+            scene.add(group);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const h = now.getHours().toString().padStart(2, '0');
+            const m = now.getMinutes().toString().padStart(2, '0');
+            const s = now.getSeconds().toString().padStart(2, '0');
+            const timeStr = h + m + s;
+            const blink = now.getMilliseconds() > 500;
+
+            for(let i=0; i < 6; i++) {
+                if(!digitData[i]) continue;
+                const char = timeStr[i] || ' ';
+                const pattern = [...(segmentMap[char] || segmentMap[' '])];
+                if((i === 1 || i === 3) && blink) pattern[7] = 1;
+                digitData[i].forEach((seg, idx) => {
+                    if(pattern[idx]) {
+                        seg.material.emissiveIntensity = params.emissiveIntensity / 100;
+                    } else {
+                        seg.material.emissiveIntensity = 0.0;
+                    }
+                });
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateClock();
+            if (params.autoRotate) {
+                const azimuth = controls.getAzimuthalAngle();
+                if (azimuth >= ROTATE_LIMIT) orbitDirection = 1; 
+                else if (azimuth <= -ROTATE_LIMIT) orbitDirection = -1;
+                controls.autoRotateSpeed = orbitDirection * 3.0;
+            }
+            if(controls) controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onresize = function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
+
