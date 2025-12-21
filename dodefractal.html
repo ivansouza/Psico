@@ -3,145 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dodecaedro Sagrado - Customizador Avançado</title>
+    <title>Dodecaedro Sagrado - Interface Compacta</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #00d2ff; }
         canvas { display: block; }
         
-        /* Ícone da Engrenagem */
+        /* Botão de Engrenagem */
         #settings-btn {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
+            top: 15px;
+            right: 15px;
+            width: 35px;
+            height: 35px;
             cursor: pointer;
-            z-index: 100;
+            z-index: 110;
             fill: #0044ff;
-            filter: drop-shadow(0 0 10px #0022aa);
-            transition: transform 0.3s ease, fill 0.3s ease;
+            filter: drop-shadow(0 0 8px #0022aa);
+            transition: transform 0.3s ease;
         }
         #settings-btn:hover { transform: rotate(90deg); fill: #00d2ff; }
 
-        /* Janela Transparente (Glassmorphism) */
-        #settings-panel {
+        /* Painel Único Adaptável (Glassmorphism) */
+        #main-panel {
             position: absolute;
-            top: 70px;
-            right: 20px;
-            width: 280px;
+            top: 60px;
+            right: 15px;
+            width: 260px;
+            max-width: calc(100vw - 30px);
             background: rgba(0, 5, 15, 0.85);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(0, 102, 255, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            color: #00d2ff;
+            border-radius: 12px;
+            padding: 15px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.9);
             display: none; 
-            z-index: 90;
-            user-select: none;
-            max-height: 80vh;
+            z-index: 100;
+            max-height: calc(100vh - 80px);
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #0044ff transparent;
         }
-        #settings-panel.active { display: block; animation: fadeIn 0.3s ease; }
+        #main-panel.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-        h2 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; text-align: center; border-bottom: 1px solid rgba(0, 102, 255, 0.2); padding-bottom: 10px; }
+        h2 { margin: 0 0 12px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; text-align: center; border-bottom: 1px solid rgba(0, 102, 255, 0.2); padding-bottom: 8px; }
 
-        .control-group { margin-bottom: 15px; }
-        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        label { display: block; font-size: 11px; margin-bottom: 5px; opacity: 0.8; }
+        .view-content { display: none; }
+        .view-content.active { display: block; }
+
+        .control-group { margin-bottom: 10px; }
+        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        label { display: block; font-size: 9px; margin-bottom: 3px; opacity: 0.7; text-transform: uppercase; }
         
         input[type="range"] {
-            width: 100%;
-            cursor: pointer;
-            accent-color: #0066ff;
-            background: rgba(0, 102, 255, 0.1);
-            border-radius: 5px;
-            height: 4px;
-            -webkit-appearance: none;
+            width: 100%; cursor: pointer; accent-color: #0066ff;
+            background: rgba(0, 102, 255, 0.1); border-radius: 5px; height: 3px; -webkit-appearance: none;
         }
+        input[type="color"] { border: none; width: 22px; height: 22px; cursor: pointer; background: none; padding: 0; }
 
-        input[type="color"] {
-            border: none;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            background: none;
-            padding: 0;
+        button {
+            background: rgba(0, 102, 255, 0.15); border: 1px solid rgba(0, 162, 255, 0.3);
+            color: #00d2ff; padding: 6px; border-radius: 4px; cursor: pointer;
+            font-size: 9px; text-transform: uppercase; width: 100%; transition: all 0.2s;
         }
+        button:hover { background: rgba(0, 102, 255, 0.3); border-color: #00d2ff; }
+
+        /* Estilos dos Slots de Memória */
+        .slot-item {
+            display: grid; grid-template-columns: 35px 1fr 1fr; gap: 5px;
+            align-items: center; margin-bottom: 6px; padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0, 102, 255, 0.1);
+        }
+        .slot-num { font-size: 10px; opacity: 0.6; }
+        .btn-save { background: rgba(0, 255, 120, 0.05); border-color: rgba(0, 255, 120, 0.2); }
+        .btn-load { background: rgba(0, 120, 255, 0.05); border-color: rgba(0, 120, 255, 0.2); }
+        .slot-empty { opacity: 0.3; pointer-events: none; }
 
         #ui-hint {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: #0044ff;
-            pointer-events: none;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 10px;
-            opacity: 0.6;
+            position: absolute; bottom: 15px; left: 15px; color: #0044ff;
+            pointer-events: none; text-transform: uppercase; letter-spacing: 1.5px;
+            font-size: 9px; opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <div id="ui-hint">Gire para explorar • Role para zoom</div>
+    <div id="ui-hint">Arraste para rodar • Pinça/Scroll para zoom</div>
 
-    <svg id="settings-btn" viewBox="0 0 24 24" onclick="togglePanel()">
+    <svg id="settings-btn" viewBox="0 0 24 24" onclick="toggleMainPanel()">
         <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
     </svg>
 
-    <div id="settings-panel">
-        <h2>Ajustes Mandala</h2>
-        
-        <div class="control-group">
-            <label>Cores</label>
-            <div class="control-row">
-                <input type="color" id="param-color1" value="#000033">
-                <input type="color" id="param-color2" value="#00d2ff">
+    <div id="main-panel">
+        <!-- VISTA: PARÂMETROS -->
+        <div id="view-settings" class="view-content active">
+            <h2>Configurações</h2>
+            <div class="control-group">
+                <label>Cores</label>
+                <div class="control-row">
+                    <input type="color" id="p-col1" value="#000033">
+                    <input type="color" id="p-col2" value="#00d2ff">
+                </div>
             </div>
+            <div class="control-group">
+                <label>Giro Mandala</label>
+                <input type="range" id="p-m-speed" min="0" max="5" step="0.1" value="1.5">
+            </div>
+            <div class="control-group">
+                <label>Ritmo Fractal</label>
+                <input type="range" id="p-k-speed" min="0" max="5" step="0.1" value="1.0">
+            </div>
+            <div class="control-group">
+                <label>Velocidade Ondas</label>
+                <input type="range" id="p-speed" min="0" max="5" step="0.1" value="2.5">
+            </div>
+            <div class="control-group">
+                <label>Complexidade</label>
+                <input type="range" id="p-complexity" min="1" max="5" step="1" value="3">
+            </div>
+            <div class="control-group">
+                <label>Brilho (Glow)</label>
+                <input type="range" id="p-glow" min="0.1" max="2.0" step="0.05" value="1.0">
+            </div>
+            <div class="control-group">
+                <label>Escala</label>
+                <input type="range" id="p-scale" min="1" max="4" step="0.1" value="1.9">
+            </div>
+            <div class="control-group">
+                <label>Lados (Simetria)</label>
+                <input type="range" id="p-slices" min="3" max="15" step="1" value="5">
+            </div>
+            <div class="control-group">
+                <label>Rotação 3D</label>
+                <input type="range" id="p-rot" min="0" max="4" step="0.1" value="1.2">
+            </div>
+            <button onclick="switchView('view-presets')">Slots de Memória (1-10)</button>
         </div>
 
-        <div class="control-group">
-            <label>Velocidade das Mandalas (Giro)</label>
-            <input type="range" id="param-mandala-speed" min="0" max="4" step="0.1" value="1.5">
-        </div>
-
-        <div class="control-group">
-            <label>Velocidade do Caleidoscópio (Fractal)</label>
-            <input type="range" id="param-kaleido-speed" min="0" max="4" step="0.1" value="1.0">
-        </div>
-
-        <div class="control-group">
-            <label>Velocidade de Transmutação (Ondas)</label>
-            <input type="range" id="param-speed" min="0" max="4" step="0.1" value="2.5">
-        </div>
-
-        <div class="control-group">
-            <label>Complexidade Fractal</label>
-            <input type="range" id="param-complexity" min="1" max="5" step="1" value="3">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade de Luz (Glow)</label>
-            <input type="range" id="param-glow" min="0.1" max="2.0" step="0.05" value="1.0">
-        </div>
-        
-        <div class="control-group">
-            <label>Escala (Preenchimento)</label>
-            <input type="range" id="param-scale" min="1" max="4" step="0.1" value="1.9">
-        </div>
-        
-        <div class="control-group">
-            <label>Simetria (Lados)</label>
-            <input type="range" id="param-slices" min="3" max="15" step="1" value="5">
-        </div>
-        
-        <div class="control-group">
-            <label>Velocidade do Objeto (Giro 3D)</label>
-            <input type="range" id="param-rot" min="0" max="3" step="0.1" value="1.2">
+        <!-- VISTA: PRESETS (SLOTS) -->
+        <div id="view-presets" class="view-content">
+            <h2>Gestão de Memória</h2>
+            <div id="slots-list"></div>
+            <button onclick="switchView('view-settings')" style="margin-top: 10px; background: rgba(0, 50, 150, 0.4);">Voltar aos Ajustes</button>
         </div>
     </div>
 
@@ -151,7 +156,6 @@
     <script id="vertexShader" type="x-shader/x-vertex">
         varying vec3 vNormal;
         varying vec3 vLocalPos;
-        
         void main() {
             vNormal = normalize(normal);
             vLocalPos = position;
@@ -169,7 +173,6 @@
         uniform float u_slices;
         uniform vec3 u_color1; 
         uniform vec3 u_color2; 
-        
         varying vec3 vNormal;
         varying vec3 vLocalPos;
 
@@ -184,40 +187,27 @@
 
         void main() {
             vec3 normal = normalize(vNormal);
-            
             vec3 helper = abs(normal.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
             vec3 tangent = normalize(cross(normal, helper));
             vec3 bitangent = cross(normal, tangent);
-            
-            vec2 uv = vec2(dot(vLocalPos, tangent), dot(vLocalPos, bitangent));
-            uv *= u_scale; 
+            vec2 uv = vec2(dot(vLocalPos, tangent), dot(vLocalPos, bitangent)) * u_scale;
             vec2 uv0 = uv;
-            
             vec3 finalColor = vec3(0.0);
 
             for (float i = 0.0; i < 5.0; i++) {
                 if (i >= u_complexity) break;
-
-                // u_mandala_time controla a rotação angular das fatias
                 float a = atan(uv.y, uv.x) + u_mandala_time * (0.3 + i * 0.15);
                 float r = length(uv);
                 float sliceSize = (2.0 * PI) / u_slices;
                 float foldA = mod(a, sliceSize) - sliceSize * 0.5;
                 foldA = abs(foldA);
-                
                 uv = vec2(cos(foldA), sin(foldA)) * r;
-                // u_kaleido_time controla a pulsação da escala fractal
                 uv = fract(uv * (1.5 + 0.2 * sin(u_kaleido_time * 0.4))) - 0.5;
-                
                 float d = length(uv) * exp(-length(uv0));
                 vec3 col = getPalette(fract(length(uv0) * 0.5 + i * 0.2));
-                
-                // u_time controla as ondas de transmutação
                 d = sin(d * 12.0 - u_time * 3.0) / 12.0; 
                 d = abs(d);
-                
                 d = pow(0.012 * u_glow / d, 1.1);
-                
                 finalColor += col * d;
             }
 
@@ -226,7 +216,6 @@
                 float ring = smoothstep(0.03, 0.0, abs(r0 - j * 0.18) - 0.01 * sin(u_time * 6.0));
                 finalColor += u_color1 * ring * (0.8 / j);
             }
-            
             finalColor += u_color2 * smoothstep(0.09, 0.0, r0) * 1.5;
             finalColor *= smoothstep(1.5, 0.5, r0) * 0.5 + 0.5;
 
@@ -235,10 +224,66 @@
     </script>
 
     <script>
-        let panelOpen = false;
-        function togglePanel() {
-            panelOpen = !panelOpen;
-            document.getElementById('settings-panel').classList.toggle('active', panelOpen);
+        // --- LOGICA DE UI E PERSISTENCIA ---
+        const PRESET_KEY = 'mandala_slot_v2_';
+
+        function toggleMainPanel() {
+            document.getElementById('main-panel').classList.toggle('active');
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            if(viewId === 'view-presets') renderSlots();
+        }
+
+        function saveToSlot(id) {
+            const data = {
+                c1: document.getElementById('p-col1').value,
+                c2: document.getElementById('p-col2').value,
+                ms: document.getElementById('p-m-speed').value,
+                ks: document.getElementById('p-k-speed').value,
+                s: document.getElementById('p-speed').value,
+                cp: document.getElementById('p-complexity').value,
+                g: document.getElementById('p-glow').value,
+                sc: document.getElementById('p-scale').value,
+                sl: document.getElementById('p-slices').value,
+                r: document.getElementById('p-rot').value
+            };
+            localStorage.setItem(PRESET_KEY + id, JSON.stringify(data));
+            renderSlots();
+        }
+
+        function loadFromSlot(id) {
+            const raw = localStorage.getItem(PRESET_KEY + id);
+            if (!raw) return;
+            const d = JSON.parse(raw);
+            document.getElementById('p-col1').value = d.c1;
+            document.getElementById('p-col2').value = d.c2;
+            document.getElementById('p-m-speed').value = d.ms;
+            document.getElementById('p-k-speed').value = d.ks;
+            document.getElementById('p-speed').value = d.s;
+            document.getElementById('p-complexity').value = d.cp;
+            document.getElementById('p-glow').value = d.g;
+            document.getElementById('p-scale').value = d.sc;
+            document.getElementById('p-slices').value = d.sl;
+            document.getElementById('p-rot').value = d.r;
+        }
+
+        function renderSlots() {
+            const container = document.getElementById('slots-list');
+            container.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const hasData = localStorage.getItem(PRESET_KEY + i);
+                const item = document.createElement('div');
+                item.className = 'slot-item';
+                item.innerHTML = `
+                    <div class="slot-num">${i}</div>
+                    <button class="btn-save" onclick="saveToSlot(${i})">Salvar</button>
+                    <button class="btn-load ${!hasData ? 'slot-empty' : ''}" onclick="loadFromSlot(${i})">${hasData ? 'Abrir' : '---'}</button>
+                `;
+                container.appendChild(item);
+            }
         }
 
         function hexToRgb(hex) {
@@ -248,6 +293,7 @@
             return new THREE.Vector3(r, g, b);
         }
 
+        // --- THREE.JS LOGIC ---
         window.onload = function() {
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -265,15 +311,9 @@
             const geometry = new THREE.DodecahedronGeometry(1.6, 0);
 
             const uniforms = {
-                u_time: { value: 0.0 },
-                u_mandala_time: { value: 0.0 },
-                u_kaleido_time: { value: 0.0 },
-                u_complexity: { value: 3.0 },
-                u_glow: { value: 1.0 },
-                u_scale: { value: 1.9 },
-                u_slices: { value: 5.0 },
-                u_color1: { value: new THREE.Vector3() },
-                u_color2: { value: new THREE.Vector3() }
+                u_time: { value: 0.0 }, u_mandala_time: { value: 0.0 }, u_kaleido_time: { value: 0.0 },
+                u_complexity: { value: 3.0 }, u_glow: { value: 1.0 }, u_scale: { value: 1.9 },
+                u_slices: { value: 5.0 }, u_color1: { value: new THREE.Vector3() }, u_color2: { value: new THREE.Vector3() }
             };
 
             const material = new THREE.ShaderMaterial({
@@ -286,45 +326,36 @@
             const mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
 
-            let lastTime = 0;
-            let accTime = 0;
-            let accMandalaTime = 0;
-            let accKaleidoTime = 0;
+            let lastTime = 0, accT = 0, accM = 0, accK = 0;
 
             function animate(now) {
                 requestAnimationFrame(animate);
-                
-                const deltaTime = (now - lastTime) * 0.001;
+                const dt = (now - lastTime) * 0.001;
                 lastTime = now;
 
-                const speed = parseFloat(document.getElementById('param-speed').value);
-                const mandalaSpeed = parseFloat(document.getElementById('param-mandala-speed').value);
-                const kaleidoSpeed = parseFloat(document.getElementById('param-kaleido-speed').value);
-                const rotBase = parseFloat(document.getElementById('param-rot').value);
-                const col1 = document.getElementById('param-color1').value;
-                const col2 = document.getElementById('param-color2').value;
-                
-                uniforms.u_complexity.value = parseFloat(document.getElementById('param-complexity').value);
-                uniforms.u_glow.value = parseFloat(document.getElementById('param-glow').value);
-                uniforms.u_scale.value = parseFloat(document.getElementById('param-scale').value);
-                uniforms.u_slices.value = parseFloat(document.getElementById('param-slices').value);
-                uniforms.u_color1.value.copy(hexToRgb(col1));
-                uniforms.u_color2.value.copy(hexToRgb(col2));
+                const s = parseFloat(document.getElementById('p-speed').value);
+                const ms = parseFloat(document.getElementById('p-m-speed').value);
+                const ks = parseFloat(document.getElementById('p-k-speed').value);
+                const rot = parseFloat(document.getElementById('p-rot').value);
 
-                // Acumuladores de tempo independentes
-                accTime += deltaTime * speed;
-                accMandalaTime += deltaTime * mandalaSpeed;
-                accKaleidoTime += deltaTime * kaleidoSpeed;
-                
-                uniforms.u_time.value = accTime;
-                uniforms.u_mandala_time.value = accMandalaTime;
-                uniforms.u_kaleido_time.value = accKaleidoTime;
+                accT += dt * s;
+                accM += dt * ms;
+                accK += dt * ks;
 
-                // Rotação do Objeto
-                const t = now * 0.0004 * rotBase; 
-                mesh.rotation.x = Math.sin(t * 0.7) * 0.4 + Math.cos(t * 0.3) * 0.2;
-                mesh.rotation.y = Math.sin(t * 0.5) * 0.5 + Math.cos(t * 0.8) * 0.3;
-                mesh.rotation.z += 0.002 * rotBase; 
+                uniforms.u_time.value = accT;
+                uniforms.u_mandala_time.value = accM;
+                uniforms.u_kaleido_time.value = accK;
+                uniforms.u_complexity.value = parseFloat(document.getElementById('p-complexity').value);
+                uniforms.u_glow.value = parseFloat(document.getElementById('p-glow').value);
+                uniforms.u_scale.value = parseFloat(document.getElementById('p-scale').value);
+                uniforms.u_slices.value = parseFloat(document.getElementById('p-slices').value);
+                uniforms.u_color1.value.copy(hexToRgb(document.getElementById('p-col1').value));
+                uniforms.u_color2.value.copy(hexToRgb(document.getElementById('p-col2').value));
+
+                const tRot = now * 0.0004 * rot;
+                mesh.rotation.x = Math.sin(tRot * 0.7) * 0.4 + Math.cos(tRot * 0.3) * 0.2;
+                mesh.rotation.y = Math.sin(tRot * 0.5) * 0.5 + Math.cos(tRot * 0.8) * 0.3;
+                mesh.rotation.z += 0.002 * rot;
 
                 controls.update();
                 renderer.render(scene, camera);
