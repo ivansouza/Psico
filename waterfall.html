@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cascata 3D - Centralizada</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; color: #fff; font-family: sans-serif; }
+        canvas { display: block; }
+        .ui-container { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        .glass { background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); pointer-events: auto; }
+        .overlay { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; align-items: center; justify-content: center; }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE INÍCIO -->
+    <div id="gate" class="overlay">
+        <div class="glass p-10 rounded-[2.5rem] w-full max-w-sm text-center shadow-2xl border-t-2 border-cyan-500">
+            <h1 class="text-4xl font-black italic tracking-tighter text-cyan-500 mb-2">WATERFALL</h1>
+            <p class="text-[10px] opacity-40 uppercase tracking-[0.3em] mb-10 font-bold">Foco Centralizado</p>
+            
+            <div class="space-y-4">
+                <button onclick="initSystem('mic')" class="w-full py-5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl shadow-xl transition-all active:scale-95">
+                    USAR MICROFONE
+                </button>
+                
+                <button onclick="document.getElementById('file-in').click()" class="w-full py-5 border-2 border-cyan-900 text-cyan-600 hover:border-cyan-400 font-bold rounded-2xl transition-all">
+                    ESCOLHER MP3
+                </button>
+                <input type="file" id="file-in" accept="audio/*" onchange="initSystem('file', this)">
+            </div>
+        </div>
+    </div>
+
+    <!-- UI DO PLAYER -->
+    <div id="ui" class="ui-container opacity-0 transition-opacity duration-500">
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="glass p-4 rounded-xl border-l-4 border-cyan-500">
+                <h2 id="track-name" class="text-cyan-400 font-black text-xs uppercase tracking-widest">A aguardar...</h2>
+                <p class="text-[9px] opacity-40 mt-1 uppercase font-bold italic">Queda vertical de 90°</p>
+            </div>
+            <button onclick="location.reload()" class="glass px-4 py-2 rounded-xl text-[10px] font-bold hover:bg-white hover:text-black transition-all">
+                REINICIAR
+            </button>
+        </div>
+
+        <div class="flex flex-col items-center gap-4 mb-10">
+            <button id="force-unblock" class="hidden glass px-10 py-3 rounded-full font-black text-xs text-white animate-bounce pointer-events-auto border-cyan-500">
+                CLIQUE PARA ATIVAR O SOM
+            </button>
+
+            <div class="glass px-10 py-6 rounded-full flex items-center gap-8 shadow-2xl pointer-events-auto">
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-black opacity-30 mb-1 tracking-tighter">Sensibilidade</span>
+                    <input type="range" id="gain" min="1" max="150" value="70" class="w-32 accent-cyan-500">
+                </div>
+                <div class="h-10 w-px bg-white/10"></div>
+                <button id="play-toggle" class="text-cyan-500 hover:text-white transition-transform active:scale-90">
+                    <svg id="play-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx, analyser, dataArray, source, audio;
+        let isStarted = false;
+
+        // --- ENGINE 3D ---
+        const SPECT_WIDTH = 128;
+        const TIME_DEPTH = 128;
+        const historyData = new Uint8Array(SPECT_WIDTH * TIME_DEPTH);
+        const audioTex = new THREE.DataTexture(historyData, SPECT_WIDTH, TIME_DEPTH, THREE.LuminanceFormat, THREE.UnsignedByteType);
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.03);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(50, 40, 60); // Perspectiva lateral elevada
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 0, 0); // Foco central
+
+        // SHADER CENTRALIZADO (Queda no 0,0,0)
+        const waterfallMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uAudioTexture: { value: audioTex },
+                uPower: { value: 7.0 }
+            },
+            transparent: true,
+            side: THREE.DoubleSide,
+            vertexShader: `
+                varying vec2 vUv;
+                uniform sampler2D uAudioTexture;
+                uniform float uPower;
+
+                void main() {
+                    vUv = uv;
+                    float f = texture2D(uAudioTexture, uv).r;
+                    vec3 p = position;
+
+                    // UV.y vai de 0 (fundo da prateleira) a 1 (base da queda)
+                    // Colocamos o "Lip" (borda) exatamente em 0.5 (meio do plano)
+                    float lip = 0.5;
+                    float shelfLen = 50.0;
+                    float dropLen = 50.0;
+
+                    if (uv.y < lip) {
+                        // Horizontal (Prateleira)
+                        // Vai de z = -50 até z = 0
+                        p.z = (uv.y - lip) * (shelfLen / lip);
+                        p.y = f * uPower;
+                    } else {
+                        // Vertical (Queda)
+                        // Fica parado em z = 0 e desce em y
+                        p.z = (f * uPower) * (1.0 - (uv.y - lip)*2.0); // O som vibra na profundidade da queda
+                        p.y = -(uv.y - lip) * (dropLen / (1.0 - lip));
+                        p.z = f * uPower; // O relevo da música vira a profundidade da cortina
+                    }
+
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec2 vUv;
+                uniform sampler2D uAudioTexture;
+                void main() {
+                    float f = texture2D(uAudioTexture, vUv).r;
+                    
+                    // Cor base profunda
+                    vec3 blue = vec3(0.0, 0.2, 0.5);
+                    vec3 cyan = vec3(0.0, 1.0, 0.9);
+                    vec3 color = mix(blue, cyan, f);
+                    
+                    // Adiciona espuma branca nas cristas
+                    float foam = smoothstep(0.5, 0.9, f);
+                    color = mix(color, vec3(1.0), foam * 0.5);
+
+                    // Fade out nas bordas laterais e no fim da queda
+                    float edgeFade = smoothstep(0.0, 0.1, vUv.x) * (1.0 - smoothstep(0.9, 1.0, vUv.x));
+                    float bottomFade = 1.0 - smoothstep(0.8, 1.0, vUv.y);
+                    
+                    gl_FragColor = vec4(color, (f * 2.0 + 0.1) * edgeFade * bottomFade);
+                }
+            `
+        });
+
+        // Geometria (60 de largura, 100 de comprimento total)
+        const geometry = new THREE.PlaneGeometry(60, 100, SPECT_WIDTH - 1, TIME_DEPTH - 1);
+        const mesh = new THREE.Mesh(geometry, waterfallMaterial);
+        // Não rotacionamos o mesh no JS para não confundir o shader; 
+        // a rotação 90° é feita internamente pelo Vertex Shader.
+        scene.add(mesh);
+
+        // --- SISTEMA DE ÁUDIO ---
+        window.initSystem = async function(mode, input) {
+            document.getElementById('gate').style.display = 'none';
+            document.getElementById('ui').style.opacity = '1';
+            
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            try {
+                if (mode === 'mic') {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    source = audioCtx.createMediaStreamSource(stream);
+                    setup(source);
+                    document.getElementById('track-name').innerText = "MICROFONE ATIVO";
+                } else {
+                    const file = input.files[0];
+                    if (!file) return;
+                    if (audio) { audio.pause(); audio.src = ""; }
+                    audio = new Audio(URL.createObjectURL(file));
+                    audio.loop = true;
+                    source = audioCtx.createMediaElementSource(audio);
+                    setup(source);
+                    source.connect(audioCtx.destination);
+                    audio.play().catch(() => document.getElementById('force-unblock').classList.remove('hidden'));
+                    document.getElementById('track-name').innerText = file.name;
+                }
+            } catch (err) { alert("Áudio bloqueado ou não suportado."); }
+        };
+
+        function setup(s) {
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = SPECT_WIDTH * 2;
+            s.connect(analyser);
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+            isStarted = true;
+        }
+
+        document.getElementById('force-unblock').onclick = () => {
+            if (audio) audio.play();
+            document.getElementById('force-unblock').classList.add('hidden');
+        };
+
+        document.getElementById('play-toggle').onclick = () => {
+            if (!audio) return;
+            const svg = document.getElementById('play-icon');
+            if (audio.paused) {
+                audio.play();
+                svg.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            } else {
+                audio.pause();
+                svg.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+            }
+        };
+
+        // --- LOOP PRINCIPAL ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isStarted && analyser) {
+                analyser.getByteFrequencyData(dataArray);
+
+                // Waterfall Shift
+                for (let i = historyData.length - 1; i >= SPECT_WIDTH; i--) {
+                    historyData[i] = historyData[i - SPECT_WIDTH];
+                }
+                for (let i = 0; i < SPECT_WIDTH; i++) {
+                    historyData[i] = dataArray[i];
+                }
+                audioTex.needsUpdate = true;
+            } else {
+                // Modo Demo (Ondas suaves se não houver áudio)
+                const t = performance.now() * 0.002;
+                for (let i = historyData.length - 1; i >= SPECT_WIDTH; i--) {
+                    historyData[i] = historyData[i - SPECT_WIDTH];
+                }
+                for (let i = 0; i < SPECT_WIDTH; i++) {
+                    historyData[i] = (Math.sin(t + i * 0.1) * 0.5 + 0.5) * 50;
+                }
+                audioTex.needsUpdate = true;
+            }
+
+            waterfallMaterial.uniforms.uPower.value = parseFloat(document.getElementById('gain').value) / 10;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+
