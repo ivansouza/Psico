@@ -1,99 +1,159 @@
-<!doctype html>
-<html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-pt">
 <head>
-<meta charset="utf-8">
-<title>Psico — Índice Completo</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:Arial,Helvetica,sans-serif;max-width:1000px;margin:auto;padding:20px}
-h1{margin-top:0}
-input{width:100%;padding:10px;margin:12px 0;border-radius:8px;border:1px solid #ccc}
-ul{list-style:none;padding:0}
-li{margin:10px 0;padding-bottom:10px;border-bottom:1px solid #eee}
-a{color:#0366d6;text-decoration:none}
-a:hover{text-decoration:underline}
-small{color:#555;display:block}
-.count{font-weight:bold}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psico Portfolio - Galeria de Experiências</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .card { 
+            background: rgba(15, 23, 42, 0.8); 
+            backdrop-filter: blur(8px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover { 
+            transform: translateY(-4px); 
+            border-color: #38bdf8; 
+            box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.3);
+            background: rgba(30, 41, 59, 0.9);
+        }
+        .gradient-text { 
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        .filter-btn.active { 
+            background-color: #38bdf8; 
+            color: #0b0f1a; 
+            border-color: #38bdf8;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f1a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
 </head>
-<body>
+<body class="min-h-screen">
+    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 p-6 mb-8">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-left">
+                <h1 class="text-3xl font-black gradient-text">PSICO PORTFOLIO</h1>
+                <p class="text-slate-500 text-sm">Explorações de Matemática, Física e Arte Generativa por <span class="text-sky-400">Ivan Souza</span></p>
+            </div>
+            <div class="flex flex-wrap justify-center gap-2" id="filters"></div>
+        </div>
+    </header>
 
-<h1>Psico — Índice Completo de Experimentos</h1>
+    <main class="max-w-7xl mx-auto px-6 pb-20">
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    </main>
 
-<p>
-GitHub Pages:
-<a href="https://ivansouza.github.io/Psico/" target="_blank">
-https://ivansouza.github.io/Psico/
-</a>
-</p>
+    <script>
+        const username = "ivansouza";
+        const repo = "Psico";
+        const baseUrl = `https://${username}.github.io/${repo}`;
+        const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
 
-<input id="q" type="search" placeholder="Buscar por nome (ex: torus, fractal, natal...)">
-<p>Exibindo <span class="count" id="count"></span> de 96 arquivos</p>
+        const experiments = [
+            // Fractais
+            { name: "Mandelbrot", file: "mandelbrot.html", cat: "Fractal", desc: "Exploração interativa do conjunto de Mandelbrot com suporte a zoom infinito." },
+            { name: "Mandelbrot Base", file: "mb1.html", cat: "Fractal", desc: "Versão simplificada e otimizada do motor de renderização de Mandelbrot." },
+            { name: "Conjunto Julia", file: "julia.html", cat: "Fractal", desc: "Visualização dinâmica de conjuntos de Julia baseada na posição do rato." },
+            { name: "Samambaia de Barnsley", file: "samambaia.html", cat: "Fractal", desc: "Simulação do fractal biológico usando o algoritmo Iterated Function System." },
+            { name: "Mosaico Truchet", file: "Truchet.html", cat: "Fractal", desc: "Geração de padrões labirínticos complexos através de azulejos geométricos simples." },
+            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", desc: "Estrutura fractal baseada na geometria de um dodecaedro 3D." },
 
-<ul id="list">
+            // Física e Sistemas Caóticos
+            { name: "Atrator de Lorenz A", file: "A-lorenz.html", cat: "Física", desc: "Simulação de sistemas caóticos baseada nas equações meteorológicas de Edward Lorenz." },
+            { name: "Atrator de Lorenz", file: "lorenz.html", cat: "Física", desc: "Versão clássica da trajetória em 'borboleta' característica da Teoria do Caos." },
+            { name: "Buraco Negro", file: "blackhole.html", cat: "Física", desc: "Simulação de lente gravitacional e distorção da luz em torno de uma singularidade." },
+            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", desc: "Visualização de fluxos de partículas em sistemas circulares auto-sustentados." },
+            { name: "Máquina de Fourier", file: "fourier-machine.html", cat: "Física", desc: "Decomposição e síntese de ondas complexas usando séries de Fourier." },
+            { name: "Máquina Fourier PT", file: "maquina-de-Fourier.html", cat: "Física", desc: "Interface em português para a simulação de decomposição harmónica." },
+            { name: "Oscilação Gaussiana EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", desc: "Simulação de pacotes de ondas moduladas por funções gaussianas." },
+            { name: "Jobs Térmico 1", file: "jobs-termico.html", cat: "Física", desc: "Visualização de dissipação de calor e fluxos térmicos em ambientes controlados." },
+            { name: "Jobs Térmico 2", file: "jobs-termico2.html", cat: "Física", desc: "Variante da simulação térmica com diferentes coeficientes de condutividade." },
+            { name: "Sp1 / Sp2", file: "sp1.html", cat: "Física", desc: "Experiências de física de partículas e colisões elásticas em tempo real." },
 
-<!-- LISTA COMPLETA (96 HTMLs) -->
+            // Geometria e 3D
+            { name: "Fita de Möbius", file: "mobius.html", cat: "3D", desc: "Representação matemática de uma superfície com apenas um lado e uma fronteira." },
+            { name: "Dodecaedro Sagrado", file: "Sacred-Dodecahedron.html", cat: "3D", desc: "Renderização 3D de um dos sólidos platónicos associado à geometria sagrada." },
+            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "3D", desc: "Sólido geométrico complexo animado com propriedades de reflexão visual." },
+            { name: "Torus (Rosca)", file: "torus.html", cat: "3D", desc: "Exploração de superfícies toroidais e as suas equações paramétricas." },
+            { name: "Esfera Experimental", file: "sphere.html", cat: "3D", desc: "Estudo de mapeamento de texturas e iluminação sobre malhas esféricas." },
+            { name: "Feliz Natal 3D", file: "feliznatal3d.html", cat: "3D", desc: "Cenário festivo animado utilizando transformações espaciais 3D." },
 
-<script>
-const files = [
-"A-lorenz.html","Sacred-Dodecahedron.html","Truchet.html","ascii.html","backinblack.html",
-"balls-animation.html","balls-animation2.html","balls-animation3.html","blackhole.html",
-"bola-de-cristal.html","brain.html","bubble-display.html","bubble-display2.html","bubble-display3.html",
-"c.html","cat-art.html","curlycue.html","dodefractal.html","engs3.html",
-"eraser-40.html","eraser-41.html","eraser-5.html","eraser-v3.html","eraser-v3.htnl","eraser-v5.html","eraser.html",
-"feliznatal3d.html","feliznatal3d2.html","fourier-machine.html",
-"gaussian-modulated-oscillation-en.html","gaussian-modulated-oscillation-pt.html",
-"glsl-1.html","glsl-2.html","grok.html","grok2.html","handcontrol.html",
-"hypnoticwaves3d-en.html","hypnoticwaves3d.html","icosaedro-ball.html",
-"index.html","index1.html","ivan.html",
-"jobs-termico.html","jobs-termico2.html","jobs-termico3.html","jobsdia.html","joy.html","julia.html",
-"kaleidoscope.html","lenticular.html","lenticular2.html",
-"life.html","life2.html","life3.html",
-"lissajous.html","lissajous2.html",
-"logo-SEABI.html","logo.html","logo2.html","logo3.html",
-"lorenz.html","mandelbrot.html","maquina-de-Fourier.html","mb1.html","mobius.html",
-"player.html","playerIT.html","playerYT.html",
-"redeneural.html","samambaia.html","snowglobe.html",
-"sp1.html","sp2.html",
-"sphere.html","sphere2.html","sphere3.html","sphere4.html",
-"stereo.html","stereogram.html",
-"teste1.html","teste2.html",
-"they-do-It.html","theydoit.html",
-"torus.html","torus2.html",
-"vortex-ouroboros.html","waterfall.html"
-];
+            // Animação e Partículas
+            { name: "Bolas Animação", file: "balls-animation.html", cat: "Animação", desc: "Motor de física para colisões e gravidade entre múltiplas esferas." },
+            { name: "Bubble Display", file: "bubble-display.html", cat: "Animação", desc: "Simulação de flutuabilidade e movimento fluido de bolhas de ar." },
+            { name: "Waterfall", file: "waterfall.html", cat: "Animação", desc: "Efeito de queda de partículas simulando o fluxo contínuo de uma cascata." },
+            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", desc: "Partículas de neve suspensas em movimento browniano dentro de um globo." },
+            { name: "Jogo da Vida", file: "life.html", cat: "Autómato", desc: "O clássico autómato celular de Conway sobre evolução e sobrevivência de células." },
+            { name: "Curlycue", file: "curlycue.html", cat: "Animação", desc: "Padrões de linhas espiraladas geradas por algoritmos de crescimento recursivo." },
+            { name: "They Do It", file: "they-do-It.html", cat: "Animação", desc: "Experiência visual sobre comportamentos emergentes em enxames de partículas." },
 
-const ul = document.getElementById("list");
-files.forEach(f=>{
-  const li = document.createElement("li");
-  li.dataset.name = f.toLowerCase();
-  li.innerHTML = `
-    <b>${f}</b><br>
-    <a href="https://ivansouza.github.io/Psico/${encodeURIComponent(f)}" target="_blank">Abrir</a> ·
-    <a href="https://github.com/ivansouza/Psico/blob/main/${encodeURIComponent(f)}" target="_blank">Código</a>
-  `;
-  ul.appendChild(li);
-});
+            // Arte e IA
+            { name: "Arte ASCII", file: "ascii.html", cat: "Efeitos", desc: "Processamento de imagem que converte pixels em caracteres de texto em tempo real." },
+            { name: "Bola de Cristal", file: "bola-de-cristal.html", cat: "Efeitos", desc: "Efeito de distorção esférica que simula a visualização através de vidro." },
+            { name: "Caleidoscópio", file: "kaleidoscope.html", cat: "Efeitos", desc: "Reflexões simétricas infinitas baseadas na entrada do rato ou imagem." },
+            { name: "Rede Neural", file: "redeneural.html", cat: "IA", desc: "Visualização abstrata de sinapses e disparos elétricos entre neurónios." },
+            { name: "Cérebro", file: "brain.html", cat: "IA", desc: "Modelagem visual da estrutura cerebral e fluxos de informação neural." },
+            { name: "Grok Visual", file: "grok.html", cat: "IA", desc: "Representação artística de processamento de dados e reconhecimento de padrões." },
+            { name: "Shader GLSL", file: "glsl-1.html", cat: "Shaders", desc: "Programação direta de GPU para gerar efeitos visuais de alta performance." },
+            { name: "Ondas Hipnóticas", file: "hypnoticwaves3d.html", cat: "Efeitos", desc: "Interferência de ondas sinusoidais para criar ilusões óticas profundas." },
+            { name: "Cat Art", file: "cat-art.html", cat: "Efeitos", desc: "Experiência de arte generativa temática com elementos estilizados." },
 
-const q = document.getElementById("q");
-const items = [...ul.children];
-const count = document.getElementById("count");
+            // Utilidades e Eraser
+            { name: "Player Geral", file: "player.html", cat: "Util", desc: "Interface de reprodução de media integrada para testes locais." },
+            { name: "Logo Principal", file: "logo.html", cat: "Logo", desc: "Componente visual dinâmico representando a identidade do projeto." },
+            { name: "Eraser Series", file: "eraser.html", cat: "Eraser", desc: "Série de experiências interativas de 'revelação' ao apagar camadas visuais." },
+            { name: "Teste Experimental", file: "teste1.html", cat: "Testes", desc: "Ambiente de sandbox para prototipagem de novas lógicas visuais." }
+        ];
 
-function filter(){
-  const v = q.value.toLowerCase();
-  let n = 0;
-  items.forEach(li=>{
-    const show = li.dataset.name.includes(v);
-    li.style.display = show ? "" : "none";
-    if(show) n++;
-  });
-  count.textContent = n;
-}
-q.addEventListener("input", filter);
-filter();
-</script>
+        // Inicializar Filtros
+        const uniqueCats = ['Todos', ...new Set(experiments.map(e => e.cat))];
+        const filterEl = document.getElementById('filters');
+        
+        filterEl.innerHTML = uniqueCats.map(cat => `
+            <button onclick="applyFilter('${cat}', this)" 
+                    class="filter-btn ${cat === 'Todos' ? 'active' : ''} px-4 py-1.5 rounded-full border border-slate-700 text-xs font-semibold transition-all">
+                ${cat}
+            </button>
+        `).join('');
 
-</ul>
+        function renderGallery(items) {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = items.map(exp => `
+                <div class="card p-5 rounded-2xl flex flex-col justify-between h-full">
+                    <div class="mb-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[9px] uppercase tracking-tighter text-sky-400 font-bold opacity-80">${exp.cat}</span>
+                            <span class="text-[9px] text-slate-600 font-mono">${exp.file.split('.').pop().toUpperCase()}</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-100 mb-2 leading-tight">${exp.name}</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">${exp.desc || 'Sem descrição disponível.'}</p>
+                    </div>
+                    <div class="flex gap-2 mt-auto">
+                        <a href="${baseUrl}/${exp.file}" target="_blank" class="flex-1 bg-sky-600 hover:bg-sky-500 text-[10px] text-white font-bold py-2.5 rounded-xl text-center transition shadow-lg shadow-sky-900/20">VER DEMO</a>
+                        <a href="${sourceUrl}/${exp.file}" target="_blank" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-center transition">
+                            <i class="fas fa-code text-[11px]"></i>
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
 
+        function applyFilter(cat, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const filtered = cat === 'Todos' ? experiments : experiments.filter(e => e.cat === cat);
+            renderGallery(filtered);
+        }
+
+        renderGallery(experiments);
+    </script>
 </body>
 </html>
