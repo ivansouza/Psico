@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Engrenagem Paramétrica S3</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+        }
+        canvas { display: block; }
+
+        /* Interface Lil-GUI Transparente e Adaptada a Telemóveis */
+        :root {
+            --lil-gui-background-color: rgba(0, 0, 0, 0.25);
+            --lil-gui-title-background-color: rgba(255, 255, 255, 0.05);
+            --lil-gui-widget-color: rgba(255, 255, 255, 0.1);
+            --lil-gui-hover-color: rgba(0, 242, 255, 0.2);
+            --lil-gui-focus-color: rgba(0, 242, 255, 0.6);
+            --lil-gui-number-color: #00f2ff;
+            --lil-gui-string-color: #00f2ff;
+            --lil-gui-text-color: #f0f0f0;
+            --lil-gui-font-size: 11px;
+        }
+
+        .lil-gui { 
+            --width: 240px;
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lil-gui.root {
+            background-color: var(--lil-gui-background-color) !important;
+        }
+
+        @media (max-width: 600px) {
+            .lil-gui { --width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.17.0/dist/lil-gui.umd.min.js"></script>
+
+    <script>
+        /**
+         * Visualização Matemática: Engrenagem Paramétrica com Inversão Esférica (S3)
+         * Implementação baseada na fórmula G(t, theta) e Projeção S3
+         */
+
+        let scene, camera, renderer, mesh, controls, gui;
+
+        const params = {
+            // Parâmetros da curva base f(t)
+            p: 2,
+            q: 3,
+            radius: 8,
+            
+            // Definição da Engrenagem
+            tubeRadius: 2.5,
+            teeth: 12,
+            toothHeight: 0.6,
+            toothSharpness: 5,
+            
+            // Qualidade da Malha
+            segmentsT: 250,
+            segmentsTheta: 100,
+            
+            // Atributos Visuais
+            color: '#00f2ff',
+            opacity: 0.5,
+            wireframe: false,
+            additive: true,
+            speed: 0.3,
+            
+            // Comandos
+            repor: function() {
+                Object.assign(params, initialParams);
+                gui.controllers.forEach(c => {
+                    if (c.updateDisplay) c.updateDisplay();
+                });
+                updateGeometry();
+            }
+        };
+
+        const initialParams = { ...params };
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
+            camera.position.set(1.5, 1.5, 1.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Iluminação Studio
+            const light1 = new THREE.PointLight(0xffffff, 1.5);
+            light1.position.set(10, 10, 10);
+            scene.add(light1);
+            
+            const light2 = new THREE.PointLight(0xff00ff, 1);
+            light2.position.set(-10, -10, -10);
+            scene.add(light2);
+            
+            scene.add(new THREE.AmbientLight(0x222222));
+
+            setupGUI();
+            createInvertedGear();
+            animate();
+        }
+
+        function setupGUI() {
+            gui = new lil.GUI({ title: 'Parâmetros Geométricos' });
+            if (window.innerWidth < 600) gui.close();
+
+            const folderCurva = gui.addFolder('Curvatura f(t)');
+            folderCurva.add(params, 'p', 1, 12, 1).name('P (Torus P)').onChange(updateGeometry);
+            folderCurva.add(params, 'q', 1, 12, 1).name('Q (Torus Q)').onChange(updateGeometry);
+            folderCurva.add(params, 'radius', 1, 15).name('Raio Base').onChange(updateGeometry);
+
+            const folderEngrenagem = gui.addFolder('Perfil Engrenagem');
+            folderEngrenagem.add(params, 'teeth', 0, 40, 1).name('Nº de Dentes').onChange(updateGeometry);
+            folderEngrenagem.add(params, 'toothHeight', 0, 2).name('Alt. do Dente').onChange(updateGeometry);
+            folderEngrenagem.add(params, 'toothSharpness', 1, 10).name('Aperto Perfil').onChange(updateGeometry);
+            folderEngrenagem.add(params, 'tubeRadius', 0.5, 5).name('Espessura Tubo').onChange(updateGeometry);
+
+            const folderQualidade = gui.addFolder('Resolução');
+            folderQualidade.add(params, 'segmentsT', 50, 500, 10).name('Segmentos T').onChange(updateGeometry);
+            folderQualidade.add(params, 'segmentsTheta', 20, 200, 4).name('Segmentos θ').onChange(updateGeometry);
+
+            const folderVisual = gui.addFolder('Visualização');
+            folderVisual.addColor(params, 'color').name('Cor Neon').onChange(val => mesh.material.color.set(val));
+            folderVisual.add(params, 'opacity', 0.1, 1).name('Opacidade').onChange(val => mesh.material.opacity = val);
+            folderVisual.add(params, 'wireframe').name('Ver Malha').onChange(val => mesh.material.wireframe = val);
+            folderVisual.add(params, 'additive').name('Brilho Aditivo').onChange(val => {
+                mesh.material.blending = val ? THREE.AdditiveBlending : THREE.NormalBlending;
+                mesh.material.depthWrite = !val;
+            });
+
+            gui.add(params, 'speed', 0, 2).name('Velocidade Giro');
+            gui.add(params, 'repor').name('Repor Definições');
+        }
+
+        /**
+         * Função Curva Base f(t)
+         */
+        function f(t) {
+            const { p, q, radius } = params;
+            const x = radius * (2 + Math.cos(p * t / q)) * Math.cos(t);
+            const y = radius * (2 + Math.cos(p * t / q)) * Math.sin(t);
+            const z = radius * Math.sin(p * t / q);
+            return new THREE.Vector3(x, y, z);
+        }
+
+        /**
+         * Projeção Inversa (S3 Projection)
+         */
+        function s3Proj(v) {
+            const magSq = v.lengthSq();
+            if (magSq < 0.000001) return new THREE.Vector3(0, 0, 0);
+            return v.clone().divideScalar(magSq);
+        }
+
+        function createInvertedGear() {
+            if (mesh) {
+                mesh.geometry.dispose();
+                scene.remove(mesh);
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const indices = [];
+
+            const tMax = 4 * Math.PI;
+            const thetaMax = 2 * Math.PI;
+            const f0_ref = f(0);
+
+            for (let i = 0; i <= params.segmentsT; i++) {
+                const t = (i / params.segmentsT) * tMax;
+                const p0 = f(t);
+                const pNext = f(t + 0.005);
+                
+                // Cálculo do referencial local (Frenet-Serret)
+                const T = new THREE.Vector3().subVectors(pNext, p0).normalize();
+                const B = new THREE.Vector3().crossVectors(T, p0).normalize();
+                const N = new THREE.Vector3().crossVectors(B, T).normalize(); 
+                const V2 = new THREE.Vector3().crossVectors(T, N).normalize();
+
+                for (let j = 0; j <= params.segmentsTheta; j++) {
+                    const theta = (j / params.segmentsTheta) * thetaMax;
+                    
+                    // Modulação do raio para criar dentes
+                    const toothEffect = Math.tanh(Math.sin(params.teeth * theta) * params.toothSharpness);
+                    const currentRadius = params.tubeRadius + (toothEffect * params.toothHeight);
+
+                    const offset = new THREE.Vector3()
+                        .addScaledVector(N, Math.cos(theta))
+                        .addScaledVector(V2, Math.sin(theta))
+                        .multiplyScalar(currentRadius);
+
+                    // G(t, theta) - f(0) -> Inversão
+                    const vec = new THREE.Vector3().addVectors(p0, offset).sub(f0_ref);
+                    const projected = s3Proj(vec);
+                    vertices.push(projected.x, projected.y, projected.z);
+                }
+            }
+
+            // Construção das faces
+            for (let i = 0; i < params.segmentsT; i++) {
+                for (let j = 0; j < params.segmentsTheta; j++) {
+                    const a = i * (params.segmentsTheta + 1) + j;
+                    const b = (i + 1) * (params.segmentsTheta + 1) + j;
+                    const c = (i + 1) * (params.segmentsTheta + 1) + (j + 1);
+                    const d = i * (params.segmentsTheta + 1) + (j + 1);
+                    indices.push(a, b, d, b, c, d);
+                }
+            }
+
+            geometry.setIndex(indices);
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshPhongMaterial({
+                color: params.color,
+                specular: 0x444444,
+                shininess: 50,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: params.opacity,
+                depthWrite: !params.additive,
+                blending: params.additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+                wireframe: params.wireframe
+            });
+
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+        }
+
+        function updateGeometry() {
+            createInvertedGear();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            if (mesh && params.speed > 0) {
+                mesh.rotation.y += 0.01 * params.speed;
+                mesh.rotation.z += 0.005 * params.speed;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
