@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonia - Neurociência e Som</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #010206; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; }
+        
+        .glass {
+            background: rgba(8, 12, 24, 0.75);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-anim {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: bottom right;
+        }
+
+        .hidden-panel {
+            opacity: 0;
+            transform: scale(0.9) translateY(40px);
+            pointer-events: none;
+        }
+
+        input[type="range"] {
+            accent-color: #6366f1;
+            height: 4px;
+        }
+
+        .btn-active {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+        }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            transition: opacity 0.4s ease;
+        }
+
+        @keyframes softPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+        .pulse { animation: softPulse 4s infinite; }
+    </style>
+</head>
+<body>
+
+    <!-- Interface Principal -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 md:p-12">
+        
+        <!-- Logotipo e Estado -->
+        <div class="flex justify-start">
+            <div class="opacity-50">
+                <h1 class="text-sm font-light tracking-[0.5em] uppercase">Harmonia</h1>
+                <p id="current-state" class="text-[8px] uppercase tracking-[0.3em] mt-2 pulse">Neuro-Acústica Ativa</p>
+            </div>
+        </div>
+
+        <!-- Bloco de Comando Inferior -->
+        <div class="flex flex-col items-end gap-4 self-end">
+            
+            <!-- Painel de Ajustes (Configurações) -->
+            <div id="settings-panel" class="panel-anim hidden-panel glass p-7 rounded-[2rem] w-80 pointer-events-auto shadow-2xl mb-2">
+                <h2 class="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-6">Ajustes Terapêuticos</h2>
+
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Sintonia: <span id="carrier-val" class="text-white">432</span> Hz</span>
+                        </div>
+                        <input type="range" id="carrier-freq" min="100" max="528" step="1" value="432" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Batimento: <span id="beat-val" class="text-white">7.8</span> Hz</span>
+                        </div>
+                        <input type="range" id="beat-freq" min="0.5" max="25" step="0.1" value="7.8" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setTherapeutic(3.5, 'Relaxamento Profundo')" class="text-[8px] py-2 glass rounded-xl hover:bg-white/5 uppercase tracking-widest">Theta (Calma)</button>
+                        <button onclick="setTherapeutic(7.83, 'Frequência de Schumann')" class="text-[8px] py-2 glass rounded-xl hover:bg-white/5 uppercase tracking-widest">Equilíbrio</button>
+                        <button onclick="setTherapeutic(10.5, 'Redução de Ansiedade')" class="text-[8px] py-2 glass rounded-xl hover:bg-white/5 uppercase tracking-widest">Alpha (Paz)</button>
+                        <button onclick="setTherapeutic(1.5, 'Sono Delta')" class="text-[8px] py-2 glass rounded-xl hover:bg-white/5 uppercase tracking-widest">Delta (Sono)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cluster de Botões -->
+            <div class="flex gap-2 pointer-events-auto">
+                <!-- Botão de Informação Científica -->
+                <button id="info-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-indigo-500/20 transition-all duration-300" title="Explicação Científica">
+                    <span class="text-lg font-serif italic text-indigo-300">?</span>
+                </button>
+
+                <!-- Modo Sinfonia Zen -->
+                <button id="melody-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-indigo-500/10 transition-all duration-300" title="Modo Sinfonia Zen">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </button>
+
+                <!-- Play / Pause -->
+                <button id="toggle-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300 group">
+                    <div id="play-icon" class="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1"></div>
+                    <div id="pause-icon" class="hidden flex gap-1.5">
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                    </div>
+                </button>
+
+                <!-- Configurações -->
+                <button id="gear-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <svg id="gear-svg" class="transition-transform duration-1000" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Científico -->
+    <div id="info-modal" class="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-500">
+        <div class="glass max-w-2xl w-full p-8 md:p-12 rounded-[3rem] shadow-2xl relative">
+            <button id="close-modal" class="absolute top-8 right-8 text-gray-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            
+            <h3 class="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-2">Fundamentos Científicos</h3>
+            <h2 id="modal-title" class="text-2xl font-light mb-6 tracking-wide">Estado Atual</h2>
+            
+            <div id="modal-content" class="text-sm text-gray-300 leading-relaxed space-y-4 font-light">
+                <!-- Conteúdo preenchido via JS -->
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-white/5 grid grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-[9px] font-bold uppercase text-white/40 mb-2">Neuro-Alvo</h4>
+                    <p id="modal-target" class="text-xs text-indigo-300 uppercase tracking-widest">---</p>
+                </div>
+                <div>
+                    <h4 class="text-[9px] font-bold uppercase text-white/40 mb-2">Efeito Fisiológico</h4>
+                    <p id="modal-effect" class="text-xs text-indigo-300 uppercase tracking-widest">---</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_intensity;
+        varying vec2 vUv;
+
+        mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+            float t = u_time * 0.04;
+            
+            float angle = atan(uv.y, uv.x);
+            float radius = length(uv);
+            float segments = 8.0;
+            float slice = 3.14159 * 2.0 / segments;
+            angle = mod(angle, slice);
+            angle = abs(angle - slice * 0.5);
+            uv = vec2(cos(angle), sin(angle)) * radius;
+
+            uv *= rot(t + u_intensity * 0.1);
+            
+            vec3 color = vec3(0.0);
+            for(float i = 0.0; i < 3.0; i++) {
+                uv = fract(uv * 1.5) - 0.5;
+                float d = length(uv) * exp(-length(uv));
+                vec3 col = mix(vec3(0.05, 0.2, 0.6), vec3(0.5, 0.1, 0.8), sin(u_time * 0.2) * 0.5 + 0.5);
+                d = sin(d * 8.0 + u_time * 0.4) / 10.0;
+                d = abs(d);
+                d = pow(0.007 / d, 1.2);
+                color += col * d;
+            }
+
+            float vig = 1.0 - smoothstep(0.4, 1.4, length(vUv - 0.5));
+            gl_FragColor = vec4(color * u_intensity * vig, 1.0);
+        }
+    </script>
+
+    <script>
+        /** AUDIO ENGINE **/
+        let audioCtx, oscillators = {}, gains = {}, analyser, isPlaying = false, isMelodyActive = false;
+        let melodyTimer;
+
+        const SCALES = [1.0, 1.125, 1.25, 1.333, 1.5, 1.666];
+
+        const initAudio = () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            
+            gains.master = audioCtx.createGain();
+            gains.master.gain.value = 0;
+            gains.master.connect(audioCtx.destination);
+            gains.master.connect(analyser);
+
+            gains.harmonics = audioCtx.createGain();
+            gains.harmonics.connect(gains.master);
+
+            const pL = audioCtx.createStereoPanner(); pL.pan.value = -1; pL.connect(gains.master);
+            const pR = audioCtx.createStereoPanner(); pR.pan.value = 1; pR.connect(gains.master);
+
+            oscillators.l = audioCtx.createOscillator();
+            oscillators.r = audioCtx.createOscillator();
+            oscillators.h1 = audioCtx.createOscillator();
+            oscillators.h2 = audioCtx.createOscillator();
+
+            Object.values(oscillators).forEach(o => { o.type = 'sine'; o.start(); });
+            oscillators.l.connect(pL);
+            oscillators.r.connect(pR);
+            oscillators.h1.connect(gains.harmonics);
+            oscillators.h2.connect(gains.harmonics);
+
+            updateEngine();
+        };
+
+        const updateEngine = (time = 0.5) => {
+            if (!audioCtx) return;
+            const carrier = parseFloat(document.getElementById('carrier-freq').value);
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const hVol = parseFloat(document.getElementById('harmonic-vol')?.value || 0.2);
+
+            oscillators.l.frequency.setTargetAtTime(carrier - (beat / 2), audioCtx.currentTime, time);
+            oscillators.r.frequency.setTargetAtTime(carrier + (beat / 2), audioCtx.currentTime, time);
+            oscillators.h1.frequency.setTargetAtTime(carrier * 1.5, audioCtx.currentTime, time * 2);
+            oscillators.h2.frequency.setTargetAtTime(carrier * 0.75, audioCtx.currentTime, time * 2);
+            gains.harmonics.gain.setTargetAtTime(hVol, audioCtx.currentTime, 0.5);
+            
+            document.getElementById('carrier-val').innerText = carrier;
+            document.getElementById('beat-val').innerText = beat;
+        };
+
+        const runMelody = () => {
+            if (!isPlaying || !isMelodyActive) return;
+            const base = parseFloat(document.getElementById('carrier-freq').value);
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const mult = SCALES[Math.floor(Math.random() * SCALES.length)];
+            const freq = base * mult;
+
+            oscillators.l.frequency.setTargetAtTime(freq - (beat/2), audioCtx.currentTime, 4.0);
+            oscillators.r.frequency.setTargetAtTime(freq + (beat/2), audioCtx.currentTime, 4.0);
+            melodyTimer = setTimeout(runMelody, 8000 + Math.random() * 4000);
+        };
+
+        /** SCIENCE EXPLANATION LOGIC **/
+        const explainScience = () => {
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const carrier = parseFloat(document.getElementById('carrier-freq').value);
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content');
+            const target = document.getElementById('modal-target');
+            const effect = document.getElementById('modal-effect');
+
+            let brainState = "";
+            let description = "";
+            let physio = "";
+            let wave = "";
+
+            if (beat < 4) {
+                brainState = "Ondas Delta (0.5 - 4 Hz)";
+                wave = "Sono Profundo";
+                physio = "Regeneração Celular";
+                description = "Você está sintonizado em frequências Delta. Estudos indicam que este estado está ligado ao sono mais profundo e sem sonhos, essencial para a recuperação física e liberação de hormônios de crescimento.";
+            } else if (beat < 8) {
+                brainState = "Ondas Theta (4 - 8 Hz)";
+                wave = "Meditação / Sonhos";
+                physio = "Redução do Cortisol";
+                description = "O estado Theta é a porta entre o consciente e o subconsciente. É ideal para meditação profunda, redução da ansiedade e processamento emocional, promovendo um relaxamento que beira o sono.";
+            } else if (beat < 13) {
+                brainState = "Ondas Alpha (8 - 13 Hz)";
+                wave = "Relaxamento Atento";
+                physio = "Redução do Estresse";
+                description = "As ondas Alpha estão presentes quando estamos relaxados mas alertas. Esta configuração é excelente para reduzir o 'ruído mental', facilitando o aprendizado e a calma sem causar sonolência.";
+            } else {
+                brainState = "Ondas Beta (13 - 25 Hz)";
+                wave = "Foco Externo";
+                physio = "Processamento Cognitivo";
+                description = "Frequências Beta estão associadas ao pensamento analítico e concentração. Use esta configuração para tarefas que exigem foco mental intenso.";
+            }
+
+            if (isMelodyActive) {
+                description += "<br><br><strong>Modo Sinfonia Zen:</strong> A variação tonal em escalas puras evita a fadiga auditiva e utiliza o princípio da 'Entropia Terapêutica', mantendo o cérebro engajado no relaxamento sem se acostumar com um tom estático.";
+            }
+
+            title.innerText = brainState;
+            content.innerHTML = `<p>${description}</p><p>Sua base em <strong>${carrier}Hz</strong> foi escolhida para evitar a dissonância harmônica, ressoando com a geometria natural do som.</p>`;
+            target.innerText = wave;
+            effect.innerText = physio;
+
+            const modal = document.getElementById('info-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        };
+
+        /** UI & VISUALS **/
+        let scene, camera, renderer, material;
+        const initVisuals = () => {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.prepend(renderer.domElement);
+            material = new THREE.ShaderMaterial({
+                uniforms: { u_time: {value:0}, u_resolution: {value: new THREE.Vector2()}, u_intensity: {value:0.5} },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), material));
+            window.addEventListener('resize', () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+            });
+            material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+        };
+
+        const animate = (t) => {
+            requestAnimationFrame(animate);
+            material.uniforms.u_time.value = t * 0.001;
+            material.uniforms.u_intensity.value = isPlaying ? 0.6 : 0.4;
+            renderer.render(scene, camera);
+        };
+
+        const toggleBtn = document.getElementById('toggle-btn');
+        const melodyBtn = document.getElementById('melody-btn');
+        const gearBtn = document.getElementById('gear-btn');
+        const infoBtn = document.getElementById('info-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const stateText = document.getElementById('current-state');
+
+        toggleBtn.addEventListener('click', async () => {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            if (!isPlaying) {
+                gains.master.gain.setTargetAtTime(0.5, audioCtx.currentTime, 2.0);
+                isPlaying = true;
+                stateText.innerText = isMelodyActive ? "Sinfonia Zen Ativa" : "Sintonizado";
+                document.getElementById('play-icon').classList.add('hidden');
+                document.getElementById('pause-icon').classList.remove('hidden');
+                if (isMelodyActive) runMelody();
+            } else {
+                gains.master.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
+                isPlaying = false;
+                stateText.innerText = "Pausado";
+                document.getElementById('play-icon').classList.remove('hidden');
+                document.getElementById('pause-icon').classList.add('hidden');
+                clearTimeout(melodyTimer);
+            }
+        });
+
+        melodyBtn.addEventListener('click', () => {
+            isMelodyActive = !isMelodyActive;
+            melodyBtn.classList.toggle('btn-active');
+            if (isMelodyActive && isPlaying) runMelody();
+            else { clearTimeout(melodyTimer); updateEngine(2.0); }
+        });
+
+        gearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const hide = !settingsPanel.classList.contains('hidden-panel');
+            settingsPanel.classList.toggle('hidden-panel');
+            document.getElementById('gear-svg').style.transform = hide ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        infoBtn.addEventListener('click', explainScience);
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('info-modal').classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        document.body.addEventListener('click', (e) => {
+            if (!settingsPanel.contains(e.target) && !gearBtn.contains(e.target)) {
+                settingsPanel.classList.add('hidden-panel');
+                document.getElementById('gear-svg').style.transform = 'rotate(0deg)';
+            }
+        });
+
+        function setTherapeutic(beat, label) {
+            document.getElementById('beat-freq').value = beat;
+            stateText.innerText = label;
+            updateEngine(2.0);
+        }
+
+        document.querySelectorAll('input').forEach(i => i.addEventListener('input', () => updateEngine()));
+
+        window.onload = () => { initVisuals(); animate(0); };
+    </script>
+</body>
+</html>
+
