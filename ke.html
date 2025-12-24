@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ambiente 3D - Conhecimento e Experiência</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #010103; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+    <!-- Bibliotecas Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let groupK, groupE;
+
+        function init() {
+            // 1. Configuração da Cena e Câmara
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 18);
+
+            // 2. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // 3. Controlos de Órbita
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // 4. Luzes (Luminosidade preservada)
+            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambient);
+            const point = new THREE.PointLight(0x00aaff, 1.5);
+            point.position.set(20, 20, 20);
+            scene.add(point);
+
+            // 5. Função para Criar Texto como Sprite
+            function createTextLabel(text, color) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 512;
+                canvas.height = 128;
+
+                context.fillStyle = 'rgba(0,0,0,0)';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                
+                context.font = 'Bold 40px Arial';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                
+                context.shadowColor = color;
+                context.shadowBlur = 10;
+                context.fillStyle = color;
+                context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.scale.set(6, 1.5, 1);
+                return sprite;
+            }
+
+            // 6. Grupo CONHECIMENTO (Apenas Pontos em Volume - Ligações removidas)
+            groupK = new THREE.Group();
+            const kCount = 1500;
+            const kRadius = 3.5;
+            const kPos = new Float32Array(kCount * 3);
+            for(let i=0; i<kCount; i++) {
+                const phi = Math.random() * Math.PI * 2;
+                const theta = Math.acos(2 * Math.random() - 1);
+                const r = kRadius * Math.pow(Math.random(), 0.6);
+                kPos[i*3] = r * Math.sin(theta) * Math.cos(phi);
+                kPos[i*3+1] = r * Math.sin(theta) * Math.sin(phi);
+                kPos[i*3+2] = r * Math.cos(theta);
+            }
+            const kGeo = new THREE.BufferGeometry();
+            kGeo.setAttribute('position', new THREE.BufferAttribute(kPos, 3));
+            const kPoints = new THREE.Points(kGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.07 }));
+            groupK.add(kPoints);
+
+            const labelK = createTextLabel("CONHECIMENTO", "#ffffff");
+            labelK.position.y = -5.5;
+            groupK.add(labelK);
+            scene.add(groupK);
+
+            // 7. Grupo EXPERIÊNCIA (Densa com conexões estruturadas)
+            groupE = new THREE.Group();
+            const eRadius = 3.5;
+            const segments = 32; 
+            const rings = 24;    
+            const ePointsArray = [];
+
+            for (let r = 0; r <= rings; r++) {
+                const phi = (r / rings) * Math.PI;
+                for (let s = 0; s <= segments; s++) {
+                    const theta = (s / segments) * Math.PI * 2;
+                    const x = eRadius * Math.sin(phi) * Math.cos(theta);
+                    const y = eRadius * Math.cos(phi);
+                    const z = eRadius * Math.sin(phi) * Math.sin(theta);
+                    ePointsArray.push(new THREE.Vector3(x, y, z));
+                }
+            }
+
+            const eGeo = new THREE.BufferGeometry().setFromPoints(ePointsArray);
+            const ePoints = new THREE.Points(eGeo, new THREE.PointsMaterial({ color: 0x00d4ff, size: 0.08 }));
+            groupE.add(ePoints);
+
+            const eLinePoints = [];
+            for (let r = 0; r <= rings; r++) {
+                for (let s = 0; s <= segments; s++) {
+                    const idx = r * (segments + 1) + s;
+                    if (s < segments) {
+                        eLinePoints.push(ePointsArray[idx], ePointsArray[idx + 1]);
+                    }
+                    if (r < rings) {
+                        eLinePoints.push(ePointsArray[idx], ePointsArray[idx + (segments + 1)]);
+                    }
+                }
+            }
+            const eLineGeo = new THREE.BufferGeometry().setFromPoints(eLinePoints);
+            const eLineMat = new THREE.LineBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.25 });
+            const eLines = new THREE.LineSegments(eLineGeo, eLineMat);
+            groupE.add(eLines);
+
+            const labelE = createTextLabel("EXPERIÊNCIA", "#00d4ff");
+            labelE.position.y = -5.5;
+            groupE.add(labelE);
+            scene.add(groupE);
+
+            // 8. Estrelas de fundo
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(2000 * 3);
+            for(let i=0; i<6000; i++) starPos[i] = (Math.random() - 0.5) * 200;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x333333, size: 0.15 })));
+
+            handleResize();
+            window.addEventListener('resize', handleResize);
+            animate();
+        }
+
+        function handleResize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+
+            if (h > w) { // Mobile
+                groupK.position.set(0, 6.5, 0);
+                groupE.position.set(0, -6.5, 0);
+                camera.position.z = 24;
+            } else { // Desktop
+                groupK.position.set(-7.5, 0, 0);
+                groupE.position.set(7.5, 0, 0);
+                camera.position.z = 18;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+
+            groupK.rotation.y += 0.002;
+            groupE.rotation.y += 0.004;
+
+            groupK.position.y += Math.sin(time) * 0.005;
+            groupE.position.y += Math.cos(time) * 0.005;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
