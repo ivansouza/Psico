@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonia - Jornada Neural e Coerência</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #010206; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; }
+        .glass {
+            background: rgba(8, 12, 24, 0.7);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .panel-anim {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: bottom right;
+        }
+        .hidden-panel { opacity: 0; transform: scale(0.95) translateY(30px); pointer-events: none; }
+        input[type="range"] { accent-color: #6366f1; height: 4px; }
+        
+        .btn-active { 
+            background: rgba(99, 102, 241, 0.35) !important; 
+            border-color: rgba(99, 102, 241, 0.7) !important;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Animação do Guia de Respiração */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+        .breathing-ring {
+            animation: breathe 10s ease-in-out infinite;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Interface Principal -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 md:p-10">
+        
+        <!-- Topo: Status da Jornada -->
+        <div class="flex justify-between items-start">
+            <div class="opacity-50">
+                <h1 class="text-sm font-light tracking-[0.5em] uppercase">Harmonia</h1>
+                <p id="journey-status" class="text-[8px] uppercase tracking-[0.3em] mt-1 text-indigo-300">Modo Manual</p>
+            </div>
+            
+            <!-- Anel de Respiração Visual (Discreto) -->
+            <div id="breath-guide" class="hidden w-16 h-16 rounded-full breathing-ring flex items-center justify-center">
+                <span class="text-[7px] uppercase tracking-tighter opacity-40">Respire</span>
+            </div>
+        </div>
+
+        <!-- Controlos Inferiores -->
+        <div class="flex flex-col items-end gap-3 self-end">
+            
+            <!-- Painel de Configurações Expandido -->
+            <div id="settings-panel" class="panel-anim hidden-panel glass p-7 rounded-[2.5rem] w-80 md:w-96 pointer-events-auto shadow-2xl mb-2 max-h-[80vh] overflow-y-auto">
+                <div class="mb-6">
+                    <h2 class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Bio-Sincronização</h2>
+                    <p class="text-[8px] opacity-40 uppercase mt-1">Automação Neuro-Acústica</p>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Modos de Automação -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="journey-btn" class="text-[9px] py-3 glass rounded-xl border border-white/5 uppercase tracking-widest hover:bg-white/5 transition-all">Jornada (15m)</button>
+                        <button id="breath-toggle" class="text-[9px] py-3 glass rounded-xl border border-white/5 uppercase tracking-widest hover:bg-white/5 transition-all">Guia Respiratório</button>
+                    </div>
+
+                    <hr class="opacity-10">
+
+                    <!-- Controlos de Áudio -->
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Ondas Cerebrais: <span id="beat-val" class="text-white">7.8</span> Hz</span>
+                        </div>
+                        <input type="range" id="beat-freq" min="0.5" max="20" step="0.1" value="7.8" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="space-y-3">
+                        <p class="text-[9px] uppercase opacity-50">Textura de Fundo</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <button onclick="setNoise('white')" id="noise-white" class="text-[8px] py-2 glass rounded-lg">Branco</button>
+                            <button onclick="setNoise('pink')" id="noise-pink" class="text-[8px] py-2 glass rounded-lg">Rosa</button>
+                            <button onclick="setNoise('brown')" id="noise-brown" class="text-[8px] py-2 glass rounded-lg">Castanho</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões Rápidos -->
+            <div class="flex gap-2 pointer-events-auto items-center">
+                <button id="psy-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-pink-500/10 transition-all" title="Modo Transcendência">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="m19.07 4.93-1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="m6.34 17.66-1.41 1.41"/><path d="m4.93 4.93 1.41 1.41"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+                </button>
+
+                <button id="info-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all">
+                    <span class="text-lg font-serif italic text-indigo-300">?</span>
+                </button>
+
+                <button id="toggle-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all">
+                    <div id="play-icon" class="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1"></div>
+                    <div id="pause-icon" class="hidden flex gap-1.5">
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                    </div>
+                </button>
+
+                <button id="gear-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all">
+                    <svg id="gear-svg" class="transition-transform duration-700" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Informativo -->
+    <div id="info-modal" class="fixed inset-0 z-50 modal-overlay opacity-0 pointer-events-none transition-opacity duration-500 flex items-center justify-center p-6">
+        <div class="glass max-w-2xl w-full p-10 rounded-[3rem] relative shadow-2xl">
+            <h2 id="modal-title" class="text-2xl font-light text-indigo-400 mb-6 font-light"></h2>
+            <div id="modal-body" class="text-sm text-gray-300 space-y-4 leading-relaxed font-light"></div>
+            <button id="close-modal" class="mt-8 px-6 py-2 border border-white/10 rounded-full text-[10px] uppercase tracking-widest hover:bg-white/10">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_intensity;
+        uniform float u_breath;
+        uniform bool u_psy;
+        varying vec2 vUv;
+
+        mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+        vec3 palette(float t) {
+            vec3 a = vec3(0.5, 0.5, 0.5), b = vec3(0.5, 0.5, 0.5);
+            vec3 c = vec3(1.0, 1.0, 1.0), d = vec3(0.26, 0.41, 0.55);
+            if(u_psy) { c = vec3(1.0, 0.8, 0.2); d = vec3(0.5, 0.2, 0.8); }
+            return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+            
+            // Sincronização respiratória visual
+            uv *= (1.0 + u_breath * 0.1); 
+
+            vec2 uv0 = uv;
+            vec3 finalColor = vec3(0.0);
+            float t = u_time * 0.12;
+
+            if(u_psy) {
+                uv += sin(uv.yx * 4.0 + t) * 0.1;
+                uv *= rot(t * 0.3);
+            }
+
+            for(float i = 0.0; i < 4.0; i++) {
+                uv = fract(uv * 1.5) - 0.5;
+                float d = length(uv) * exp(-length(uv0));
+                vec3 col = palette(length(uv0) + i * 0.4 + t);
+                d = sin(d * 8.0 + t) / 8.0;
+                d = abs(d);
+                d = pow(0.01 / d, 1.2);
+                finalColor += col * d;
+            }
+
+            float vig = 1.0 - smoothstep(0.4, 1.5, length(vUv - 0.5));
+            gl_FragColor = vec4(finalColor * u_intensity * vig, 1.0);
+        }
+    </script>
+
+    <script>
+        /** ÁUDIO E BIO-SINC **/
+        let audioCtx, oscillators = {}, noiseNode, noiseGain, masterGain, analyser;
+        let isPlaying = false, isPsyActive = false, isJourneyActive = false, isBreathActive = false;
+        let journeyStartTime, breathStartTime;
+
+        const initAudio = () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0;
+            masterGain.connect(audioCtx.destination);
+            masterGain.connect(analyser);
+
+            noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0.05;
+            noiseGain.connect(masterGain);
+
+            const pL = audioCtx.createStereoPanner(); pL.pan.value = -1; pL.connect(masterGain);
+            const pR = audioCtx.createStereoPanner(); pR.pan.value = 1; pR.connect(masterGain);
+
+            oscillators.l = audioCtx.createOscillator(); oscillators.r = audioCtx.createOscillator();
+            oscillators.l.connect(pL); oscillators.r.connect(pR);
+            oscillators.l.start(); oscillators.r.start();
+            updateFrequencies();
+        };
+
+        const updateFrequencies = (time = 1.0) => {
+            if(!audioCtx) return;
+            let beat = parseFloat(document.getElementById('beat-freq').value);
+            const carrier = 432; 
+
+            // Lógica de Jornada Neural: Reduz a frequência ao longo do tempo
+            if(isJourneyActive) {
+                const elapsed = (Date.now() - journeyStartTime) / 1000;
+                const progress = Math.min(elapsed / 900, 1); // Jornada de 15 minutos
+                beat = 12 * (1 - progress) + 1.5 * progress; // De Alpha (12Hz) para Delta (1.5Hz)
+                document.getElementById('beat-freq').value = beat.toFixed(1);
+                document.getElementById('journey-status').innerText = `Jornada: ${(progress*100).toFixed(0)}%`;
+            }
+
+            oscillators.l.frequency.setTargetAtTime(carrier - (beat/2), audioCtx.currentTime, time);
+            oscillators.r.frequency.setTargetAtTime(carrier + (beat/2), audioCtx.currentTime, time);
+            document.getElementById('beat-val').innerText = beat.toFixed(1);
+        };
+
+        const setNoise = (type) => {
+            if(!audioCtx) initAudio();
+            if(noiseNode) { noiseNode.stop(); noiseNode.disconnect(); }
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for(let i=0; i<buffer.length; i++) data[i] = Math.random() * 2 - 1;
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = buffer; noiseNode.loop = true;
+            noiseNode.connect(noiseGain); noiseNode.start();
+        };
+
+        /** VISUALIZAÇÃO **/
+        let scene, camera, renderer, material;
+        const initVisuals = () => {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.prepend(renderer.domElement);
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_time: { value: 0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_intensity: { value: 0.5 },
+                    u_breath: { value: 0 },
+                    u_psy: { value: false }
+                },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), material));
+        };
+
+        const animate = (t) => {
+            requestAnimationFrame(animate);
+            const time = t * 0.001;
+            material.uniforms.u_time.value = time;
+            
+            // Lógica do Guia Respiratório: Ciclo de 10 segundos (4 in, 6 out)
+            if(isBreathActive) {
+                const cycle = time % 10;
+                const breathValue = cycle < 4 ? Math.sin((cycle/4) * Math.PI/2) : Math.cos(((cycle-4)/6) * Math.PI/2);
+                material.uniforms.u_breath.value = breathValue;
+                // Modula o ruído rosa com a respiração
+                if(noiseGain) noiseGain.gain.setTargetAtTime(0.05 + breathValue * 0.1, audioCtx.currentTime, 0.1);
+            } else {
+                material.uniforms.u_breath.value = 0;
+            }
+
+            if(isJourneyActive) updateFrequencies(2.0);
+            renderer.render(scene, camera);
+        };
+
+        /** UI EVENTOS **/
+        const toggleBtn = document.getElementById('toggle-btn');
+        const gearBtn = document.getElementById('gear-btn');
+        const journeyBtn = document.getElementById('journey-btn');
+        const breathToggle = document.getElementById('breath-toggle');
+
+        toggleBtn.addEventListener('click', async () => {
+            if(!audioCtx) initAudio();
+            if(audioCtx.state === 'suspended') await audioCtx.resume();
+            isPlaying = !isPlaying;
+            masterGain.gain.setTargetAtTime(isPlaying ? 0.6 : 0, audioCtx.currentTime, 2.0);
+            document.getElementById('play-icon').classList.toggle('hidden', isPlaying);
+            document.getElementById('pause-icon').classList.toggle('hidden', !isPlaying);
+        });
+
+        journeyBtn.addEventListener('click', () => {
+            isJourneyActive = !isJourneyActive;
+            journeyStartTime = Date.now();
+            journeyBtn.classList.toggle('btn-active', isJourneyActive);
+            document.getElementById('journey-status').innerText = isJourneyActive ? "Jornada Iniciada" : "Modo Manual";
+        });
+
+        breathToggle.addEventListener('click', () => {
+            isBreathActive = !isBreathActive;
+            breathToggle.classList.toggle('btn-active', isBreathActive);
+            document.getElementById('breath-guide').classList.toggle('hidden', !isBreathActive);
+        });
+
+        gearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const hide = !document.getElementById('settings-panel').classList.contains('hidden-panel');
+            document.getElementById('settings-panel').classList.toggle('hidden-panel');
+            document.getElementById('gear-svg').style.transform = hide ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        document.getElementById('info-btn').addEventListener('click', () => {
+            document.getElementById('modal-title').innerText = "Bio-Sincronização Ativa";
+            document.getElementById('modal-body').innerHTML = `
+                <p><strong>Jornada Neural:</strong> Automatiza a descida de frequências de Alpha para Delta ao longo de 15 minutos, guiando o cérebro para o sono ou transe.</p>
+                <p><strong>Guia Respiratório:</strong> Sincroniza o visual e o som com um ciclo de 10 segundos. Inspire durante a expansão e expire durante a contração para ativar o sistema nervoso parassimpático.</p>
+            `;
+            document.getElementById('info-modal').classList.remove('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('info-modal').classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('psy-btn').addEventListener('click', () => {
+            isPsyActive = !isPsyActive;
+            material.uniforms.u_psy.value = isPsyActive;
+            document.getElementById('psy-btn').classList.toggle('btn-active', isPsyActive);
+        });
+
+        window.onload = () => { initVisuals(); animate(0); };
+    </script>
+</body>
+</html>
+
