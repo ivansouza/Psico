@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonia - Modo Transcendental</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; }
+        
+        .glass {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-anim {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: bottom right;
+        }
+
+        .hidden-panel {
+            opacity: 0;
+            transform: scale(0.9) translateY(40px);
+            pointer-events: none;
+        }
+
+        input[type="range"] {
+            accent-color: #ec4899;
+            height: 4px;
+        }
+
+        .btn-psychedelic {
+            transition: all 0.4s ease;
+        }
+
+        .psy-active {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.6);
+            color: white;
+            border: none;
+        }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            transition: opacity 0.5s ease;
+        }
+
+        @keyframes drift {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        .psy-hue { animation: drift 10s linear infinite; }
+    </style>
+</head>
+<body>
+
+    <!-- Interface -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 md:p-12">
+        
+        <div class="flex justify-start">
+            <div class="opacity-40">
+                <h1 id="logo" class="text-sm font-light tracking-[0.6em] uppercase transition-all duration-1000">Harmonia</h1>
+                <p id="current-state" class="text-[8px] uppercase tracking-[0.3em] mt-2">Pronto para a Viagem</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-end gap-3 self-end">
+            
+            <!-- Painel de Configurações -->
+            <div id="settings-panel" class="panel-anim hidden-panel glass p-7 rounded-[2.5rem] w-80 pointer-events-auto shadow-2xl mb-2">
+                <h2 class="text-[10px] font-bold uppercase tracking-widest text-pink-400 mb-6">Parâmetros de Consciência</h2>
+
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Base: <span id="carrier-val">432</span> Hz</span>
+                        </div>
+                        <input type="range" id="carrier-freq" min="60" max="500" step="1" value="432" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Batimento: <span id="beat-val">7.8</span> Hz</span>
+                        </div>
+                        <input type="range" id="beat-freq" min="0.1" max="30" step="0.1" value="7.8" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setTherapeutic(4.0, 'Sonho Lúcido')" class="text-[8px] py-2 glass rounded-xl hover:bg-white/10 uppercase tracking-widest">Theta</button>
+                        <button onclick="setTherapeutic(1.5, 'Nirvana')" class="text-[8px] py-2 glass rounded-xl hover:bg-white/10 uppercase tracking-widest">Delta</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex gap-2 pointer-events-auto items-center">
+                <!-- Modo Psicadélico -->
+                <button id="psy-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-pink-500/20 transition-all duration-300 btn-psychedelic" title="Modo Transcendental">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                </button>
+
+                <button id="info-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <span class="text-lg italic font-serif opacity-70">?</span>
+                </button>
+
+                <button id="toggle-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300 group">
+                    <div id="play-icon" class="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1"></div>
+                    <div id="pause-icon" class="hidden flex gap-1.5">
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                    </div>
+                </button>
+
+                <button id="gear-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <svg id="gear-svg" class="transition-transform duration-1000" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Informativo -->
+    <div id="info-modal" class="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-500">
+        <div class="glass max-w-xl w-full p-10 rounded-[3rem] shadow-2xl relative">
+            <h2 id="modal-title" class="text-2xl font-light mb-6 tracking-wide text-pink-400">Ciência da Vibração</h2>
+            <div id="modal-content" class="text-sm text-gray-300 leading-relaxed space-y-4 font-light"></div>
+            <button id="close-modal" class="mt-8 px-6 py-2 glass rounded-full text-[10px] uppercase tracking-widest hover:bg-white/10 transition-colors pointer-events-auto">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_intensity;
+        uniform bool u_psychedelic;
+        varying vec2 vUv;
+
+        mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+        // Função de paleta psicadélica
+        vec3 palette(float t) {
+            vec3 a = vec3(0.5, 0.5, 0.5);
+            vec3 b = vec3(0.5, 0.5, 0.5);
+            vec3 c = vec3(1.0, 1.0, 1.0);
+            vec3 d = vec3(0.263, 0.416, 0.557);
+            if(u_psychedelic) {
+                c = vec3(1.0, 0.5, 1.0);
+                d = vec3(0.8, 0.9, 0.3);
+            }
+            return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+            vec2 uv0 = uv;
+            vec3 finalColor = vec3(0.0);
+            
+            float t = u_time * 0.2;
+
+            if(u_psychedelic) {
+                // Efeito de distorção de espaço (LSD-like)
+                uv += sin(uv.yx * 4.0 + t) * 0.15;
+                uv *= rot(t * 0.5);
+            }
+
+            for(float i = 0.0; i < 4.0; i++) {
+                uv = fract(uv * 1.5) - 0.5;
+
+                float d = length(uv) * exp(-length(uv0));
+                vec3 col = palette(length(uv0) + i * 0.4 + t);
+
+                d = sin(d * 8.0 + t) / 8.0;
+                d = abs(d);
+                d = pow(0.01 / d, 1.2);
+
+                finalColor += col * d;
+            }
+
+            float vig = 1.0 - smoothstep(0.5, 1.6, length(vUv - 0.5));
+            gl_FragColor = vec4(finalColor * u_intensity * vig, 1.0);
+        }
+    </script>
+
+    <script>
+        /** AUDIO ENGINE **/
+        let audioCtx, oscillators = {}, gains = {}, lfo, lfoGain, analyser, isPlaying = false, isPsyActive = false;
+        
+        const initAudio = () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            
+            gains.master = audioCtx.createGain();
+            gains.master.gain.value = 0;
+            gains.master.connect(audioCtx.destination);
+            gains.master.connect(analyser);
+
+            // Filtro para suavidade
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 1200;
+            gains.master.connect(filter);
+
+            const pL = audioCtx.createStereoPanner(); pL.pan.value = -1; pL.connect(gains.master);
+            const pR = audioCtx.createStereoPanner(); pR.pan.value = 1; pR.connect(gains.master);
+
+            oscillators.l = audioCtx.createOscillator();
+            oscillators.r = audioCtx.createOscillator();
+            oscillators.l.type = 'sine'; oscillators.r.type = 'sine';
+            
+            oscillators.l.connect(pL);
+            oscillators.r.connect(pR);
+
+            // LFO para efeito psicadélico (espacialização e vibrato)
+            lfo = audioCtx.createOscillator();
+            lfoGain = audioCtx.createGain();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1; // Lento por padrão
+            lfoGain.gain.value = 0;
+            lfo.connect(lfoGain);
+            lfoGain.connect(oscillators.l.frequency);
+            lfoGain.connect(oscillators.r.frequency);
+            
+            oscillators.l.start();
+            oscillators.r.start();
+            lfo.start();
+
+            updateEngine();
+        };
+
+        const updateEngine = () => {
+            if(!audioCtx) return;
+            const carrier = parseFloat(document.getElementById('carrier-freq').value);
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            
+            oscillators.l.frequency.setTargetAtTime(carrier - (beat/2), audioCtx.currentTime, 0.5);
+            oscillators.r.frequency.setTargetAtTime(carrier + (beat/2), audioCtx.currentTime, 0.5);
+            
+            document.getElementById('carrier-val').innerText = carrier;
+            document.getElementById('beat-val').innerText = beat;
+        };
+
+        /** VISUALS **/
+        let scene, camera, renderer, material;
+        const initVisuals = () => {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.prepend(renderer.domElement);
+
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_time: { value: 0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_intensity: { value: 0.5 },
+                    u_psychedelic: { value: false }
+                },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+            window.addEventListener('resize', () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        const animate = (t) => {
+            requestAnimationFrame(animate);
+            material.uniforms.u_time.value = t * 0.001;
+            material.uniforms.u_intensity.value = isPlaying ? 0.8 : 0.4;
+            renderer.render(scene, camera);
+        };
+
+        /** INTERFACE **/
+        const toggleBtn = document.getElementById('toggle-btn');
+        const psyBtn = document.getElementById('psy-btn');
+        const infoBtn = document.getElementById('info-btn');
+        const stateText = document.getElementById('current-state');
+        const logo = document.getElementById('logo');
+
+        toggleBtn.addEventListener('click', async () => {
+            if(!audioCtx) initAudio();
+            if(audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            if(!isPlaying) {
+                gains.master.gain.setTargetAtTime(0.6, audioCtx.currentTime, 3.0);
+                isPlaying = true;
+                stateText.innerText = isPsyActive ? "Em Transcendência" : "Sintonizado";
+                document.getElementById('play-icon').classList.add('hidden');
+                document.getElementById('pause-icon').classList.remove('hidden');
+            } else {
+                gains.master.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
+                isPlaying = false;
+                stateText.innerText = "Pausado";
+                document.getElementById('play-icon').classList.remove('hidden');
+                document.getElementById('pause-icon').classList.add('hidden');
+            }
+        });
+
+        psyBtn.addEventListener('click', () => {
+            isPsyActive = !isPsyActive;
+            material.uniforms.u_psychedelic.value = isPsyActive;
+            psyBtn.classList.toggle('psy-active');
+            logo.classList.toggle('psy-hue');
+
+            if(isPsyActive) {
+                lfo.frequency.setTargetAtTime(0.5, audioCtx.currentTime, 2.0);
+                lfoGain.gain.setTargetAtTime(10.0, audioCtx.currentTime, 5.0);
+                stateText.innerText = "Transcendência Ativa";
+            } else {
+                lfo.frequency.setTargetAtTime(0.1, audioCtx.currentTime, 2.0);
+                lfoGain.gain.setTargetAtTime(0, audioCtx.currentTime, 2.0);
+                stateText.innerText = isPlaying ? "Sintonizado" : "Pronto para a Viagem";
+            }
+        });
+
+        infoBtn.addEventListener('click', () => {
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content');
+            
+            title.innerText = isPsyActive ? "O Efeito Transcendental" : "Ciência Binaural";
+            content.innerHTML = isPsyActive ? 
+                `<p>O modo de transcendência simula o fenómeno de <strong>sinestesia</strong> e dissolução de fronteiras. Visualmente, o algoritmo utiliza distorções não-lineares de espaço-tempo (Shaders) para criar padrões que o cérebro reconhece como fractais infinitos.</p><p>Sonoramente, a modulação de baixa frequência (LFO) cria um efeito de "panning" e micro-vibrato que induz a uma sensação de desorientação controlada, facilitando a quebra de padrões de pensamento rígidos e promovendo estados de <strong>fluxo criativo</strong>.</p>` :
+                `<p>Atualmente em <strong>${beat} Hz</strong>, o seu cérebro está a ser induzido ao fenómeno de <em>Frequency Following Response</em>. Este batimento binaural estimula a comunicação entre os hemisférios esquerdo e direito, promovendo um estado de relaxamento profundo e clareza mental.</p>`;
+            
+            document.getElementById('info-modal').classList.remove('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('info-modal').classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('gear-btn').addEventListener('click', () => {
+            document.getElementById('settings-panel').classList.toggle('hidden-panel');
+        });
+
+        document.querySelectorAll('input').forEach(i => i.addEventListener('input', updateEngine));
+
+        window.onload = () => { initVisuals(); animate(0); };
+    </script>
+</body>
+</html>
+
