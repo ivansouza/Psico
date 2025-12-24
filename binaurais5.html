@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonia - Neuro-Acústica e Ruído</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; }
+        .glass {
+            background: rgba(8, 10, 15, 0.8);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .panel-anim {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: bottom right;
+        }
+        .hidden-panel { opacity: 0; transform: scale(0.95) translateY(30px); pointer-events: none; }
+        input[type="range"] { accent-color: #6366f1; height: 4px; }
+        .btn-active { 
+            background: rgba(99, 102, 241, 0.3); 
+            border-color: rgba(99, 102, 241, 0.6); 
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+        .psy-active {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+            border: none;
+        }
+        .modal-overlay { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body>
+
+    <!-- Interface -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 md:p-10">
+        
+        <!-- Topo -->
+        <div class="flex justify-start opacity-40">
+            <div>
+                <h1 class="text-sm font-light tracking-[0.5em] uppercase">Harmonia</h1>
+                <p id="current-state" class="text-[8px] uppercase tracking-[0.3em] mt-1">Sintonização Ativa</p>
+            </div>
+        </div>
+
+        <!-- Painéis e Controlos -->
+        <div class="flex flex-col items-end gap-3 self-end">
+            
+            <!-- Painel de Definições -->
+            <div id="settings-panel" class="panel-anim hidden-panel glass p-7 rounded-[2.5rem] w-80 md:w-96 pointer-events-auto shadow-2xl mb-2 max-h-[70vh] overflow-y-auto">
+                <h2 class="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-6">Laboratório de Som</h2>
+
+                <div class="space-y-6">
+                    <!-- Batimento Binaural -->
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Frequência Base: <span id="carrier-val" class="text-white">432</span> Hz</span>
+                        </div>
+                        <input type="range" id="carrier-freq" min="100" max="528" step="1" value="432" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Ondas Cerebrais: <span id="beat-val" class="text-white">7.8</span> Hz</span>
+                        </div>
+                        <input type="range" id="beat-freq" min="0.5" max="25" step="0.1" value="7.8" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Seleção de Ruído -->
+                    <div class="space-y-3">
+                        <p class="text-[9px] uppercase opacity-50">Camada de Ruído Terapêutico</p>
+                        <div class="grid grid-cols-4 gap-1">
+                            <button onclick="setNoise('none')" id="noise-none" class="text-[8px] py-2 glass rounded-lg btn-active">Off</button>
+                            <button onclick="setNoise('white')" id="noise-white" class="text-[8px] py-2 glass rounded-lg">Branco</button>
+                            <button onclick="setNoise('pink')" id="noise-pink" class="text-[8px] py-2 glass rounded-lg">Rosa</button>
+                            <button onclick="setNoise('brown')" id="noise-brown" class="text-[8px] py-2 glass rounded-lg">Castanho</button>
+                        </div>
+                        <input type="range" id="noise-vol" min="0" max="0.3" step="0.01" value="0.1" class="w-full bg-white/5 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Presets Rápidos -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setTherapeutic(3.5, 'Meditação Profunda')" class="text-[8px] py-2 border border-white/5 rounded-xl hover:bg-white/5 uppercase tracking-tighter">Theta (3.5Hz)</button>
+                        <button onclick="setTherapeutic(7.83, 'Equilíbrio da Terra')" class="text-[8px] py-2 border border-white/5 rounded-xl hover:bg-white/5 uppercase tracking-tighter">Schumann (7.8Hz)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cluster de Botões -->
+            <div class="flex gap-2 pointer-events-auto items-center">
+                <!-- Modo Psicadélico (LSD) -->
+                <button id="psy-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-pink-500/20 transition-all duration-300" title="Modo Transcendência">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="m19.07 4.93-1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="m6.34 17.66-1.41 1.41"/><path d="m4.93 4.93 1.41 1.41"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+                </button>
+
+                <!-- Informação Científica -->
+                <button id="info-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-indigo-500/20 transition-all duration-300">
+                    <span class="text-lg font-serif italic text-indigo-300">?</span>
+                </button>
+
+                <!-- Sinfonia Zen -->
+                <button id="melody-btn" class="glass w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </button>
+
+                <!-- Play/Pause -->
+                <button id="toggle-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <div id="play-icon" class="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1"></div>
+                    <div id="pause-icon" class="hidden flex gap-1.5">
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                        <div class="w-1.5 h-5 bg-white rounded-full"></div>
+                    </div>
+                </button>
+
+                <!-- Configurações -->
+                <button id="gear-btn" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <svg id="gear-svg" class="transition-transform duration-700" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Científico -->
+    <div id="info-modal" class="fixed inset-0 z-50 modal-overlay opacity-0 pointer-events-none transition-opacity duration-500 flex items-center justify-center p-6">
+        <div class="glass max-w-2xl w-full p-10 rounded-[3rem] relative shadow-2xl">
+            <h2 id="modal-title" class="text-2xl font-light text-indigo-400 mb-6">Ciência Aplicada</h2>
+            <div id="modal-body" class="text-sm text-gray-300 space-y-4 leading-relaxed font-light"></div>
+            <button id="close-modal" class="mt-8 px-6 py-2 border border-white/10 rounded-full text-[10px] uppercase tracking-widest hover:bg-white/10">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_intensity;
+        uniform bool u_psy;
+        varying vec2 vUv;
+
+        mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+        vec3 palette(float t) {
+            vec3 a = vec3(0.5, 0.5, 0.5);
+            vec3 b = vec3(0.5, 0.5, 0.5);
+            vec3 c = vec3(1.0, 1.0, 1.0);
+            vec3 d = vec3(0.263, 0.416, 0.557);
+            if(u_psy) { c = vec3(1.0, 0.7, 0.8); d = vec3(0.8, 0.9, 0.1); }
+            return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+            vec2 uv0 = uv;
+            vec3 finalColor = vec3(0.0);
+            float t = u_time * 0.15;
+
+            if(u_psy) {
+                uv += sin(uv.yx * 3.5 + t) * 0.2;
+                uv *= rot(t * 0.4);
+            }
+
+            for(float i = 0.0; i < 4.0; i++) {
+                uv = fract(uv * 1.5) - 0.5;
+                float d = length(uv) * exp(-length(uv0));
+                vec3 col = palette(length(uv0) + i * 0.4 + t);
+                d = sin(d * 8.0 + t) / 8.0;
+                d = abs(d);
+                d = pow(0.012 / d, 1.2);
+                finalColor += col * d;
+            }
+
+            float vig = 1.0 - smoothstep(0.4, 1.5, length(vUv - 0.5));
+            gl_FragColor = vec4(finalColor * u_intensity * vig, 1.0);
+        }
+    </script>
+
+    <script>
+        /** AUDIO ENGINE **/
+        let audioCtx, oscillators = {}, noiseNode, noiseGain, masterGain, analyser, isPlaying = false;
+        let isMelodyActive = false, isPsyActive = false, melodyTimer;
+
+        const initAudio = () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0;
+            masterGain.connect(audioCtx.destination);
+            masterGain.connect(analyser);
+
+            noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0.1;
+            noiseGain.connect(masterGain);
+
+            const pL = audioCtx.createStereoPanner(); pL.pan.value = -1; pL.connect(masterGain);
+            const pR = audioCtx.createStereoPanner(); pR.pan.value = 1; pR.connect(masterGain);
+
+            oscillators.l = audioCtx.createOscillator();
+            oscillators.r = audioCtx.createOscillator();
+            oscillators.l.type = 'sine'; oscillators.r.type = 'sine';
+            oscillators.l.connect(pL); oscillators.r.connect(pR);
+
+            oscillators.l.start(); oscillators.r.start();
+            updateFrequencies();
+        };
+
+        const createNoise = (type) => {
+            if(noiseNode) { noiseNode.stop(); noiseNode.disconnect(); }
+            if(type === 'none') return;
+
+            const bufferSize = 2 * audioCtx.sampleRate;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+
+            if(type === 'white') {
+                for(let i=0; i<bufferSize; i++) output[i] = Math.random() * 2 - 1;
+            } else if(type === 'pink') {
+                let b0, b1, b2, b3, b4, b5, b6;
+                b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+                for(let i=0; i<bufferSize; i++) {
+                    let white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                    output[i] *= 0.11;
+                    b6 = white * 0.115926;
+                }
+            } else if(type === 'brown') {
+                let lastOut = 0.0;
+                for(let i=0; i<bufferSize; i++) {
+                    let white = Math.random() * 2 - 1;
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 3.5;
+                }
+            }
+
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = buffer;
+            noiseNode.loop = true;
+            noiseNode.connect(noiseGain);
+            noiseNode.start();
+        };
+
+        const updateFrequencies = (time = 0.5) => {
+            if(!audioCtx) return;
+            const carrier = parseFloat(document.getElementById('carrier-freq').value);
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const nVol = parseFloat(document.getElementById('noise-vol').value);
+
+            oscillators.l.frequency.setTargetAtTime(carrier - (beat/2), audioCtx.currentTime, time);
+            oscillators.r.frequency.setTargetAtTime(carrier + (beat/2), audioCtx.currentTime, time);
+            noiseGain.gain.setTargetAtTime(nVol, audioCtx.currentTime, 0.5);
+
+            document.getElementById('carrier-val').innerText = carrier;
+            document.getElementById('beat-val').innerText = beat;
+        };
+
+        /** VISUALS **/
+        let scene, camera, renderer, material;
+        const initVisuals = () => {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.prepend(renderer.domElement);
+
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_time: { value: 0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_intensity: { value: 0.5 },
+                    u_psy: { value: false }
+                },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+            window.addEventListener('resize', () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        const animate = (t) => {
+            requestAnimationFrame(animate);
+            material.uniforms.u_time.value = t * 0.001;
+            material.uniforms.u_intensity.value = isPlaying ? (isPsyActive ? 0.9 : 0.6) : 0.3;
+            renderer.render(scene, camera);
+        };
+
+        /** UI LOGIC **/
+        const toggleBtn = document.getElementById('toggle-btn');
+        const psyBtn = document.getElementById('psy-btn');
+        const gearBtn = document.getElementById('gear-btn');
+        const infoBtn = document.getElementById('info-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const stateText = document.getElementById('current-state');
+
+        toggleBtn.addEventListener('click', async () => {
+            if(!audioCtx) initAudio();
+            if(audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            if(!isPlaying) {
+                masterGain.gain.setTargetAtTime(0.6, audioCtx.currentTime, 2.5);
+                isPlaying = true;
+                stateText.innerText = isPsyActive ? "Transcendência Ativa" : "Sintonizado";
+                document.getElementById('play-icon').classList.add('hidden');
+                document.getElementById('pause-icon').classList.remove('hidden');
+            } else {
+                masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
+                isPlaying = false;
+                stateText.innerText = "Pausado";
+                document.getElementById('play-icon').classList.remove('hidden');
+                document.getElementById('pause-icon').classList.add('hidden');
+            }
+        });
+
+        psyBtn.addEventListener('click', () => {
+            isPsyActive = !isPsyActive;
+            material.uniforms.u_psy.value = isPsyActive;
+            psyBtn.classList.toggle('psy-active');
+            if(isPlaying) stateText.innerText = isPsyActive ? "Transcendência Ativa" : "Sintonizado";
+        });
+
+        gearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsPanel.classList.toggle('hidden-panel');
+            document.getElementById('gear-svg').style.transform = settingsPanel.classList.contains('hidden-panel') ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        const setNoise = (type) => {
+            if(!audioCtx) initAudio();
+            createNoise(type);
+            ['none', 'white', 'pink', 'brown'].forEach(t => {
+                document.getElementById('noise-'+t).classList.remove('btn-active');
+            });
+            document.getElementById('noise-'+type).classList.add('btn-active');
+        };
+
+        infoBtn.addEventListener('click', () => {
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const title = document.getElementById('modal-title');
+            const body = document.getElementById('modal-body');
+            
+            title.innerText = "Neuro-Acústica e Ruído";
+            let content = `<p>O seu estado atual em <strong>${beat} Hz</strong> estimula frequências específicas no seu cérebro.</p>`;
+            
+            if(beat < 4) content += `<p><strong>Delta:</strong> Regeneração e sono profundo.</p>`;
+            else if(beat < 8) content += `<p><strong>Theta:</strong> Meditação profunda e criatividade.</p>`;
+            else if(beat < 14) content += `<p><strong>Alpha:</strong> Relaxamento atento e redução de stress.</p>`;
+            
+            content += `<hr class="opacity-10 my-4">`;
+            content += `<p><strong>Ruídos Terapêuticos:</strong> O ruído branco contém todas as frequências, enquanto o rosa e o castanho focam em graves relaxantes, mascarando distrações externas.</p>`;
+            
+            body.innerHTML = content;
+            document.getElementById('info-modal').classList.remove('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('info-modal').classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        document.querySelectorAll('input').forEach(i => i.addEventListener('input', () => updateFrequencies()));
+
+        window.onload = () => { initVisuals(); animate(0); };
+    </script>
+</body>
+</html>
+
