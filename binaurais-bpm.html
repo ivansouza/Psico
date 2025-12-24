@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonia - Biofeedback de Precisão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; }
+        .glass { background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .panel-anim { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); transform-origin: bottom right; }
+        .hidden-panel { opacity: 0; transform: scale(0.95) translateY(40px); pointer-events: none; }
+        
+        #pulse-graph {
+            width: 100%;
+            height: 60px;
+            background: rgba(255, 0, 0, 0.05);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-active { background: rgba(99, 102, 241, 0.4) !important; border-color: #818cf8 !important; }
+        
+        /* Preview circular para alinhar o dedo no Poco F6 */
+        #cam-preview-container {
+            position: fixed; top: 20px; right: 20px; width: 80px; height: 80px;
+            border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.2);
+            z-index: 50; background: #111;
+        }
+        #video-preview { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+
+    <div id="cam-preview-container" class="hidden">
+        <video id="video-preview" autoplay playsinline muted></video>
+    </div>
+    
+    <canvas id="canvas-ppg" width="50" height="50" class="hidden"></canvas>
+
+    <!-- UI Overlay -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-6">
+        
+        <!-- Topo: BPM e Info -->
+        <div class="flex justify-between items-start">
+            <div class="opacity-40">
+                <h1 class="text-xs font-light tracking-[0.5em] uppercase">Harmonia</h1>
+                <p id="system-status" class="text-[8px] uppercase tracking-[0.2em] mt-1 text-indigo-400">Biofeedback Lab</p>
+            </div>
+            
+            <div id="bpm-display" class="hidden glass px-6 py-4 rounded-3xl flex flex-col items-center border-indigo-500/20">
+                <div class="flex items-center gap-3">
+                    <div id="heart-dot" class="w-3 h-3 bg-red-600 rounded-full"></div>
+                    <span class="text-2xl font-bold tabular-nums"><span id="bpm-value">--</span></span>
+                    <span class="text-[10px] opacity-40 uppercase">BPM</span>
+                </div>
+                <canvas id="pulse-graph"></canvas>
+            </div>
+        </div>
+
+        <!-- Rodapé: Controles -->
+        <div class="flex flex-col items-end gap-3 self-end">
+            
+            <div id="settings-panel" class="panel-anim hidden-panel glass p-8 rounded-[2.5rem] w-80 md:w-96 pointer-events-auto shadow-2xl mb-2">
+                <h2 class="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-6">Configurações Poco F6 Pro</h2>
+
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-init" class="w-full text-[10px] py-4 glass rounded-2xl border border-white/5 uppercase tracking-widest hover:bg-white/10">1. Iniciar Câmera</button>
+                        <div class="flex gap-2">
+                            <button id="btn-switch" class="flex-1 text-[9px] py-3 glass rounded-xl border border-white/5 uppercase opacity-50" disabled>Trocar Lente</button>
+                            <button id="btn-torch" class="w-16 glass rounded-xl border border-white/5 flex items-center justify-center opacity-50" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 L3 14 L12 14 L11 22 L21 10 L12 10 Z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="text-[8px] text-gray-400 leading-relaxed uppercase tracking-tighter bg-white/5 p-3 rounded-lg">
+                        Dica: Se o preview estiver escuro, troque a lente até ver a imagem. Cubra a lente que ficar vermelha quando você colocar o dedo.
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[9px] mb-2 uppercase opacity-50">
+                            <span>Sincronia: <span id="beat-label">7.8</span> Hz</span>
+                        </div>
+                        <input type="range" id="beat-freq" min="0.5" max="15" step="0.1" value="7.8" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pointer-events-auto">
+                <button id="toggle-play" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10">
+                    <div id="play-icon" class="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1"></div>
+                    <div id="pause-icon" class="hidden flex gap-1.5"><div class="w-1.5 h-5 bg-white rounded-full"></div><div class="w-1.5 h-5 bg-white rounded-full"></div></div>
+                </button>
+                <button id="btn-gear" class="glass w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/10">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** MOTOR PPG ADAPTATIVO **/
+        let video = document.getElementById('video-preview');
+        let canvasPPG = document.getElementById('canvas-ppg');
+        let ctxPPG = canvasPPG.getContext('2d');
+        let gCanvas = document.getElementById('pulse-graph');
+        let gCtx = gCanvas.getContext('2d');
+        
+        let stream = null;
+        let videoTrack = null;
+        let devices = [];
+        let currentDeviceIdx = 0;
+        let ppgHistory = [];
+        let bpm = 0;
+        let isTorchOn = false;
+
+        async function startCamera() {
+            if(stream) {
+                stream.getTracks().forEach(t => t.stop());
+            }
+            
+            // Obter lista de câmeras no Poco F6
+            const allDevices = await navigator.mediaDevices.enumerateDevices();
+            devices = allDevices.filter(d => d.kind === 'videoinput');
+            
+            try {
+                const constraints = {
+                    video: { 
+                        deviceId: devices[currentDeviceIdx].deviceId,
+                        width: { ideal: 160 },
+                        height: { ideal: 160 }
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                videoTrack = stream.getTracks()[0];
+                
+                document.getElementById('cam-preview-container').classList.remove('hidden');
+                document.getElementById('bpm-display').classList.remove('hidden');
+                document.getElementById('btn-switch').disabled = false;
+                document.getElementById('btn-switch').classList.remove('opacity-50');
+                
+                const caps = videoTrack.getCapabilities();
+                if(caps.torch) {
+                    document.getElementById('btn-torch').disabled = false;
+                    document.getElementById('btn-torch').classList.remove('opacity-50');
+                }
+                
+                analyze();
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function analyze() {
+            if(!stream) return;
+            
+            ctxPPG.drawImage(video, 0, 0, 50, 50);
+            const data = ctxPPG.getImageData(0, 0, 50, 50).data;
+            
+            // Usamos a média do canal Vermelho e Verde (PPG é forte no verde em sensores CMOS)
+            let val = 0;
+            for(let i=0; i<data.length; i+=4) {
+                val += (data[i] + data[i+1]) / 2; 
+            }
+            val /= (data.length / 4);
+            
+            ppgHistory.push(val);
+            if(ppgHistory.length > 200) ppgHistory.shift();
+            
+            drawGraph();
+            calculateBPM();
+            
+            requestAnimationFrame(analyze);
+        }
+
+        function drawGraph() {
+            gCtx.clearRect(0,0, gCanvas.width, gCanvas.height);
+            gCtx.beginPath();
+            gCtx.strokeStyle = '#ef4444';
+            gCtx.lineWidth = 2;
+            
+            const min = Math.min(...ppgHistory);
+            const max = Math.max(...ppgHistory);
+            const range = max - min || 1;
+            
+            for(let i=0; i<ppgHistory.length; i++) {
+                const x = (i / 200) * gCanvas.width;
+                const y = gCanvas.height - ((ppgHistory[i] - min) / range) * gCanvas.height;
+                if(i===0) gCtx.moveTo(x, y);
+                else gCtx.lineTo(x, y);
+            }
+            gCtx.stroke();
+        }
+
+        function calculateBPM() {
+            if(ppgHistory.length < 100) return;
+            
+            // Simples detector de picos
+            let peaks = 0;
+            let lastVal = ppgHistory[0];
+            let rising = false;
+            
+            const localMin = Math.min(...ppgHistory);
+            const localMax = Math.max(...ppgHistory);
+            const threshold = localMin + (localMax - localMin) * 0.7; // 70% da amplitude
+
+            for(let i=1; i<ppgHistory.length; i++) {
+                if(ppgHistory[i] > lastVal && !rising && ppgHistory[i] > threshold) {
+                    peaks++;
+                    rising = true;
+                } else if(ppgHistory[i] < lastVal) {
+                    rising = false;
+                }
+                lastVal = ppgHistory[i];
+            }
+            
+            // No Poco F6, analisamos cerca de 3-4 segundos de buffer
+            const estimatedBpm = peaks * 15; // Aproximação rápida
+            if(estimatedBpm > 40 && estimatedBpm < 180) {
+                bpm = Math.round(bpm * 0.9 + estimatedBpm * 0.1);
+                document.getElementById('bpm-value').innerText = bpm;
+                
+                // Animando o ponto
+                document.getElementById('heart-dot').style.transform = 'scale(1.5)';
+                setTimeout(() => document.getElementById('heart-dot').style.transform = 'scale(1)', 100);
+            }
+        }
+
+        /** AUDIO & VISUAL **/
+        let audioCtx, oscL, oscR, master, isPlaying = false;
+        
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            master = audioCtx.createGain(); master.gain.value = 0;
+            master.connect(audioCtx.destination);
+            
+            oscL = audioCtx.createOscillator(); oscR = audioCtx.createOscillator();
+            const pL = audioCtx.createStereoPanner(); pL.pan.value = -1;
+            const pR = audioCtx.createStereoPanner(); pR.pan.value = 1;
+            
+            oscL.connect(pL); pL.connect(master);
+            oscR.connect(pR); pR.connect(master);
+            
+            oscL.start(); oscR.start();
+            syncAudio();
+        }
+
+        function syncAudio() {
+            if(!audioCtx) return;
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            oscL.frequency.setTargetAtTime(432 - beat/2, audioCtx.currentTime, 0.5);
+            oscR.frequency.setTargetAtTime(432 + beat/2, audioCtx.currentTime, 0.5);
+            document.getElementById('beat-label').innerText = beat;
+        }
+
+        let scene, camera, renderer, material;
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.prepend(renderer.domElement);
+            
+            material = new THREE.ShaderMaterial({
+                uniforms: { u_time: {value:0}, u_res: {value:new THREE.Vector2(window.innerWidth, window.innerHeight)}, u_bpm: {value:0} },
+                vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 1.0); }`,
+                fragmentShader: `
+                    uniform float u_time; uniform vec2 u_res; uniform float u_bpm;
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy * 2.0 - u_res.xy) / min(u_res.y, u_res.x);
+                        float pulse = sin(u_time * (u_bpm > 0.0 ? u_bpm/30.0 : 2.0)) * 0.5 + 0.5;
+                        uv *= (1.0 - pulse * 0.05);
+                        vec3 col = vec3(0.0);
+                        for(float i=0.0; i<3.0; i++) {
+                            uv = fract(uv * 1.5) - 0.5;
+                            float d = length(uv) * exp(-length(uv));
+                            vec3 c = mix(vec3(0.1, 0.2, 0.4), vec3(0.5, 0.1, 0.7), pulse);
+                            col += c * pow(0.01 / abs(sin(d * 8.0 + u_time * 0.4)), 1.2);
+                        }
+                        gl_FragColor = vec4(col, 1.0);
+                    }
+                `
+            });
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), material));
+        }
+
+        function loop(t) {
+            requestAnimationFrame(loop);
+            material.uniforms.u_time.value = t * 0.001;
+            material.uniforms.u_bpm.value = bpm;
+            renderer.render(scene, camera);
+        }
+
+        /** EVENTOS **/
+        document.getElementById('btn-init').addEventListener('click', () => {
+            startCamera();
+            document.getElementById('btn-init').innerText = "Câmera Ativa";
+            document.getElementById('btn-init').classList.add('btn-active');
+        });
+
+        document.getElementById('btn-switch').addEventListener('click', () => {
+            currentDeviceIdx = (currentDeviceIdx + 1) % devices.length;
+            startCamera();
+        });
+
+        document.getElementById('btn-torch').addEventListener('click', async () => {
+            isTorchOn = !isTorchOn;
+            await videoTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+            document.getElementById('btn-torch').classList.toggle('btn-active', isTorchOn);
+        });
+
+        document.getElementById('toggle-play').addEventListener('click', () => {
+            if(!audioCtx) initAudio();
+            isPlaying = !isPlaying;
+            master.gain.setTargetAtTime(isPlaying ? 0.5 : 0, audioCtx.currentTime, 1.5);
+            document.getElementById('play-icon').classList.toggle('hidden', isPlaying);
+            document.getElementById('pause-icon').classList.toggle('hidden', !isPlaying);
+        });
+
+        document.getElementById('btn-gear').addEventListener('click', () => {
+            document.getElementById('settings-panel').classList.toggle('hidden-panel');
+        });
+
+        document.getElementById('beat-freq').addEventListener('input', syncAudio);
+
+        window.onload = () => { initThree(); loop(0); };
+    </script>
+</body>
+</html>
+
