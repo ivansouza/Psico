@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonia - Meditação Melódica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; }
+        
+        .glass {
+            background: rgba(15, 15, 15, 0.7);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-panel {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: bottom right;
+        }
+
+        .hidden-panel {
+            opacity: 0;
+            transform: scale(0.9) translateY(30px);
+            pointer-events: none;
+        }
+
+        input[type="range"] {
+            accent-color: #8b5cf6;
+            height: 4px;
+        }
+
+        .btn-active {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .fade-status {
+            animation: fadeInOut 4s infinite;
+        }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Interface -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 md:p-10">
+        
+        <!-- Identidade Discreta -->
+        <div class="flex justify-start">
+            <div class="opacity-40">
+                <h1 class="text-lg font-light tracking-[0.4em] uppercase">Harmonia</h1>
+                <p id="current-state" class="text-[9px] uppercase tracking-widest mt-1 fade-status">Aguardando início</p>
+            </div>
+        </div>
+
+        <!-- Controles no Canto Inferior Direito -->
+        <div class="flex flex-col items-end gap-3 self-end">
+            
+            <!-- Painel de Configurações -->
+            <div id="settings-panel" class="settings-panel hidden-panel glass p-6 rounded-3xl w-72 md:w-80 pointer-events-auto shadow-2xl mb-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-[10px] font-bold uppercase tracking-widest text-purple-400">Parâmetros</h2>
+                    <span class="text-[9px] opacity-30">Configurações Avançadas</span>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-2 uppercase opacity-60">
+                            <span>Frequência Base: <span id="carrier-val" class="text-white">432</span> Hz</span>
+                        </div>
+                        <input type="range" id="carrier-freq" min="100" max="500" step="1" value="432" class="w-full bg-white/10 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-2 uppercase opacity-60">
+                            <span>Batimento: <span id="beat-val" class="text-white">7.8</span> Hz</span>
+                        </div>
+                        <input type="range" id="beat-freq" min="0.5" max="25" step="0.1" value="7.8" class="w-full bg-white/10 rounded-full appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setPreset(1.5)" class="text-[8px] py-1.5 glass rounded-lg hover:bg-white/10 transition-colors">DELTA</button>
+                        <button onclick="setPreset(6.0)" class="text-[8px] py-1.5 glass rounded-lg hover:bg-white/10 transition-colors">THETA</button>
+                        <button onclick="setPreset(10.5)" class="text-[8px] py-1.5 glass rounded-lg hover:bg-white/10 transition-colors">ALPHA</button>
+                        <button onclick="setPreset(20.0)" class="text-[8px] py-1.5 glass rounded-lg hover:bg-white/10 transition-colors">BETA</button>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-2 uppercase opacity-60">
+                            <span>Volume Musical</span>
+                        </div>
+                        <input type="range" id="harmonic-vol" min="0" max="0.6" step="0.01" value="0.25" class="w-full bg-white/10 rounded-full appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cluster de Botões -->
+            <div class="flex gap-2 pointer-events-auto">
+                <!-- Modo Melódico (Novo) -->
+                <button id="melody-btn" class="glass w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/10 transition-all duration-300" title="Modo Melódico">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </button>
+
+                <!-- Botão Play/Pause -->
+                <button id="toggle-btn" class="glass w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/10 transition-all duration-300 group">
+                    <div id="play-icon" class="w-0 h-0 border-t-[7px] border-t-transparent border-l-[12px] border-l-white border-b-[7px] border-b-transparent ml-0.5"></div>
+                    <div id="pause-icon" class="hidden flex gap-1">
+                        <div class="w-1.5 h-4 bg-white rounded-full"></div>
+                        <div class="w-1.5 h-4 bg-white rounded-full"></div>
+                    </div>
+                </button>
+
+                <!-- Botão Configurações -->
+                <button id="gear-btn" class="glass w-12 h-12 rounded-xl flex items-center justify-center hover:bg-white/10 transition-all duration-300">
+                    <svg id="gear-svg" class="transition-transform duration-700" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_audioIntensity;
+        uniform float u_beatFreq;
+        varying vec2 vUv;
+
+        mat2 rot(float a) {
+            return mat2(cos(a), -sin(a), sin(a), cos(a));
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+            float time = u_time * 0.1;
+            
+            // Caleidoscópio dinâmico
+            float angle = atan(uv.y, uv.x);
+            float radius = length(uv);
+            float segments = 8.0 + sin(u_time * 0.1) * 2.0;
+            float slice = 3.14159 * 2.0 / segments;
+            angle = mod(angle, slice);
+            angle = abs(angle - slice * 0.5);
+            uv = vec2(cos(angle), sin(angle)) * radius;
+
+            uv *= rot(time * 0.3 + u_audioIntensity * 0.1);
+            
+            vec3 color = vec3(0.0);
+            
+            for(float i = 0.0; i < 4.0; i++) {
+                uv = fract(uv * 1.5) - 0.5;
+                float d = length(uv) * exp(-length(uv));
+                
+                // Cores suaves baseadas no tempo e intensidade
+                vec3 c = 0.5 + 0.5 * cos(time + uv.xyx + vec3(0, 2, 4) + (u_beatFreq * 0.05));
+                
+                d = sin(d * 10.0 + time)/10.0;
+                d = abs(d);
+                d = pow(0.01 / d, 1.2);
+                
+                color += c * d;
+            }
+
+            float vignette = 1.0 - smoothstep(0.4, 1.4, length(vUv - 0.5));
+            gl_FragColor = vec4(color * u_audioIntensity * vignette, 1.0);
+        }
+    </script>
+
+    <script>
+        /** AUDIO ENGINE **/
+        let audioCtx, oscillators = {}, gains = {}, analyser, isPlaying = false, isMelodyActive = false;
+        let melodyInterval;
+
+        const SCALES = [1, 1.125, 1.25, 1.5, 1.666]; // Proporções musicais puras
+
+        const initAudio = () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            
+            gains.master = audioCtx.createGain();
+            gains.master.gain.value = 0;
+            gains.master.connect(audioCtx.destination);
+            gains.master.connect(analyser);
+
+            gains.harmonics = audioCtx.createGain();
+            gains.harmonics.connect(gains.master);
+
+            const pannerL = audioCtx.createStereoPanner(); pannerL.pan.value = -1; pannerL.connect(gains.master);
+            const pannerR = audioCtx.createStereoPanner(); pannerR.pan.value = 1; pannerR.connect(gains.master);
+
+            oscillators.left = audioCtx.createOscillator();
+            oscillators.right = audioCtx.createOscillator();
+            oscillators.h1 = audioCtx.createOscillator();
+            oscillators.h2 = audioCtx.createOscillator();
+
+            oscillators.left.type = 'sine';
+            oscillators.right.type = 'sine';
+            oscillators.h1.type = 'sine';
+            oscillators.h2.type = 'sine';
+
+            oscillators.left.connect(pannerL);
+            oscillators.right.connect(pannerR);
+            oscillators.h1.connect(gains.harmonics);
+            oscillators.h2.connect(gains.harmonics);
+
+            updateFrequencies();
+
+            Object.values(oscillators).forEach(osc => osc.start());
+        };
+
+        const updateFrequencies = (transitionTime = 0.5) => {
+            if (!audioCtx) return;
+            const carrier = parseFloat(document.getElementById('carrier-freq').value);
+            const beat = parseFloat(document.getElementById('beat-freq').value);
+            const hVol = parseFloat(document.getElementById('harmonic-vol').value);
+
+            oscillators.left.frequency.setTargetAtTime(carrier - (beat / 2), audioCtx.currentTime, transitionTime);
+            oscillators.right.frequency.setTargetAtTime(carrier + (beat / 2), audioCtx.currentTime, transitionTime);
+            
+            // Harmônicos dinâmicos
+            oscillators.h1.frequency.setTargetAtTime(carrier * 1.5, audioCtx.currentTime, transitionTime);
+            oscillators.h2.frequency.setTargetAtTime(carrier * 0.75, audioCtx.currentTime, transitionTime);
+            
+            gains.harmonics.gain.setTargetAtTime(hVol, audioCtx.currentTime, 0.2);
+            
+            document.getElementById('carrier-val').innerText = carrier;
+            document.getElementById('beat-val').innerText = beat;
+        };
+
+        /** MODO MELÓDICO **/
+        const toggleMelody = () => {
+            isMelodyActive = !isMelodyActive;
+            const btn = document.getElementById('melody-btn');
+            
+            if (isMelodyActive) {
+                btn.classList.add('btn-active');
+                stateText.innerText = "Sinfonia Ativa";
+                startMelody();
+            } else {
+                btn.classList.remove('btn-active');
+                stateText.innerText = isPlaying ? "Em Ressonância" : "Pausado";
+                clearInterval(melodyInterval);
+                updateFrequencies(2.0); // Retorna ao tom original suavemente
+            }
+        };
+
+        const startMelody = () => {
+            const baseCarrier = parseFloat(document.getElementById('carrier-freq').value);
+            
+            melodyInterval = setInterval(() => {
+                if (!isPlaying) return;
+                
+                // Escolhe um intervalo musical aleatório da escala
+                const multiplier = SCALES[Math.floor(Math.random() * SCALES.length)];
+                const nextFreq = baseCarrier * multiplier;
+                
+                const beat = parseFloat(document.getElementById('beat-freq').value);
+                
+                // Transição suave para a nova "nota"
+                oscillators.left.frequency.setTargetAtTime(nextFreq - (beat/2), audioCtx.currentTime, 1.5);
+                oscillators.right.frequency.setTargetAtTime(nextFreq + (beat/2), audioCtx.currentTime, 1.5);
+                oscillators.h1.frequency.setTargetAtTime(nextFreq * 2.0, audioCtx.currentTime, 2.0);
+                oscillators.h2.frequency.setTargetAtTime(nextFreq * 0.5, audioCtx.currentTime, 2.0);
+
+            }, 6000 + Math.random() * 4000); // Muda a cada 6-10 segundos
+        };
+
+        /** VISUALS **/
+        let scene, camera, renderer, material, dataArray;
+
+        const initVisuals = () => {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.prepend(renderer.domElement);
+
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_time: { value: 0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_audioIntensity: { value: 0.5 },
+                    u_beatFreq: { value: 7.8 }
+                },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+
+            window.addEventListener('resize', () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        const animate = (time) => {
+            requestAnimationFrame(animate);
+            let intensity = 0.5;
+            if (analyser && isPlaying) {
+                if (!dataArray) dataArray = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for(let i = 0; i < 12; i++) sum += dataArray[i];
+                intensity = 0.4 + (sum / 12) / 180.0;
+            }
+            material.uniforms.u_time.value = time * 0.001;
+            material.uniforms.u_audioIntensity.value = intensity;
+            material.uniforms.u_beatFreq.value = parseFloat(document.getElementById('beat-freq').value);
+            renderer.render(scene, camera);
+        };
+
+        /** UI LOGIC **/
+        const toggleBtn = document.getElementById('toggle-btn');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const gearBtn = document.getElementById('gear-btn');
+        const gearSvg = document.getElementById('gear-svg');
+        const settingsPanel = document.getElementById('settings-panel');
+        const stateText = document.getElementById('current-state');
+        const melodyBtn = document.getElementById('melody-btn');
+
+        gearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = settingsPanel.classList.contains('hidden-panel');
+            settingsPanel.classList.toggle('hidden-panel');
+            gearSvg.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+        });
+
+        document.body.addEventListener('click', (e) => {
+            if (!settingsPanel.contains(e.target) && !gearBtn.contains(e.target)) {
+                settingsPanel.classList.add('hidden-panel');
+                gearSvg.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        toggleBtn.addEventListener('click', async () => {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            if (!isPlaying) {
+                gains.master.gain.setTargetAtTime(0.6, audioCtx.currentTime, 2.0);
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                stateText.innerText = isMelodyActive ? "Sinfonia Ativa" : "Em Ressonância";
+                isPlaying = true;
+            } else {
+                gains.master.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                stateText.innerText = "Pausado";
+                isPlaying = false;
+            }
+        });
+
+        melodyBtn.addEventListener('click', toggleMelody);
+
+        document.querySelectorAll('input').forEach(el => el.addEventListener('input', () => updateFrequencies()));
+
+        function setPreset(val) {
+            document.getElementById('beat-freq').value = val;
+            updateFrequencies();
+        }
+
+        window.onload = () => {
+            initVisuals();
+            animate(0);
+        };
+    </script>
+</body>
+</html>
+
