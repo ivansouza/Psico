@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4D Tesseract - LocalStorage Persistence</title>
+    <title>4D Tesseract - Advanced Pro Edition</title>
     <style>
         :root {
             --neon-cyan: #00ffff;
             --neon-magenta: #ff00ff;
-            --glass-bg: rgba(15, 15, 25, 0.8);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(10, 10, 22, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent-green: #00ff88;
         }
 
         body { 
             margin: 0; 
-            background-color: #020205; 
+            background-color: #010103; 
             overflow: hidden; 
             font-family: 'Inter', -apple-system, sans-serif;
             user-select: none;
@@ -31,7 +32,7 @@
 
         h1 { 
             margin: 0; 
-            font-size: 1.2rem; 
+            font-size: 1.1rem; 
             letter-spacing: 4px; 
             color: var(--neon-cyan);
             text-shadow: 0 0 15px var(--neon-cyan);
@@ -49,14 +50,14 @@
         }
 
         .controls-hint {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
             text-transform: uppercase;
             letter-spacing: 2px;
             line-height: 1.6;
         }
 
-        /* Gear Button */
+        /* Settings Gear Button */
         #settings-trigger {
             position: absolute;
             top: 25px;
@@ -72,18 +73,18 @@
             justify-content: center;
             cursor: pointer;
             backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #settings-trigger:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: rotate(45deg);
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(60deg);
         }
 
         #settings-trigger svg {
             fill: var(--neon-cyan);
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
         }
 
         /* Settings Panel */
@@ -100,24 +101,24 @@
             z-index: 25;
             display: none;
             flex-direction: column;
-            gap: 20px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            gap: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateX(30px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
         }
 
         .setting-group {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
         }
 
         .setting-label {
-            font-size: 10px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             color: var(--neon-cyan);
@@ -139,32 +140,32 @@
 
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
+            height: 14px;
+            width: 14px;
             border-radius: 50%;
             background: var(--neon-cyan);
-            margin-top: -7px;
+            margin-top: -6px;
             cursor: pointer;
-            box-shadow: 0 0 12px var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
         }
 
-        .color-inputs {
+        .color-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
 
-        .color-picker-wrapper {
+        .color-item {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
         }
 
         input[type=color] {
             -webkit-appearance: none;
             border: none;
             width: 100%;
-            height: 34px;
+            height: 30px;
             background: transparent;
             cursor: pointer;
         }
@@ -172,36 +173,63 @@
         input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type=color]::-webkit-color-swatch {
             border: 1px solid var(--glass-border);
-            border-radius: 6px;
+            border-radius: 4px;
         }
 
-        button#save-btn {
-            background: var(--neon-cyan);
-            color: #020205;
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
             border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 11px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
             cursor: pointer;
             transition: all 0.2s ease;
-            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-        button#save-btn:hover {
-            transform: translateY(-2px);
+        #save-btn {
+            background: var(--neon-cyan);
+            color: #020205;
+        }
+
+        #save-btn:hover {
             box-shadow: 0 0 15px var(--neon-cyan);
+            transform: translateY(-1px);
         }
 
-        #save-status {
-            font-size: 9px;
+        #copy-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 1px solid var(--glass-border);
+        }
+
+        #copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        #feedback-msg {
+            font-size: 8px;
             text-align: center;
-            color: #00ff88;
+            height: 12px;
             opacity: 0;
             transition: opacity 0.3s;
         }
+
+        #feedback-msg.show { opacity: 1; }
+        .msg-success { color: var(--accent-green); }
 
         canvas { display: block; touch-action: none; }
     </style>
@@ -213,7 +241,7 @@
 
     <div id="settings-trigger" title="Settings">
         <svg viewBox="0 0 24 24">
-            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.12L14.47,2.47C14.44,2.23 14.24,2.05 14,2.05H10C9.76,2.05 9.56,2.23 9.53,2.47L9.14,5.12C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.53,18.66 9.14,18.88L9.53,21.53C9.56,21.77 9.76,21.95 10,21.95H14C14.24,21.95 14.44,21.77 14.47,21.53L14.86,18.88C15.47,18.66 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.12L14.47,2.47C14.44,2.23 14.24,2.05 14,2.05H10C9.76,2.05 9.56,2.23 9.53,2.47L9.14,5.12C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.53,18.66 9.14,18.88L9.53,21.53C9.56,21.77 9.76,21.95 10,21.95H14C14.24,21.95 14.44,21.77 14.47,21.53L14.86,18.88C15.47,18.66 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
         </svg>
     </div>
 
@@ -224,32 +252,44 @@
         </div>
 
         <div class="setting-group">
-            <div class="setting-label"><span>Thickness</span><span id="thick-val">0.14</span></div>
-            <input type="range" id="thickSlider" min="0.02" max="0.5" step="0.01" value="0.14">
+            <div class="setting-label"><span>Thickness</span><span id="thick-val">0.07</span></div>
+            <input type="range" id="thickSlider" min="0.01" max="0.4" step="0.01" value="0.07">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label"><span>Glass Opacity</span><span id="glass-val">0.20</span></div>
+            <input type="range" id="glassSlider" min="0" max="1" step="0.01" value="0.2">
         </div>
 
         <div class="setting-group">
             <div class="setting-label">Colors</div>
-            <div class="color-inputs">
-                <div class="color-picker-wrapper">
-                    <span style="font-size: 7px; opacity: 0.6; text-transform: uppercase;">Edges</span>
-                    <input type="color" id="edgeColor" value="#ff00ff">
+            <div class="color-grid">
+                <div class="color-item">
+                    <span style="font-size: 6px; opacity: 0.6;">Edges</span>
+                    <input type="color" id="edgeColor" value="#ff0000">
                 </div>
-                <div class="color-picker-wrapper">
-                    <span style="font-size: 7px; opacity: 0.6; text-transform: uppercase;">Joints</span>
+                <div class="color-item">
+                    <span style="font-size: 6px; opacity: 0.6;">Joints</span>
                     <input type="color" id="jointColor" value="#00ffff">
+                </div>
+                <div class="color-item">
+                    <span style="font-size: 6px; opacity: 0.6;">Glass</span>
+                    <input type="color" id="glassColor" value="#4444ff">
                 </div>
             </div>
         </div>
 
-        <button id="save-btn">Save to Browser</button>
-        <div id="save-status">Settings saved locally!</div>
+        <div class="action-buttons">
+            <button id="save-btn" class="btn">Save to Browser</button>
+            <button id="copy-btn" class="btn">Copy Config JSON</button>
+        </div>
+        <div id="feedback-msg"></div>
     </div>
 
     <div id="ui-bottom">
         <div class="controls-hint">
-            Drag to Orbit • Scroll to Zoom<br>
-            Settings saved in browser storage
+            Orbit: Drag • Zoom: Scroll / Pinch<br>
+            Glass Edition • Axis Lighting System
         </div>
     </div>
 
@@ -258,195 +298,295 @@
 
     <script>
         /**
-         * 4D Tesseract with Browser-side Persistence
+         * 4D Tesseract - Advanced Glass Edition
+         * Modified Sphere scaling to be smaller and more compatible with polygons.
          */
         
         let scene, camera, renderer, controls;
         let vertexMeshes = [];
         let edgeMeshes = [];
+        let glassMesh;
+        
         let vertices4D = [];
-        let edges = [];
+        let edgesIndices = [];
+        let facesIndices = [];
 
         // App State
         let accumulatedTime = 0;
         let lastTimestamp = 0;
-        
-        // Initial defaults
+        const STORAGE_KEY = 'tesseract_glass_v2_cfg';
+
         const state = {
-            speed: 1.0,
-            thickness: 0.14,
-            edgeColor: '#ff00ff',
-            jointColor: '#00ffff'
+            speed: 1,
+            thickness: 0.07,
+            glassOpacity: 0.2,
+            edgeColor: '#ff0000',
+            jointColor: '#00ffff',
+            glassColor: '#4444ff'
         };
 
-        const STORAGE_KEY = 'tesseract_user_config';
+        function showFeedback(text, isError = false) {
+            const el = document.getElementById('feedback-msg');
+            el.textContent = text;
+            el.className = isError ? 'msg-error show' : 'msg-success show';
+            setTimeout(() => el.className = '', 2000);
+        }
 
-        // Save to LocalStorage
-        function saveToLocalStorage() {
-            const config = {
+        function getFullConfig() {
+            return {
                 state: state,
                 camera: {
                     position: camera.position.toArray(),
                     target: controls.target.toArray()
-                }
+                },
+                timestamp: new Date().toISOString()
             };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-            
-            const status = document.getElementById('save-status');
-            status.style.opacity = 1;
-            setTimeout(() => status.style.opacity = 0, 2000);
         }
 
-        // Load from LocalStorage
-        function loadFromLocalStorage() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) return;
+        function copyToClipboard() {
+            const configStr = JSON.stringify(getFullConfig(), null, 2);
+            const textArea = document.createElement("textarea");
+            textArea.value = configStr;
+            textArea.style.position = "fixed"; 
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
 
             try {
-                const config = JSON.parse(saved);
-                Object.assign(state, config.state);
+                const successful = document.execCommand('copy');
+                if (successful) showFeedback("Config copied to clipboard!");
+                else showFeedback("Copy failed", true);
+            } catch (err) {
+                showFeedback("Error copying", true);
+            }
+            document.body.removeChild(textArea);
+        }
 
-                // Update UI elements
-                document.getElementById('speedSlider').value = state.speed;
-                document.getElementById('thickSlider').value = state.thickness;
-                document.getElementById('edgeColor').value = state.edgeColor;
-                document.getElementById('jointColor').value = state.jointColor;
-                
-                document.getElementById('speed-val').textContent = state.speed.toFixed(1) + 'x';
-                document.getElementById('thick-val').textContent = state.thickness.toFixed(2);
+        function saveConfig() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(getFullConfig()));
+            showFeedback("Saved to browser storage!");
+        }
 
-                // Update Camera if it exists
-                if (config.camera) {
-                    camera.position.fromArray(config.camera.position);
-                    controls.target.fromArray(config.camera.target);
+        function loadConfig() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+            try {
+                const cfg = JSON.parse(saved);
+                Object.assign(state, cfg.state);
+
+                if (cfg.camera) {
+                    camera.position.fromArray(cfg.camera.position);
+                    controls.target.fromArray(cfg.camera.target);
                     controls.update();
                 }
 
-                // Immediate visual update for colors and scale
+                // Sync UI Inputs
+                document.getElementById('speedSlider').value = state.speed;
+                document.getElementById('thickSlider').value = state.thickness;
+                document.getElementById('glassSlider').value = state.glassOpacity;
+                document.getElementById('edgeColor').value = state.edgeColor;
+                document.getElementById('jointColor').value = state.jointColor;
+                document.getElementById('glassColor').value = state.glassColor;
+
+                syncUIStrings();
                 updateVisuals();
-            } catch (e) {
-                console.warn("Failed to parse saved config", e);
-            }
+            } catch (e) { console.warn("Load failed", e); }
+        }
+
+        function syncUIStrings() {
+            document.getElementById('speed-val').textContent = state.speed.toFixed(1) + 'x';
+            document.getElementById('thick-val').textContent = state.thickness.toFixed(2);
+            document.getElementById('glass-val').textContent = state.glassOpacity.toFixed(2);
         }
 
         function updateVisuals() {
-            edgeMeshes.forEach(m => m.material.color.set(state.edgeColor));
+            edgeMeshes.forEach(m => {
+                m.material.color.set(state.edgeColor);
+            });
             vertexMeshes.forEach(m => {
                 m.material.color.set(state.jointColor);
-                m.scale.setScalar(state.thickness / 0.14);
+                // Scaling factor for spheres: make them slightly wider than the lines (1.2x)
+                m.scale.setScalar(state.thickness * 1.2 / 0.1); 
+            });
+            if(glassMesh) {
+                glassMesh.material.color.set(state.glassColor);
+                glassMesh.material.opacity = state.glassOpacity;
+            }
+        }
+
+        function setupData() {
+            for (let i = 0; i < 16; i++) {
+                vertices4D.push(new THREE.Vector4(
+                    (i & 1) ? 1 : -1, (i & 2) ? 1 : -1, (i & 4) ? 1 : -1, (i & 8) ? 1 : -1
+                ));
+            }
+            for (let i = 0; i < 16; i++) {
+                for (let j = 0; j < 4; j++) {
+                    let neighbor = i ^ (1 << j);
+                    if (neighbor > i) edgesIndices.push([i, neighbor]);
+                }
+            }
+            for (let i = 0; i < 16; i++) {
+                for (let d1 = 0; d1 < 4; d1++) {
+                    for (let d2 = d1 + 1; d2 < 4; d2++) {
+                        if (!((i >> d1) & 1) && !((i >> d2) & 1)) {
+                            let v1 = i, v2 = i | (1 << d1), v3 = i | (1 << d1) | (1 << d2), v4 = i | (1 << d2);
+                            facesIndices.push(v1, v2, v3, v1, v3, v4);
+                        }
+                    }
+                }
+            }
+        }
+
+        function setupLights() {
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const lightDistance = 8;
+            const intensity = 1.2;
+
+            const lights = [
+                { pos: [lightDistance, 0, 0], col: 0xffffff },
+                { pos: [-lightDistance, 0, 0], col: 0xccffff },
+                { pos: [0, lightDistance, 0], col: 0xffffff },
+                { pos: [0, -lightDistance, 0], col: 0xffccff },
+                { pos: [0, 0, lightDistance], col: 0xffffff },
+                { pos: [0, 0, -lightDistance], col: 0xffffcc }
+            ];
+
+            lights.forEach(l => {
+                const pLight = new THREE.PointLight(l.col, intensity);
+                pLight.position.set(...l.pos);
+                scene.add(pLight);
             });
         }
 
         function setupGeometry() {
-            // 1. Generate 16 vertices of a 4D Hypercube
-            for (let i = 0; i < 16; i++) {
-                vertices4D.push(new THREE.Vector4(
-                    (i & 1) ? 1 : -1,
-                    (i & 2) ? 1 : -1,
-                    (i & 4) ? 1 : -1,
-                    (i & 8) ? 1 : -1
-                ));
-            }
-
-            // 2. Define the 32 edges
-            for (let i = 0; i < 16; i++) {
-                for (let j = 0; j < 4; j++) {
-                    let neighbor = i ^ (1 << j);
-                    if (neighbor > i) edges.push([i, neighbor]);
-                }
-            }
-
-            const vMaterial = new THREE.MeshBasicMaterial({ color: state.jointColor });
-            const eMaterial = new THREE.MeshBasicMaterial({ 
-                color: state.edgeColor, 
-                transparent: true, 
-                opacity: 0.8 
+            // Using a base sphere with radius 0.1
+            const sphereGeo = new THREE.SphereGeometry(0.1, 20, 20);
+            const vMat = new THREE.MeshStandardMaterial({ 
+                color: state.jointColor,
+                metalness: 0.6,
+                roughness: 0.2
             });
 
-            const sphereGeo = new THREE.SphereGeometry(0.18, 24, 24);
             for (let i = 0; i < 16; i++) {
-                const mesh = new THREE.Mesh(sphereGeo, vMaterial);
+                const mesh = new THREE.Mesh(sphereGeo, vMat);
                 scene.add(mesh);
                 vertexMeshes.push(mesh);
             }
 
             const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+            const eMat = new THREE.MeshStandardMaterial({ 
+                color: state.edgeColor, 
+                transparent: true, 
+                opacity: 0.8,
+                metalness: 0.8,
+                roughness: 0.1
+            });
+
             for (let i = 0; i < 32; i++) {
-                const mesh = new THREE.Mesh(boxGeo, eMaterial);
+                const mesh = new THREE.Mesh(boxGeo, eMat);
                 scene.add(mesh);
                 edgeMeshes.push(mesh);
             }
+
+            const faceGeo = new THREE.BufferGeometry();
+            const facePos = new Float32Array(facesIndices.length * 3);
+            faceGeo.setAttribute('position', new THREE.BufferAttribute(facePos, 3));
+            
+            const fMat = new THREE.MeshPhysicalMaterial({ 
+                color: state.glassColor, 
+                transparent: true, 
+                opacity: state.glassOpacity, 
+                side: THREE.DoubleSide, 
+                depthWrite: false,
+                roughness: 0.05,
+                metalness: 0.1,
+                reflectivity: 1.0,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0
+            });
+
+            glassMesh = new THREE.Mesh(faceGeo, fMat);
+            scene.add(glassMesh);
         }
 
         function rotate4D(v, t) {
-            let rotated = v.clone();
+            let p = v.clone();
             const s1 = Math.sin(t * 0.4), c1 = Math.cos(t * 0.4);
-            const x = rotated.x * c1 - rotated.w * s1, w = rotated.x * s1 + rotated.w * c1;
-            rotated.x = x; rotated.w = w;
-
+            const x = p.x * c1 - p.w * s1, w = p.x * s1 + p.w * c1;
+            p.x = x; p.w = w;
             const s2 = Math.sin(t * 0.25), c2 = Math.cos(t * 0.25);
-            const y = rotated.y * c2 - rotated.z * s2, z = rotated.y * s2 + rotated.z * c2;
-            rotated.y = y; rotated.z = z;
-            return rotated;
+            const y = p.y * c2 - p.z * s2, z = p.y * s2 + p.z * c2;
+            p.y = y; p.z = z;
+            return p;
         }
 
         function project(v) {
-            const d = 3.0;
-            const factor = d / (d - v.w);
+            const factor = 3.0 / (3.0 - v.w);
             return new THREE.Vector3(v.x * factor, v.y * factor, v.z * factor);
         }
 
         function initUI() {
-            const gear = document.getElementById('settings-trigger');
-            const panel = document.getElementById('settings-panel');
-            const saveBtn = document.getElementById('save-btn');
+            document.getElementById('settings-trigger').onclick = () => {
+                const p = document.getElementById('settings-panel');
+                p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
+            };
 
-            gear.onclick = () => panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
-            
             document.getElementById('speedSlider').oninput = (e) => {
-                state.speed = parseFloat(e.target.value);
-                document.getElementById('speed-val').textContent = state.speed.toFixed(1) + 'x';
+                state.speed = parseFloat(e.target.value); syncUIStrings();
             };
-
             document.getElementById('thickSlider').oninput = (e) => {
-                state.thickness = parseFloat(e.target.value);
-                document.getElementById('thick-val').textContent = state.thickness.toFixed(2);
-                const sphereScale = state.thickness / 0.14;
-                vertexMeshes.forEach(m => m.scale.setScalar(sphereScale));
+                state.thickness = parseFloat(e.target.value); syncUIStrings();
+                // Update sphere scale proportional to thickness
+                vertexMeshes.forEach(m => m.scale.setScalar(state.thickness * 1.2 / 0.1));
             };
-
+            document.getElementById('glassSlider').oninput = (e) => {
+                state.glassOpacity = parseFloat(e.target.value); syncUIStrings();
+                glassMesh.material.opacity = state.glassOpacity;
+            };
             document.getElementById('edgeColor').oninput = (e) => {
-                state.edgeColor = e.target.value;
-                edgeMeshes.forEach(m => m.material.color.set(state.edgeColor));
+                state.edgeColor = e.target.value; updateVisuals();
             };
-
             document.getElementById('jointColor').oninput = (e) => {
-                state.jointColor = e.target.value;
-                vertexMeshes.forEach(m => m.material.color.set(state.jointColor));
+                state.jointColor = e.target.value; updateVisuals();
+            };
+            document.getElementById('glassColor').oninput = (e) => {
+                state.glassColor = e.target.value; updateVisuals();
             };
 
-            saveBtn.onclick = saveToLocalStorage;
+            document.getElementById('save-btn').onclick = saveConfig;
+            document.getElementById('copy-btn').onclick = copyToClipboard;
         }
 
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(5, 5, 8);
+            
+            // Initial camera from your config
+            camera.position.set(5.0703, -8.9770, 2.7760);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
             document.body.appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
 
+            setupData();
+            setupLights();
             setupGeometry();
             initUI();
             
-            // Restore from Browser Storage immediately
-            loadFromLocalStorage();
+            loadConfig(); 
 
             lastTimestamp = performance.now();
             animate();
@@ -454,29 +594,30 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            
             const now = performance.now();
             const delta = (now - lastTimestamp) * 0.001;
             lastTimestamp = now;
-
             accumulatedTime += delta * state.speed;
 
-            const projectedPoints = vertices4D.map(v => project(rotate4D(v, accumulatedTime)));
+            const projected = vertices4D.map(v => project(rotate4D(v, accumulatedTime)));
 
-            projectedPoints.forEach((p, i) => vertexMeshes[i].position.copy(p));
+            projected.forEach((p, i) => vertexMeshes[i].position.copy(p));
 
-            edges.forEach((edge, i) => {
-                const p1 = projectedPoints[edge[0]];
-                const p2 = projectedPoints[edge[1]];
-                const mesh = edgeMeshes[i];
-
+            edgesIndices.forEach((edge, i) => {
+                const p1 = projected[edge[0]], p2 = projected[edge[1]], mesh = edgeMeshes[i];
                 mesh.position.copy(p1).add(p2).multiplyScalar(0.5);
-                const direction = new THREE.Vector3().subVectors(p2, p1);
-                const len = direction.length();
-                
-                mesh.scale.set(state.thickness, len, state.thickness);
-                mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+                const dir = new THREE.Vector3().subVectors(p2, p1);
+                mesh.scale.set(state.thickness, dir.length(), state.thickness);
+                mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
             });
+
+            const posAttr = glassMesh.geometry.attributes.position.array;
+            for (let i = 0; i < facesIndices.length; i++) {
+                const p = projected[facesIndices[i]];
+                posAttr[i * 3 + 0] = p.x; posAttr[i * 3 + 1] = p.y; posAttr[i * 3 + 2] = p.z;
+            }
+            glassMesh.geometry.attributes.position.needsUpdate = true;
+            glassMesh.geometry.computeVertexNormals();
 
             controls.update();
             renderer.render(scene, camera);
