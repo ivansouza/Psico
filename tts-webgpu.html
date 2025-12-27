@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STT Local com WebGPU</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-bar { transition: width 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
+
+    <div class="max-w-2xl w-full bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700 mt-10">
+        <h1 class="text-2xl font-bold mb-2 flex items-center gap-2">
+            <span>🎙️</span> Transcritor Local WebGPU
+        </h1>
+        <p class="text-slate-400 text-sm mb-6">
+            O Whisper roda 100% no seu dispositivo. Nenhum áudio sai deste celular/computador.
+        </p>
+
+        <!-- Seção de Status do Modelo -->
+        <div id="setup-container" class="space-y-4 mb-8">
+            <div id="status-text" class="text-sm font-medium">Verificando suporte a WebGPU...</div>
+            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden hidden" id="progress-parent">
+                <div id="progress-bar" class="loading-bar bg-blue-500 h-full w-0"></div>
+            </div>
+            <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition hidden">
+                Baixar e Inicializar Modelo (~40MB)
+            </button>
+        </div>
+
+        <!-- Seção de Controles -->
+        <div id="controls" class="hidden flex flex-col gap-4">
+            <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div id="mic-indicator" class="w-3 h-3 rounded-full bg-slate-600"></div>
+                    <span id="mic-status" class="text-sm font-mono">Pronto</span>
+                </div>
+                <button id="toggle-mic" class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-bold transition">
+                    Iniciar Gravação
+                </button>
+            </div>
+
+            <div class="relative">
+                <div id="transcript" class="w-full h-64 bg-slate-950 rounded-xl p-4 font-mono text-sm overflow-y-auto border border-slate-800 whitespace-pre-wrap leading-relaxed">
+                    A transcrição aparecerá aqui...
+                </div>
+                <div id="latency" class="absolute bottom-2 right-4 text-[10px] text-slate-500 uppercase tracking-widest font-bold"></div>
+            </div>
+            
+            <button id="clear-btn" class="text-xs text-slate-500 hover:text-slate-300 self-end font-medium">Limpar Transcrição</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
+
+        // Configuração
+        const MODEL_ID = 'onnx-community/whisper-tiny'; // Versão multilingue para Português
+        let transcriber = null;
+        let isRecording = false;
+        let audioContext, stream, processor;
+
+        const loadBtn = document.getElementById('load-btn');
+        const statusText = document.getElementById('status-text');
+        const progressParent = document.getElementById('progress-parent');
+        const progressBar = document.getElementById('progress-bar');
+        const controls = document.getElementById('controls');
+        const transcriptEl = document.getElementById('transcript');
+        const toggleMicBtn = document.getElementById('toggle-mic');
+        const micIndicator = document.getElementById('mic-indicator');
+        const latencyEl = document.getElementById('latency');
+
+        // Verificar suporte a WebGPU
+        async function checkWebGPU() {
+            if (!navigator.gpu) {
+                statusText.innerText = "❌ WebGPU não suportado neste navegador. Use Chrome ou Edge (versões recentes).";
+                statusText.classList.add('text-red-400');
+                return;
+            }
+            statusText.innerText = "✅ WebGPU suportado! Clique abaixo para carregar o modelo localmente.";
+            loadBtn.classList.remove('hidden');
+        }
+
+        loadBtn.onclick = async () => {
+            loadBtn.disabled = true;
+            loadBtn.innerText = "Inicializando...";
+            progressParent.classList.remove('hidden');
+
+            try {
+                // Carrega o pipeline de ASR (Reconhecimento de fala)
+                transcriber = await pipeline('automatic-speech-recognition', MODEL_ID, {
+                    device: 'webgpu',
+                    dtype: 'fp32', 
+                    progress_callback: (p) => {
+                        if (p.status === 'progress') {
+                            progressBar.style.width = `${p.progress}%`;
+                            statusText.innerText = `Baixando modelo: ${Math.round(p.progress)}%`;
+                        }
+                    }
+                });
+
+                statusText.innerText = "🚀 Modelo carregado e salvo em cache!";
+                loadBtn.classList.add('hidden');
+                progressParent.classList.add('hidden');
+                controls.classList.remove('hidden');
+            } catch (err) {
+                statusText.innerText = `Erro: ${err.message}`;
+                loadBtn.disabled = false;
+            }
+        };
+
+        async function startRecording() {
+            try {
+                audioContext = new AudioContext({ sampleRate: 16000 });
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioContext.createMediaStreamSource(stream);
+                
+                // Buffer de 4096 amostras (~250ms a 16kHz)
+                processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                let audioBuffer = [];
+                
+                processor.onaudioprocess = async (e) => {
+                    if (!isRecording) return;
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    audioBuffer.push(...inputData);
+
+                    // Processa a cada 3 segundos de áudio acumulado
+                    if (audioBuffer.length > 16000 * 3) {
+                        const toProcess = new Float32Array(audioBuffer);
+                        audioBuffer = []; 
+                        
+                        const start = performance.now();
+                        // Forçamos o idioma para Português (pt)
+                        const result = await transcriber(toProcess, {
+                            language: 'portuguese',
+                            task: 'transcribe'
+                        });
+                        const end = performance.now();
+
+                        if (result.text && result.text.trim()) {
+                            if (transcriptEl.innerText === "A transcrição aparecerá aqui...") {
+                                transcriptEl.innerText = "";
+                            }
+                            transcriptEl.innerText += " " + result.text;
+                            transcriptEl.scrollTop = transcriptEl.scrollHeight;
+                            latencyEl.innerText = `Inferência: ${Math.round(end - start)}ms`;
+                        }
+                    }
+                };
+
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                isRecording = true;
+                toggleMicBtn.innerText = "Parar Gravação";
+                toggleMicBtn.classList.replace('bg-red-600', 'bg-slate-700');
+                micIndicator.classList.replace('bg-slate-600', 'bg-red-500');
+                micIndicator.classList.add('animate-pulse');
+            } catch (err) {
+                console.error("Erro ao acessar microfone:", err);
+                alert("Não foi possível acessar o microfone. Verifique as permissões.");
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            stream?.getTracks().forEach(t => t.stop());
+            audioContext?.close();
+            toggleMicBtn.innerText = "Iniciar Gravação";
+            toggleMicBtn.classList.replace('bg-slate-700', 'bg-red-600');
+            micIndicator.classList.replace('bg-red-500', 'bg-slate-600');
+            micIndicator.classList.remove('animate-pulse');
+        }
+
+        toggleMicBtn.onclick = () => {
+            if (isRecording) stopRecording();
+            else startRecording();
+        };
+
+        document.getElementById('clear-btn').onclick = () => {
+            transcriptEl.innerText = "A transcrição aparecerá aqui...";
+            latencyEl.innerText = "";
+        };
+
+        checkWebGPU();
+    </script>
+</body>
+</html>
+
