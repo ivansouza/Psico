@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Túnel Óptico - Persistência e Exportação</title>
+    <title>Túnel Óptico - Persistência Total</title>
     <style>
         :root {
             --glass-bg: rgba(255, 255, 255, 0.1);
@@ -182,13 +182,13 @@
         
         const LOCAL_STORAGE_KEY = 'tunnel_initial_state';
 
-        // Estado Global atualizado com os novos valores iniciais
+        // Estado Global sincronizado com o JSON fornecido
         const params = {
             time: 0,
             zoom: 1.8,
             targetZoom: 1.8,
-            offset: new THREE.Vector2(0, 0),
-            targetOffset: new THREE.Vector2(0, 0),
+            offset: new THREE.Vector2(1.1572, 1.8411),
+            targetOffset: new THREE.Vector2(1.1572, 1.8411),
             config: {
                 speed: 1.6,
                 rotation: -1.4,
@@ -226,10 +226,13 @@
                 speed: document.getElementById('speed').value,
                 rotation: document.getElementById('rotation').value,
                 complexity: document.getElementById('complexity').value,
-                zoomBase: document.getElementById('zoomBase').value
+                zoomBase: document.getElementById('zoomBase').value,
+                orbitX: params.targetOffset.x,
+                orbitY: params.targetOffset.y,
+                currentZoom: params.targetZoom
             };
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
-            showToast("Estado inicial guardado!");
+            showToast("Estado e Órbita guardados!");
         }
 
         function copyToClipboard() {
@@ -240,6 +243,11 @@
                 rotation: parseFloat(document.getElementById('rotation').value),
                 complexity: parseFloat(document.getElementById('complexity').value),
                 zoomBase: parseFloat(document.getElementById('zoomBase').value),
+                orbit: {
+                    x: parseFloat(params.targetOffset.x.toFixed(4)),
+                    y: parseFloat(params.targetOffset.y.toFixed(4))
+                },
+                zoom: parseFloat(params.targetZoom.toFixed(4)),
                 timestamp: new Date().toISOString()
             };
             
@@ -251,7 +259,7 @@
             textArea.select();
             try {
                 document.execCommand('copy');
-                showToast("JSON copiado!");
+                showToast("JSON Completo copiado!");
             } catch (err) {
                 showToast("Erro ao copiar.");
             }
@@ -268,5 +276,201 @@
                     document.getElementById('speed').value = data.speed;
                     document.getElementById('rotation').value = data.rotation;
                     document.getElementById('complexity').value = data.complexity;
-                    document.getElementById('zoomBase').value = data.
+                    document.getElementById('zoomBase').value = data.zoomBase;
+
+                    if (data.orbitX !== undefined) {
+                        params.targetOffset.x = parseFloat(data.orbitX);
+                        params.offset.x = parseFloat(data.orbitX);
+                    }
+                    if (data.orbitY !== undefined) {
+                        params.targetOffset.y = parseFloat(data.orbitY);
+                        params.offset.y = parseFloat(data.orbitY);
+                    }
+                    if (data.currentZoom !== undefined) {
+                        params.targetZoom = parseFloat(data.currentZoom);
+                        params.zoom = parseFloat(data.currentZoom);
+                    }
+                } catch(e) { console.error("Erro ao carregar localStorage", e); }
+            }
+        }
+
+        function updateParams() {
+            params.config.speed = parseFloat(document.getElementById('speed').value);
+            params.config.rotation = parseFloat(document.getElementById('rotation').value);
+            params.config.complexity = parseFloat(document.getElementById('complexity').value);
+            params.config.pattern = parseInt(document.getElementById('patternType').value);
+            params.config.color = document.getElementById('colorPicker').value;
+            params.targetZoom = parseFloat(document.getElementById('zoomBase').value);
+            
+            const rgb = hexToRgb(params.config.color);
+            if (material) {
+                material.uniforms.u_color.value.set(rgb[0], rgb[1], rgb[2]);
+                material.uniforms.u_patternType.value = params.config.pattern;
+            }
+        }
+
+        function init() {
+            loadInitialState();
+
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+            const geometry = new THREE.PlaneGeometry(2, 2);
+
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_time: { value: 0.0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_offset: { value: new THREE.Vector2(params.offset.x, params.offset.y) },
+                    u_zoom: { value: params.zoom },
+                    u_speed: { value: params.config.speed },
+                    u_rotSpeed: { value: params.config.rotation },
+                    u_complexity: { value: params.config.complexity },
+                    u_patternType: { value: params.config.pattern },
+                    u_color: { value: new THREE.Vector3(1.0, 1.0, 1.0) }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    precision highp float;
+                    uniform float u_time;
+                    uniform vec2 u_resolution;
+                    uniform vec2 u_offset;
+                    uniform float u_zoom;
+                    uniform float u_speed;
+                    uniform float u_rotSpeed;
+                    uniform float u_complexity;
+                    uniform int u_patternType;
+                    uniform vec3 u_color;
+                    varying vec2 vUv;
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+                        uv -= u_offset * 0.4;
+                        uv /= u_zoom;
+
+                        float r = length(uv);
+                        float a = atan(uv.y, uv.x);
+
+                        float z = (0.5 / max(r, 0.001)) + u_time * u_speed;
+                        float angle = a + u_time * u_rotSpeed;
+
+                        float pattern = 0.0;
+                        if(u_patternType == 0) pattern = smoothstep(0.0, 0.2, sin(angle * u_complexity) * cos(z * u_complexity));
+                        else if(u_patternType == 1) pattern = smoothstep(0.0, 0.2, sin(angle * u_complexity + z * 5.0));
+                        else if(u_patternType == 2) pattern = smoothstep(0.0, 0.2, cos(z * u_complexity));
+                        else if(u_patternType == 3) pattern = smoothstep(0.0, 0.2, sin(angle * u_complexity));
+                        else {
+                            float dots = (sin(angle * u_complexity) * 0.5 + 0.5) * (cos(z * u_complexity) * 0.5 + 0.5);
+                            pattern = smoothstep(0.6, 0.7, dots);
+                        }
+
+                        vec3 baseDark = vec3(0.01, 0.01, 0.03);
+                        vec3 finalColor = mix(baseDark, u_color, pattern);
+                        float fog = smoothstep(0.0, 0.8, r);
+                        finalColor *= fog;
+                        finalColor += u_color * pow(1.0 - fog, 4.0) * 0.6;
+
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            updateParams();
+            setupInteraction();
+            onWindowResize();
+        }
+
+        function setupInteraction() {
+            window.addEventListener('mousedown', (e) => {
+                if (e.target.closest('#settings-panel') || e.target.closest('#settings-trigger')) return;
+                params.isDragging = true;
+                params.lastMouse.set(e.clientX, e.clientY);
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!params.isDragging) return;
+                params.targetOffset.x += (e.clientX - params.lastMouse.x) / window.innerWidth;
+                params.targetOffset.y -= (e.clientY - params.lastMouse.y) / window.innerHeight;
+                params.lastMouse.set(e.clientX, e.clientY);
+            });
+            window.addEventListener('mouseup', () => params.isDragging = false);
+            window.addEventListener('wheel', (e) => {
+                params.targetZoom *= (e.deltaY > 0 ? 0.9 : 1.1);
+                params.targetZoom = Math.max(0.1, Math.min(params.targetZoom, 10.0));
+                document.getElementById('zoomBase').value = params.targetZoom.toFixed(1);
+            }, { passive: true });
+
+            window.addEventListener('touchstart', (e) => {
+                if (e.target.closest('#settings-panel') || e.target.closest('#settings-trigger')) return;
+                if (e.touches.length === 1) {
+                    params.isDragging = true;
+                    params.lastMouse.set(e.touches[0].clientX, e.touches[0].clientY);
+                } else if (e.touches.length === 2) {
+                    params.isDragging = false;
+                    params.lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                }
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (e.target.closest('#settings-panel')) return;
+                if (e.touches.length === 1 && params.isDragging) {
+                    params.targetOffset.x += (e.touches[0].clientX - params.lastMouse.x) / window.innerWidth;
+                    params.targetOffset.y -= (e.touches[0].clientY - params.lastMouse.y) / window.innerHeight;
+                    params.lastMouse.set(e.touches[0].clientX, e.touches[0].clientY);
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    if (params.lastPinchDist > 0) {
+                        params.targetZoom *= (dist / params.lastPinchDist);
+                        params.targetZoom = Math.max(0.1, Math.min(params.targetZoom, 10.0));
+                        document.getElementById('zoomBase').value = params.targetZoom.toFixed(1);
+                    }
+                    params.lastPinchDist = dist;
+                }
+            }, { passive: false });
+            window.addEventListener('touchend', () => { params.isDragging = false; params.lastPinchDist = 0; });
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            renderer.setSize(w, h);
+            material.uniforms.u_resolution.value.set(w, h);
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            params.offset.x += (params.targetOffset.x - params.offset.x) * 0.1;
+            params.offset.y += (params.targetOffset.y - params.offset.y) * 0.1;
+            params.zoom += (params.targetZoom - params.zoom) * 0.1;
+
+            material.uniforms.u_time.value = time * 0.001;
+            material.uniforms.u_offset.value.copy(params.offset);
+            material.uniforms.u_zoom.value = params.zoom;
+            material.uniforms.u_speed.value = params.config.speed;
+            material.uniforms.u_rotSpeed.value = params.config.rotation;
+            material.uniforms.u_complexity.value = params.config.complexity;
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            init();
+            animate(0);
+        };
+    </script>
+</body>
+</html>
 
