@@ -6,6 +6,7 @@
     <title>Lissajous Dystopia</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Courier New', Courier, monospace; }
+        
         #ui {
             position: absolute;
             top: 20px;
@@ -15,20 +16,92 @@
             text-shadow: 0 0 5px #00ff88;
             z-index: 10;
         }
+
+        /* Gear Icon */
+        #settings-trigger {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 0 5px #00ff88);
+        }
+        #settings-trigger:hover { transform: rotate(90deg); }
+
+        /* Control Panel */
+        #control-panel {
+            position: absolute;
+            bottom: 80px;
+            right: 25px;
+            width: 250px;
+            background: rgba(5, 10, 5, 0.85);
+            border: 1px solid #00ff88;
+            padding: 15px;
+            color: #00ff88;
+            border-radius: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 99;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+            backdrop-filter: blur(5px);
+        }
+        #control-panel.active { display: flex; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        input[type="range"] { accent-color: #00ff88; cursor: pointer; }
+        input[type="color"] { background: none; border: 1px solid #00ff88; cursor: pointer; width: 100%; height: 30px; }
+        
         canvas { display: block; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>NEON ENTROPY v1.0</h1>
+        <h1>NEON ENTROPY v1.1</h1>
         <p>Lissajous Resonance: ACTIVE</p>
+    </div>
+
+    <!-- Gear Icon SVG -->
+    <div id="settings-trigger" onclick="togglePanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </div>
+
+    <!-- Control Panel -->
+    <div id="control-panel">
+        <div class="control-group">
+            <label>Frequência A (X)</label>
+            <input type="range" id="paramA" min="1" max="10" step="0.1" value="3.0">
+        </div>
+        <div class="control-group">
+            <label>Frequência B (Y)</label>
+            <input type="range" id="paramB" min="1" max="10" step="0.1" value="2.0">
+        </div>
+        <div class="control-group">
+            <label>Velocidade</label>
+            <input type="range" id="paramSpeed" min="0" max="3" step="0.1" value="0.5">
+        </div>
+        <div class="control-group">
+            <label>Cor Neon</label>
+            <input type="color" id="paramColor" value="#00ff88">
+        </div>
+        <div class="control-group">
+            <label>Auto-Oscilação</label>
+            <input type="range" id="paramOsc" min="0" max="1" step="0.1" value="0.5">
+        </div>
     </div>
 
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
-    <!-- Shader do Terreno (Terra Rachada) -->
+    <!-- Shader do Terreno -->
     <script id="groundVertexShader" type="x-shader/x-vertex">
         varying vec2 vUv;
         varying float vElevation;
@@ -37,12 +110,9 @@
         void main() {
             vUv = uv;
             vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-            
-            // Simples ondulação de terreno
             float elevation = sin(modelPosition.x * 0.2) * cos(modelPosition.z * 0.2) * 0.5;
             modelPosition.y += elevation;
             vElevation = elevation;
-
             gl_Position = projectionMatrix * viewMatrix * modelPosition;
         }
     </script>
@@ -51,8 +121,8 @@
         varying vec2 vUv;
         varying float vElevation;
         uniform float uTime;
+        uniform vec3 uNeonColor;
 
-        // Função de ruído simples para rachaduras
         float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
         
         float voronoi(vec2 x) {
@@ -73,22 +143,18 @@
         void main() {
             vec2 uv = vUv * 20.0;
             float v = voronoi(uv);
-            
-            // Cor base terra escura/seca
             vec3 baseColor = vec3(0.08, 0.05, 0.02);
-            // Rachaduras
             float crack = smoothstep(0.3, 0.0, v);
             vec3 crackColor = vec3(0.15, 0.1, 0.05) * crack;
             
-            // Reflexo da luz neon verde vindo da curva
-            float neonGlow = 1.0 / (vElevation + 2.0);
-            vec3 glow = vec3(0.0, 0.2, 0.1) * neonGlow * (sin(uTime * 0.5) * 0.5 + 0.5);
+            float neonGlow = 1.0 / (vElevation + 2.5);
+            vec3 glow = uNeonColor * 0.2 * neonGlow * (sin(uTime * 0.5) * 0.5 + 0.5);
 
             gl_FragColor = vec4(baseColor + crackColor + glow, 1.0);
         }
     </script>
 
-    <!-- Shader da Curva de Lissajous -->
+    <!-- Shader da Curva -->
     <script id="lissajousVertexShader" type="x-shader/x-vertex">
         uniform float uTime;
         uniform float uA;
@@ -97,16 +163,14 @@
         varying float vProgress;
 
         void main() {
-            float t = position.x + uTime * 0.5; // Usamos o X da geometria como parâmetro T
+            float t = position.x + uTime; 
             vProgress = position.x / 6.28318;
 
             float x = sin(uA * t + uDelta) * 5.0;
-            float y = sin(uB * t) * 5.0 + 6.0; // Elevada do chão
+            float y = sin(uB * t) * 5.0 + 6.0; 
             float z = cos(uA * t * 0.5) * 3.0;
 
             vec3 newPosition = vec3(x, y, z);
-            
-            // Adiciona um leve balanço
             newPosition.y += sin(uTime + x) * 0.2;
 
             gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
@@ -117,22 +181,32 @@
     <script id="lissajousFragmentShader" type="x-shader/x-fragment">
         varying float vProgress;
         uniform float uTime;
+        uniform vec3 uColor;
 
         void main() {
-            // Neon verde pulsante
             float pulse = sin(uTime * 3.0) * 0.2 + 0.8;
-            vec3 color = vec3(0.0, 1.0, 0.4) * pulse;
-            
-            // Efeito de rastro
-            float alpha = 1.0;
-            
-            gl_FragColor = vec4(color, alpha);
+            vec3 color = uColor * pulse;
+            gl_FragColor = vec4(color, 1.0);
         }
     </script>
 
     <script>
         let scene, camera, renderer, controls, clock;
-        let groundMaterial, lissajousMaterial, skyMaterial;
+        let groundMaterial, lissajousMaterial;
+        
+        // Configurações controláveis
+        const params = {
+            a: 3.0,
+            b: 2.0,
+            speed: 0.5,
+            color: '#00ff88',
+            oscillation: 0.5
+        };
+
+        function togglePanel() {
+            const panel = document.getElementById('control-panel');
+            panel.classList.toggle('active');
+        }
 
         function init() {
             scene = new THREE.Scene();
@@ -154,6 +228,18 @@
 
             clock = new THREE.Clock();
 
+            // Listeners da UI
+            document.getElementById('paramA').addEventListener('input', (e) => params.a = parseFloat(e.target.value));
+            document.getElementById('paramB').addEventListener('input', (e) => params.b = parseFloat(e.target.value));
+            document.getElementById('paramSpeed').addEventListener('input', (e) => params.speed = parseFloat(e.target.value));
+            document.getElementById('paramOsc').addEventListener('input', (e) => params.oscillation = parseFloat(e.target.value));
+            document.getElementById('paramColor').addEventListener('input', (e) => {
+                params.color = e.target.value;
+                const threeCol = new THREE.Color(params.color);
+                lissajousMaterial.uniforms.uColor.value = threeCol;
+                groundMaterial.uniforms.uNeonColor.value = threeCol;
+            });
+
             createWasteland();
             createLissajous();
             createAtmosphere();
@@ -170,7 +256,8 @@
                 vertexShader: document.getElementById('groundVertexShader').textContent,
                 fragmentShader: document.getElementById('groundFragmentShader').textContent,
                 uniforms: {
-                    uTime: { value: 0 }
+                    uTime: { value: 0 },
+                    uNeonColor: { value: new THREE.Color(params.color) }
                 }
             });
 
@@ -179,11 +266,9 @@
         }
 
         function createLissajous() {
-            // Criamos uma geometria baseada em pontos para a curva
-            const count = 2000;
+            const count = 3000;
             const positions = new Float32Array(count * 3);
             for(let i = 0; i < count; i++) {
-                // O valor X aqui servirá como o parâmetro 't' da curva [0, 2pi]
                 positions[i * 3] = (i / count) * Math.PI * 2; 
                 positions[i * 3 + 1] = 0;
                 positions[i * 3 + 2] = 0;
@@ -198,24 +283,19 @@
                 transparent: true,
                 uniforms: {
                     uTime: { value: 0 },
-                    uA: { value: 3.0 },
-                    uB: { value: 2.0 },
-                    uDelta: { value: Math.PI / 2 }
+                    uA: { value: params.a },
+                    uB: { value: params.b },
+                    uDelta: { value: Math.PI / 2 },
+                    uColor: { value: new THREE.Color(params.color) }
                 },
                 blending: THREE.AdditiveBlending
             });
 
             const curve = new THREE.Points(geometry, lissajousMaterial);
             scene.add(curve);
-
-            // Adicionar uma luz pontual fraca no centro da curva
-            const light = new THREE.PointLight(0x00ff88, 2, 20);
-            light.position.set(0, 6, 0);
-            scene.add(light);
         }
 
         function createAtmosphere() {
-            // Adiciona um "sol" poente e cintilante
             const sunGeom = new THREE.SphereGeometry(10, 32, 32);
             const sunMat = new THREE.MeshBasicMaterial({
                 color: 0xff3300,
@@ -227,7 +307,6 @@
             sun.position.set(0, -5, -50);
             scene.add(sun);
 
-            // Hemisfério de luz ambiente
             const hemiLight = new THREE.HemisphereLight(0x442211, 0x050505, 0.5);
             scene.add(hemiLight);
         }
@@ -241,18 +320,18 @@
         function animate() {
             requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
+            const delta = params.speed * 0.02;
 
-            // Atualiza uniformes
             groundMaterial.uniforms.uTime.value = elapsedTime;
             
-            lissajousMaterial.uniforms.uTime.value = elapsedTime;
-            // Variando os parâmetros da curva para criar movimento
-            lissajousMaterial.uniforms.uA.value = 3.0 + Math.sin(elapsedTime * 0.2) * 0.5;
-            lissajousMaterial.uniforms.uB.value = 2.0 + Math.cos(elapsedTime * 0.3) * 0.5;
+            lissajousMaterial.uniforms.uTime.value = elapsedTime * params.speed;
+            
+            // Combina o valor do slider com uma pequena oscilação automática (opcional)
+            lissajousMaterial.uniforms.uA.value = params.a + Math.sin(elapsedTime * 0.2) * params.oscillation;
+            lissajousMaterial.uniforms.uB.value = params.b + Math.cos(elapsedTime * 0.3) * params.oscillation;
             lissajousMaterial.uniforms.uDelta.value += 0.01;
 
-            // Efeito de cintilação do pôr do sol (flickering sunset)
-            if (Math.random() > 0.95) {
+            if (Math.random() > 0.98) {
                 scene.background = new THREE.Color(0x050308);
             } else {
                 scene.background = new THREE.Color(0x020205);
@@ -266,3 +345,4 @@
     </script>
 </body>
 </html>
+
