@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fibonacci Perpetual Stew 3D</title>
+    
+    <!-- 3D Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- MathJax for LaTeX formulas -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                enableMenu: false
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --primary: #ff3333;
+            --soup-green: #2ecc71;
+            --bg-glass: rgba(15, 15, 15, 0.92);
+            --accent: #ffcc00;
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            touch-action: none;
+        }
+
+        /* Top Header - Adjusted to prevent overlap */
+        #main-header {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            text-align: center;
+            width: auto;
+            max-width: 65%; /* Constrain width to avoid overlapping with cog */
+            pointer-events: none;
+        }
+
+        #main-header h1 {
+            margin: 0;
+            color: white;
+            font-size: 1.3em;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            font-weight: 900;
+            text-shadow: 0 0 15px rgba(255, 51, 51, 0.7);
+            opacity: 0.95;
+            line-height: 1.2;
+        }
+
+        /* Footer with Original Meme Content */
+        #original-text-footer {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            text-align: center;
+            width: 100%;
+            pointer-events: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.75em;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+        }
+
+        #original-text-footer b { color: rgba(255, 255, 255, 0.9); font-weight: 700; }
+        #original-text-footer .formula { display: block; margin-top: 6px; color: var(--soup-green); font-size: 1.1em; }
+
+        @media (max-width: 600px) {
+            #main-header { top: 20px; max-width: 60%; }
+            #main-header h1 { font-size: 0.9em; letter-spacing: 1px; }
+            #original-text-footer { font-size: 0.65em; bottom: 15px; padding: 0 20px; box-sizing: border-box; }
+        }
+
+        /* Settings Cog */
+        #settings-trigger {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            background: var(--primary);
+            border: 2px solid white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 200;
+            color: white;
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #settings-trigger:active { transform: scale(0.9); }
+
+        /* Control Panel */
+        #interface {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            background: var(--bg-glass);
+            color: white;
+            padding: 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 280px;
+            max-width: calc(100vw - 40px);
+            pointer-events: auto;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.9);
+            display: none;
+            z-index: 150;
+        }
+
+        #interface.visible { display: block; animation: slideIn 0.3s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        h2 { color: var(--primary); margin: 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; }
+
+        #help-btn {
+            background: var(--accent);
+            border: none;
+            color: #000;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        #help-btn:hover { transform: scale(1.1); }
+
+        .control { margin-bottom: 16px; }
+        label { display: flex; justify-content: space-between; font-size: 0.65em; margin-bottom: 6px; color: #aaa; text-transform: uppercase; font-weight: 600; }
+        .value-display { color: #fff; font-weight: 800; font-family: 'Courier New', Courier, monospace; font-size: 1.1em; }
+        .soup-value { color: var(--soup-green) !important; }
+
+        input[type="range"] { 
+            width: 100%; accent-color: var(--primary); height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; appearance: none; outline: none;
+        }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+        .actions-full { display: block; margin-top: 10px; }
+        
+        button.action-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-size: 0.8em; font-weight: 700; width: 100%; transition: all 0.2s; }
+        button.action-btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.3); }
+        button.primary { background: var(--primary); border: none; }
+        button.primary:hover { filter: brightness(1.2); }
+        button.export { background: #3498db; border: none; }
+        button.export:hover { background: #2980b9; }
+
+        /* Help Modal */
+        #help-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.94);
+            display: none;
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(15px);
+        }
+
+        .modal-content {
+            background: #111;
+            border: 2px solid var(--primary);
+            border-radius: 28px;
+            width: 92%;
+            max-width: 650px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(255, 51, 51, 0.4);
+        }
+
+        .modal-header {
+            padding: 22px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { margin: 0; color: var(--primary); text-transform: uppercase; letter-spacing: 2.5px; font-size: 1.2em; font-weight: 900; }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            color: #ddd;
+            font-size: 1em;
+            line-height: 1.8;
+        }
+
+        .modal-body::-webkit-scrollbar { width: 10px; }
+        .modal-body::-webkit-scrollbar-track { background: #000; }
+        .modal-body::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 5px; }
+
+        .modal-body h4 { color: var(--primary); margin: 30px 0 12px 0; border-left: 4px solid var(--primary); padding-left: 12px; font-size: 1.1em; text-transform: uppercase; }
+        .modal-body p { margin-bottom: 20px; text-align: justify; }
+        .modal-body b { color: #fff; }
+        
+        .formula-box {
+            background: #000;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border: 1px solid #2a2a2a;
+            text-align: center;
+            font-size: 1.25em;
+            color: #fff;
+            box-shadow: inset 0 0 15px rgba(0,0,0,1);
+        }
+
+        .modal-footer { padding: 18px; background: #1a1a1a; border-top: 1px solid #333; }
+
+        #close-modal {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            transition: filter 0.2s;
+        }
+        #close-modal:hover { filter: brightness(1.2); }
+
+        #toast {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: white; color: black; padding: 12px 28px; border-radius: 40px; font-size: 0.9em; font-weight: 800;
+            opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; z-index: 1000;
+            white-space: nowrap;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<header id="main-header">
+    <h1>Fibonacci Perpetual Stew</h1>
+</header>
+
+<div id="original-text-footer">
+    <b>Today's Special:</b> Fibonacci Perpetual Stew<br>
+    <b>Ingredients:</b> Perpetual Stew from Yesterday and Perpetual Stew from Day Before Yesterday
+    <span class="formula">$F(n) = F(n-1) + F(n-2)$</span>
+</div>
+
+<div id="settings-trigger" title="Control Panel">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+</div>
+
+<div id="interface">
+    <div class="header">
+        <h2>Control Panel</h2>
+        <button id="help-btn">?</button>
+    </div>
+    
+    <div class="control">
+        <label>Bowl Grains <span class="value-display" id="val-points">3263</span></label>
+        <input type="range" id="points" min="100" max="8000" value="3263">
+    </div>
+    
+    <div class="control">
+        <label>Soup Level <span class="value-display soup-value" id="val-soupLevel">69%</span></label>
+        <input type="range" id="soupLevel" min="0" max="100" value="69">
+    </div>
+
+    <div class="control">
+        <label>Curvature <span class="value-display" id="val-curvature">0.6</span></label>
+        <input type="range" id="curvature" min="0.1" max="2.5" step="0.1" value="0.6">
+    </div>
+    
+    <div class="control">
+        <label>Grain Scale <span class="value-display" id="val-thickness">0.15</span></label>
+        <input type="range" id="thickness" min="0.02" max="0.5" step="0.01" value="0.15">
+    </div>
+
+    <div class="actions">
+        <button id="btn-load" class="action-btn">Load State</button>
+        <button id="btn-save" class="action-btn primary">Save State</button>
+    </div>
+    <div class="actions-full">
+        <button id="btn-export" class="action-btn export">Export JSON</button>
+    </div>
+</div>
+
+<div id="help-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Stew Geometry</h3>
+        </div>
+        <div class="modal-body">
+            <p>This simulation demonstrates how universal mathematical principles create patterns of efficiency and beauty in nature, from micro-structures (seeds) to macro-structures (galaxies).</p>
+            
+            <h4>1. The Sequence and the Golden Ratio</h4>
+            <p>The Fibonacci sequence is defined by $F_n = F_{n-1} + F_{n-2}$. As we advance, the ratio between consecutive terms $\frac{F_n}{F_{n-1}}$ converges to the <b>Golden Ratio</b> ($\phi$):</p>
+            <div class="formula-box">$$\phi = \frac{1 + \sqrt{5}}{2} \approx 1.6180339...$$</div>
+
+            <h4>2. The Golden Angle ($\theta$)</h4>
+            <p>To distribute points uniformly without creating artificial alignments or empty spaces, we use the <b>Golden Angle</b>. It is the division of the circle ($360^\circ$) by the golden ratio:</p>
+            <div class="formula-box">$$\theta = 2\pi \cdot (1 - \frac{1}{\phi}) \approx 137.508^\circ$$</div>
+            <p>This irrational angle ensures that each new grain fits into the free space left by previous ones in an optimized way.</p>
+
+            <h4>3. Vogel's Model (Distribution)</h4>
+            <p>To keep the grain density constant from the center to the edge, the radius $r$ grows with the square root of the point's index ($n$):</p>
+            <div class="formula-box">$$r_n = R_{base} \cdot \sqrt{\frac{n}{N_{total}}}$$</div>
+            <p>This is known as the <b>Vogel Disk</b>, common in plant phyllotaxis.</p>
+
+            <h4>4. Paraboloid Geometry</h4>
+            <p>The bowl is a <b>Paraboloid of Revolution</b>. The vertical height $y$ is calculated proportional to the square of the radial distance:</p>
+            <div class="formula-box">$$y_n = \left(\frac{r_n}{R_{max}}\right)^2 \cdot \text{Depth}$$</div>
+            <p>This shape allows the stew to naturally gather at the bottom center.</p>
+
+            <h4>5. Volume and Soup</h4>
+            <p>The green soup is a solid generated via <code>LatheGeometry</code>, which rotates the calculated parabolic profile by 360°, creating a watertight volume that fills the container up to the selected level.</p>
+        </div>
+        <div class="modal-footer">
+            <button id="close-modal">Close Help</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast">Action completed!</div>
+
+<script>
+    /** * FIBONACCI STEW - 3D ENGINE
+     */
+    let scene, camera, renderer, controls, bowlMesh, soupVolume;
+    const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+    const BOWL_RADIUS = 8;
+    const STORAGE_KEY = 'fibonacci_soup_en_v2_fixed';
+
+    // Provided Initial Parameters
+    const INIT_PARAMS = {
+        config: { points: 3263, soup: 69, curv: 0.6, thick: 0.15 },
+        cam: {
+            pos: [-1.1866895298439588, 11.357444446007714, 27.076275858201164],
+            target: [0.2373635322153126, 7.184758003224262, -3.545807535737603]
+        }
+    };
+
+    window.onload = init;
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        // Apply Initial Camera Position
+        camera.position.set(...INIT_PARAMS.cam.pos);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(...INIT_PARAMS.cam.target);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+
+        // Lights
+        scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+        sun.position.set(10, 20, 10);
+        scene.add(sun);
+        
+        const soupFill = new THREE.PointLight(0x2ecc71, 0.7);
+        soupFill.position.set(-15, 5, -15);
+        scene.add(soupFill);
+
+        setupUI();
+        updateGeometry();
+        animate();
+    }
+
+    function setupUI() {
+        const trigger = document.getElementById('settings-trigger');
+        const panel = document.getElementById('interface');
+        const hBtn = document.getElementById('help-btn');
+        const modal = document.getElementById('help-modal');
+
+        trigger.onclick = () => {
+            panel.classList.toggle('visible');
+            trigger.style.transform = panel.classList.contains('visible') ? 'rotate(90deg)' : 'rotate(0)';
+        };
+        
+        hBtn.onclick = () => {
+            modal.style.display = 'flex';
+            if (window.MathJax) MathJax.typesetPromise([modal]);
+        };
+        
+        document.getElementById('close-modal').onclick = () => modal.style.display = 'none';
+        modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+
+        // Slider Sync
+        ['points', 'soupLevel', 'curvature', 'thickness'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.oninput = () => {
+                const valTxt = document.getElementById(`val-${id}`);
+                valTxt.innerText = id === 'soupLevel' ? el.value + '%' : el.value;
+                updateGeometry();
+            };
+        });
+
+        document.getElementById('btn-save').onclick = () => {
+            const state = {
+                p: { points: document.getElementById('points').value, soup: document.getElementById('soupLevel').value, curv: document.getElementById('curvature').value, thick: document.getElementById('thickness').value },
+                c: { pos: camera.position.toArray(), tar: controls.target.toArray() }
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            showToast("Settings Saved Locally!");
+        };
+
+        document.getElementById('btn-load').onclick = () => {
+            const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (!data) return;
+            document.getElementById('points').value = data.p.points;
+            document.getElementById('soupLevel').value = data.p.soup;
+            document.getElementById('curvature').value = data.p.curv;
+            document.getElementById('thickness').value = data.p.thick;
+            
+            document.getElementById('val-points').innerText = data.p.points;
+            document.getElementById('val-soupLevel').innerText = data.p.soup + '%';
+            document.getElementById('val-curvature').innerText = data.p.curv;
+            document.getElementById('val-thickness').innerText = data.p.thick;
+
+            camera.position.fromArray(data.c.pos);
+            controls.target.fromArray(data.c.tar);
+            updateGeometry();
+            showToast("State Restored!");
+        };
+
+        document.getElementById('btn-export').onclick = () => {
+            const json = {
+                config: {
+                    points: document.getElementById('points').value,
+                    soup_level: document.getElementById('soupLevel').value + "%",
+                    curvature: document.getElementById('curvature').value,
+                    thickness: document.getElementById('thickness').value
+                },
+                camera: { position: camera.position.toArray(), target: controls.target.toArray() },
+                metadata: { name: "Fibonacci Perpetual Stew", exported_at: new Date().toISOString() }
+            };
+            const textArea = document.createElement("textarea");
+            textArea.value = JSON.stringify(json, null, 2);
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast("JSON copied to clipboard!");
+            } catch (err) {
+                showToast("Copy failed, check console.");
+            }
+            document.body.removeChild(textArea);
+        };
+    }
+
+    function updateGeometry() {
+        if (bowlMesh) { scene.remove(bowlMesh); bowlMesh.geometry.dispose(); }
+        if (soupVolume) { scene.remove(soupVolume); soupVolume.geometry.dispose(); }
+
+        const N = parseInt(document.getElementById('points').value);
+        const curv = parseFloat(document.getElementById('curvature').value);
+        const thick = parseFloat(document.getElementById('thickness').value);
+        const level = parseInt(document.getElementById('soupLevel').value) / 100;
+        const hMax = BOWL_RADIUS * curv;
+
+        // BOWL
+        const geo = new THREE.SphereGeometry(thick, 10, 10);
+        const mat = new THREE.MeshPhongMaterial({ color: 0xee2222, shininess: 90 });
+        bowlMesh = new THREE.InstancedMesh(geo, mat, N);
+        
+        const dummy = new THREE.Object3D();
+        for (let i = 0; i < N; i++) {
+            const t = i / (N - 1);
+            const r = Math.sqrt(t) * BOWL_RADIUS;
+            const y = Math.pow(r / BOWL_RADIUS, 2) * hMax;
+            const theta = i * GOLDEN_ANGLE;
+            dummy.position.set(Math.cos(theta) * r, y, Math.sin(theta) * r);
+            dummy.scale.setScalar(0.7 + t * 0.6);
+            dummy.updateMatrix();
+            bowlMesh.setMatrixAt(i, dummy.matrix);
+        }
+        scene.add(bowlMesh);
+
+        // SOUP
+        if (level > 0.02) {
+            const sY = level * hMax;
+            const pts = [new THREE.Vector2(0, 0)];
+            for (let j = 1; j <= 25; j++) {
+                const y = (j / 25) * sY;
+                const r = BOWL_RADIUS * Math.sqrt(y / hMax);
+                pts.push(new THREE.Vector2(r, y));
+            }
+            pts.push(new THREE.Vector2(0, sY));
+            const sGeo = new THREE.LatheGeometry(pts, 64);
+            const sMat = new THREE.MeshPhongMaterial({ 
+                color: 0x27ae60, 
+                transparent: true, 
+                opacity: 0.9, 
+                shininess: 120,
+                specular: 0x336633
+            });
+            soupVolume = new THREE.Mesh(sGeo, sMat);
+            scene.add(soupVolume);
+        }
+    }
+
+    function showToast(m) {
+        const t = document.getElementById('toast');
+        t.innerText = m; t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 2500);
+    }
+
+    function onResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        if(bowlMesh) bowlMesh.rotation.y += 0.0003;
+        if(soupVolume) soupVolume.rotation.y += 0.0003;
+        renderer.render(scene, camera);
+    }
+</script>
+</body>
+</html>
