@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gravidade com Acelerómetro</title>
+    <title>Gravidade com Acelerômetro</title>
     <style>
         :root {
             --primary: #ff3333;
@@ -109,17 +109,48 @@
 
         .btn-start:active { transform: scale(0.95); }
 
-        #debug-status {
-            font-family: monospace;
-            font-size: 10px;
-            margin-top: 20px;
-            color: #555;
-            letter-spacing: 0.5px;
-        }
-
         .control-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.7rem; margin-bottom: 6px; color: rgba(255,255,255,0.7); font-weight: 500; }
         input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+
+        /* Estilo para o Toggle Switch */
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+        }
+        .switch-container label { margin-bottom: 0; }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
         .btn-action {
             background: rgba(255, 255, 255, 0.05);
@@ -142,7 +173,6 @@
             border-color: var(--primary);
         }
 
-        /* Mensagem de Feedback */
         #msg-box {
             position: fixed;
             bottom: 80px;
@@ -176,8 +206,7 @@
 
     <div id="overlay">
         <button class="btn-start" id="start-btn">INICIAR SIMULAÇÃO</button>
-        <p style="margin-top:25px; font-size: 0.8rem; font-weight: 300; opacity: 0.7;">SISTEMA DE GRAVIDADE ATIVO<br><span style="opacity: 0.5">Modo Automático / Sensores Móveis</span></p>
-        <div id="debug-status">Aguardando interação...</div>
+        <p style="margin-top:25px; font-size: 0.8rem; font-weight: 300; opacity: 0.7;">SISTEMA DE GRAVIDADE ATIVO</p>
     </div>
 
     <div id="msg-box">CONFIGURAÇÃO COPIADA E SALVA!</div>
@@ -185,9 +214,17 @@
     <div id="ui-panel">
         <button id="toggle-ui">☰</button>
         <h1>
-            <span>acelerómetro</span>
-            <span id="sensor-state" style="color:#ff3333">OFF</span>
+            <span>acelerômetro</span>
+            <span id="sensor-state" style="color:#666">OFF</span>
         </h1>
+
+        <div class="switch-container">
+            <label style="font-size: 0.75rem; color: #fff;">Usar Acelerômetro</label>
+            <label class="switch">
+                <input type="checkbox" id="sensor-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
         
         <div class="control-group">
             <label id="label-mass">Gravidade: 32</label>
@@ -213,13 +250,13 @@
         <button id="btn-reset-cam" class="btn-action">REPOR CÂMARA PADRÃO</button>
     </div>
 
-    <div id="auto-mode-hint" class="hint">Modo Automático: Bola em trajetória circular</div>
+    <div id="status-hint" class="hint">Modo Automático</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // Parâmetros de estado
+        // Configurações de estado e física
         const state = {
             mass: 32.0,
             ballRadius: 1.6,
@@ -231,13 +268,14 @@
             currentAccel: new THREE.Vector2(0, 0),
             friction: 0.975,
             boundary: 40,
+            useSensor: true,
             isSensorActive: false,
             autoTime: 0
         };
 
         const STORAGE_KEY = 'gravity_cam_config';
 
-        // Cena e Câmara
+        // Setup da cena Three.js
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x010101);
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -258,7 +296,7 @@
         controls.dampingFactor = 0.05;
         controls.maxPolarAngle = Math.PI / 2.1;
 
-        // Tenta carregar câmara guardada
+        // Carregar configurações de câmara do localStorage
         const loadCameraSettings = () => {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -267,12 +305,8 @@
                     camera.position.set(data.pos.x, data.pos.y, data.pos.z);
                     controls.target.set(data.target.x, data.target.y, data.target.z);
                     controls.update();
-                } catch (e) {
-                    applyDefaultCamera();
-                }
-            } else {
-                applyDefaultCamera();
-            }
+                } catch (e) { applyDefaultCamera(); }
+            } else { applyDefaultCamera(); }
         };
 
         loadCameraSettings();
@@ -282,10 +316,9 @@
         dirLight.position.set(30, 60, 30);
         scene.add(dirLight);
 
-        // Grade
+        // Geometria da grade com Shader personalizado para deformação
         const gridGeo = new THREE.PlaneBufferGeometry(110, 110, 90, 90);
         gridGeo.rotateX(-Math.PI / 2);
-        
         const gridMat = new THREE.ShaderMaterial({
             uniforms: {
                 uMass: { value: state.mass },
@@ -317,25 +350,19 @@
                     gl_FragColor = vec4(color, mask * 0.45 * edgeFade);
                 }
             `,
-            transparent: true,
-            side: THREE.DoubleSide
+            transparent: true, side: THREE.DoubleSide
         });
-
         scene.add(new THREE.Mesh(gridGeo, gridMat));
 
+        // Malha da bola
         const ball = new THREE.Mesh(
             new THREE.SphereBufferGeometry(1, 32, 32),
-            new THREE.MeshStandardMaterial({ 
-                color: 0xff0000, 
-                roughness: 0.2, 
-                metalness: 0.3,
-                emissive: 0x220000 
-            })
+            new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2, metalness: 0.3, emissive: 0x220000 })
         );
         ball.scale.setScalar(state.ballRadius);
         scene.add(ball);
 
-        // Funções de Feedback
+        // Interface de mensagens
         const showMessage = (text) => {
             const msgBox = document.getElementById('msg-box');
             msgBox.innerText = text;
@@ -343,6 +370,7 @@
             setTimeout(() => { msgBox.style.display = 'none'; }, 2500);
         };
 
+        // Função para copiar JSON para a área de transferência
         const copyToClipboard = (text) => {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -352,7 +380,7 @@
             document.body.removeChild(textArea);
         };
 
-        // Handlers de Ações
+        // Ações dos botões de câmara
         document.getElementById('btn-save-cam').onclick = () => {
             const config = {
                 pos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
@@ -371,23 +399,22 @@
             showMessage("CÂMARA PADRÃO RESTAURADA");
         };
 
-        // Gestão de Movimento (Automático vs Sensor)
+        // Lógica de sensores (Acelerômetro)
         const sensorStateLabel = document.getElementById('sensor-state');
-        const autoHint = document.getElementById('auto-mode-hint');
+        const statusHint = document.getElementById('status-hint');
 
         function onMotion(event) {
             if (event.beta === null || event.gamma === null) return;
+            state.isSensorActive = true;
             
-            // Sensor detetado e funcional
-            if (!state.isSensorActive) {
-                state.isSensorActive = true;
+            if (state.useSensor) {
                 sensorStateLabel.innerText = "ON";
                 sensorStateLabel.style.color = "#00ff88";
-                autoHint.innerText = "Modo Sensor: Inclina o telemóvel para mover";
+                statusHint.innerText = "Modo Acelerômetro Ativo";
+                
+                state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -40, 40) * state.sensitivity;
+                state.targetAccel.y = THREE.MathUtils.clamp(event.beta - 30, -40, 40) * state.sensitivity;
             }
-
-            state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -40, 40) * state.sensitivity;
-            state.targetAccel.y = THREE.MathUtils.clamp(event.beta - 30, -40, 40) * state.sensitivity;
         }
 
         document.getElementById('start-btn').onclick = async () => {
@@ -402,7 +429,21 @@
             document.getElementById('overlay').style.display = 'none';
         };
 
-        // UI Inputs
+        // Listeners da interface do utilizador
+        document.getElementById('sensor-toggle').onchange = (e) => {
+            state.useSensor = e.target.checked;
+            if (!state.useSensor) {
+                sensorStateLabel.innerText = "OFF";
+                sensorStateLabel.style.color = "#666";
+                statusHint.innerText = "Modo Automático";
+                state.vel.set(0, 0); 
+            } else if (state.isSensorActive) {
+                sensorStateLabel.innerText = "ON";
+                sensorStateLabel.style.color = "#00ff88";
+                statusHint.innerText = "Modo Acelerômetro Ativo";
+            }
+        };
+
         document.getElementById('input-mass').oninput = (e) => {
             state.mass = parseFloat(e.target.value);
             document.getElementById('label-mass').innerText = `Gravidade: ${state.mass}`;
@@ -424,18 +465,18 @@
         };
         document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('minimized');
 
+        // Loop principal de animação
         function animate() {
             requestAnimationFrame(animate);
 
-            if (state.isSensorActive) {
-                // Lógica de Acelerómetro
+            if (state.useSensor && state.isSensorActive) {
+                // Movimento controlado pelo acelerômetro
                 state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
                 state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
                 state.vel.add(state.currentAccel);
                 state.vel.multiplyScalar(state.friction);
                 state.pos.add(state.vel);
 
-                // Colisões com bordas
                 if (Math.abs(state.pos.x) > state.boundary) {
                     state.pos.x = Math.sign(state.pos.x) * state.boundary;
                     state.vel.x *= -0.5;
@@ -445,35 +486,25 @@
                     state.vel.y *= -0.5;
                 }
             } else {
-                // Trajetória Circular Errante (Roseta)
-                // Faz a bola passar pelo centro (0,0) repetidamente
+                // Movimento Automático (Roseta)
                 state.autoTime += 0.015;
-                
-                // Raio oscila entre 0 e o raio máximo (boundary * 0.8)
                 const orbitR = Math.sin(state.autoTime * 0.4) * (state.boundary * 0.75);
-                
-                // Ângulo de rotação
                 const orbitAngle = state.autoTime * 0.8;
-                
                 state.pos.x = Math.cos(orbitAngle) * orbitR;
                 state.pos.y = Math.sin(orbitAngle) * orbitR;
-                
-                // Simula rotação visual da bola
                 ball.rotation.z -= 0.05;
                 ball.rotation.x += 0.03;
             }
 
-            // Atualização do Poço Gravitacional
             const depth = -(state.mass / (state.ballRadius * 1.6));
             ball.position.set(state.pos.x, depth + state.ballRadius, state.pos.y);
             
-            if (state.isSensorActive) {
+            if (state.useSensor && state.isSensorActive) {
                 ball.rotation.z -= state.vel.x * 0.3;
                 ball.rotation.x += state.vel.y * 0.3;
             }
 
             gridMat.uniforms.uBallPos.value.set(state.pos.x, 0, state.pos.y);
-            
             controls.update();
             renderer.render(scene, camera);
         }
@@ -488,4 +519,3 @@
     </script>
 </body>
 </html>
-
