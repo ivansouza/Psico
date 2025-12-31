@@ -121,6 +121,44 @@
         label { display: block; font-size: 0.7rem; margin-bottom: 6px; color: rgba(255,255,255,0.7); font-weight: 500; }
         input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
 
+        .btn-action {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #bbb;
+            font-size: 0.65rem;
+            padding: 8px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Mensagem de Feedback */
+        #msg-box {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 240, 150, 0.9);
+            color: black;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            z-index: 300;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
         .hint {
             position: absolute;
             bottom: 30px;
@@ -138,9 +176,11 @@
 
     <div id="overlay">
         <button class="btn-start" id="start-btn">INICIAR SIMULAÇÃO</button>
-        <p style="margin-top:25px; font-size: 0.8rem; font-weight: 300; opacity: 0.7;">DISPOSITIVO MÓVEL DETETADO<br><span style="opacity: 0.5">Toque para calibrar o acelerómetro</span></p>
+        <p style="margin-top:25px; font-size: 0.8rem; font-weight: 300; opacity: 0.7;">SISTEMA DE GRAVIDADE ATIVO<br><span style="opacity: 0.5">Modo Automático / Sensores Móveis</span></p>
         <div id="debug-status">Aguardando interação...</div>
     </div>
+
+    <div id="msg-box">CONFIGURAÇÃO COPIADA E SALVA!</div>
 
     <div id="ui-panel">
         <button id="toggle-ui">☰</button>
@@ -160,7 +200,7 @@
         </div>
 
         <div class="control-group">
-            <label id="label-inertia">Inércia da Resposta: 0.04</label>
+            <label id="label-inertia">Inércia / Suavidade: 0.04</label>
             <input type="range" id="input-inertia" min="0.01" max="0.50" step="0.01" value="0.04">
         </div>
 
@@ -169,10 +209,11 @@
             <input type="range" id="input-sens" min="0.01" max="0.30" step="0.01" value="0.12">
         </div>
 
-        <button id="btn-reset-cam" style="background:transparent; border:1px solid #444; color:#888; font-size:0.65rem; padding:5px; width:100%; border-radius:4px; cursor:pointer;">RESETAR CÂMARA</button>
+        <button id="btn-save-cam" class="btn-action">GRAVAR & COPIAR CÂMARA</button>
+        <button id="btn-reset-cam" class="btn-action">REPOR CÂMARA PADRÃO</button>
     </div>
 
-    <div class="hint">Incline o telemóvel para mover • Pinça para zoom</div>
+    <div id="auto-mode-hint" class="hint">Modo Automático: Bola em trajetória circular</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -189,8 +230,12 @@
             targetAccel: new THREE.Vector2(0, 0),
             currentAccel: new THREE.Vector2(0, 0),
             friction: 0.975,
-            boundary: 40
+            boundary: 40,
+            isSensorActive: false,
+            autoTime: 0
         };
+
+        const STORAGE_KEY = 'gravity_cam_config';
 
         // Cena e Câmara
         const scene = new THREE.Scene();
@@ -199,9 +244,9 @@
         
         const applyDefaultCamera = () => {
             camera.position.set(0, 65, 75);
+            if (controls) controls.target.set(0, -10, 0);
             camera.lookAt(0, -10, 0);
         };
-        applyDefaultCamera();
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -212,6 +257,25 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.maxPolarAngle = Math.PI / 2.1;
+
+        // Tenta carregar câmara guardada
+        const loadCameraSettings = () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    camera.position.set(data.pos.x, data.pos.y, data.pos.z);
+                    controls.target.set(data.target.x, data.target.y, data.target.z);
+                    controls.update();
+                } catch (e) {
+                    applyDefaultCamera();
+                }
+            } else {
+                applyDefaultCamera();
+            }
+        };
+
+        loadCameraSettings();
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.4));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -271,17 +335,59 @@
         ball.scale.setScalar(state.ballRadius);
         scene.add(ball);
 
-        // Sensores
-        const sensorState = document.getElementById('sensor-state');
-        const debugStatus = document.getElementById('debug-status');
+        // Funções de Feedback
+        const showMessage = (text) => {
+            const msgBox = document.getElementById('msg-box');
+            msgBox.innerText = text;
+            msgBox.style.display = 'block';
+            setTimeout(() => { msgBox.style.display = 'none'; }, 2500);
+        };
+
+        const copyToClipboard = (text) => {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); } catch (err) {}
+            document.body.removeChild(textArea);
+        };
+
+        // Handlers de Ações
+        document.getElementById('btn-save-cam').onclick = () => {
+            const config = {
+                pos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+            };
+            const jsonStr = JSON.stringify(config, null, 2);
+            localStorage.setItem(STORAGE_KEY, jsonStr);
+            copyToClipboard(jsonStr);
+            showMessage("CÂMARA SALVA E JSON COPIADO!");
+        };
+
+        document.getElementById('btn-reset-cam').onclick = () => {
+            applyDefaultCamera();
+            controls.update();
+            localStorage.removeItem(STORAGE_KEY);
+            showMessage("CÂMARA PADRÃO RESTAURADA");
+        };
+
+        // Gestão de Movimento (Automático vs Sensor)
+        const sensorStateLabel = document.getElementById('sensor-state');
+        const autoHint = document.getElementById('auto-mode-hint');
 
         function onMotion(event) {
             if (event.beta === null || event.gamma === null) return;
-            sensorState.innerText = "ON";
-            sensorState.style.color = "#00ff88";
+            
+            // Sensor detetado e funcional
+            if (!state.isSensorActive) {
+                state.isSensorActive = true;
+                sensorStateLabel.innerText = "ON";
+                sensorStateLabel.style.color = "#00ff88";
+                autoHint.innerText = "Modo Sensor: Inclina o telemóvel para mover";
+            }
+
             state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -40, 40) * state.sensitivity;
             state.targetAccel.y = THREE.MathUtils.clamp(event.beta - 30, -40, 40) * state.sensitivity;
-            debugStatus.innerText = `X: ${event.gamma.toFixed(1)} | Y: ${event.beta.toFixed(1)}`;
         }
 
         document.getElementById('start-btn').onclick = async () => {
@@ -289,14 +395,14 @@
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
                     if (permission === 'granted') window.addEventListener('deviceorientation', onMotion);
-                } catch (e) { console.error(e); }
+                } catch (e) {}
             } else {
                 window.addEventListener('deviceorientation', onMotion);
             }
             document.getElementById('overlay').style.display = 'none';
         };
 
-        // UI Handlers
+        // UI Inputs
         document.getElementById('input-mass').oninput = (e) => {
             state.mass = parseFloat(e.target.value);
             document.getElementById('label-mass').innerText = `Gravidade: ${state.mass}`;
@@ -310,43 +416,64 @@
         };
         document.getElementById('input-inertia').oninput = (e) => {
             state.inertia = parseFloat(e.target.value);
-            document.getElementById('label-inertia').innerText = `Inércia da Resposta: ${state.inertia.toFixed(2)}`;
+            document.getElementById('label-inertia').innerText = `Inércia / Suavidade: ${state.inertia.toFixed(2)}`;
         };
         document.getElementById('input-sens').oninput = (e) => {
             state.sensitivity = parseFloat(e.target.value);
             document.getElementById('label-sens').innerText = `Sensibilidade: ${state.sensitivity.toFixed(2)}`;
         };
-        document.getElementById('btn-reset-cam').onclick = applyDefaultCamera;
         document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('minimized');
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // Suavização
-            state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
-            state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
+            if (state.isSensorActive) {
+                // Lógica de Acelerómetro
+                state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
+                state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
+                state.vel.add(state.currentAccel);
+                state.vel.multiplyScalar(state.friction);
+                state.pos.add(state.vel);
 
-            state.vel.add(state.currentAccel);
-            state.vel.multiplyScalar(state.friction);
-            state.pos.add(state.vel);
-
-            // Colisões
-            if (Math.abs(state.pos.x) > state.boundary) {
-                state.pos.x = Math.sign(state.pos.x) * state.boundary;
-                state.vel.x *= -0.5;
+                // Colisões com bordas
+                if (Math.abs(state.pos.x) > state.boundary) {
+                    state.pos.x = Math.sign(state.pos.x) * state.boundary;
+                    state.vel.x *= -0.5;
+                }
+                if (Math.abs(state.pos.y) > state.boundary) {
+                    state.pos.y = Math.sign(state.pos.y) * state.boundary;
+                    state.vel.y *= -0.5;
+                }
+            } else {
+                // Trajetória Circular Errante (Roseta)
+                // Faz a bola passar pelo centro (0,0) repetidamente
+                state.autoTime += 0.015;
+                
+                // Raio oscila entre 0 e o raio máximo (boundary * 0.8)
+                const orbitR = Math.sin(state.autoTime * 0.4) * (state.boundary * 0.75);
+                
+                // Ângulo de rotação
+                const orbitAngle = state.autoTime * 0.8;
+                
+                state.pos.x = Math.cos(orbitAngle) * orbitR;
+                state.pos.y = Math.sin(orbitAngle) * orbitR;
+                
+                // Simula rotação visual da bola
+                ball.rotation.z -= 0.05;
+                ball.rotation.x += 0.03;
             }
-            if (Math.abs(state.pos.y) > state.boundary) {
-                state.pos.y = Math.sign(state.pos.y) * state.boundary;
-                state.vel.y *= -0.5;
-            }
 
+            // Atualização do Poço Gravitacional
             const depth = -(state.mass / (state.ballRadius * 1.6));
             ball.position.set(state.pos.x, depth + state.ballRadius, state.pos.y);
-            ball.rotation.z -= state.vel.x * 0.3;
-            ball.rotation.x += state.vel.y * 0.3;
+            
+            if (state.isSensorActive) {
+                ball.rotation.z -= state.vel.x * 0.3;
+                ball.rotation.x += state.vel.y * 0.3;
+            }
 
             gridMat.uniforms.uBallPos.value.set(state.pos.x, 0, state.pos.y);
-
+            
             controls.update();
             renderer.render(scene, camera);
         }
