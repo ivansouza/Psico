@@ -256,7 +256,12 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // Configurações de estado e física
+        // Parâmetros de referência fornecidos pelo usuário
+        const DEFAULT_CAM_CONFIG = {
+            pos: { x: 2.261678622139328, y: 73.35743171746462, z: 74.39280287037121 },
+            target: { x: 2.261678622139328, y: -5.517685576453469, z: -4.482314423546547 }
+        };
+
         const state = {
             mass: 32.0,
             ballRadius: 1.6,
@@ -281,9 +286,13 @@
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         const applyDefaultCamera = () => {
-            camera.position.set(0, 65, 75);
-            if (controls) controls.target.set(0, -10, 0);
-            camera.lookAt(0, -10, 0);
+            camera.position.set(DEFAULT_CAM_CONFIG.pos.x, DEFAULT_CAM_CONFIG.pos.y, DEFAULT_CAM_CONFIG.pos.z);
+            if (controls) {
+                controls.target.set(DEFAULT_CAM_CONFIG.target.x, DEFAULT_CAM_CONFIG.target.y, DEFAULT_CAM_CONFIG.target.z);
+                controls.update();
+            } else {
+                camera.lookAt(DEFAULT_CAM_CONFIG.target.x, DEFAULT_CAM_CONFIG.target.y, DEFAULT_CAM_CONFIG.target.z);
+            }
         };
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -296,7 +305,7 @@
         controls.dampingFactor = 0.05;
         controls.maxPolarAngle = Math.PI / 2.1;
 
-        // Carregar configurações de câmara do localStorage
+        // Carregar do localStorage ou usar os novos parâmetros padrão
         const loadCameraSettings = () => {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -306,7 +315,9 @@
                     controls.target.set(data.target.x, data.target.y, data.target.z);
                     controls.update();
                 } catch (e) { applyDefaultCamera(); }
-            } else { applyDefaultCamera(); }
+            } else {
+                applyDefaultCamera();
+            }
         };
 
         loadCameraSettings();
@@ -316,7 +327,7 @@
         dirLight.position.set(30, 60, 30);
         scene.add(dirLight);
 
-        // Geometria da grade com Shader personalizado para deformação
+        // Grade de Espaço-Tempo
         const gridGeo = new THREE.PlaneBufferGeometry(110, 110, 90, 90);
         gridGeo.rotateX(-Math.PI / 2);
         const gridMat = new THREE.ShaderMaterial({
@@ -354,7 +365,6 @@
         });
         scene.add(new THREE.Mesh(gridGeo, gridMat));
 
-        // Malha da bola
         const ball = new THREE.Mesh(
             new THREE.SphereBufferGeometry(1, 32, 32),
             new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2, metalness: 0.3, emissive: 0x220000 })
@@ -362,7 +372,6 @@
         ball.scale.setScalar(state.ballRadius);
         scene.add(ball);
 
-        // Interface de mensagens
         const showMessage = (text) => {
             const msgBox = document.getElementById('msg-box');
             msgBox.innerText = text;
@@ -370,7 +379,6 @@
             setTimeout(() => { msgBox.style.display = 'none'; }, 2500);
         };
 
-        // Função para copiar JSON para a área de transferência
         const copyToClipboard = (text) => {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -380,7 +388,6 @@
             document.body.removeChild(textArea);
         };
 
-        // Ações dos botões de câmara
         document.getElementById('btn-save-cam').onclick = () => {
             const config = {
                 pos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
@@ -399,7 +406,6 @@
             showMessage("CÂMARA PADRÃO RESTAURADA");
         };
 
-        // Lógica de sensores (Acelerômetro)
         const sensorStateLabel = document.getElementById('sensor-state');
         const statusHint = document.getElementById('status-hint');
 
@@ -429,7 +435,6 @@
             document.getElementById('overlay').style.display = 'none';
         };
 
-        // Listeners da interface do utilizador
         document.getElementById('sensor-toggle').onchange = (e) => {
             state.useSensor = e.target.checked;
             if (!state.useSensor) {
@@ -465,12 +470,10 @@
         };
         document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('minimized');
 
-        // Loop principal de animação
         function animate() {
             requestAnimationFrame(animate);
 
             if (state.useSensor && state.isSensorActive) {
-                // Movimento controlado pelo acelerômetro
                 state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
                 state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
                 state.vel.add(state.currentAccel);
@@ -486,7 +489,6 @@
                     state.vel.y *= -0.5;
                 }
             } else {
-                // Movimento Automático (Roseta)
                 state.autoTime += 0.015;
                 const orbitR = Math.sin(state.autoTime * 0.4) * (state.boundary * 0.75);
                 const orbitAngle = state.autoTime * 0.8;
@@ -519,3 +521,4 @@
     </script>
 </body>
 </html>
+
