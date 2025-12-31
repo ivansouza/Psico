@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coração Matemático 3D - Equação de Taubin</title>
+    <style>
+        :root {
+            --accent: #ff0040;
+            --gold: #ffcc00;
+            --bg: #050002;
+        }
+        body { 
+            margin: 0; 
+            background: var(--bg); 
+            overflow: hidden; 
+            font-family: 'Cambria', serif;
+            color: white;
+        }
+        canvas { display: block; }
+
+        /* Interface do Utilizador */
+        #ui {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            z-index: 10;
+            pointer-events: none;
+            width: calc(100% - 50px);
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: normal;
+            font-style: italic;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(255, 0, 64, 0.5);
+            line-height: 1.4;
+        }
+        sup { font-size: 0.7rem; }
+
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 1s ease;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,0,64,0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <span>A processar fórmula 3D...</span>
+    </div>
+
+    <div id="ui">
+        <h1>(x&sup2; + 2.25y&sup2; + z&sup2; - 1)&sup3; - x&sup2;z&sup3; - 0.1125y&sup2;z&sup3; = 0</h1>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, heartPoints, textPoints;
+        const HEART_PARTICLE_COUNT = 100000;
+
+        function init() {
+            // Inicialização da Cena
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 4.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            // Controlos de Câmara
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+
+            // Criar elementos visuais
+            createHeartSurface();
+            createTextParticles("Feliz 2026");
+
+            // Gestão do Loader
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                if(loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 1000);
+                }
+            }, 800);
+
+            animate();
+        }
+
+        /**
+         * Equação de Taubin: Define a superfície volumétrica do coração
+         */
+        function evaluateHeartSurface(x, y, z) {
+            const x2 = x * x;
+            const y2 = y * y;
+            const z2 = z * z;
+            const a = x2 + 2.25 * y2 + z2 - 1;
+            return a * a * a - x2 * z2 * z - 0.1125 * y2 * z2 * z;
+        }
+
+        function createHeartSurface() {
+            const positions = new Float32Array(HEART_PARTICLE_COUNT * 3);
+            const colors = new Float32Array(HEART_PARTICLE_COUNT * 3);
+            
+            const colorCore = new THREE.Color(0xff0040);
+            const colorDeep = new THREE.Color(0x880015);
+
+            let i = 0;
+            let attempts = 0;
+
+            while (i < HEART_PARTICLE_COUNT && attempts < HEART_PARTICLE_COUNT * 20) {
+                const x = (Math.random() - 0.5) * 2.5;
+                const y = (Math.random() - 0.5) * 2.5;
+                const z = (Math.random() - 0.5) * 2.5;
+
+                const val = evaluateHeartSurface(x, y, z);
+
+                if (val < 0.02 && val > -0.02) {
+                    // Mapeamento de eixos para orientação vertical
+                    positions[i * 3] = x;
+                    positions[i * 3 + 1] = z + 0.5;
+                    positions[i * 3 + 2] = y;
+
+                    const mixedColor = colorCore.clone().lerp(colorDeep, Math.random());
+                    colors[i * 3] = mixedColor.r;
+                    colors[i * 3 + 1] = mixedColor.g;
+                    colors[i * 3 + 2] = mixedColor.b;
+
+                    i++;
+                }
+                attempts++;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.012,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+
+            heartPoints = new THREE.Points(geometry, material);
+            scene.add(heartPoints);
+        }
+
+        function createTextParticles(text) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 600;
+            canvas.height = 200;
+
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 80px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 300, 120);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const points = [];
+
+            for (let y = 0; y < canvas.height; y += 2) {
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const alpha = data[(y * canvas.width + x) * 4 + 3];
+                    if (alpha > 128) {
+                        const posX = (x - canvas.width / 2) * 0.005;
+                        const posY = (canvas.height / 2 - y) * 0.005 + 0.5;
+                        const posZ = (Math.random() - 0.5) * 0.12;
+                        points.push(posX, posY, posZ);
+                    }
+                }
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.022,
+                color: 0xffcc00, 
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending
+            });
+
+            textPoints = new THREE.Points(geometry, material);
+            scene.add(textPoints);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now() * 0.001;
+
+            if (heartPoints) {
+                // Efeito de batimento cardíaco
+                const beat = 1.0 + Math.pow(Math.sin(time * 3.5), 8.0) * 0.07;
+                heartPoints.scale.set(beat, beat, beat);
+                
+                if (textPoints) {
+                    const textBeat = 1.0 + Math.pow(Math.sin(time * 3.5), 8.0) * 0.1;
+                    textPoints.scale.set(textBeat, textBeat, textBeat);
+                    textPoints.position.y = Math.sin(time * 1.5) * 0.03;
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Redimensionamento Dinâmico
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
