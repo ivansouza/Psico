@@ -8,7 +8,7 @@
         :root {
             --primary: #ff3333;
             --bg: #050505;
-            --panel: rgba(20, 20, 20, 0.95);
+            --panel: rgba(18, 18, 18, 0.92);
         }
 
         body { 
@@ -29,30 +29,30 @@
             top: 20px;
             left: 20px;
             background: var(--panel);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            width: 260px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 250px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
             z-index: 100;
-            transition: transform 0.4s ease;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #ui-panel.minimized {
-            transform: translateX(-290px);
+            transform: translateX(-285px);
         }
 
         #toggle-ui {
             position: absolute;
-            left: 290px;
+            left: 280px;
             top: 0;
             background: var(--panel);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -60,28 +60,30 @@
             font-size: 1.2rem;
         }
 
-        /* Título reduzido conforme solicitado */
         h1 {
-            font-size: 0.65rem; /* Tamanho reduzido */
-            margin: 0 0 15px 0;
-            color: #aaa;
+            font-size: 0.6rem;
+            margin: 0 0 16px 0;
+            color: rgba(255, 255, 255, 0.4);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         #sensor-state {
-            font-size: 0.8rem;
-            font-weight: bold;
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.3);
         }
 
         /* Overlay de Ativação */
         #overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            background: radial-gradient(circle at center, rgba(30,30,30,0.9), rgba(0,0,0,1));
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -95,23 +97,28 @@
             background: var(--primary);
             color: white;
             border: none;
-            padding: 20px 40px;
-            font-size: 1.2rem;
-            border-radius: 50px;
+            padding: 22px 50px;
+            font-size: 1.1rem;
+            border-radius: 60px;
             cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+            font-weight: 900;
+            letter-spacing: 1px;
+            box-shadow: 0 15px 30px rgba(255, 51, 51, 0.4);
+            transition: transform 0.2s;
         }
+
+        .btn-start:active { transform: scale(0.95); }
 
         #debug-status {
             font-family: monospace;
-            font-size: 11px;
-            margin-top: 15px;
-            color: #666;
+            font-size: 10px;
+            margin-top: 20px;
+            color: #555;
+            letter-spacing: 0.5px;
         }
 
-        .control-group { margin-bottom: 12px; }
-        label { display: block; font-size: 0.7rem; margin-bottom: 5px; opacity: 0.8; }
+        .control-group { margin-bottom: 14px; }
+        label { display: block; font-size: 0.7rem; margin-bottom: 6px; color: rgba(255,255,255,0.7); font-weight: 500; }
         input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
 
         .hint {
@@ -119,73 +126,82 @@
             bottom: 30px;
             width: 100%;
             text-align: center;
-            font-size: 0.75rem;
-            opacity: 0.4;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.3);
             pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <button class="btn-start" id="start-btn">INICIAR SENSORES</button>
-        <p style="margin-top:20px; font-size: 0.85rem; opacity: 0.8;">Toque para habilitar o acelerómetro no Poco F6 Pro</p>
-        <div id="debug-status">Aguardando interação do utilizador...</div>
+        <button class="btn-start" id="start-btn">INICIAR SIMULAÇÃO</button>
+        <p style="margin-top:25px; font-size: 0.8rem; font-weight: 300; opacity: 0.7;">DISPOSITIVO MÓVEL DETETADO<br><span style="opacity: 0.5">Toque para calibrar o acelerómetro</span></p>
+        <div id="debug-status">Aguardando interação...</div>
     </div>
 
     <div id="ui-panel">
         <button id="toggle-ui">☰</button>
         <h1>
             <span>acelerómetro</span>
-            <span id="sensor-state" style="color:red">OFF</span>
+            <span id="sensor-state" style="color:#ff3333">OFF</span>
         </h1>
         
         <div class="control-group">
-            <label id="label-mass">Gravidade: 25</label>
-            <input type="range" id="input-mass" min="5" max="100" step="1" value="25">
+            <label id="label-mass">Gravidade: 32</label>
+            <input type="range" id="input-mass" min="5" max="100" step="1" value="32">
         </div>
 
         <div class="control-group">
-            <label id="label-size">Tamanho da Bola: 1.5</label>
-            <input type="range" id="input-size" min="0.5" max="4.0" step="0.1" value="1.5">
+            <label id="label-size">Tamanho da Bola: 1.6</label>
+            <input type="range" id="input-size" min="0.5" max="5.0" step="0.1" value="1.6">
         </div>
 
         <div class="control-group">
-            <label id="label-inertia">Inércia da Resposta: 0.05</label>
-            <input type="range" id="input-inertia" min="0.01" max="0.50" step="0.01" value="0.05">
+            <label id="label-inertia">Inércia da Resposta: 0.04</label>
+            <input type="range" id="input-inertia" min="0.01" max="0.50" step="0.01" value="0.04">
         </div>
 
         <div class="control-group">
-            <label>Sensibilidade</label>
-            <input type="range" id="input-sens" min="0.01" max="0.20" step="0.01" value="0.08">
+            <label id="label-sens">Sensibilidade: 0.12</label>
+            <input type="range" id="input-sens" min="0.01" max="0.30" step="0.01" value="0.12">
         </div>
+
+        <button id="btn-reset-cam" style="background:transparent; border:1px solid #444; color:#888; font-size:0.65rem; padding:5px; width:100%; border-radius:4px; cursor:pointer;">RESETAR CÂMARA</button>
     </div>
 
-    <div class="hint">Incline o dispositivo para movimentar a bola</div>
+    <div class="hint">Incline o telemóvel para mover • Pinça para zoom</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
+        // Parâmetros de estado
         const state = {
-            mass: 25.0,
-            ballRadius: 1.5,
-            sensitivity: 0.08,
-            inertia: 0.05,
+            mass: 32.0,
+            ballRadius: 1.6,
+            sensitivity: 0.12,
+            inertia: 0.04,
             pos: new THREE.Vector2(0, 0),
             vel: new THREE.Vector2(0, 0),
             targetAccel: new THREE.Vector2(0, 0),
             currentAccel: new THREE.Vector2(0, 0),
-            friction: 0.97,
-            boundary: 38
+            friction: 0.975,
+            boundary: 40
         };
 
-        // Cena Principal
+        // Cena e Câmara
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020202);
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 50, 60);
-        camera.lookAt(0, 0, 0);
+        scene.background = new THREE.Color(0x010101);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const applyDefaultCamera = () => {
+            camera.position.set(0, 65, 75);
+            camera.lookAt(0, -10, 0);
+        };
+        applyDefaultCamera();
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -194,14 +210,16 @@
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.1;
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-        const light = new THREE.DirectionalLight(0xffffff, 0.8);
-        light.position.set(20, 50, 20);
-        scene.add(light);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        dirLight.position.set(30, 60, 30);
+        scene.add(dirLight);
 
-        // Grade de Espaço-Tempo
-        const gridGeo = new THREE.PlaneBufferGeometry(100, 100, 80, 80);
+        // Grade
+        const gridGeo = new THREE.PlaneBufferGeometry(110, 110, 90, 90);
         gridGeo.rotateX(-Math.PI / 2);
         
         const gridMat = new THREE.ShaderMaterial({
@@ -218,7 +236,7 @@
                 void main() {
                     vec3 pos = position;
                     float d = distance(pos.xz, uBallPos.xz);
-                    float curvature = uMass / (max(d, uHoleSize * 1.5));
+                    float curvature = uMass / (max(d, uHoleSize * 1.6));
                     pos.y -= curvature;
                     vPos = pos;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -230,9 +248,9 @@
                     vec2 grid = abs(fract(vPos.xz * 0.4 - 0.5) - 0.5) / fwidth(vPos.xz * 0.4);
                     float line = min(grid.x, grid.y);
                     float mask = 1.0 - min(line, 1.0);
-                    vec3 color = vec3(0.0, 0.6, 0.7);
-                    float edgeFade = smoothstep(48.0, 25.0, length(vPos.xz));
-                    gl_FragColor = vec4(color, mask * 0.5 * edgeFade);
+                    vec3 color = vec3(0.0, 0.55, 0.7);
+                    float edgeFade = smoothstep(50.0, 25.0, length(vPos.xz));
+                    gl_FragColor = vec4(color, mask * 0.45 * edgeFade);
                 }
             `,
             transparent: true,
@@ -241,47 +259,41 @@
 
         scene.add(new THREE.Mesh(gridGeo, gridMat));
 
-        // Esfera Dinâmica
         const ball = new THREE.Mesh(
             new THREE.SphereBufferGeometry(1, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.3 })
+            new THREE.MeshStandardMaterial({ 
+                color: 0xff0000, 
+                roughness: 0.2, 
+                metalness: 0.3,
+                emissive: 0x220000 
+            })
         );
         ball.scale.setScalar(state.ballRadius);
         scene.add(ball);
 
-        // --- GESTÃO DOS SENSORES ---
-        const overlay = document.getElementById('overlay');
-        const startBtn = document.getElementById('start-btn');
-        const debugStatus = document.getElementById('debug-status');
+        // Sensores
         const sensorState = document.getElementById('sensor-state');
+        const debugStatus = document.getElementById('debug-status');
 
-        function handleMotion(event) {
+        function onMotion(event) {
             if (event.beta === null || event.gamma === null) return;
-            
             sensorState.innerText = "ON";
-            sensorState.style.color = "#00ff00";
-            
-            // X (Gamma) e Y (Beta)
-            state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -45, 45) * state.sensitivity;
-            state.targetAccel.y = THREE.MathUtils.clamp(event.beta, -45, 45) * state.sensitivity;
-            
+            sensorState.style.color = "#00ff88";
+            state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -40, 40) * state.sensitivity;
+            state.targetAccel.y = THREE.MathUtils.clamp(event.beta - 30, -40, 40) * state.sensitivity;
             debugStatus.innerText = `X: ${event.gamma.toFixed(1)} | Y: ${event.beta.toFixed(1)}`;
         }
 
-        startBtn.onclick = async () => {
+        document.getElementById('start-btn').onclick = async () => {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission === 'granted') {
-                        window.addEventListener('deviceorientation', handleMotion);
-                    }
-                } catch (e) {
-                    debugStatus.innerText = "Erro: " + e.message;
-                }
+                    if (permission === 'granted') window.addEventListener('deviceorientation', onMotion);
+                } catch (e) { console.error(e); }
             } else {
-                window.addEventListener('deviceorientation', handleMotion);
+                window.addEventListener('deviceorientation', onMotion);
             }
-            overlay.style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
         };
 
         // UI Handlers
@@ -290,50 +302,48 @@
             document.getElementById('label-mass').innerText = `Gravidade: ${state.mass}`;
             gridMat.uniforms.uMass.value = state.mass;
         };
-
         document.getElementById('input-size').oninput = (e) => {
             state.ballRadius = parseFloat(e.target.value);
             document.getElementById('label-size').innerText = `Tamanho da Bola: ${state.ballRadius.toFixed(1)}`;
             ball.scale.setScalar(state.ballRadius);
             gridMat.uniforms.uHoleSize.value = state.ballRadius;
         };
-
         document.getElementById('input-inertia').oninput = (e) => {
             state.inertia = parseFloat(e.target.value);
             document.getElementById('label-inertia').innerText = `Inércia da Resposta: ${state.inertia.toFixed(2)}`;
         };
-
-        document.getElementById('input-sens').oninput = (e) => state.sensitivity = parseFloat(e.target.value);
+        document.getElementById('input-sens').oninput = (e) => {
+            state.sensitivity = parseFloat(e.target.value);
+            document.getElementById('label-sens').innerText = `Sensibilidade: ${state.sensitivity.toFixed(2)}`;
+        };
+        document.getElementById('btn-reset-cam').onclick = applyDefaultCamera;
         document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('minimized');
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // Suavização da Aceleração (Inércia)
+            // Suavização
             state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
             state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
 
-            // Motor de Física
             state.vel.add(state.currentAccel);
             state.vel.multiplyScalar(state.friction);
             state.pos.add(state.vel);
 
-            // Colisão com Limites
+            // Colisões
             if (Math.abs(state.pos.x) > state.boundary) {
                 state.pos.x = Math.sign(state.pos.x) * state.boundary;
-                state.vel.x *= -0.4;
+                state.vel.x *= -0.5;
             }
             if (Math.abs(state.pos.y) > state.boundary) {
                 state.pos.y = Math.sign(state.pos.y) * state.boundary;
-                state.vel.y *= -0.4;
+                state.vel.y *= -0.5;
             }
 
-            // Atualização Visual
-            const depth = -(state.mass / (state.ballRadius * 1.5));
+            const depth = -(state.mass / (state.ballRadius * 1.6));
             ball.position.set(state.pos.x, depth + state.ballRadius, state.pos.y);
-            
-            ball.rotation.z -= state.vel.x * 0.4;
-            ball.rotation.x += state.vel.y * 0.4;
+            ball.rotation.z -= state.vel.x * 0.3;
+            ball.rotation.x += state.vel.y * 0.3;
 
             gridMat.uniforms.uBallPos.value.set(state.pos.x, 0, state.pos.y);
 
