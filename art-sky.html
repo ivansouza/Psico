@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Psychedelic Flow Lab</title>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --accent: #00ffcc;
+        }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; touch-action: none; }
+
+        /* UI Elements */
+        #ui-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #gear-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.3s ease;
+        }
+        #gear-btn:active { transform: scale(0.9); }
+        #gear-btn svg { fill: white; width: 24px; height: 24px; }
+
+        #settings-panel {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            width: 260px;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            pointer-events: auto; /* Ensures UI is clickable */
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+        #settings-panel.open { display: block; animation: slideIn 0.3s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .setting-group { margin-bottom: 20px; }
+        .setting-group label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; color: var(--accent); }
+        
+        input[type=range] {
+            width: 100%;
+            background: transparent;
+            -webkit-appearance: none;
+            cursor: pointer;
+            touch-action: none; /* Crucial for range inputs on touch devices */
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: var(--glass-border);
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            margin-top: -7px;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.4);
+            font-size: 11px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="gear-btn" onclick="toggleSettings(event)">
+            <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58C4.82,11.36,4.8,11.68,4.8,12c0,0.33,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.11-0.2,0.06-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+        </div>
+
+        <div id="settings-panel">
+            <div class="setting-group">
+                <label>Flow Speed</label>
+                <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1.0">
+            </div>
+            <div class="setting-group">
+                <label>Vibrance</label>
+                <input type="range" id="vibrance" min="0.5" max="2.5" step="0.1" value="1.0">
+            </div>
+            <div class="setting-group">
+                <label>Complexity</label>
+                <input type="range" id="complexity" min="1" max="8" step="1" value="5">
+            </div>
+            <div class="setting-group">
+                <label>Glow</label>
+                <input type="range" id="glow" min="0" max="2" step="0.1" value="1.0">
+            </div>
+        </div>
+
+        <div id="controls-hint">Pinch to Zoom • Drag to Move</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- Core Variables ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const uniforms = {
+            u_time: { value: 0.0 },
+            u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            u_zoom: { value: 1.5 },
+            u_offset: { value: new THREE.Vector2(0, 0) },
+            u_speed: { value: 1.0 },
+            u_vibrance: { value: 1.0 },
+            u_complexity: { value: 5.0 },
+            u_glow: { value: 1.0 }
+        };
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.ShaderMaterial({
+            uniforms,
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float u_time;
+                uniform vec2 u_resolution;
+                uniform float u_zoom;
+                uniform vec2 u_offset;
+                uniform float u_speed;
+                uniform float u_vibrance;
+                uniform float u_complexity;
+                uniform float u_glow;
+                varying vec2 vUv;
+
+                mat2 rot(float a) {
+                    float s = sin(a), c = cos(a);
+                    return mat2(c, -s, s, c);
+                }
+
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+                }
+
+                float noise(vec2 p) {
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+                               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+                }
+
+                float fbm(vec2 p) {
+                    float v = 0.0;
+                    float a = 0.5;
+                    for (int i = 0; i < 8; i++) {
+                        if (float(i) >= u_complexity) break;
+                        v += a * noise(p);
+                        p = rot(0.5) * p * 2.0 + 10.0;
+                        a *= 0.5;
+                    }
+                    return v;
+                }
+
+                vec3 palette(float t) {
+                    vec3 a = vec3(0.5, 0.5, 0.5);
+                    vec3 b = vec3(0.5, 0.5, 0.5);
+                    vec3 c = vec3(1.0, 1.0, 1.0);
+                    vec3 d = vec3(0.263, 0.416, 0.557);
+                    return a + b * cos(6.28318 * (c * t + d + u_time * 0.1 * u_speed));
+                }
+
+                void main() {
+                    vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+                    uv = (uv / u_zoom) + u_offset;
+
+                    float t = u_time * 0.2 * u_speed;
+
+                    vec2 q = vec2(0.0);
+                    q.x = fbm(uv + 0.1 * t);
+                    q.y = fbm(uv + vec2(1.0));
+
+                    vec2 r = vec2(0.0);
+                    r.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.15 * t);
+                    r.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.126 * t);
+
+                    float f = fbm(uv + r);
+                    float d = length(uv - u_offset); 
+                    
+                    vec3 col = palette(f + d * 0.2);
+                    col *= f * f * (3.0 - 2.0 * f) * 2.5;
+                    
+                    col = pow(col, vec3(1.0 / u_vibrance));
+                    col += vec3(0.1, 0.4, 0.8) * (0.05 / d) * u_glow;
+
+                    float vignette = 1.0 - length(vUv - 0.5) * 1.2;
+                    gl_FragColor = vec4(col * clamp(vignette, 0.0, 1.0), 1.0);
+                }
+            `
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // --- Interaction Management ---
+        const settingsPanel = document.getElementById('settings-panel');
+        
+        // Prevent canvas interaction when touching sliders
+        settingsPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
+        settingsPanel.addEventListener('touchstart', (e) => e.stopPropagation());
+
+        let isDragging = false;
+        let lastMousePos = new THREE.Vector2();
+        let initialPinchDist = 0;
+        let initialZoom = 1.0;
+
+        window.toggleSettings = (e) => {
+            e.stopPropagation();
+            settingsPanel.classList.toggle('open');
+        };
+
+        // Desktop Mouse Pan
+        window.addEventListener('pointerdown', (e) => {
+            // Do not initiate drag if clicking UI
+            if (e.target.closest('#settings-panel') || e.target.closest('#gear-btn')) return;
+            isDragging = true;
+            lastMousePos.set(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging || e.pointerType === 'touch') return;
+            const dx = (e.clientX - lastMousePos.x) / window.innerWidth;
+            const dy = (e.clientY - lastMousePos.y) / window.innerHeight;
+            uniforms.u_offset.value.x -= dx * (2.0 / uniforms.u_zoom.value);
+            uniforms.u_offset.value.y += dy * (2.0 / uniforms.u_zoom.value);
+            lastMousePos.set(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('pointerup', () => isDragging = false);
+
+        // Touch Pinch & Pan
+        const touchState = { isPanning: false, lastX: 0, lastY: 0 };
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#settings-panel') || e.target.closest('#gear-btn')) return;
+
+            if (e.touches.length === 2) {
+                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                initialZoom = uniforms.u_zoom.value;
+            } else if (e.touches.length === 1) {
+                touchState.isPanning = true;
+                touchState.lastX = e.touches[0].pageX;
+                touchState.lastY = e.touches[0].pageY;
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.target.closest('#settings-panel')) return; // Allow sliders to work
+
+            e.preventDefault(); 
+            if (e.touches.length === 2) {
+                const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                const zoomFactor = currentDist / initialPinchDist;
+                uniforms.u_zoom.value = Math.max(0.1, Math.min(10, initialZoom * zoomFactor));
+            } else if (e.touches.length === 1 && touchState.isPanning) {
+                const dx = (e.touches[0].pageX - touchState.lastX) / window.innerWidth;
+                const dy = (e.touches[0].pageY - touchState.lastY) / window.innerHeight;
+                uniforms.u_offset.value.x -= dx * (2.0 / uniforms.u_zoom.value);
+                uniforms.u_offset.value.y += dy * (2.0 / uniforms.u_zoom.value);
+                touchState.lastX = e.touches[0].pageX;
+                touchState.lastY = e.touches[0].pageY;
+            }
+        }, { passive: false });
+
+        window.addEventListener('wheel', (e) => {
+            if (e.target.closest('#settings-panel')) return;
+            const delta = e.deltaY * -0.001;
+            uniforms.u_zoom.value = Math.max(0.1, Math.min(10, uniforms.u_zoom.value + delta));
+        });
+
+        // --- Settings Binding ---
+        const bindRange = (id, uniformKey) => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', (e) => {
+                uniforms[uniformKey].value = parseFloat(e.target.value);
+            });
+            // Stop bubbling on the input itself just in case
+            el.addEventListener('pointerdown', (e) => e.stopPropagation());
+            el.addEventListener('touchstart', (e) => e.stopPropagation());
+        };
+        bindRange('speed', 'u_speed');
+        bindRange('vibrance', 'u_vibrance');
+        bindRange('complexity', 'u_complexity');
+        bindRange('glow', 'u_glow');
+
+        // --- Resize Handler ---
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            uniforms.u_time.value = time * 0.001;
+            renderer.render(scene, camera);
+        }
+        window.onload = () => animate(0);
+    </script>
+</body>
+</html>
+
