@@ -60,11 +60,28 @@
             font-size: 1.2rem;
         }
 
+        /* Título reduzido conforme solicitado */
+        h1 {
+            font-size: 0.65rem; /* Tamanho reduzido */
+            margin: 0 0 15px 0;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #sensor-state {
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
         /* Overlay de Ativação */
         #overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -90,7 +107,7 @@
             font-family: monospace;
             font-size: 11px;
             margin-top: 15px;
-            color: #888;
+            color: #666;
         }
 
         .control-group { margin-bottom: 12px; }
@@ -103,7 +120,7 @@
             width: 100%;
             text-align: center;
             font-size: 0.75rem;
-            opacity: 0.5;
+            opacity: 0.4;
             pointer-events: none;
         }
     </style>
@@ -112,13 +129,16 @@
 
     <div id="overlay">
         <button class="btn-start" id="start-btn">INICIAR SENSORES</button>
-        <p style="margin-top:20px; font-size: 0.9rem;">Xiaomi/Poco F6 Pro Detectado<br><span style="opacity:0.6">Clica para permitir o acesso ao acelerómetro</span></p>
-        <div id="debug-status">Aguardando interação...</div>
+        <p style="margin-top:20px; font-size: 0.85rem; opacity: 0.8;">Toque para habilitar o acelerómetro no Poco F6 Pro</p>
+        <div id="debug-status">Aguardando interação do utilizador...</div>
     </div>
 
     <div id="ui-panel">
         <button id="toggle-ui">☰</button>
-        <h1>Acelerómetro: <span id="sensor-state" style="color:red">OFF</span></h1>
+        <h1>
+            <span>acelerómetro</span>
+            <span id="sensor-state" style="color:red">OFF</span>
+        </h1>
         
         <div class="control-group">
             <label id="label-mass">Gravidade: 25</label>
@@ -126,17 +146,22 @@
         </div>
 
         <div class="control-group">
-            <label id="label-size">Tamanho: 1.5</label>
+            <label id="label-size">Tamanho da Bola: 1.5</label>
             <input type="range" id="input-size" min="0.5" max="4.0" step="0.1" value="1.5">
         </div>
 
         <div class="control-group">
+            <label id="label-inertia">Inércia da Resposta: 0.05</label>
+            <input type="range" id="input-inertia" min="0.01" max="0.50" step="0.01" value="0.05">
+        </div>
+
+        <div class="control-group">
             <label>Sensibilidade</label>
-            <input type="range" id="input-sens" min="0.01" max="0.15" step="0.01" value="0.06">
+            <input type="range" id="input-sens" min="0.01" max="0.20" step="0.01" value="0.08">
         </div>
     </div>
 
-    <div class="hint">Inclina o telemóvel para mover a bola</div>
+    <div class="hint">Incline o dispositivo para movimentar a bola</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -145,15 +170,17 @@
         const state = {
             mass: 25.0,
             ballRadius: 1.5,
-            sensitivity: 0.06,
+            sensitivity: 0.08,
+            inertia: 0.05,
             pos: new THREE.Vector2(0, 0),
             vel: new THREE.Vector2(0, 0),
-            accel: new THREE.Vector2(0, 0),
+            targetAccel: new THREE.Vector2(0, 0),
+            currentAccel: new THREE.Vector2(0, 0),
             friction: 0.97,
             boundary: 38
         };
 
-        // Cena Three.js básica
+        // Cena Principal
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x020202);
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -173,7 +200,7 @@
         light.position.set(20, 50, 20);
         scene.add(light);
 
-        // Geometrias
+        // Grade de Espaço-Tempo
         const gridGeo = new THREE.PlaneBufferGeometry(100, 100, 80, 80);
         gridGeo.rotateX(-Math.PI / 2);
         
@@ -214,58 +241,50 @@
 
         scene.add(new THREE.Mesh(gridGeo, gridMat));
 
+        // Esfera Dinâmica
         const ball = new THREE.Mesh(
             new THREE.SphereBufferGeometry(1, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xff0000 })
+            new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.3 })
         );
         ball.scale.setScalar(state.ballRadius);
         scene.add(ball);
 
-        // --- GESTÃO DE SENSORES ---
+        // --- GESTÃO DOS SENSORES ---
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
         const debugStatus = document.getElementById('debug-status');
         const sensorState = document.getElementById('sensor-state');
 
-        function onOrientation(event) {
+        function handleMotion(event) {
             if (event.beta === null || event.gamma === null) return;
             
             sensorState.innerText = "ON";
             sensorState.style.color = "#00ff00";
             
-            // Suavização simples para evitar trepidação no Xiaomi
-            const rawX = event.gamma; // Esquerda/Direita
-            const rawY = event.beta;  // Frente/Trás
+            // X (Gamma) e Y (Beta)
+            state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -45, 45) * state.sensitivity;
+            state.targetAccel.y = THREE.MathUtils.clamp(event.beta, -45, 45) * state.sensitivity;
             
-            state.accel.x = THREE.MathUtils.clamp(rawX, -45, 45) * state.sensitivity;
-            state.accel.y = THREE.MathUtils.clamp(rawY, -45, 45) * state.sensitivity;
-            
-            debugStatus.innerText = `Ativo: X=${rawX.toFixed(1)} Y=${rawY.toFixed(1)}`;
+            debugStatus.innerText = `X: ${event.gamma.toFixed(1)} | Y: ${event.beta.toFixed(1)}`;
         }
 
         startBtn.onclick = async () => {
-            debugStatus.innerText = "Solicitando acesso...";
-            
-            // Tentativa para iOS/Safari
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
                     if (permission === 'granted') {
-                        window.addEventListener('deviceorientation', onOrientation);
+                        window.addEventListener('deviceorientation', handleMotion);
                     }
                 } catch (e) {
                     debugStatus.innerText = "Erro: " + e.message;
                 }
             } else {
-                // Android (Xiaomi)
-                window.addEventListener('deviceorientation', onOrientation);
-                debugStatus.innerText = "Sensor registado no Android.";
+                window.addEventListener('deviceorientation', handleMotion);
             }
-
             overlay.style.display = 'none';
         };
 
-        // UI
+        // UI Handlers
         document.getElementById('input-mass').oninput = (e) => {
             state.mass = parseFloat(e.target.value);
             document.getElementById('label-mass').innerText = `Gravidade: ${state.mass}`;
@@ -274,9 +293,14 @@
 
         document.getElementById('input-size').oninput = (e) => {
             state.ballRadius = parseFloat(e.target.value);
-            document.getElementById('label-size').innerText = `Tamanho: ${state.ballRadius.toFixed(1)}`;
+            document.getElementById('label-size').innerText = `Tamanho da Bola: ${state.ballRadius.toFixed(1)}`;
             ball.scale.setScalar(state.ballRadius);
             gridMat.uniforms.uHoleSize.value = state.ballRadius;
+        };
+
+        document.getElementById('input-inertia').oninput = (e) => {
+            state.inertia = parseFloat(e.target.value);
+            document.getElementById('label-inertia').innerText = `Inércia da Resposta: ${state.inertia.toFixed(2)}`;
         };
 
         document.getElementById('input-sens').oninput = (e) => state.sensitivity = parseFloat(e.target.value);
@@ -285,10 +309,16 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            state.vel.add(state.accel);
+            // Suavização da Aceleração (Inércia)
+            state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
+            state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
+
+            // Motor de Física
+            state.vel.add(state.currentAccel);
             state.vel.multiplyScalar(state.friction);
             state.pos.add(state.vel);
 
+            // Colisão com Limites
             if (Math.abs(state.pos.x) > state.boundary) {
                 state.pos.x = Math.sign(state.pos.x) * state.boundary;
                 state.vel.x *= -0.4;
@@ -298,6 +328,7 @@
                 state.vel.y *= -0.4;
             }
 
+            // Atualização Visual
             const depth = -(state.mass / (state.ballRadius * 1.5));
             ball.position.set(state.pos.x, depth + state.ballRadius, state.pos.y);
             
