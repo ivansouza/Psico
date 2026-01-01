@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <title>Quadrilátero Cíclico Didático</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #fdfdfd; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas { display: block; cursor: crosshair; }
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 10px 14px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1.5px solid #34495e;
+            pointer-events: none;
+            max-width: 220px; /* Janela mais estreita */
+        }
+        h1 { margin: 0 0 6px 0; font-size: 15px; color: #2c3e50; border-bottom: 1.5px solid #e74c3c; padding-bottom: 3px; }
+        p { margin: 3px 0; font-size: 11px; color: #34495e; line-height: 1.3; }
+        .equation { font-family: 'serif'; font-size: 14px; font-weight: bold; margin-top: 6px; color: #c0392b; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>Ângulos Opostos</h1>
+        <p>Arraste os <b>vértices (A, B, C, D)</b>.</p>
+        <div id="eq1" class="equation">A + C = 180°</div>
+        <div id="eq2" class="equation" style="color: #2980b9;">B + D = 180°</div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const eq1El = document.getElementById('eq1');
+        const eq2El = document.getElementById('eq2');
+
+        let width, height, centerX, centerY, radius;
+        let activePoint = null;
+
+        const points = [
+            { angle: 0.6, label: 'A', color: '#e74c3c' },
+            { angle: 2.1, label: 'B', color: '#3498db' },
+            { angle: 3.7, label: 'C', color: '#e67e22' },
+            { angle: 5.3, label: 'D', color: '#27ae60' }
+        ];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * window.devicePixelRatio;
+            canvas.height = height * window.devicePixelRatio;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            centerX = width / 2;
+            centerY = height / 2 + 20;
+            radius = Math.min(width, height) * 0.35;
+            draw();
+        }
+
+        function drawAngleArc(x, y, angleStart, angleEnd, color, size = 30) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.arc(x, y, size, angleStart, angleEnd);
+            ctx.fillStyle = color + '22';
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#34495e';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#dcdde1';
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            points.sort((a, b) => a.angle - b.angle);
+
+            ctx.beginPath();
+            const coords = points.map(p => ({
+                x: centerX + radius * Math.cos(p.angle),
+                y: centerY + radius * Math.sin(p.angle)
+            }));
+            
+            coords.forEach((c, i) => {
+                if (i === 0) ctx.moveTo(c.x, c.y);
+                else ctx.lineTo(c.x, c.y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.03)';
+            ctx.fill();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            const interiorAngles = [];
+            points.forEach((p, i) => {
+                const c = coords[i];
+                const prev = coords[(i + 3) % 4];
+                const next = coords[(i + 1) % 4];
+
+                const angToPrev = Math.atan2(prev.y - c.y, prev.x - c.x);
+                const angToNext = Math.atan2(next.y - c.y, next.x - c.x);
+                
+                let start = angToNext;
+                let end = angToPrev;
+                let diff = end - start;
+                while (diff < 0) diff += Math.PI * 2;
+                if (diff > Math.PI) { [start, end] = [end, start]; }
+
+                drawAngleArc(c.x, c.y, start, end, p.color);
+
+                let arcPrev = (points[i].angle - points[(i+3)%4].angle + Math.PI*2) % (Math.PI*2);
+                let arcNext = (points[(i+1)%4].angle - points[i].angle + Math.PI*2) % (Math.PI*2);
+                const val = 180 - ((arcPrev + arcNext) * 180 / Math.PI) / 2;
+                interiorAngles.push({ val, label: p.label, color: p.color });
+
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 12, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.textAlign = 'center';
+                const labelDist = 30;
+                ctx.fillText(p.label, c.x + Math.cos(p.angle) * labelDist, c.y + Math.sin(p.angle) * labelDist);
+                
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillStyle = p.color;
+                ctx.fillText(Math.round(val) + '°', c.x + Math.cos(p.angle) * -22, c.y + Math.sin(p.angle) * -22);
+            });
+
+            const pair1 = [interiorAngles[0], interiorAngles[2]];
+            const pair2 = [interiorAngles[1], interiorAngles[3]];
+
+            const s1 = Math.round(pair1[0].val + pair1[1].val);
+            const s2 = Math.round(pair2[0].val + pair2[1].val);
+
+            eq1El.innerHTML = `<span style="color:${pair1[0].color}">${pair1[0].label}</span>+<span style="color:${pair1[1].color}">${pair1[1].label}</span>: ${Math.round(pair1[0].val)}°+${Math.round(pair1[1].val)}°=<b>${s1}°</b>`;
+            eq2El.innerHTML = `<span style="color:${pair2[0].color}">${pair2[1].label}</span>+<span style="color:${pair2[1].color}">${pair2[0].label}</span>: ${Math.round(pair2[1].val)}°+${Math.round(pair2[0].val)}°=<b>${s2}°</b>`;
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function onStart(e) {
+            const pos = getPos(e);
+            points.forEach(p => {
+                const px = centerX + radius * Math.cos(p.angle);
+                const py = centerY + radius * Math.sin(p.angle);
+                const dist = Math.sqrt((pos.x - px)**2 + (pos.y - py)**2);
+                if (dist < 35) activePoint = p;
+            });
+        }
+
+        function onMove(e) {
+            if (!activePoint) return;
+            const pos = getPos(e);
+            activePoint.angle = Math.atan2(pos.y - centerY, pos.x - centerX);
+            if (activePoint.angle < 0) activePoint.angle += Math.PI * 2;
+            draw();
+            e.preventDefault();
+        }
+
+        window.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', () => activePoint = null);
+        window.addEventListener('touchstart', onStart, {passive: false});
+        window.addEventListener('touchmove', onMove, {passive: false});
+        window.addEventListener('touchend', () => activePoint = null);
+        window.addEventListener('resize', resize);
+
+        resize();
+    </script>
+</body>
+</html>
+
