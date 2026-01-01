@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Geometric Nexus</title>
+    <!-- Three.js Core Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root { --accent: #00f2ff; --glass: rgba(10, 10, 10, 0.94); }
+        body { margin: 0; overflow: hidden; background: #000; color: #fff; font-family: -apple-system, system-ui, sans-serif; }
+        canvas { display: block; touch-action: none; }
+        
+        /* Gear Button (Settings Toggle) */
+        #gear-btn {
+            position: absolute; top: 20px; right: 20px;
+            width: 50px; height: 50px; background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #gear-btn svg { width: 26px; height: 26px; fill: white; transition: transform 0.3s ease; }
+        #gear-btn.active svg { transform: rotate(90deg); }
+
+        /* Settings Window (Glassmorphism) */
+        #config-window {
+            position: absolute; top: 85px; right: 20px;
+            width: 280px; background: var(--glass);
+            padding: 24px; border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px); z-index: 999;
+            display: none; box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            max-height: 75vh; overflow-y: auto;
+        }
+        #config-window.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .title-area {
+            font-weight: 800; margin-bottom: 20px; font-size: 16px; 
+            color: var(--accent); text-transform: uppercase; letter-spacing: 2px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;
+        }
+
+        .row { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 8px; opacity: 0.7; letter-spacing: 1px; text-transform: uppercase; }
+        input[type=range] { width: 100%; accent-color: var(--accent); height: 4px; cursor: pointer; }
+        
+        /* Custom color picker style */
+        input[type=color] {
+            width: 100%; height: 35px; border: none; border-radius: 8px; background: rgba(255,255,255,0.05); cursor: pointer; padding: 2px;
+        }
+
+        .hint { position: absolute; bottom: 20px; left: 0; width: 100%; font-size: 9px; opacity: 0.4; pointer-events: none; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <div id="gear-btn" onclick="toggleUI()">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.5c-1.93,0-3.5-1.57-3.5-3.5 s1.57-3.5,3.5-3.5s3.5,1.57,3.5,3.5S13.93,15.5,12,15.5z"/></svg>
+    </div>
+
+    <div id="config-window">
+        <div class="title-area">Geometric Nexus</div>
+        
+        <div class="row">
+            <label>Multiplier Factor <span id="val-m">2.00</span></label>
+            <input type="range" id="sl-m" min="1" max="10" step="0.005" value="2.00">
+        </div>
+
+        <div class="row">
+            <label>Curve Distortion <span id="val-s">0.00</span></label>
+            <input type="range" id="sl-s" min="0" max="1" step="0.01" value="0.00">
+        </div>
+
+        <div class="row">
+            <label>Camera Auto-Rotate <span id="val-cam">0.005</span></label>
+            <input type="range" id="sl-cam" min="0" max="0.02" step="0.001" value="0.005">
+        </div>
+
+        <div class="row">
+            <label>Nexus Color</label>
+            <input type="color" id="cp-color" value="#00f2ff">
+        </div>
+
+        <div class="row">
+            <label>3D Depth Amplitude <span id="val-z">0.40</span></label>
+            <input type="range" id="sl-z" min="0" max="2" step="0.01" value="0.40">
+        </div>
+
+        <div class="row">
+            <label>Auto Morph Speed <span id="val-v">0.01</span></label>
+            <input type="range" id="sl-v" min="0" max="0.05" step="0.001" value="0.01">
+        </div>
+    </div>
+
+    <div class="hint">ROTATE (1 FINGER) • ZOOM (PINCH)</div>
+
+    <script>
+        function toggleUI() {
+            const btn = document.getElementById('gear-btn');
+            const win = document.getElementById('config-window');
+            btn.classList.toggle('active');
+            win.classList.toggle('active');
+        }
+
+        function startApp() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 4.5;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            // --- Interaction State ---
+            let isDragging = false;
+            let prevX = 0, prevY = 0;
+            let rotX = 0, rotY = 0;
+            
+            let initialPinchDistance = 0;
+            let initialCameraZ = 4.5;
+
+            function getDistance(touches) {
+                const dx = touches[0].pageX - touches[1].pageX;
+                const dy = touches[0].pageY - touches[1].pageY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            // --- Touch Event Handlers ---
+            window.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    prevX = e.touches[0].pageX;
+                    prevY = e.touches[0].pageY;
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    initialPinchDistance = getDistance(e.touches);
+                    initialCameraZ = camera.position.z;
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isDragging) {
+                    const dx = e.touches[0].pageX - prevX;
+                    const dy = e.touches[0].pageY - prevY;
+                    rotY += dx * 0.006;
+                    rotX += dy * 0.006;
+                    prevX = e.touches[0].pageX;
+                    prevY = e.touches[0].pageY;
+                } else if (e.touches.length === 2) {
+                    const currentDist = getDistance(e.touches);
+                    const factor = initialPinchDistance / currentDist;
+                    let newZ = initialCameraZ * factor;
+                    camera.position.z = Math.max(1.5, Math.min(newZ, 12));
+                }
+                // Allow scroll only if not interacting with canvas
+                if (e.target.tagName !== 'INPUT' && e.target.id !== 'config-window') e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('touchend', () => { isDragging = false; });
+
+            // --- Geometry Construction ---
+            const pointsCount = 450;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(pointsCount * 2 * 3);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0x00f2ff, 
+                transparent: true, 
+                opacity: 0.45,
+                blending: THREE.AdditiveBlending 
+            });
+
+            const mesh = new THREE.LineSegments(geometry, material);
+            scene.add(mesh);
+
+            // --- UI Element References ---
+            const slM = document.getElementById('sl-m');
+            const slS = document.getElementById('sl-s');
+            const slZ = document.getElementById('sl-z');
+            const slV = document.getElementById('sl-v');
+            const slCam = document.getElementById('sl-cam');
+            const cpColor = document.getElementById('cp-color');
+
+            function updateNexus() {
+                const pos = geometry.attributes.position.array;
+                const m = parseFloat(slM.value);
+                const s = parseFloat(slS.value);
+                const zAmp = parseFloat(slZ.value);
+
+                for (let i = 0; i < pointsCount; i++) {
+                    // Origin point calculation
+                    const a1 = (i / pointsCount) * Math.PI * 2;
+                    const r1 = 1.0 * (1 + s * Math.cos(a1));
+                    const x1 = Math.cos(a1) * r1;
+                    const y1 = Math.sin(a1) * r1;
+                    const z1 = Math.sin(a1 * 2) * zAmp;
+
+                    // Destination point calculation (Nexus)
+                    const a2 = ((i * m) / pointsCount) * Math.PI * 2;
+                    const r2 = 1.0 * (1 + s * Math.cos(a2));
+                    const x2 = Math.cos(a2) * r2;
+                    const y2 = Math.sin(a2) * r2;
+                    const z2 = Math.sin(a2 * 2) * zAmp;
+
+                    const base = i * 6;
+                    pos[base] = x1; pos[base+1] = y1; pos[base+2] = z1;
+                    pos[base+3] = x2; pos[base+4] = y2; pos[base+5] = z2;
+                }
+                geometry.attributes.position.needsUpdate = true;
+            }
+
+            function renderLoop() {
+                requestAnimationFrame(renderLoop);
+
+                // Auto-morphing logic
+                const v = parseFloat(slV.value);
+                if(v > 0) {
+                    let currentM = parseFloat(slM.value);
+                    currentM += v;
+                    if(currentM > 10) currentM = 1;
+                    slM.value = currentM;
+                }
+
+                // Auto-rotation logic
+                const camVel = parseFloat(slCam.value);
+                if (!isDragging) {
+                    rotY += camVel;
+                }
+
+                // Color syncing
+                material.color.set(cpColor.value);
+
+                // UI Label Updates
+                document.getElementById('val-m').innerText = parseFloat(slM.value).toFixed(2);
+                document.getElementById('val-s').innerText = parseFloat(slS.value).toFixed(2);
+                document.getElementById('val-z').innerText = parseFloat(slZ.value).toFixed(2);
+                document.getElementById('val-v').innerText = v.toFixed(3);
+                document.getElementById('val-cam').innerText = camVel.toFixed(3);
+
+                // Apply 3D rotations
+                mesh.rotation.y = rotY;
+                mesh.rotation.x = rotX;
+
+                updateNexus();
+                renderer.render(scene, camera);
+            }
+
+            renderLoop();
+
+            // Handle window resizing
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // Safe Initialization
+        if (typeof THREE !== 'undefined') {
+            startApp();
+        } else {
+            window.onload = startApp;
+        }
+    </script>
+</body>
+</html>
+
