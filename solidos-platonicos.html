@@ -60,7 +60,7 @@
             position: absolute;
             top: 80px;
             right: 20px;
-            width: 300px;
+            width: 310px;
             max-height: 85vh;
             background: var(--panel-bg);
             backdrop-filter: blur(15px);
@@ -114,11 +114,11 @@
         input[type=range] { width: 100%; cursor: pointer; accent-color: var(--accent); height: 4px; }
 
         .global-toggle {
-            background: rgba(255,212,0,0.1);
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            border: 1px dashed rgba(255,212,0,0.3);
+            background: rgba(0,212,255,0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px dashed var(--accent);
         }
     </style>
 </head>
@@ -129,19 +129,18 @@
     </button>
 
     <div id="settings-panel" class="hidden">
-        <div class="panel-header">CONFIGURAÇÕES</div>
+        <div class="panel-header">CONFIGURAÇÕES GLOBAIS</div>
         <div class="panel-content">
             <div class="section">
-                <h2>Câmara e Rotação</h2>
-                
                 <div class="global-toggle">
                     <label class="check-toggle" style="color: var(--accent); font-weight: bold;">
                         <input type="checkbox" id="center_all"> Centralizar todos em (0,0,0)
                     </label>
                 </div>
 
+                <h2>Focar Grupo</h2>
                 <div class="btn-grid">
-                    <button class="control-btn" id="btn_f0">Toroide (Fluxo)</button>
+                    <button class="control-btn" id="btn_f0">Fluxo Toroidal</button>
                     <button class="control-btn" id="btn_f1">Cubo e Octaedro</button>
                     <button class="control-btn active" id="btn_f2">Dodecaedro e Icosaedro</button>
                     <button class="control-btn" id="btn_f3">Stella Octangula</button>
@@ -151,7 +150,7 @@
             </div>
 
             <div class="section">
-                <h2>Parâmetros por Figura</h2>
+                <h2>Ajustes Individuais</h2>
                 
                 <!-- Toroide -->
                 <div class="control-group">
@@ -210,7 +209,7 @@
 
                 <!-- Tetraedro 1 -->
                 <div class="control-group">
-                    <div class="label-row"><span>Tetraedro 1</span></div>
+                    <div class="label-row"><span>Tetraedro 1 (Stella)</span></div>
                     <div class="toggles-row">
                         <label class="check-toggle"><input type="checkbox" id="vis_tetra1" checked> Visível</label>
                         <label class="check-toggle"><input type="checkbox" id="wire_tetra1"> Wireframe</label>
@@ -221,7 +220,7 @@
 
                 <!-- Tetraedro 2 -->
                 <div class="control-group">
-                    <div class="label-row"><span>Tetraedro 2</span></div>
+                    <div class="label-row"><span>Tetraedro 2 (Stella)</span></div>
                     <div class="toggles-row">
                         <label class="check-toggle"><input type="checkbox" id="vis_tetra2" checked> Visível</label>
                         <label class="check-toggle"><input type="checkbox" id="wire_tetra2"> Wireframe</label>
@@ -256,7 +255,7 @@
             scene.fog = new THREE.FogExp2(0x05050a, 0.03);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 8, 20);
+            camera.position.set(0, 10, 25);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -272,12 +271,12 @@
             const ambient = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambient);
 
-            const light1 = new THREE.PointLight(0x00d4ff, 1.5);
-            light1.position.set(10, 20, 10);
+            const light1 = new THREE.PointLight(0x00d4ff, 1.8);
+            light1.position.set(10, 20, 15);
             scene.add(light1);
 
-            const light2 = new THREE.PointLight(0xff0055, 1.2);
-            light2.position.set(-15, -10, 5);
+            const light2 = new THREE.PointLight(0xff0055, 1.5);
+            light2.position.set(-15, -10, 10);
             scene.add(light2);
 
             createGeometries();
@@ -286,10 +285,10 @@
         }
 
         function createGeometries() {
-            // Grupo 0: Torus
+            // Grupo 0: Fluxo Toroidal
             const g0 = new THREE.Group();
             meshes.torus = new THREE.Mesh(
-                new THREE.TorusGeometry(2, 0.8, 16, 100),
+                new THREE.TorusGeometry(2.5, 1.0, 20, 100),
                 new THREE.MeshPhongMaterial({ color: 0x8844ff, wireframe: true, transparent: true, opacity: 0.6 })
             );
             g0.add(meshes.torus);
@@ -300,11 +299,11 @@
             // Grupo 1: Cubo e Octaedro
             const g1 = new THREE.Group();
             meshes.cube = new THREE.Mesh(
-                new THREE.BoxGeometry(3, 3, 3),
+                new THREE.BoxGeometry(3.5, 3.5, 3.5),
                 new THREE.MeshPhongMaterial({ color: 0x00d4ff, wireframe: true, transparent: true, opacity: 0.6 })
             );
             meshes.octa = new THREE.Mesh(
-                new THREE.OctahedronGeometry(1.6),
+                new THREE.OctahedronGeometry(2),
                 new THREE.MeshPhongMaterial({ color: 0xffaa00, shininess: 100, side: THREE.DoubleSide })
             );
             g1.add(meshes.cube, meshes.octa);
@@ -315,11 +314,11 @@
             // Grupo 2: Dodecaedro e Icosaedro
             const g2 = new THREE.Group();
             meshes.dodeca = new THREE.Mesh(
-                new THREE.DodecahedronGeometry(1.8),
+                new THREE.DodecahedronGeometry(2.2),
                 new THREE.MeshPhongMaterial({ color: 0xff0055, wireframe: true, transparent: true, opacity: 0.6 })
             );
             meshes.icosa = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(1.4),
+                new THREE.IcosahedronGeometry(1.8),
                 new THREE.MeshPhongMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
             );
             g2.add(meshes.dodeca, meshes.icosa);
@@ -327,12 +326,16 @@
             scene.add(g2);
             groups.push(g2);
 
-            // Grupo 3: Stella Octangula
+            // Grupo 3: Stella Octangula (Tetraedro Estrelado)
+            // Para parecer uma estrela, os tetraedros devem estar invertidos um em relação ao outro
             const g3 = new THREE.Group();
-            const tetraGeo = new THREE.TetrahedronGeometry(1.8);
+            const tetraGeo = new THREE.TetrahedronGeometry(2.2);
             meshes.tetra1 = new THREE.Mesh(tetraGeo, new THREE.MeshPhongMaterial({ color: 0xffff00, side: THREE.DoubleSide }));
+            
             meshes.tetra2 = new THREE.Mesh(tetraGeo, new THREE.MeshPhongMaterial({ color: 0xff5500, side: THREE.DoubleSide }));
-            meshes.tetra2.rotation.set(Math.PI, 0, 0);
+            // Rotação precisa para criar a estrela de 8 pontas (Stella Octangula)
+            meshes.tetra2.rotation.set(Math.PI, 0, Math.PI / 2); 
+            
             g3.add(meshes.tetra1, meshes.tetra2);
             g3.position.x = groupOffsets[3];
             scene.add(g3);
@@ -341,7 +344,7 @@
             // Grupo 4: Esfera Geodésica
             const g4 = new THREE.Group();
             meshes.geo = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(2, 2),
+                new THREE.IcosahedronGeometry(2.5, 2),
                 new THREE.MeshPhongMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.7 })
             );
             g4.add(meshes.geo);
@@ -369,7 +372,13 @@
                 document.getElementById(`btn_f${i}`).onclick = () => {
                     const isCentered = document.getElementById('center_all').checked;
                     const xTarget = isCentered ? 0 : groupOffsets[i];
-                    if(controls) controls.target.set(xTarget, 0, 0);
+                    if(controls) {
+                        controls.target.set(xTarget, 0, 0);
+                        // Suavizar a transição da câmara ligeiramente
+                        camera.position.x = xTarget;
+                        camera.position.z = 25;
+                        camera.position.y = 10;
+                    }
                     for(let j=0; j<5; j++) document.getElementById(`btn_f${j}`).classList.toggle('active', i === j);
                 };
             });
@@ -423,7 +432,7 @@
             requestAnimationFrame(animate);
             if (isRotating) {
                 groups.forEach(g => {
-                    g.rotation.y += 0.005;
+                    g.rotation.y += 0.006;
                     g.rotation.z += 0.002;
                 });
             }
