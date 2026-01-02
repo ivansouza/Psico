@@ -3,53 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Psico Portfolio - Galeria de Experiências</title>
+    <title>Psico Portfolio - Galeria Exaustiva</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
+        
+        body { 
+            background-color: #05070a; 
+            color: #e2e8f0; 
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%);
+        }
+        
         .card { 
-            background: rgba(15, 23, 42, 0.8); 
-            backdrop-filter: blur(8px); 
-            border: 1px solid rgba(255, 255, 255, 0.05); 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(15, 23, 42, 0.4); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.03); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
         .card:hover { 
-            transform: translateY(-4px); 
+            transform: translateY(-8px); 
             border-color: #38bdf8; 
-            box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.3);
-            background: rgba(30, 41, 59, 0.9);
+            box-shadow: 0 20px 40px -20px rgba(56, 189, 248, 0.4);
+            background: rgba(30, 41, 59, 0.6);
         }
+
         .gradient-text { 
             background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc); 
             -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent; 
         }
+
+        .filter-btn {
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         .filter-btn.active { 
             background-color: #38bdf8; 
             color: #0b0f1a; 
             border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
         }
+
+        .badge-cat {
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0b0f1a; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
     </style>
 </head>
-<body class="min-h-screen">
-    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 p-6 mb-8">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="text-left">
-                <h1 class="text-3xl font-black gradient-text">PSICO PORTFOLIO</h1>
-                <p class="text-slate-500 text-sm">Explorações de Matemática, Física e Arte Generativa por <span class="text-sky-400">Ivan Souza</span></p>
+<body class="min-h-screen selection:bg-sky-500/30">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-6 mb-12">
+        <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <i class="fas fa-brain text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black gradient-text tracking-tighter uppercase">Psico Portfolio</h1>
+                    <p class="text-slate-500 text-xs font-medium">Curadoria de Arte Generativa e Matemática por <span class="text-sky-400">Ivan Souza</span></p>
+                </div>
             </div>
-            <div class="flex flex-wrap justify-center gap-2" id="filters"></div>
+            
+            <div class="flex flex-wrap justify-center gap-2" id="filters">
+                <!-- Filtros injetados via JS -->
+            </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-6 pb-20">
-        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    <!-- Gallery -->
+    <main class="max-w-[1600px] mx-auto px-6 pb-32">
+        <div id="stats" class="mb-8 text-slate-500 text-sm font-mono"></div>
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <!-- Cards injetados via JS -->
+        </div>
     </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-slate-950/50 py-12 text-center">
+        <div class="max-w-7xl mx-auto px-6">
+            <p class="text-slate-500 text-sm mb-4">Repositório de exploração visual e física computacional.</p>
+            <div class="flex justify-center gap-6 text-slate-400">
+                <a href="https://github.com/ivansouza/Psico" target="_blank" class="hover:text-sky-400 transition-colors"><i class="fab fa-github text-xl"></i></a>
+            </div>
+            <p class="text-slate-700 text-[10px] mt-8 uppercase tracking-widest">&copy; 2026 ivansouza - Creative Coding Lab</p>
+        </div>
+    </footer>
 
     <script>
         const username = "ivansouza";
@@ -58,145 +108,160 @@
         const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
 
         const experiments = [
-            // Fractais
-            { name: "Mandelbrot", file: "mandelbrot.html", cat: "Fractal", desc: "Exploração interativa do conjunto de Mandelbrot com suporte a zoom infinito." },
-            { name: "Mandelbrot Base", file: "mb1.html", cat: "Fractal", desc: "Versão simplificada e otimizada do motor de renderização de Mandelbrot." },
-            { name: "Conjunto Julia", file: "julia.html", cat: "Fractal", desc: "Visualização dinâmica de conjuntos de Julia baseada na posição do rato." },
-            { name: "Samambaia de Barnsley", file: "samambaia.html", cat: "Fractal", desc: "Simulação do fractal biológico usando o algoritmo Iterated Function System." },
-            { name: "Mosaico Truchet", file: "Truchet.html", cat: "Fractal", desc: "Geração de padrões labirínticos complexos através de azulejos geométricos simples." },
-            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", desc: "Estrutura fractal baseada na geometria de um dodecaedro 3D." },
-
-            // Física e Sistemas Caóticos
-            { name: "Atrator de Lorenz A", file: "A-lorenz.html", cat: "Física", desc: "Simulação de sistemas caóticos baseada nas equações meteorológicas de Edward Lorenz." },
-            { name: "Atrator de Lorenz", file: "lorenz.html", cat: "Física", desc: "Versão clássica da trajetória em 'borboleta' característica da Teoria do Caos." },
-            { name: "Buraco Negro", file: "blackhole.html", cat: "Física", desc: "Simulação de lente gravitacional e distorção da luz em torno de uma singularidade." },
-            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", desc: "Visualização de fluxos de partículas em sistemas circulares auto-sustentados." },
-            { name: "Máquina de Fourier", file: "fourier-machine.html", cat: "Física", desc: "Decomposição e síntese de ondas complexas usando séries de Fourier." },
-            { name: "Máquina Fourier PT", file: "maquina-de-Fourier.html", cat: "Física", desc: "Interface em português para a simulação de decomposição harmónica." },
-            { name: "Oscilação Gaussiana EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", desc: "Simulação de pacotes de ondas moduladas por funções gaussianas em inglês." },
-            { name: "Oscilação Gaussiana PT", file: "gaussian-modulated-oscillation-pt.html", cat: "Física", desc: "Simulação de pacotes de ondas moduladas por funções gaussianas em português." },
-            { name: "Jobs Térmico 1", file: "jobs-termico.html", cat: "Física", desc: "Visualização de dissipação de calor e fluxos térmicos em ambientes controlados." },
-            { name: "Jobs Térmico 2", file: "jobs-termico2.html", cat: "Física", desc: "Segunda variante da simulação térmica com parâmetros de condutividade alterados." },
-            { name: "Jobs Térmico 3", file: "jobs-termico3.html", cat: "Física", desc: "Terceira variante focada em padrões complexos de transferência de calor." },
-            { name: "Jobs Dia", file: "jobsdia.html", cat: "Física", desc: "Simulação térmica diária ou de ciclo específico." },
-            { name: "Engs3", file: "engs3.html", cat: "Física", desc: "Experimento técnico de engenharia simulando fluxos de partículas." },
-            { name: "Sp1", file: "sp1.html", cat: "Física", desc: "Primeiro protótipo de física de partículas e colisões elásticas." },
-            { name: "Sp2", file: "sp2.html", cat: "Física", desc: "Segundo protótipo com comportamento de partículas otimizado." },
+            // Física e Caos
+            { name: "Atrator de Lorenz A", file: "A-lorenz.html", cat: "Física", desc: "Simulação tridimensional do sistema caótico de Lorenz." },
+            { name: "Lorenz Clássico", file: "lorenz.html", cat: "Física", desc: "A famosa trajetória em 'borboleta' da teoria do caos." },
+            { name: "Lorenz English", file: "lorenz-en.html", cat: "Física", desc: "Classical Lorenz attractor simulation in English." },
+            { name: "Buraco Negro", file: "blackhole.html", cat: "Física", desc: "Simulação de lente gravitacional e desvio da luz." },
+            { name: "Gravidade", file: "gravity.html", cat: "Física", desc: "Simulação de campos gravitacionais e órbitas." },
+            { name: "Energia Cinética", file: "ke.html", cat: "Física", desc: "Experimento dinâmico de energia e movimento." },
+            { name: "Máquina de Fourier", file: "fourier-machine.html", cat: "Física", desc: "Decomposição e síntese de ondas harmónicas." },
+            { name: "Fourier PT", file: "maquina-de-Fourier.html", cat: "Física", desc: "Síntese harmónica com interface em português." },
+            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", desc: "Animação de um vórtice cíclico infinito." },
+            { name: "Oscilação Gaussiana EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", desc: "Wave packets modulated by Gaussian functions." },
+            { name: "Oscilação Gaussiana PT", file: "gaussian-modulated-oscillation-pt.html", cat: "Física", desc: "Pacotes de ondas moduladas por funções gaussianas." },
 
             // Geometria e 3D
-            { name: "Fita de Möbius", file: "mobius.html", cat: "3D", desc: "Representação matemática de uma superfície com apenas um lado e uma fronteira." },
-            { name: "Dodecaedro Sagrado", file: "Sacred-Dodecahedron.html", cat: "3D", desc: "Renderização 3D de um sólido platónico associado à geometria sagrada." },
-            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "3D", desc: "Sólido geométrico complexo animado com propriedades de reflexão visual." },
-            { name: "Torus (Rosca)", file: "torus.html", cat: "3D", desc: "Exploração de superfícies toroidais e as suas equações paramétricas." },
-            { name: "Torus v2", file: "torus2.html", cat: "3D", desc: "Segunda versão do Torus com sombreamento e rotação aprimorados." },
-            { name: "Esfera 1", file: "sphere.html", cat: "3D", desc: "Estudo base de mapeamento de texturas sobre malhas esféricas." },
-            { name: "Esfera 2", file: "sphere2.html", cat: "3D", desc: "Variação da esfera focada em iluminação e materiais." },
-            { name: "Esfera 3", file: "sphere3.html", cat: "3D", desc: "Variação da esfera explorando wireframes e malhas dinâmicas." },
-            { name: "Esfera 4", file: "sphere4.html", cat: "3D", desc: "Variação final da série esférica com efeitos de transparência." },
-            { name: "Feliz Natal 3D", file: "feliznatal3d.html", cat: "3D", desc: "Cenário festivo animado utilizando transformações espaciais 3D." },
-            { name: "Feliz Natal 3D v2", file: "feliznatal3d2.html", cat: "3D", desc: "Versão refinada do cenário natalício com novos elementos visuais." },
+            { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
+            { name: "Tesseract 4D", file: "tesseract4d.html", cat: "Geometria", desc: "Visualização da projeção de um hipercubo em 4D." },
+            { name: "Nexus 3D", file: "nexus3d.html", cat: "Geometria", desc: "Estrutura de conexões e redes espaciais 3D." },
+            { name: "Dodecaedro Sagrado", file: "Sacred-Dodecahedron.html", cat: "Geometria", desc: "Geometria sagrada baseada no dodecaedro." },
+            { name: "Fita de Möbius", file: "mobius.html", cat: "Geometria", desc: "Superfície paramétrica com apenas um lado." },
+            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "Geometria", desc: "Esfera baseada na subdivisão do icosaedro." },
+            { name: "Geocíclico", file: "geociclico.html", cat: "Geometria", desc: "Padrões geométricos repetitivos e circulares." },
+            { name: "Torus 1", file: "torus.html", cat: "Geometria", desc: "Modelo 3D de um Torus v1." },
+            { name: "Torus 2", file: "torus2.html", cat: "Geometria", desc: "Modelo 3D de um Torus v2." },
+            { name: "Sphere 1", file: "sphere.html", cat: "Geometria", desc: "Estudo de malha esférica v1." },
+            { name: "Sphere 2", file: "sphere2.html", cat: "Geometria", desc: "Estudo de malha esférica v2." },
+            { name: "Sphere 3", file: "sphere3.html", cat: "Geometria", desc: "Estudo de malha esférica v3." },
+            { name: "Sphere 4", file: "sphere4.html", cat: "Geometria", desc: "Estudo de malha esférica v4." },
+
+            // Fractais e Matemática
+            { name: "Mandelbrot Full", file: "mandelbrot.html", cat: "Fractal", desc: "Explorador completo do conjunto de Mandelbrot." },
+            { name: "Mandelbrot Base", file: "mb1.html", cat: "Fractal", desc: "Versão leve do motor Mandelbrot." },
+            { name: "Conjunto Julia", file: "julia.html", cat: "Fractal", desc: "Visualização interativa de conjuntos de Julia." },
+            { name: "Samambaia", file: "samambaia.html", cat: "Fractal", desc: "O fractal de Barnsley via IFS." },
+            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", desc: "Recursão aplicada à geometria do dodecaedro." },
+            { name: "Fibonacci Sopa", file: "fibonacci-sopa.html", cat: "Matemática", desc: "Fluxo dinâmico da sequência de Fibonacci." },
+            { name: "Fibonacci Stew", file: "fibonacci-stew.html", cat: "Matemática", desc: "Variação fluida dos padrões de Fibonacci." },
+            { name: "Truchet Tiles", file: "Truchet.html", cat: "Matemática", desc: "Mosaicos gerados por algoritmos de Truchet." },
+            { name: "Lissajous 1", file: "lissajous.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v1." },
+            { name: "Lissajous 2", file: "lissajous2.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v2." },
+            { name: "Lissajous 3", file: "lissajous3.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v3." },
+            { name: "Lissajous 4", file: "lissajous4.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v4." },
+
+            // Áudio e Binaurais
+            { name: "Binaural BPM", file: "binaurais-bpm.html", cat: "Áudio", desc: "Frequências binaurais sincronizadas com BPM." },
+            { name: "Binaural BPM 2", file: "binaurais-bpm2.html", cat: "Áudio", desc: "Variante avançada de batidas binaurais." },
+            { name: "Binaurais Base", file: "binaurais.html", cat: "Áudio", desc: "Batidas binaurais v1." },
+            { name: "Binaurais 2", file: "binaurais2.html", cat: "Áudio", desc: "Frequências cerebrais v2." },
+            { name: "Binaurais 3", file: "binaurais3.html", cat: "Áudio", desc: "Frequências cerebrais v3." },
+            { name: "Binaurais 4", file: "binaurais4.html", cat: "Áudio", desc: "Frequências cerebrais v4." },
+            { name: "Binaurais 5", file: "binaurais5.html", cat: "Áudio", desc: "Frequências cerebrais v5." },
+            { name: "Binaurais 6", file: "binaurais6.html", cat: "Áudio", desc: "Frequências cerebrais v6." },
 
             // Animação e Partículas
-            { name: "Bolas Animação", file: "balls-animation.html", cat: "Animação", desc: "Motor de física base para colisões e gravidade entre múltiplas esferas." },
-            { name: "Bolas Animação 2", file: "balls-animation2.html", cat: "Animação", desc: "Extensão da animação com maior densidade de partículas." },
-            { name: "Bolas Animação 3", file: "balls-animation3.html", cat: "Animação", desc: "Versão final da série de animação com física otimizada." },
-            { name: "Bubble Display", file: "bubble-display.html", cat: "Animação", desc: "Simulação de flutuabilidade e movimento fluido de bolhas de ar." },
-            { name: "Bubble Display 2", file: "bubble-display2.html", cat: "Animação", desc: "Variação do display de bolhas com padrões de cores dinâmicos." },
-            { name: "Bubble Display 3", file: "bubble-display3.html", cat: "Animação", desc: "Versão final focada em interatividade com o utilizador." },
-            { name: "Waterfall", file: "waterfall.html", cat: "Animação", desc: "Efeito de queda de partículas simulando o fluxo contínuo de uma cascata." },
-            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", desc: "Partículas de neve suspensas em movimento browniano dentro de um globo." },
-            { name: "Jogo da Vida", file: "life.html", cat: "Autómato", desc: "O clássico autómato celular de Conway sobre evolução de células." },
-            { name: "Jogo da Vida 2", file: "life2.html", cat: "Autómato", desc: "Versão com regras de sobrevivência ou cores alternativas." },
-            { name: "Jogo da Vida 3", file: "life3.html", cat: "Autómato", desc: "Otimização em larga escala para o simulador de vida celular." },
-            { name: "Curlycue", file: "curlycue.html", cat: "Animação", desc: "Padrões de linhas espiraladas geradas por algoritmos recursivos." },
-            { name: "Back in Black", file: "backinblack.html", cat: "Animação", desc: "Experimento visual escuro com transições de partículas contrastantes." },
-            { name: "They Do It", file: "they-do-It.html", cat: "Animação", desc: "Comportamentos emergentes em enxames de partículas." },
-            { name: "They Do It v2", file: "theydoit.html", cat: "Animação", desc: "Segunda versão do sistema de comportamento coletivo." },
-            { name: "Joy", file: "joy.html", cat: "Animação", desc: "Animação artística focada em movimento fluido e expressivo." },
-            { name: "C (Experimento)", file: "c.html", cat: "Animação", desc: "Experimento minimalista de animação geométrica." },
+            { name: "Balls v1", file: "balls-animation.html", cat: "Animação", desc: "Colisões físicas v1." },
+            { name: "Balls v2", file: "balls-animation2.html", cat: "Animação", desc: "Colisões físicas v2." },
+            { name: "Balls v3", file: "balls-animation3.html", cat: "Animação", desc: "Colisões físicas v3." },
+            { name: "Bolhas 1", file: "bubble-display.html", cat: "Animação", desc: "Animação de bolhas v1." },
+            { name: "Bolhas 2", file: "bubble-display2.html", cat: "Animação", desc: "Animação de bolhas v2." },
+            { name: "Bolhas 3", file: "bubble-display3.html", cat: "Animação", desc: "Animação de bolhas v3." },
+            { name: "Waterfall", file: "waterfall.html", cat: "Animação", desc: "Queda de partículas contínua." },
+            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", desc: "Globo de neve interativo." },
+            { name: "Game of Life 1", file: "life.html", cat: "Animação", desc: "Jogo da Vida de Conway v1." },
+            { name: "Game of Life 2", file: "life2.html", cat: "Animação", desc: "Jogo da Vida de Conway v2." },
+            { name: "Game of Life 3", file: "life3.html", cat: "Animação", desc: "Jogo da Vida de Conway v3." },
 
-            // Arte e Efeitos Visuais
-            { name: "Arte ASCII", file: "ascii.html", cat: "Efeitos", desc: "Processamento que converte pixels em caracteres de texto em tempo real." },
-            { name: "Bola de Cristal", file: "bola-de-cristal.html", cat: "Efeitos", desc: "Efeito de distorção esférica que simula visualização através de vidro." },
-            { name: "Caleidoscópio", file: "kaleidoscope.html", cat: "Efeitos", desc: "Reflexões simétricas infinitas baseadas na entrada do rato." },
-            { name: "Rede Neural", file: "redeneural.html", cat: "IA", desc: "Visualização abstrata de sinapses e disparos elétricos neurais." },
-            { name: "Cérebro", file: "brain.html", cat: "IA", desc: "Modelagem visual da estrutura cerebral e fluxos de informação." },
-            { name: "Grok Visual", file: "grok.html", cat: "IA", desc: "Representação artística de processamento de dados e padrões." },
-            { name: "Grok Visual 2", file: "grok2.html", cat: "IA", desc: "Segunda versão da interpretação visual de dados abstratos." },
-            { name: "Shader GLSL 1", file: "glsl-1.html", cat: "Shaders", desc: "Programação direta de GPU para gerar efeitos visuais de alta performance." },
-            { name: "Shader GLSL 2", file: "glsl-2.html", cat: "Shaders", desc: "Segundo shader explorando iluminação volumétrica e ruído." },
-            { name: "Ondas Hipnóticas", file: "hypnoticwaves3d.html", cat: "Efeitos", desc: "Interferência de ondas sinusoidais para criar ilusões óticas." },
-            { name: "Ondas Hipnóticas EN", file: "hypnoticwaves3d-en.html", cat: "Efeitos", desc: "Versão em inglês do simulador de ondas hipnóticas." },
-            { name: "Lenticular", file: "lenticular.html", cat: "Efeitos", desc: "Simulação do efeito de lentes lenticulares que mudam com o ângulo." },
-            { name: "Lenticular 2", file: "lenticular2.html", cat: "Efeitos", desc: "Segunda variação do efeito de profundidade lenticular." },
-            { name: "Stereo", file: "stereo.html", cat: "Efeitos", desc: "Visualização áudio-visual sincronizada em canais estéreo." },
-            { name: "Stereogram", file: "stereogram.html", cat: "Efeitos", desc: "Geração de imagens de profundidade oculta para visualização 3D ocular." },
-            { name: "Cat Art", file: "cat-art.html", cat: "Efeitos", desc: "Experiência de arte generativa temática com elementos estilizados." },
-            { name: "Hand Control", file: "handcontrol.html", cat: "Efeitos", desc: "Interatividade baseada em mapeamento de movimentos manuais." },
+            // Arte e Efeitos
+            { name: "Art Sky", file: "art-sky.html", cat: "Arte", desc: "Visualização generativa de céus artísticos." },
+            { name: "Joy Division", file: "joy.html", cat: "Arte", desc: "Visualização inspirada em 'Unknown Pleasures'." },
+            { name: "Caleidoscópio", file: "kaleidoscope.html", cat: "Arte", desc: "Simetrias múltiplas interativas." },
+            { name: "Organic Flow", file: "organic.html", cat: "Arte", desc: "Padrões generativos orgânicos." },
+            { name: "Arte ASCII", file: "ascii.html", cat: "Arte", desc: "Conversor de imagem para texto." },
+            { name: "Tunnel 1", file: "tunnel.html", cat: "Arte", desc: "Efeito de túnel infinito v1." },
+            { name: "Tunnel 2", file: "tunnel2.html", cat: "Arte", desc: "Efeito de túnel infinito v2." },
+            { name: "Stereogram", file: "stereogram.html", cat: "Arte", desc: "Imagens ocultas em 3D." },
+            { name: "GLSL 1", file: "glsl-1.html", cat: "Shaders", desc: "Shader de fragmento procedural 1." },
+            { name: "GLSL 2", file: "glsl-2.html", cat: "Shaders", desc: "Shader de fragmento procedural 2." },
 
-            // Utilidades, Perfil e Testes
-            { name: "Player Geral", file: "player.html", cat: "Util", desc: "Interface de reprodução de media integrada." },
-            { name: "Player IT", file: "playerIT.html", cat: "Util", desc: "Interface de reprodução com foco em tecnologias de informação." },
-            { name: "Player YT", file: "playerYT.html", cat: "Util", desc: "Interface de reprodução otimizada para conteúdos externos." },
-            { name: "Ivan Perfil", file: "ivan.html", cat: "Perfil", desc: "Página pessoal de apresentação do desenvolvedor." },
-            { name: "Logo Principal", file: "logo.html", cat: "Logo", desc: "Componente visual central da identidade do projeto." },
-            { name: "Logo 2", file: "logo2.html", cat: "Logo", desc: "Segunda variação dinâmica da identidade visual." },
-            { name: "Logo 3", file: "logo3.html", cat: "Logo", desc: "Terceira variação da identidade visual." },
-            { name: "Logo SEABI", file: "logo-SEABI.html", cat: "Logo", desc: "Identidade visual específica para o projeto SEABI." },
-            { name: "Teste 1", file: "teste1.html", cat: "Testes", desc: "Ambiente de sandbox para novas lógicas visuais." },
-            { name: "Teste 2", file: "teste2.html", cat: "Testes", desc: "Segundo ambiente de testes para componentes dinâmicos." },
-            { name: "Index Secundário", file: "index1.html", cat: "Testes", desc: "Versão alternativa da galeria principal." },
+            // IA e Redes
+            { name: "Rede Neural", file: "redeneural.html", cat: "IA", desc: "Visualização sináptica dinâmica." },
+            { name: "Cérebro", file: "brain.html", cat: "IA", desc: "Estrutura neural animada." },
+            { name: "Grok 1", file: "grok.html", cat: "IA", desc: "Reconhecimento visual v1." },
+            { name: "Grok 2", file: "grok2.html", cat: "IA", desc: "Reconhecimento visual v2." },
+            { name: "They Do It 1", file: "they-do-It.html", cat: "IA", desc: "Comportamento emergente v1." },
+            { name: "They Do It 2", file: "theydoit.html", cat: "IA", desc: "Comportamento emergente v2." },
 
-            // Eraser Series
-            { name: "Eraser 40", file: "eraser-40.html", cat: "Eraser", desc: "Variante 40 da experiência de revelação por apagar." },
-            { name: "Eraser 41", file: "eraser-41.html", cat: "Eraser", desc: "Variante 41 com novos pincéis de revelação." },
-            { name: "Eraser 5", file: "eraser-5.html", cat: "Eraser", desc: "Variante 5 da série interativa de camadas." },
-            { name: "Eraser v3", file: "eraser-v3.html", cat: "Eraser", desc: "Terceira versão principal do motor de apagar." },
-            { name: "Eraser v5", file: "eraser-v5.html", cat: "Eraser", desc: "Quinta versão principal da série Eraser." },
-            { name: "Eraser Base", file: "eraser.html", cat: "Eraser", desc: "O experimento original de revelação interativa." }
+            // Térmico e Engenharia
+            { name: "Térmico 1", file: "jobs-termico.html", cat: "Engenharia", desc: "Fluxo de calor simulado v1." },
+            { name: "Térmico 2", file: "jobs-termico2.html", cat: "Engenharia", desc: "Fluxo de calor simulado v2." },
+            { name: "Térmico 3", file: "jobs-termico3.html", cat: "Engenharia", desc: "Fluxo de calor simulado v3." },
+            { name: "Engs3", file: "engs3.html", cat: "Engenharia", desc: "Simulação de engenharia e partículas." },
+
+            // Especial e Util
+            { name: "Feliz 2026", file: "feliz2026.html", cat: "Especial", desc: "Celebração do ano 2026." },
+            { name: "Natal 3D", file: "feliznatal3d.html", cat: "Especial", desc: "Cartão de Natal interativo." },
+            { name: "TTS WebGPU", file: "tts-webgpu.html", cat: "Util", desc: "Síntese de voz via WebGPU." },
+            { name: "Player YT", file: "playerYT.html", cat: "Util", desc: "Interface para YouTube." },
+            { name: "Logo v3", file: "logo3.html", cat: "Logo", desc: "Identidade visual v3." }
         ];
 
-        // Inicializar Filtros
-        const uniqueCats = ['Todos', ...new Set(experiments.map(e => e.cat))];
-        const filterEl = document.getElementById('filters');
+        // Ordenação Inicial
+        experiments.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Injeção de Filtros
+        const categories = ["Todos", ...new Set(experiments.map(e => e.cat))];
+        const filtersContainer = document.getElementById('filters');
         
-        filterEl.innerHTML = uniqueCats.map(cat => `
-            <button onclick="applyFilter('${cat}', this)" 
-                    class="filter-btn ${cat === 'Todos' ? 'active' : ''} px-4 py-1.5 rounded-full border border-slate-700 text-xs font-semibold transition-all">
+        filtersContainer.innerHTML = categories.map(cat => `
+            <button onclick="filterGallery('${cat}', this)" class="filter-btn px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === 'Todos' ? 'active' : ''}">
                 ${cat}
             </button>
         `).join('');
 
-        function renderGallery(items) {
+        function renderCards(data) {
             const gallery = document.getElementById('gallery');
-            gallery.innerHTML = items.map(exp => `
-                <div class="card p-5 rounded-2xl flex flex-col justify-between h-full">
-                    <div class="mb-4">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-[9px] uppercase tracking-tighter text-sky-400 font-bold opacity-80">${exp.cat}</span>
-                            <span class="text-[9px] text-slate-600 font-mono">${exp.file.split('.').pop().toUpperCase()}</span>
+            const stats = document.getElementById('stats');
+            
+            stats.innerHTML = `Mostrando ${data.length} de ${experiments.length} experiências`;
+            
+            gallery.innerHTML = data.map(exp => `
+                <div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="badge-cat text-sky-400 opacity-60">${exp.cat}</span>
+                            <div class="flex gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                            </div>
                         </div>
-                        <h3 class="text-base font-bold text-slate-100 mb-2 leading-tight">${exp.name}</h3>
-                        <p class="text-xs text-slate-400 leading-relaxed">${exp.desc || 'Sem descrição disponível.'}</p>
+                        <h3 class="text-lg font-extrabold text-white mb-2 leading-tight group-hover:text-sky-400 transition-colors">${exp.name}</h3>
+                        <p class="text-[11px] text-slate-500 leading-relaxed mb-6 font-medium">${exp.desc}</p>
                     </div>
-                    <div class="flex gap-2 mt-auto">
-                        <a href="${baseUrl}/${exp.file}" target="_blank" class="flex-1 bg-sky-600 hover:bg-sky-500 text-[10px] text-white font-bold py-2.5 rounded-xl text-center transition shadow-lg shadow-sky-900/20">VER DEMO</a>
-                        <a href="${sourceUrl}/${exp.file}" target="_blank" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-center transition">
-                            <i class="fas fa-code text-[11px]"></i>
+                    
+                    <div class="flex flex-col gap-2 mt-auto">
+                        <a href="${baseUrl}/${exp.file}" target="_blank" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black py-3 rounded-2xl text-center transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i> Ver Demo
+                        </a>
+                        <a href="${sourceUrl}/${exp.file}" target="_blank" class="w-full bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white text-[9px] font-bold py-2 rounded-xl text-center transition-all flex items-center justify-center gap-2 border border-white/5">
+                            <i class="fas fa-code"></i> Source Code
                         </a>
                     </div>
                 </div>
             `).join('');
         }
 
-        function applyFilter(cat, btn) {
+        function filterGallery(cat, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const filtered = cat === 'Todos' ? experiments : experiments.filter(e => e.cat === cat);
-            renderGallery(filtered);
+            
+            const filtered = cat === "Todos" ? experiments : experiments.filter(e => e.cat === cat);
+            renderCards(filtered);
         }
 
-        renderGallery(experiments);
+        // Renderização Inicial
+        renderCards(experiments);
     </script>
 </body>
 </html>
