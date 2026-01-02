@@ -38,14 +38,15 @@
 
         .filter-btn {
             transition: all 0.2s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .filter-btn.active { 
             background-color: #38bdf8; 
             color: #0b0f1a; 
             border-color: #38bdf8;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
         }
 
         .badge-cat {
@@ -53,6 +54,12 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
             font-weight: 800;
+        }
+
+        .file-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: #64748b;
         }
 
         ::-webkit-scrollbar { width: 8px; }
@@ -63,41 +70,47 @@
 </head>
 <body class="min-h-screen selection:bg-sky-500/30">
 
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-6 mb-12">
-        <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row justify-between items-center gap-8">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/20">
-                    <i class="fas fa-brain text-white text-2xl"></i>
+    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-4 mb-8">
+        <div class="max-w-[1600px] mx-auto flex flex-col gap-4">
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+                        <i class="fas fa-brain text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black gradient-text tracking-tighter uppercase leading-none">Psico Portfolio</h1>
+                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-widest mt-1">Ivan Souza • Laboratório de Código</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-3xl font-black gradient-text tracking-tighter uppercase">Psico Portfolio</h1>
-                    <p class="text-slate-500 text-xs font-medium">Curadoria de Arte Generativa e Matemática por <span class="text-sky-400">Ivan Souza</span></p>
-                </div>
+                
+                <div class="flex flex-wrap justify-center gap-1.5" id="filters-cat"></div>
             </div>
-            
-            <div class="flex flex-wrap justify-center gap-2" id="filters">
-                <!-- Filtros injetados via JS -->
+
+            <div class="flex flex-col lg:flex-row gap-4 py-2 border-t border-white/5">
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ano:</span>
+                    <div class="flex gap-1.5" id="filters-year"></div>
+                </div>
+                <div class="flex items-center gap-3 lg:border-l lg:border-white/5 lg:pl-4">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mês:</span>
+                    <div class="flex flex-wrap gap-1.5" id="filters-month"></div>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Gallery -->
     <main class="max-w-[1600px] mx-auto px-6 pb-32">
-        <div id="stats" class="mb-8 text-slate-500 text-sm font-mono"></div>
-        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            <!-- Cards injetados via JS -->
-        </div>
+        <div id="stats" class="mb-6 text-slate-500 text-[10px] font-bold uppercase tracking-widest"></div>
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
     </main>
 
-    <!-- Footer -->
     <footer class="border-t border-white/5 bg-slate-950/50 py-12 text-center">
         <div class="max-w-7xl mx-auto px-6">
-            <p class="text-slate-500 text-sm mb-4">Repositório de exploração visual e física computacional.</p>
+            <p class="text-slate-500 text-sm mb-4 font-medium">Repositório de exploração visual e física computacional.</p>
             <div class="flex justify-center gap-6 text-slate-400">
                 <a href="https://github.com/ivansouza/Psico" target="_blank" class="hover:text-sky-400 transition-colors"><i class="fab fa-github text-xl"></i></a>
             </div>
-            <p class="text-slate-700 text-[10px] mt-8 uppercase tracking-widest">&copy; 2026 ivansouza - Creative Coding Lab</p>
+            <p class="text-slate-700 text-[10px] mt-8 uppercase tracking-widest font-bold">&copy; 2026 ivansouza - Creative Coding Lab</p>
         </div>
     </footer>
 
@@ -107,130 +120,193 @@
         const baseUrl = `https://${username}.github.io/${repo}`;
         const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
 
+        // Estado dos filtros
+        let activeCategory = "Todos";
+        let activeMonth = "Todos";
+        let activeYear = "Todos";
+
+        // Mapeamento de meses
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
         const experiments = [
-            // Física e Caos
-            { name: "Atrator de Lorenz A", file: "A-lorenz.html", cat: "Física", desc: "Simulação tridimensional do sistema caótico de Lorenz." },
-            { name: "Lorenz Clássico", file: "lorenz.html", cat: "Física", desc: "A famosa trajetória em 'borboleta' da teoria do caos." },
-            { name: "Lorenz English", file: "lorenz-en.html", cat: "Física", desc: "Classical Lorenz attractor simulation in English." },
-            { name: "Buraco Negro", file: "blackhole.html", cat: "Física", desc: "Simulação de lente gravitacional e desvio da luz." },
-            { name: "Gravidade", file: "gravity.html", cat: "Física", desc: "Simulação de campos gravitacionais e órbitas." },
-            { name: "Energia Cinética", file: "ke.html", cat: "Física", desc: "Experimento dinâmico de energia e movimento." },
-            { name: "Máquina de Fourier", file: "fourier-machine.html", cat: "Física", desc: "Decomposição e síntese de ondas harmónicas." },
-            { name: "Fourier PT", file: "maquina-de-Fourier.html", cat: "Física", desc: "Síntese harmónica com interface em português." },
-            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", desc: "Animação de um vórtice cíclico infinito." },
-            { name: "Oscilação Gaussiana EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", desc: "Wave packets modulated by Gaussian functions." },
-            { name: "Oscilação Gaussiana PT", file: "gaussian-modulated-oscillation-pt.html", cat: "Física", desc: "Pacotes de ondas moduladas por funções gaussianas." },
-
-            // Geometria e 3D
-            { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
-            { name: "Tesseract 4D", file: "tesseract4d.html", cat: "Geometria", desc: "Visualização da projeção de um hipercubo em 4D." },
-            { name: "Nexus 3D", file: "nexus3d.html", cat: "Geometria", desc: "Estrutura de conexões e redes espaciais 3D." },
-            { name: "Dodecaedro Sagrado", file: "Sacred-Dodecahedron.html", cat: "Geometria", desc: "Geometria sagrada baseada no dodecaedro." },
-            { name: "Fita de Möbius", file: "mobius.html", cat: "Geometria", desc: "Superfície paramétrica com apenas um lado." },
-            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "Geometria", desc: "Esfera baseada na subdivisão do icosaedro." },
-            { name: "Geocíclico", file: "geociclico.html", cat: "Geometria", desc: "Padrões geométricos repetitivos e circulares." },
-            { name: "Torus 1", file: "torus.html", cat: "Geometria", desc: "Modelo 3D de um Torus v1." },
-            { name: "Torus 2", file: "torus2.html", cat: "Geometria", desc: "Modelo 3D de um Torus v2." },
-            { name: "Sphere 1", file: "sphere.html", cat: "Geometria", desc: "Estudo de malha esférica v1." },
-            { name: "Sphere 2", file: "sphere2.html", cat: "Geometria", desc: "Estudo de malha esférica v2." },
-            { name: "Sphere 3", file: "sphere3.html", cat: "Geometria", desc: "Estudo de malha esférica v3." },
-            { name: "Sphere 4", file: "sphere4.html", cat: "Geometria", desc: "Estudo de malha esférica v4." },
-
-            // Fractais e Matemática
-            { name: "Mandelbrot Full", file: "mandelbrot.html", cat: "Fractal", desc: "Explorador completo do conjunto de Mandelbrot." },
-            { name: "Mandelbrot Base", file: "mb1.html", cat: "Fractal", desc: "Versão leve do motor Mandelbrot." },
-            { name: "Conjunto Julia", file: "julia.html", cat: "Fractal", desc: "Visualização interativa de conjuntos de Julia." },
-            { name: "Samambaia", file: "samambaia.html", cat: "Fractal", desc: "O fractal de Barnsley via IFS." },
-            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", desc: "Recursão aplicada à geometria do dodecaedro." },
-            { name: "Fibonacci Sopa", file: "fibonacci-sopa.html", cat: "Matemática", desc: "Fluxo dinâmico da sequência de Fibonacci." },
-            { name: "Fibonacci Stew", file: "fibonacci-stew.html", cat: "Matemática", desc: "Variação fluida dos padrões de Fibonacci." },
-            { name: "Truchet Tiles", file: "Truchet.html", cat: "Matemática", desc: "Mosaicos gerados por algoritmos de Truchet." },
-            { name: "Lissajous 1", file: "lissajous.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v1." },
-            { name: "Lissajous 2", file: "lissajous2.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v2." },
-            { name: "Lissajous 3", file: "lissajous3.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v3." },
-            { name: "Lissajous 4", file: "lissajous4.html", cat: "Matemática", desc: "Curvas harmónicas de Lissajous v4." },
-
-            // Áudio e Binaurais
-            { name: "Binaural BPM", file: "binaurais-bpm.html", cat: "Áudio", desc: "Frequências binaurais sincronizadas com BPM." },
-            { name: "Binaural BPM 2", file: "binaurais-bpm2.html", cat: "Áudio", desc: "Variante avançada de batidas binaurais." },
-            { name: "Binaurais Base", file: "binaurais.html", cat: "Áudio", desc: "Batidas binaurais v1." },
-            { name: "Binaurais 2", file: "binaurais2.html", cat: "Áudio", desc: "Frequências cerebrais v2." },
-            { name: "Binaurais 3", file: "binaurais3.html", cat: "Áudio", desc: "Frequências cerebrais v3." },
-            { name: "Binaurais 4", file: "binaurais4.html", cat: "Áudio", desc: "Frequências cerebrais v4." },
-            { name: "Binaurais 5", file: "binaurais5.html", cat: "Áudio", desc: "Frequências cerebrais v5." },
-            { name: "Binaurais 6", file: "binaurais6.html", cat: "Áudio", desc: "Frequências cerebrais v6." },
-
-            // Animação e Partículas
-            { name: "Balls v1", file: "balls-animation.html", cat: "Animação", desc: "Colisões físicas v1." },
-            { name: "Balls v2", file: "balls-animation2.html", cat: "Animação", desc: "Colisões físicas v2." },
-            { name: "Balls v3", file: "balls-animation3.html", cat: "Animação", desc: "Colisões físicas v3." },
-            { name: "Bolhas 1", file: "bubble-display.html", cat: "Animação", desc: "Animação de bolhas v1." },
-            { name: "Bolhas 2", file: "bubble-display2.html", cat: "Animação", desc: "Animação de bolhas v2." },
-            { name: "Bolhas 3", file: "bubble-display3.html", cat: "Animação", desc: "Animação de bolhas v3." },
-            { name: "Waterfall", file: "waterfall.html", cat: "Animação", desc: "Queda de partículas contínua." },
-            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", desc: "Globo de neve interativo." },
-            { name: "Game of Life 1", file: "life.html", cat: "Animação", desc: "Jogo da Vida de Conway v1." },
-            { name: "Game of Life 2", file: "life2.html", cat: "Animação", desc: "Jogo da Vida de Conway v2." },
-            { name: "Game of Life 3", file: "life3.html", cat: "Animação", desc: "Jogo da Vida de Conway v3." },
-
-            // Arte e Efeitos
-            { name: "Art Sky", file: "art-sky.html", cat: "Arte", desc: "Visualização generativa de céus artísticos." },
-            { name: "Joy Division", file: "joy.html", cat: "Arte", desc: "Visualização inspirada em 'Unknown Pleasures'." },
-            { name: "Caleidoscópio", file: "kaleidoscope.html", cat: "Arte", desc: "Simetrias múltiplas interativas." },
-            { name: "Organic Flow", file: "organic.html", cat: "Arte", desc: "Padrões generativos orgânicos." },
-            { name: "Arte ASCII", file: "ascii.html", cat: "Arte", desc: "Conversor de imagem para texto." },
-            { name: "Tunnel 1", file: "tunnel.html", cat: "Arte", desc: "Efeito de túnel infinito v1." },
-            { name: "Tunnel 2", file: "tunnel2.html", cat: "Arte", desc: "Efeito de túnel infinito v2." },
-            { name: "Stereogram", file: "stereogram.html", cat: "Arte", desc: "Imagens ocultas em 3D." },
-            { name: "GLSL 1", file: "glsl-1.html", cat: "Shaders", desc: "Shader de fragmento procedural 1." },
-            { name: "GLSL 2", file: "glsl-2.html", cat: "Shaders", desc: "Shader de fragmento procedural 2." },
-
-            // IA e Redes
-            { name: "Rede Neural", file: "redeneural.html", cat: "IA", desc: "Visualização sináptica dinâmica." },
-            { name: "Cérebro", file: "brain.html", cat: "IA", desc: "Estrutura neural animada." },
-            { name: "Grok 1", file: "grok.html", cat: "IA", desc: "Reconhecimento visual v1." },
-            { name: "Grok 2", file: "grok2.html", cat: "IA", desc: "Reconhecimento visual v2." },
-            { name: "They Do It 1", file: "they-do-It.html", cat: "IA", desc: "Comportamento emergente v1." },
-            { name: "They Do It 2", file: "theydoit.html", cat: "IA", desc: "Comportamento emergente v2." },
-
-            // Térmico e Engenharia
-            { name: "Térmico 1", file: "jobs-termico.html", cat: "Engenharia", desc: "Fluxo de calor simulado v1." },
-            { name: "Térmico 2", file: "jobs-termico2.html", cat: "Engenharia", desc: "Fluxo de calor simulado v2." },
-            { name: "Térmico 3", file: "jobs-termico3.html", cat: "Engenharia", desc: "Fluxo de calor simulado v3." },
-            { name: "Engs3", file: "engs3.html", cat: "Engenharia", desc: "Simulação de engenharia e partículas." },
-
-            // Especial e Util
-            { name: "Feliz 2026", file: "feliz2026.html", cat: "Especial", desc: "Celebração do ano 2026." },
-            { name: "Natal 3D", file: "feliznatal3d.html", cat: "Especial", desc: "Cartão de Natal interativo." },
-            { name: "TTS WebGPU", file: "tts-webgpu.html", cat: "Util", desc: "Síntese de voz via WebGPU." },
-            { name: "Player YT", file: "playerYT.html", cat: "Util", desc: "Interface para YouTube." },
-            { name: "Logo v3", file: "logo3.html", cat: "Logo", desc: "Identidade visual v3." }
+            { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
+            { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
+            { name: "Sacred Dodecahedron", file: "Sacred-Dodecahedron.html", cat: "Geometria", date: "19/12/2025", desc: "Geometria sagrada baseada no dodecaedro." },
+            { name: "Truchet Tiles", file: "Truchet.html", cat: "Matemática", date: "12/12/2025", desc: "Mosaicos gerados por algoritmos de Truchet." },
+            { name: "Art Sky", file: "art-sky.html", cat: "Arte", date: "31/12/2025", desc: "Visualização generativa de céus artísticos." },
+            { name: "ASCII Art", file: "ascii.html", cat: "Efeitos", date: "01/01/2025", desc: "Conversor de imagem para texto ASCII." },
+            { name: "Back in Black", file: "backinblack.html", cat: "Arte", date: "02/12/2025", desc: "Visual minimalista escuro." },
+            { name: "Balls v1", file: "balls-animation.html", cat: "Física", date: "12/12/2025", desc: "Colisões físicas v1." },
+            { name: "Balls v2", file: "balls-animation2.html", cat: "Física", date: "12/12/2025", desc: "Colisões físicas v2." },
+            { name: "Balls v3", file: "balls-animation3.html", cat: "Física", date: "12/12/2025", desc: "Colisões físicas v3." },
+            { name: "Binaural BPM", file: "binaurais-bpm.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências binaurais com BPM." },
+            { name: "Binaural BPM 2", file: "binaurais-bpm2.html", cat: "Áudio", date: "26/12/2025", desc: "Variante avançada de batidas binaurais." },
+            { name: "Binaurais Base", file: "binaurais.html", cat: "Áudio", date: "26/12/2025", desc: "Batidas binaurais v1." },
+            { name: "Binaurais 2", file: "binaurais2.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v2." },
+            { name: "Binaurais 3", file: "binaurais3.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v3." },
+            { name: "Binaurais 4", file: "binaurais4.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v4." },
+            { name: "Binaurais 5", file: "binaurais5.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v5." },
+            { name: "Binaurais 6", file: "binaurais6.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v6." },
+            { name: "Blackhole", file: "blackhole.html", cat: "Física", date: "02/11/2025", desc: "Lente gravitacional e desvio da luz." },
+            { name: "Bola de Cristal", file: "bola-de-cristal.html", cat: "Efeitos", date: "02/11/2025", desc: "Refração esférica e distorção." },
+            { name: "Brain", file: "brain.html", cat: "IA", date: "02/12/2025", desc: "Visualização neural dinâmica." },
+            { name: "Bubble Display 1", file: "bubble-display.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v1." },
+            { name: "Bubble Display 2", file: "bubble-display2.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v2." },
+            { name: "Bubble Display 3", file: "bubble-display3.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v3." },
+            { name: "C Experiment", file: "c.html", cat: "Geometria", date: "19/12/2025", desc: "Experimento geométrico minimalista." },
+            { name: "Cat Art", file: "cat-art.html", cat: "Arte", date: "12/12/2025", desc: "Arte generativa temática." },
+            { name: "Curlycue", file: "curlycue.html", cat: "Matemática", date: "02/12/2025", desc: "Espirais matemáticas complexas." },
+            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", date: "19/12/2025", desc: "Recursão em dodecaedro." },
+            { name: "Engs3", file: "engs3.html", cat: "Engenharia", date: "19/12/2025", desc: "Simulação de engenharia v3." },
+            { name: "Eraser 40", file: "eraser-40.html", cat: "Eraser", date: "02/12/2025", desc: "Revelação por apagamento v40." },
+            { name: "Eraser 41", file: "eraser-41.html", cat: "Eraser", date: "02/12/2025", desc: "Revelação por apagamento v41." },
+            { name: "Eraser 5", file: "eraser-5.html", cat: "Eraser", date: "02/11/2025", desc: "Revelação por apagamento v5." },
+            { name: "Eraser v3", file: "eraser-v3.html", cat: "Eraser", date: "02/11/2025", desc: "Motor de interação v3." },
+            { name: "Eraser v5", file: "eraser-v5.html", cat: "Eraser", date: "02/11/2025", desc: "Motor de interação v5." },
+            { name: "Eraser Base", file: "eraser.html", cat: "Eraser", date: "02/11/2025", desc: "Motor eraser original." },
+            { name: "Feliz 2026", file: "feliz2026.html", cat: "Especial", date: "31/12/2025", desc: "Celebração de ano novo." },
+            { name: "Natal 3D", file: "feliznatal3d.html", cat: "Especial", date: "19/12/2025", desc: "Cartão de Natal v1." },
+            { name: "Natal 3D v2", file: "feliznatal3d2.html", cat: "Especial", date: "19/12/2025", desc: "Cartão de Natal v2." },
+            { name: "Fibonacci Sopa", file: "fibonacci-sopa.html", cat: "Matemática", date: "29/12/2025", desc: "Sequência de Fibonacci em fluxo." },
+            { name: "Fibonacci Stew", file: "fibonacci-stew.html", cat: "Matemática", date: "29/12/2025", desc: "Variante fluida Fibonacci." },
+            { name: "Fourier Machine", file: "fourier-machine.html", cat: "Física", date: "19/12/2025", desc: "Síntese harmónica de Fourier." },
+            { name: "Gauss Mod EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", date: "19/12/2025", desc: "Oscilações gaussianas (EN)." },
+            { name: "Gauss Mod PT", file: "gaussian-modulated-oscillation-pt.html", cat: "Física", date: "19/12/2025", desc: "Oscilações gaussianas (PT)." },
+            { name: "Geocíclico", file: "geociclico.html", cat: "Geometria", date: "01/01/2026", desc: "Padrões circulares repetitivos." },
+            { name: "GLSL Shader 1", file: "glsl-1.html", cat: "Shaders", date: "02/12/2025", desc: "Shader procedural 1." },
+            { name: "GLSL Shader 2", file: "glsl-2.html", cat: "Shaders", date: "02/12/2025", desc: "Shader procedural 2." },
+            { name: "Gravity", file: "gravity.html", cat: "Física", date: "31/12/2025", desc: "Campos gravitacionais dinâmicos." },
+            { name: "Grok", file: "grok.html", cat: "IA", date: "02/12/2025", desc: "Reconhecimento visual v1." },
+            { name: "Grok 2", file: "grok2.html", cat: "IA", date: "02/12/2025", desc: "Reconhecimento visual v2." },
+            { name: "Hand Control", file: "handcontrol.html", cat: "Interação", date: "02/11/2025", desc: "Controlo manual." },
+            { name: "Hypnotic Waves EN", file: "hypnoticwaves3d-en.html", cat: "Arte", date: "12/12/2025", desc: "Ondas hipnóticas 3D (EN)." },
+            { name: "Hypnotic Waves PT", file: "hypnoticwaves3d.html", cat: "Arte", date: "12/12/2025", desc: "Ondas hipnóticas 3D (PT)." },
+            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "Geometria", date: "12/12/2025", desc: "Subdivisão icosaédrica." },
+            { name: "Index v1", file: "index1.html", cat: "Util", date: "19/12/2025", desc: "Versão protótipo do portal." },
+            { name: "Ivan Perfil", file: "ivan.html", cat: "Util", date: "01/01/2025", desc: "Dados do autor." },
+            { name: "Térmico 1", file: "jobs-termico.html", cat: "Engenharia", date: "19/12/2025", desc: "Dissipação de calor v1." },
+            { name: "Térmico 2", file: "jobs-termico2.html", cat: "Engenharia", date: "19/12/2025", desc: "Dissipação de calor v2." },
+            { name: "Térmico 3", file: "jobs-termico3.html", cat: "Engenharia", date: "19/12/2025", desc: "Dissipação de calor v3." },
+            { name: "Jobs Dia", file: "jobsdia.html", cat: "Engenharia", date: "19/12/2025", desc: "Carga térmica diária." },
+            { name: "Joy Division", file: "joy.html", cat: "Arte", date: "12/12/2025", desc: "Visual inspirado em rádio." },
+            { name: "Julia Set", file: "julia.html", cat: "Fractal", date: "02/12/2025", desc: "Conjunto Julia." },
+            { name: "Kaleidoscope", file: "kaleidoscope.html", cat: "Arte", date: "02/12/2025", desc: "Simetrias dinâmicas." },
+            { name: "Energy KE", file: "ke.html", cat: "Física", date: "26/12/2025", desc: "Energia cinética." },
+            { name: "Lenticular", file: "lenticular.html", cat: "Efeitos", date: "02/12/2025", desc: "Profundidade v1." },
+            { name: "Lenticular 2", file: "lenticular2.html", cat: "Efeitos", date: "02/12/2025", desc: "Profundidade v2." },
+            { name: "Game of Life 1", file: "life.html", cat: "Animação", date: "01/01/2025", desc: "Conway v1." },
+            { name: "Game of Life 2", file: "life2.html", cat: "Animação", date: "01/01/2025", desc: "Conway v2." },
+            { name: "Game of Life 3", file: "life3.html", cat: "Animação", date: "01/01/2025", desc: "Conway v3." },
+            { name: "Lissajous 1", file: "lissajous.html", cat: "Matemática", date: "19/12/2025", desc: "Harmónicas v1." },
+            { name: "Lissajous 2", file: "lissajous2.html", cat: "Matemática", date: "19/12/2025", desc: "Harmónicas v2." },
+            { name: "Lissajous 3", file: "lissajous3.html", cat: "Matemática", date: "28/12/2025", desc: "Harmónicas v3." },
+            { name: "Lissajous 4", file: "lissajous4.html", cat: "Matemática", date: "28/12/2025", desc: "Harmónicas v4." },
+            { name: "Logo SEABI", file: "logo-SEABI.html", cat: "Logo", date: "19/12/2025", desc: "Identidade SEABI." },
+            { name: "Logo v1", file: "logo.html", cat: "Logo", date: "19/12/2025", desc: "Logo Psico v1." },
+            { name: "Logo v2", file: "logo2.html", cat: "Logo", date: "19/12/2025", desc: "Logo Psico v2." },
+            { name: "Logo v3", file: "logo3.html", cat: "Logo", date: "19/12/2025", desc: "Logo Psico v3." },
+            { name: "Lorenz EN", file: "lorenz-en.html", cat: "Física", date: "26/12/2025", desc: "Lorenz (EN)." },
+            { name: "Lorenz PT", file: "lorenz.html", cat: "Física", date: "26/12/2025", desc: "Lorenz (PT)." },
+            { name: "Mandelbrot", file: "mandelbrot.html", cat: "Fractal", date: "02/12/2025", desc: "Explorador Mandelbrot." },
+            { name: "Fourier Machine PT", file: "maquina-de-Fourier.html", cat: "Física", date: "19/12/2025", desc: "Síntese harmónica." },
+            { name: "Mandelbrot Motor", file: "mb1.html", cat: "Fractal", date: "02/12/2025", desc: "Motor leve." },
+            { name: "Mobius Strip", file: "mobius.html", cat: "Geometria", date: "02/12/2025", desc: "Möbius 3D." },
+            { name: "Nexus 3D", file: "nexus3d.html", cat: "Geometria", date: "01/01/2026", desc: "Rede 3D." },
+            { name: "Organic Flow", file: "organic.html", cat: "Arte", date: "28/12/2025", desc: "Fluxo orgânico." },
+            { name: "Player Base", file: "player.html", cat: "Util", date: "02/11/2025", desc: "Media player." },
+            { name: "Player IT", file: "playerIT.html", cat: "Util", date: "02/11/2025", desc: "Player técnico." },
+            { name: "Player YouTube", file: "playerYT.html", cat: "Util", date: "02/11/2025", desc: "Player YT." },
+            { name: "Rede Neural", file: "redeneural.html", cat: "IA", date: "02/11/2025", desc: "Sinapses neurais." },
+            { name: "Samambaia Fern", file: "samambaia.html", cat: "Fractal", date: "02/12/2025", desc: "Barnsley Fern." },
+            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", date: "12/12/2025", desc: "Neve interativa." },
+            { name: "SP Particle 1", file: "sp1.html", cat: "Física", date: "02/12/2025", desc: "Partículas v1." },
+            { name: "SP Particle 2", file: "sp2.html", cat: "Física", date: "02/12/2025", desc: "Partículas v2." },
+            { name: "Sphere 1", file: "sphere.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v1." },
+            { name: "Sphere 2", file: "sphere2.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v2." },
+            { name: "Sphere 3", file: "sphere3.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v3." },
+            { name: "Sphere 4", file: "sphere4.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v4." },
+            { name: "Stereo Visual", file: "stereo.html", cat: "Efeitos", date: "02/12/2025", desc: "Visualização estéreo." },
+            { name: "Stereogram", file: "stereogram.html", cat: "Efeitos", date: "02/12/2025", desc: "Estereogramas." },
+            { name: "Tesseract 4D", file: "tesseract4d.html", cat: "Geometria", date: "26/12/2025", desc: "Hipercubo 4D." },
+            { name: "Teste Sandbox 1", file: "teste1.html", cat: "Util", date: "01/01/2025", desc: "Sandbox v1." },
+            { name: "Teste Sandbox 2", file: "teste2.html", cat: "Util", date: "01/01/2025", desc: "Sandbox v2." },
+            { name: "They Do It 1", file: "they-do-It.html", cat: "IA", date: "02/12/2025", desc: "Emergência v1." },
+            { name: "They Do It 2", file: "theydoit.html", cat: "IA", date: "02/12/2025", desc: "Emergência v2." },
+            { name: "Torus v1", file: "torus.html", cat: "Geometria", date: "19/12/2025", desc: "Torus v1." },
+            { name: "Torus v2", file: "torus2.html", cat: "Geometria", date: "19/12/2025", desc: "Torus v2." },
+            { name: "TTS GPU", file: "tts-webgpu.html", cat: "Util", date: "26/12/2025", desc: "Voz WebGPU." },
+            { name: "Tunnel 1", file: "tunnel.html", cat: "Arte", date: "26/12/2025", desc: "Túnel v1." },
+            { name: "Tunnel 2", file: "tunnel2.html", cat: "Arte", date: "26/12/2025", desc: "Túnel v2." },
+            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", date: "19/12/2025", desc: "Vortex." },
+            { name: "Waterfall", file: "waterfall.html", cat: "Animação", date: "19/12/2025", desc: "Waterfall." }
         ];
 
-        // Ordenação Inicial
-        experiments.sort((a, b) => a.name.localeCompare(b.name));
+        // Auxiliares de Data
+        function getYearFromDate(dateStr) { return dateStr.split('/')[2]; }
+        function getMonthFromDate(dateStr) { return monthNames[parseInt(dateStr.split('/')[1]) - 1]; }
 
-        // Injeção de Filtros
-        const categories = ["Todos", ...new Set(experiments.map(e => e.cat))];
-        const filtersContainer = document.getElementById('filters');
-        
-        filtersContainer.innerHTML = categories.map(cat => `
-            <button onclick="filterGallery('${cat}', this)" class="filter-btn px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === 'Todos' ? 'active' : ''}">
-                ${cat}
-            </button>
-        `).join('');
+        function initFilters() {
+            // Filtro Categoria
+            const cats = ["Todos", ...new Set(experiments.map(e => e.cat))];
+            const filtersCat = document.getElementById('filters-cat');
+            filtersCat.innerHTML = cats.map(cat => `
+                <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}">
+                    ${cat}
+                </button>
+            `).join('');
 
-        function renderCards(data) {
+            // Filtro Ano
+            const years = ["Todos", ...new Set(experiments.map(e => getYearFromDate(e.date)))].sort();
+            const filtersYear = document.getElementById('filters-year');
+            filtersYear.innerHTML = years.map(y => `
+                <button onclick="applyFilter('year', '${y}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}">
+                    ${y}
+                </button>
+            `).join('');
+
+            // Filtro Mês
+            const availableMonths = [...new Set(experiments.map(e => getMonthFromDate(e.date)))];
+            availableMonths.sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b));
+            const filtersMonth = document.getElementById('filters-month');
+            const monthList = ["Todos", ...availableMonths];
+            filtersMonth.innerHTML = monthList.map(m => `
+                <button onclick="applyFilter('month', '${m}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}">
+                    ${m}
+                </button>
+            `).join('');
+        }
+
+        function applyFilter(type, value, btn) {
+            if (type === 'cat') activeCategory = value;
+            else if (type === 'month') activeMonth = value;
+            else if (type === 'year') activeYear = value;
+
+            btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderCards();
+        }
+
+        function renderCards() {
             const gallery = document.getElementById('gallery');
             const stats = document.getElementById('stats');
             
-            stats.innerHTML = `Mostrando ${data.length} de ${experiments.length} experiências`;
+            const filtered = experiments.filter(exp => {
+                const matchCat = activeCategory === "Todos" || exp.cat === activeCategory;
+                const matchMonth = activeMonth === "Todos" || getMonthFromDate(exp.date) === activeMonth;
+                const matchYear = activeYear === "Todos" || getYearFromDate(exp.date) === activeYear;
+                return matchCat && matchMonth && matchYear;
+            });
             
-            gallery.innerHTML = data.map(exp => `
+            stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length} experiências`;
+            
+            gallery.innerHTML = filtered.map(exp => `
                 <div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">
                     <div>
                         <div class="flex justify-between items-start mb-4">
-                            <span class="badge-cat text-sky-400 opacity-60">${exp.cat}</span>
+                            <div class="flex flex-col">
+                                <span class="badge-cat text-sky-400 opacity-60">${exp.cat}</span>
+                                <span class="file-date mt-1">${exp.date}</span>
+                            </div>
                             <div class="flex gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
@@ -252,16 +328,9 @@
             `).join('');
         }
 
-        function filterGallery(cat, btn) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const filtered = cat === "Todos" ? experiments : experiments.filter(e => e.cat === cat);
-            renderCards(filtered);
-        }
-
-        // Renderização Inicial
-        renderCards(experiments);
+        experiments.sort((a, b) => a.name.localeCompare(b.name));
+        initFilters();
+        renderCards();
     </script>
 </body>
 </html>
