@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpiroShader 3D - Static & Rotating</title>
+    <title>SpiroShader 3D - Front View & Snapshot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- OrbitControls for Touch/Pinch/Zoom support -->
@@ -71,6 +71,15 @@
 
         #ui-toggle { transition: transform 0.3s ease; }
         #ui-toggle.active { transform: rotate(90deg); }
+
+        .btn-action {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .btn-action:hover { opacity: 1; color: #60a5fa; }
     </style>
 </head>
 <body>
@@ -87,7 +96,11 @@
     <div id="settings-panel" class="fixed bottom-20 right-4 z-20 w-64 p-4 rounded-xl ui-panel flex flex-col gap-3">
         <div class="flex items-center justify-between border-b border-white/10 pb-2">
             <h1 class="text-sm font-bold tracking-tight text-blue-400">SpiroShader 3D</h1>
-            <button id="reset-btn" class="text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100">Reset</button>
+            <div class="flex gap-2">
+                <button id="snap-btn" class="btn-action">Snap</button>
+                <button id="front-btn" class="btn-action">Front</button>
+                <button id="reset-btn" class="btn-action">Reset</button>
+            </div>
         </div>
         
         <div class="space-y-3">
@@ -155,7 +168,6 @@
         void main() {
             vDistance = length(position.xyz);
             vec3 pos = position;
-            // Subtle pulse effect independent of object rotation
             pos.z += sin(uTime * 1.5 + vDistance * 0.5) * 0.15;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
         }
@@ -166,13 +178,10 @@
         uniform float uTime;
         uniform float uGlow;
         void main() {
-            // Dynamic color mixing
             float t = sin(vDistance * 0.4 - uTime * 0.8) * 0.5 + 0.5;
             vec3 cyan = vec3(0.0, 0.9, 1.0);
             vec3 purple = vec3(0.7, 0.0, 1.0);
             vec3 color = mix(cyan, purple, t);
-            
-            // Neon glow falloff
             float intensity = uGlow / (1.0 + vDistance * 0.05);
             gl_FragColor = vec4(color * intensity, 0.9);
         }
@@ -181,7 +190,6 @@
     <script>
         let scene, camera, renderer, line, geometry, material, controls;
         
-        // Initial state: autoRotate set to false
         const params = { R: 5.0, r: 2.1, d: 3.5, cycles: 50, glow: 1.8, autoRotate: false };
 
         const presets = [
@@ -222,11 +230,14 @@
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            // Initial front view
-            camera.position.set(0, 0, window.innerWidth < window.innerHeight ? 20 : 15);
+            resetCamera();
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            // preserveDrawingBuffer is required for capturing snapshots
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: true,
+                preserveDrawingBuffer: true 
+            });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
@@ -250,6 +261,15 @@
             setupUI();
             setupToggle();
             window.addEventListener('resize', onWindowResize);
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 0, window.innerWidth < window.innerHeight ? 20 : 15);
+            camera.lookAt(0, 0, 0);
+            if(controls) {
+                controls.reset();
+                controls.target.set(0, 0, 0);
+            }
         }
 
         function populatePresets() {
@@ -289,10 +309,9 @@
 
             for (let i = 0; i <= totalPoints; i++) {
                 const t = (i / resolution) * Math.PI * 2;
-                // Hypotrochoid Equation
                 const x = (params.R - params.r) * Math.cos(t) + params.d * Math.cos(((params.R - params.r) / params.r) * t);
                 const y = (params.R - params.r) * Math.sin(t) - params.d * Math.sin(((params.R - params.r) / params.r) * t);
-                const z = Math.sin(t * 0.15) * 2.5; // 3D depth based on angle
+                const z = Math.sin(t * 0.15) * 2.5; 
                 points.push(new THREE.Vector3(x, y, z));
             }
 
@@ -315,11 +334,22 @@
                 });
             });
 
-            // Rotation Control
             const autoRotateInput = document.getElementById('param-autoRotate');
             autoRotateInput.checked = params.autoRotate;
             autoRotateInput.addEventListener('change', (e) => {
                 params.autoRotate = e.target.checked;
+            });
+
+            // Action Buttons
+            document.getElementById('front-btn').addEventListener('click', resetCamera);
+
+            document.getElementById('snap-btn').addEventListener('click', () => {
+                // Force a render before capture
+                renderer.render(scene, camera);
+                const link = document.createElement('a');
+                link.download = `spirograph-${Date.now()}.png`;
+                link.href = renderer.domElement.toDataURL('image/png');
+                link.click();
             });
 
             document.getElementById('reset-btn').addEventListener('click', () => {
@@ -333,9 +363,7 @@
                 document.getElementById('val-glow').innerText = params.glow.toFixed(1);
                 material.uniforms.uGlow.value = params.glow;
                 createSpiro();
-                // Reset camera to front view
-                camera.position.set(0, 0, window.innerWidth < window.innerHeight ? 20 : 15);
-                controls.reset();
+                resetCamera();
             });
         }
 
@@ -358,15 +386,11 @@
             requestAnimationFrame(animate);
             material.uniforms.uTime.value = performance.now() * 0.001;
             controls.update();
-            
-            // Only rotate if the autoRotate parameter is true
             if (line && params.autoRotate) {
                 line.rotation.y += 0.0015;
             }
-            
             renderer.render(scene, camera);
         }
     </script>
 </body>
 </html>
-
