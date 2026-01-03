@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Técnica de Subtração: Personalizada</title>
+    <title>Técnica de Subtração: Personalizada com Logs</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .math-font {
@@ -84,12 +84,44 @@
                     <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                         <span>📓</span> Os Meus Exemplos
                     </h3>
-                    <div id="lista-exemplos" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    <div id="lista-exemplos" class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                         <p class="text-slate-400 text-sm text-center py-8">Nenhum exemplo guardado.</p>
                     </div>
                 </div>
             </div>
+        </div>
 
+        <!-- Área de Administração (Visualização de Logs) -->
+        <div class="mt-16 pt-8 border-t border-slate-200">
+            <div class="flex justify-center">
+                <button onclick="toggleAdmin()" class="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 transition-colors">
+                    <span>🛡️</span> Área de Administração (Logs de Sistema)
+                </button>
+            </div>
+            
+            <div id="admin-panel" class="hidden mt-8 bg-slate-900 text-slate-300 p-6 rounded-2xl shadow-2xl animate-fade overflow-hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Registos de Utilização (Firestore)</h2>
+                    <div id="app-id-display" class="text-[10px] bg-slate-800 px-2 py-1 rounded"></div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-slate-500 border-b border-slate-800">
+                            <tr>
+                                <th class="pb-3 pr-4">Data/Hora</th>
+                                <th class="pb-3 pr-4">IP</th>
+                                <th class="pb-3">Localização</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body">
+                            <tr>
+                                <td colspan="3" class="py-10 text-center text-slate-600 italic">A carregar registos do Firestore...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -97,20 +129,19 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configurações globais injetadas pelo ambiente
         const firebaseConfig = JSON.parse(__firebase_config);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // Inicialização
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        document.getElementById('app-id-display').textContent = `APP_ID: ${appId}`;
+
         async function initLogging() {
             try {
-                // Autenticação (Regra 3)
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -119,32 +150,62 @@
 
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
-                        // Obter IP e Localização de forma silenciosa
+                        // Log de uso inicial
                         const geoResponse = await fetch('https://ipapi.co/json/');
                         const geoData = await geoResponse.json();
 
-                        // Gravar no Firestore (Regra 1 e 2)
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'usage_logs'), {
                             ip: geoData.ip || 'desconhecido',
                             localizacao: `${geoData.city}, ${geoData.region}, ${geoData.country_name}` || 'desconhecido',
-                            horario: new Date().toISOString(),
+                            horario: new Date().toLocaleString('pt-PT'),
                             timestamp: new Date().getTime(),
                             userId: user.uid
+                        });
+
+                        // Listener para exibir os logs na tabela em tempo real (Regra 2: sem filtros complexos)
+                        const q = collection(db, 'artifacts', appId, 'public', 'data', 'usage_logs');
+                        onSnapshot(q, (snapshot) => {
+                            const tbody = document.getElementById('logs-table-body');
+                            const docs = [];
+                            snapshot.forEach(doc => docs.push(doc.data()));
+                            
+                            // Ordenar em memória para respeitar a Regra 2
+                            docs.sort((a, b) => b.timestamp - a.timestamp);
+
+                            tbody.innerHTML = docs.map(log => `
+                                <tr class="border-b border-slate-800">
+                                    <td class="py-3 pr-4 text-emerald-400 font-mono text-xs">${log.horario}</td>
+                                    <td class="py-3 pr-4 font-mono text-xs">${log.ip}</td>
+                                    <td class="py-3 text-xs">${log.localizacao}</td>
+                                </tr>
+                            `).join('');
+                            
+                            if (docs.length === 0) {
+                                tbody.innerHTML = `<tr><td colspan="3" class="py-10 text-center text-slate-600">Sem registos encontrados.</td></tr>`;
+                            }
+                        }, (error) => {
+                            console.error("Erro ao ler logs:", error);
                         });
                     }
                 });
             } catch (err) {
-                // Erro silencioso conforme solicitado: não mostra nada na interface
-                console.error("Erro no log de uso:", err);
+                console.error("Erro no logging:", err);
             }
         }
 
-        // Iniciar processo de log em background
         initLogging();
     </script>
 
     <script>
         let exemplosSalvos = [];
+
+        function toggleAdmin() {
+            const panel = document.getElementById('admin-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                panel.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
 
         function formatarNumero(n) {
             return n.toString();
