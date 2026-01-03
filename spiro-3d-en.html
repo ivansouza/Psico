@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SpiroShader 3D - Static & Rotating</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for Touch/Pinch/Zoom support -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #020202; color: white; font-family: system-ui, -apple-system, sans-serif; }
+        canvas { display: block; touch-action: none; }
+        
+        /* UI Panel with animations */
+        .ui-panel {
+            backdrop-filter: blur(12px);
+            background: rgba(10, 10, 10, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            max-height: 85vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: bottom right;
+        }
+        .ui-panel::-webkit-scrollbar { display: none; }
+        .ui-panel.hidden-ui { opacity: 0; transform: scale(0.9) translateY(20px); pointer-events: none; }
+
+        input[type=range] { height: 6px; -webkit-appearance: none; background: rgba(255, 255, 255, 0.1); border-radius: 3px; accent-color: #60a5fa; }
+        
+        select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: white;
+            padding: 4px 8px;
+            font-size: 11px;
+            width: 100%;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Toggle Switch Style */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(14px); }
+
+        #ui-toggle { transition: transform 0.3s ease; }
+        #ui-toggle.active { transform: rotate(90deg); }
+    </style>
+</head>
+<body>
+
+    <!-- Gear Toggle Button -->
+    <button id="ui-toggle" class="fixed bottom-6 right-6 z-30 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+
+    <!-- Settings Window -->
+    <div id="settings-panel" class="fixed bottom-20 right-4 z-20 w-64 p-4 rounded-xl ui-panel flex flex-col gap-3">
+        <div class="flex items-center justify-between border-b border-white/10 pb-2">
+            <h1 class="text-sm font-bold tracking-tight text-blue-400">SpiroShader 3D</h1>
+            <button id="reset-btn" class="text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100">Reset</button>
+        </div>
+        
+        <div class="space-y-3">
+            <!-- Auto Rotation Toggle -->
+            <div class="flex items-center justify-between py-1">
+                <label class="text-[10px] uppercase tracking-tighter opacity-70">Auto Rotation</label>
+                <label class="switch">
+                    <input type="checkbox" id="param-autoRotate">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Preset Selector -->
+            <div>
+                <label class="text-[10px] uppercase tracking-tighter opacity-50 mb-1 block">Saved Presets</label>
+                <select id="preset-selector"></select>
+            </div>
+
+            <div class="border-t border-white/5 pt-2">
+                <div class="flex justify-between text-[10px] mb-1 opacity-70">
+                    <span>Outer Radius (R)</span>
+                    <span id="val-R">5.0</span>
+                </div>
+                <input type="range" id="param-R" min="1" max="15" step="0.1" value="5" class="w-full">
+            </div>
+
+            <div>
+                <div class="flex justify-between text-[10px] mb-1 opacity-70">
+                    <span>Inner Radius (r)</span>
+                    <span id="val-r">2.1</span>
+                </div>
+                <input type="range" id="param-r" min="0.1" max="10" step="0.1" value="2.1" class="w-full">
+            </div>
+
+            <div>
+                <div class="flex justify-between text-[10px] mb-1 opacity-70">
+                    <span>Point Distance (d)</span>
+                    <span id="val-d">3.5</span>
+                </div>
+                <input type="range" id="param-d" min="0" max="10" step="0.1" value="3.5" class="w-full">
+            </div>
+
+            <div>
+                <div class="flex justify-between text-[10px] mb-1 opacity-70">
+                    <span>Cycles</span>
+                    <span id="val-cycles">50</span>
+                </div>
+                <input type="range" id="param-cycles" min="5" max="300" step="1" value="50" class="w-full">
+            </div>
+
+            <div>
+                <div class="flex justify-between text-[10px] mb-1 opacity-70">
+                    <span>Glow Intensity</span>
+                    <span id="val-glow">1.8</span>
+                </div>
+                <input type="range" id="param-glow" min="0.5" max="5" step="0.1" value="1.8" class="w-full">
+            </div>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying float vDistance;
+        uniform float uTime;
+        void main() {
+            vDistance = length(position.xyz);
+            vec3 pos = position;
+            // Subtle pulse effect independent of object rotation
+            pos.z += sin(uTime * 1.5 + vDistance * 0.5) * 0.15;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying float vDistance;
+        uniform float uTime;
+        uniform float uGlow;
+        void main() {
+            // Dynamic color mixing
+            float t = sin(vDistance * 0.4 - uTime * 0.8) * 0.5 + 0.5;
+            vec3 cyan = vec3(0.0, 0.9, 1.0);
+            vec3 purple = vec3(0.7, 0.0, 1.0);
+            vec3 color = mix(cyan, purple, t);
+            
+            // Neon glow falloff
+            float intensity = uGlow / (1.0 + vDistance * 0.05);
+            gl_FragColor = vec4(color * intensity, 0.9);
+        }
+    </script>
+
+    <script>
+        let scene, camera, renderer, line, geometry, material, controls;
+        
+        // Initial state: autoRotate set to false
+        const params = { R: 5.0, r: 2.1, d: 3.5, cycles: 50, glow: 1.8, autoRotate: false };
+
+        const presets = [
+            { name: "Classic", R: 5.0, r: 2.1, d: 3.5, cycles: 50 },
+            { name: "5-Point Star", R: 5.0, r: 3.0, d: 5.0, cycles: 20 },
+            { name: "Lotus", R: 8.0, r: 1.0, d: 2.0, cycles: 15 },
+            { name: "Neon Flower", R: 7.2, r: 4.4, d: 3.0, cycles: 60 },
+            { name: "Atomic", R: 6.0, r: 1.5, d: 4.5, cycles: 25 },
+            { name: "Galactic Orbit", R: 9.0, r: 0.1, d: 8.0, cycles: 120 },
+            { name: "Cyber Web", R: 5.5, r: 5.4, d: 3.5, cycles: 150 },
+            { name: "Mystic Crystal", R: 10.0, r: 6.6, d: 4.0, cycles: 40 },
+            { name: "Solar Mandala", R: 4.0, r: 3.9, d: 5.0, cycles: 200 },
+            { name: "Vortex", R: 12.0, r: 0.2, d: 3.0, cycles: 100 },
+            { name: "Supernova", R: 3.0, r: 2.9, d: 8.0, cycles: 250 },
+            { name: "DNA Helix", R: 2.0, r: 0.5, d: 9.0, cycles: 80 },
+            { name: "Geometric Rose", R: 8.5, r: 3.5, d: 6.0, cycles: 35 },
+            { name: "Nebula", R: 14.0, r: 13.8, d: 2.0, cycles: 300 },
+            { name: "Industrial Gear", R: 6.0, r: 4.0, d: 1.0, cycles: 12 },
+            { name: "Ninja Star", R: 5.0, r: 2.5, d: 6.0, cycles: 10 },
+            { name: "Pentagram", R: 5.0, r: 2.0, d: 4.0, cycles: 5 },
+            { name: "Swirl", R: 1.0, r: 0.95, d: 5.0, cycles: 180 },
+            { name: "Kaleidoscope", R: 10.0, r: 1.1, d: 7.0, cycles: 90 },
+            { name: "Space Prism", R: 7.0, r: 3.3, d: 9.0, cycles: 45 },
+            { name: "Infinity", R: 4.4, r: 2.2, d: 3.3, cycles: 10 },
+            { name: "Windmill", R: 9.0, r: 3.0, d: 1.0, cycles: 6 },
+            { name: "Color Blast", R: 5.5, r: 0.4, d: 10.0, cycles: 110 },
+            { name: "Fractal Heart", R: 6.6, r: 4.4, d: 6.6, cycles: 30 },
+            { name: "Saturn's Rings", R: 11.0, r: 10.9, d: 0.5, cycles: 200 },
+            { name: "Complex Polygon", R: 8.0, r: 7.0, d: 4.0, cycles: 40 },
+            { name: "Curved Labyrinth", R: 5.0, r: 4.98, d: 2.0, cycles: 500 },
+            { name: "Quantum Pulse", R: 3.3, r: 1.1, d: 4.4, cycles: 15 },
+            { name: "Ordered Chaos", R: 13.0, r: 0.7, d: 9.0, cycles: 140 }
+        ];
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Initial front view
+            camera.position.set(0, 0, window.innerWidth < window.innerHeight ? 20 : 15);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.rotateSpeed = 0.8;
+
+            material = new THREE.ShaderMaterial({
+                uniforms: { uTime: { value: 0 }, uGlow: { value: params.glow } },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthTest: false
+            });
+
+            createSpiro();
+            populatePresets();
+            setupUI();
+            setupToggle();
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function populatePresets() {
+            const selector = document.getElementById('preset-selector');
+            presets.forEach((p, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.innerText = `${index + 1}. ${p.name}`;
+                selector.appendChild(opt);
+            });
+
+            selector.addEventListener('change', (e) => {
+                const p = presets[e.target.value];
+                params.R = p.R; params.r = p.r; params.d = p.d; params.cycles = p.cycles;
+                updateUIValues();
+                createSpiro();
+            });
+        }
+
+        function updateUIValues() {
+            const ids = ['R', 'r', 'd', 'cycles'];
+            ids.forEach(id => {
+                document.getElementById(`param-${id}`).value = params[id];
+                document.getElementById(`val-${id}`).innerText = params[id].toFixed(1);
+            });
+        }
+
+        function createSpiro() {
+            if (line) {
+                scene.remove(line);
+                geometry.dispose();
+            }
+
+            const points = [];
+            const resolution = 1200; 
+            const totalPoints = resolution * (params.cycles / 10);
+
+            for (let i = 0; i <= totalPoints; i++) {
+                const t = (i / resolution) * Math.PI * 2;
+                // Hypotrochoid Equation
+                const x = (params.R - params.r) * Math.cos(t) + params.d * Math.cos(((params.R - params.r) / params.r) * t);
+                const y = (params.R - params.r) * Math.sin(t) - params.d * Math.sin(((params.R - params.r) / params.r) * t);
+                const z = Math.sin(t * 0.15) * 2.5; // 3D depth based on angle
+                points.push(new THREE.Vector3(x, y, z));
+            }
+
+            geometry = new THREE.BufferGeometry().setFromPoints(points);
+            line = new THREE.Line(geometry, material);
+            scene.add(line);
+        }
+
+        function setupUI() {
+            const ids = ['R', 'r', 'd', 'cycles', 'glow'];
+            ids.forEach(id => {
+                const input = document.getElementById(`param-${id}`);
+                const display = document.getElementById(`val-${id}`);
+                input.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    params[id] = val;
+                    display.innerText = val.toFixed(1);
+                    if (id === 'glow') material.uniforms.uGlow.value = val;
+                    else createSpiro();
+                });
+            });
+
+            // Rotation Control
+            const autoRotateInput = document.getElementById('param-autoRotate');
+            autoRotateInput.checked = params.autoRotate;
+            autoRotateInput.addEventListener('change', (e) => {
+                params.autoRotate = e.target.checked;
+            });
+
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                const p = presets[0];
+                params.R = p.R; params.r = p.r; params.d = p.d; params.cycles = p.cycles; params.glow = 1.8;
+                params.autoRotate = false;
+                document.getElementById('preset-selector').value = 0;
+                autoRotateInput.checked = false;
+                updateUIValues();
+                document.getElementById('param-glow').value = params.glow;
+                document.getElementById('val-glow').innerText = params.glow.toFixed(1);
+                material.uniforms.uGlow.value = params.glow;
+                createSpiro();
+                // Reset camera to front view
+                camera.position.set(0, 0, window.innerWidth < window.innerHeight ? 20 : 15);
+                controls.reset();
+            });
+        }
+
+        function setupToggle() {
+            const btn = document.getElementById('ui-toggle');
+            const panel = document.getElementById('settings-panel');
+            btn.addEventListener('click', () => {
+                const isHidden = panel.classList.toggle('hidden-ui');
+                btn.classList.toggle('active', !isHidden);
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.uTime.value = performance.now() * 0.001;
+            controls.update();
+            
+            // Only rotate if the autoRotate parameter is true
+            if (line && params.autoRotate) {
+                line.rotation.y += 0.0015;
+            }
+            
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
+
