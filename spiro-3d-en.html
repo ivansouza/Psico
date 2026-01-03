@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpiroShader 3D - Front View & Snapshot</title>
+    <title>SpiroShader 3D - Fixed Snapshot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- OrbitControls for Touch/Pinch/Zoom support -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #020202; color: white; font-family: system-ui, -apple-system, sans-serif; }
         canvas { display: block; touch-action: none; }
         
-        /* UI Panel with animations */
         .ui-panel {
             backdrop-filter: blur(12px);
-            background: rgba(10, 10, 10, 0.5);
+            background: rgba(10, 10, 10, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
             max-height: 85vh;
             overflow-y: auto;
             scrollbar-width: none;
@@ -41,7 +39,6 @@
             cursor: pointer;
         }
 
-        /* Toggle Switch Style */
         .switch {
             position: relative;
             display: inline-block;
@@ -78,13 +75,15 @@
             letter-spacing: 0.05em;
             opacity: 0.6;
             transition: opacity 0.2s;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
         }
-        .btn-action:hover { opacity: 1; color: #60a5fa; }
+        .btn-action:hover { opacity: 1; color: #60a5fa; background: rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body>
 
-    <!-- Gear Toggle Button -->
     <button id="ui-toggle" class="fixed bottom-6 right-6 z-30 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 shadow-lg">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -92,19 +91,17 @@
         </svg>
     </button>
 
-    <!-- Settings Window -->
     <div id="settings-panel" class="fixed bottom-20 right-4 z-20 w-64 p-4 rounded-xl ui-panel flex flex-col gap-3">
         <div class="flex items-center justify-between border-b border-white/10 pb-2">
             <h1 class="text-sm font-bold tracking-tight text-blue-400">SpiroShader 3D</h1>
             <div class="flex gap-2">
-                <button id="snap-btn" class="btn-action">Snap</button>
+                <button id="snap-btn" class="btn-action" title="Capture Pattern">Snap</button>
                 <button id="front-btn" class="btn-action">Front</button>
                 <button id="reset-btn" class="btn-action">Reset</button>
             </div>
         </div>
         
         <div class="space-y-3">
-            <!-- Auto Rotation Toggle -->
             <div class="flex items-center justify-between py-1">
                 <label class="text-[10px] uppercase tracking-tighter opacity-70">Auto Rotation</label>
                 <label class="switch">
@@ -113,7 +110,6 @@
                 </label>
             </div>
 
-            <!-- Preset Selector -->
             <div>
                 <label class="text-[10px] uppercase tracking-tighter opacity-50 mb-1 block">Saved Presets</label>
                 <select id="preset-selector"></select>
@@ -161,7 +157,6 @@
         </div>
     </div>
 
-    <!-- Shaders -->
     <script id="vertexShader" type="x-shader/x-vertex">
         varying float vDistance;
         uniform float uTime;
@@ -183,13 +178,12 @@
             vec3 purple = vec3(0.7, 0.0, 1.0);
             vec3 color = mix(cyan, purple, t);
             float intensity = uGlow / (1.0 + vDistance * 0.05);
-            gl_FragColor = vec4(color * intensity, 0.9);
+            gl_FragColor = vec4(color * intensity, 1.0);
         }
     </script>
 
     <script>
         let scene, camera, renderer, line, geometry, material, controls;
-        
         const params = { R: 5.0, r: 2.1, d: 3.5, cycles: 50, glow: 1.8, autoRotate: false };
 
         const presets = [
@@ -232,12 +226,13 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             resetCamera();
 
-            // preserveDrawingBuffer is required for capturing snapshots
+            // FIXED: alpha set to false to ensure the background color is captured in snapshots
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true, 
-                alpha: true,
+                alpha: false,
                 preserveDrawingBuffer: true 
             });
+            renderer.setClearColor(0x020202, 1);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
@@ -340,15 +335,15 @@
                 params.autoRotate = e.target.checked;
             });
 
-            // Action Buttons
             document.getElementById('front-btn').addEventListener('click', resetCamera);
 
             document.getElementById('snap-btn').addEventListener('click', () => {
-                // Force a render before capture
+                // Force sync render
                 renderer.render(scene, camera);
+                const dataUrl = renderer.domElement.toDataURL('image/png');
                 const link = document.createElement('a');
-                link.download = `spirograph-${Date.now()}.png`;
-                link.href = renderer.domElement.toDataURL('image/png');
+                link.download = `spiroshader-${Date.now()}.png`;
+                link.href = dataUrl;
                 link.click();
             });
 
@@ -394,3 +389,4 @@
     </script>
 </body>
 </html>
+
