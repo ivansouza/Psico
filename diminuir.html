@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
+    <!-- Google Analytics (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZTRL38JQ5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-HZTRL38JQ5');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Técnica de Subtração: Personalizada</title>
+    <title>Técnica de Subtração: Edição Google Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .math-font {
@@ -24,12 +33,12 @@
         <!-- Cabeçalho -->
         <header class="text-center mb-10">
             <h1 class="text-4xl font-bold text-slate-900 mb-4">Técnica de Subtração Fácil</h1>
-            <p class="text-lg text-slate-600">Explore a propriedade da invariância da diferença utilizando as suas próprias bases e números.</p>
+            <p class="text-lg text-slate-600">Aprenda a subtrair sem empréstimos utilizando a regra do -1 e a distância constante.</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <!-- Coluna de Entrada e Configurações -->
+            <!-- Entrada de Dados -->
             <div class="lg:col-span-2 space-y-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -53,39 +62,41 @@
                     </div>
                 </div>
 
-                <!-- Resultados Visuais -->
+                <!-- Painel de Resultados -->
                 <div id="resultado-container" class="hidden space-y-8 animate-fade">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-red-50 p-6 rounded-2xl border border-red-100">
-                            <h3 class="text-red-700 font-bold mb-4 flex items-center italic">❌ Tradicional (Com "Empréstimos")</h3>
+                            <h3 class="text-red-700 font-bold mb-4 flex items-center italic">❌ Método Tradicional</h3>
                             <div id="subtracao-original" class="math-font text-2xl text-center whitespace-pre leading-relaxed text-red-900"></div>
+                            <p class="text-xs text-red-600 mt-4 text-center">Requer "pedir emprestado" múltiplas vezes.</p>
                         </div>
 
                         <div class="bg-green-50 p-6 rounded-2xl border border-green-100">
-                            <h3 class="text-green-700 font-bold mb-4 flex items-center italic">✅ Fácil (Regra do -1)</h3>
+                            <h3 class="text-green-700 font-bold mb-4 flex items-center italic">✅ Método Fácil (-1)</h3>
                             <div id="subtracao-facil" class="math-font text-2xl text-center whitespace-pre leading-relaxed text-green-900"></div>
+                            <p class="text-xs text-green-600 mt-4 text-center">Subtração direta, dígito a dígito!</p>
                         </div>
                     </div>
 
-                    <!-- Gráfico da Reta Numérica -->
+                    <!-- Representação Visual -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 class="font-bold text-slate-800 mb-4 text-center">A Lógica da Distância Constante</h3>
+                        <h3 class="font-bold text-slate-800 mb-4 text-center text-sm uppercase tracking-wide">Lógica da Distância Constante</h3>
                         <div class="overflow-x-auto py-8">
                             <svg id="linha" width="700" height="220" viewBox="0 0 700 220" class="mx-auto"></svg>
                         </div>
-                        <p id="texto-explicativo" class="mt-4 text-slate-600 text-center italic"></p>
+                        <p id="texto-explicativo" class="mt-4 text-slate-500 text-center italic text-sm px-4"></p>
                     </div>
                 </div>
             </div>
 
-            <!-- Coluna de Histórico / Caderno de Notas -->
+            <!-- Caderno de Exemplos -->
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-8">
-                    <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                         <span>📓</span> Os Meus Exemplos
-                    </h3>
-                    <div id="lista-exemplos" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                        <p class="text-slate-400 text-sm text-center py-8">Nenhum exemplo guardado.</p>
+                    </h2>
+                    <div id="lista-exemplos" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        <p class="text-slate-400 text-sm text-center py-8">Ainda não guardou exemplos.</p>
                     </div>
                 </div>
             </div>
@@ -96,22 +107,18 @@
     <script>
         let exemplosSalvos = [];
 
-        // Alterado para não usar pontos de milhar, garantindo o alinhamento vertical perfeito
+        // Mantém números sem pontos para alinhamento vertical perfeito
         function formatarNumero(n) {
             return n.toString();
         }
 
         function validarEntrada(potencia, subtraendo) {
-            if (isNaN(potencia) || potencia <= 0) {
-                mostrarMensagem("Por favor, introduza uma base positiva.");
-                return false;
-            }
-            if (isNaN(subtraendo) || subtraendo <= 0) {
-                mostrarMensagem("Por favor, introduza um número a subtrair positivo.");
+            if (isNaN(potencia) || potencia <= 0 || isNaN(subtraendo) || subtraendo <= 0) {
+                alert("Introduza valores positivos válidos.");
                 return false;
             }
             if (subtraendo >= potencia) {
-                mostrarMensagem(`O número a subtrair (${subtraendo}) deve ser INFERIOR à base (${potencia}).`);
+                alert(`O número a subtrair deve ser menor que a base (${potencia}).`);
                 return false;
             }
             return true;
@@ -130,15 +137,15 @@
             const s1 = subtraendo - 1;
             const res = potencia - subtraendo;
 
+            // Interface
+            document.getElementById("resultado-container").classList.remove("hidden");
+            
             const pStr = formatarNumero(potencia);
             const sStr = formatarNumero(subtraendo);
             const m1Str = formatarNumero(m1);
             const s1Str = formatarNumero(s1);
             const resStr = formatarNumero(res);
 
-            document.getElementById("resultado-container").classList.remove("hidden");
-
-            // Define a largura baseada no maior número para alinhar à direita
             const largura = Math.max(pStr.length, sStr.length, resStr.length) + 2;
             
             const formatView = (a, b, resShow = "") => {
@@ -149,31 +156,31 @@
             document.getElementById("subtracao-facil").textContent = formatView(m1Str, s1Str, resStr);
 
             document.getElementById("texto-explicativo").innerHTML = 
-                `Ao retirar 1 de cada valor, a <strong>distância</strong> mantém-se igual, e como eliminamos os zeros, o cálculo não exige empréstimos!`;
+                `Ao retirar 1 unidade a ambos os números, a <strong>distância</strong> entre eles mantém-se igual, mas eliminamos a necessidade de pedir emprestado.`;
 
-            desenharLinha(s1, subtraendo, m1, potencia, res);
+            desenharReta(s1, subtraendo, m1, potencia, res);
+            
+            // Evento Analytics (Opcional: rastrear cálculos efetuados)
+            if (typeof gtag === 'function') {
+                gtag('event', 'calculo_realizado', {
+                    'base': potencia,
+                    'subtraendo': subtraendo
+                });
+            }
         }
 
         function salvarExemplo() {
-            const potencia = parseInt(document.getElementById("potencia").value);
-            const subtraendo = parseInt(document.getElementById("subtraendo").value);
+            const pot = parseInt(document.getElementById("potencia").value);
+            const sub = parseInt(document.getElementById("subtraendo").value);
             
-            if (!validarEntrada(potencia, subtraendo)) return;
+            if (!validarEntrada(pot, sub)) return;
 
-            const novoExemplo = { 
-                id: Date.now(),
-                pot: potencia, 
-                sub: subtraendo,
-                res: potencia - subtraendo
-            };
+            const novo = { id: Date.now(), pot, sub, res: pot - sub };
+            
+            // Evita duplicados
+            if (exemplosSalvos.length > 0 && exemplosSalvos[0].pot == pot && exemplosSalvos[0].sub == sub) return;
 
-            if (exemplosSalvos.length > 0 && 
-                exemplosSalvos[0].pot == novoExemplo.pot && 
-                exemplosSalvos[0].sub == novoExemplo.sub) {
-                return;
-            }
-
-            exemplosSalvos.unshift(novoExemplo);
+            exemplosSalvos.unshift(novo);
             renderizarLista();
             calcular();
         }
@@ -181,23 +188,19 @@
         function renderizarLista() {
             const lista = document.getElementById("lista-exemplos");
             if (exemplosSalvos.length === 0) {
-                lista.innerHTML = `<p class="text-slate-400 text-sm text-center py-8">Nenhum exemplo guardado.</p>`;
+                lista.innerHTML = `<p class="text-slate-400 text-sm text-center py-8">Ainda não guardou exemplos.</p>`;
                 return;
             }
 
-            lista.innerHTML = exemplosSalvos.map((ex, index) => `
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center group animate-fade">
-                    <div>
-                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Exemplo #${exemplosSalvos.length - index}</div>
+            lista.innerHTML = exemplosSalvos.map((ex, idx) => `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center group animate-fade">
+                    <div class="text-sm">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Exemplo #${exemplosSalvos.length - idx}</div>
                         <div class="font-mono text-slate-700">${ex.pot} - ${ex.sub} = <span class="text-blue-600 font-bold">${ex.res}</span></div>
                     </div>
-                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="carregarExemplo(${ex.pot}, ${ex.sub})" class="p-2 hover:bg-blue-100 text-blue-600 rounded-lg">
-                            👁️
-                        </button>
-                        <button onclick="excluirExemplo(${ex.id})" class="p-2 hover:bg-red-100 text-red-600 rounded-lg">
-                            🗑️
-                        </button>
+                    <div class="flex gap-2">
+                        <button onclick="carregarExemplo(${ex.pot}, ${ex.sub})" class="p-1.5 hover:bg-blue-100 text-blue-600 rounded">👁️</button>
+                        <button onclick="excluirExemplo(${ex.id})" class="p-1.5 hover:bg-red-100 text-red-600 rounded">🗑️</button>
                     </div>
                 </div>
             `).join('');
@@ -214,42 +217,33 @@
             renderizarLista();
         }
 
-        function desenharLinha(s1, s0, m1, m0, dist) {
+        function desenharReta(s1, s0, m1, m0, dist) {
             const svg = document.getElementById("linha");
             svg.innerHTML = "";
-            const pad = 60;
-            const w = 700 - 2 * pad;
-            const y = 110; 
-            
+            const pad = 60, w = 700 - 2 * pad, y = 110; 
             const getX = (val) => pad + (val / m0) * w;
-
-            const posS1 = getX(s1), posS0 = getX(s0), posM1 = getX(m1), posM0 = getX(m0);
+            const pS1 = getX(s1), pS0 = getX(s0), pM1 = getX(m1), pM0 = getX(m0);
 
             svg.innerHTML += `<line x1="${pad}" y1="${y}" x2="${pad+w}" y2="${y}" stroke="#cbd5e1" stroke-width="2"/>`;
             
-            const point = (x, label, color, off, isTop) => `
+            const pt = (x, label, color, off, isTop) => `
                 <circle cx="${x}" cy="${y}" r="5" fill="${color}"/>
                 <text x="${x}" y="${isTop ? y - off : y + off}" text-anchor="middle" font-size="11" fill="${color}" font-weight="bold">${label}</text>
             `;
 
-            svg.innerHTML += point(posS1, s1, "#16a34a", 15, true);
-            svg.innerHTML += point(posM1, m1, "#16a34a", 15, true);
-            svg.innerHTML += point(posS0, s0, "#2563eb", 25, false);
-            svg.innerHTML += point(posM0, m0, "#2563eb", 25, false);
+            svg.innerHTML += pt(pS1, s1, "#16a34a", 15, true);
+            svg.innerHTML += pt(pM1, m1, "#16a34a", 15, true);
+            svg.innerHTML += pt(pS0, s0, "#2563eb", 25, false);
+            svg.innerHTML += pt(pM0, m0, "#2563eb", 25, false);
 
-            const arc = (x1, x2, color, label, height) => `
-                <path d="M ${x1} ${y-10} Q ${(x1+x2)/2} ${y-height} ${x2} ${y-10}" stroke="${color}" fill="none" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow)"/>
-                <text x="${(x1+x2)/2}" y="${y-height-5}" text-anchor="middle" font-size="12" fill="${color}" font-weight="bold">${label}</text>
+            const arc = (x1, x2, color, label, h) => `
+                <path d="M ${x1} ${y-10} Q ${(x1+x2)/2} ${y-h} ${x2} ${y-10}" stroke="${color}" fill="none" stroke-width="2" stroke-dasharray="4" marker-end="url(#seta)"/>
+                <text x="${(x1+x2)/2}" y="${y-h-5}" text-anchor="middle" font-size="12" fill="${color}" font-weight="bold">${label}</text>
             `;
 
-            svg.innerHTML += `<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="context-stroke"/></marker></defs>`;
-            
-            svg.innerHTML += arc(posS1, posM1, "#16a34a", "Resultado: " + dist, 80);
-            svg.innerHTML += arc(posS0, posM0, "#2563eb", "Mesma Distância", 45);
-        }
-
-        function mostrarMensagem(msg) {
-            alert(msg);
+            svg.innerHTML += `<defs><marker id="seta" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="context-stroke"/></marker></defs>`;
+            svg.innerHTML += arc(pS1, pM1, "#16a34a", "Resultado: " + dist, 80);
+            svg.innerHTML += arc(pS0, pM0, "#2563eb", "Mesma Distância", 45);
         }
 
         window.onload = calcular;
