@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matemágica - 199 Descobertas</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --success: #22c55e;
+            --error: #ef4444;
+            --bg: #f0f9ff;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        #app {
+            width: 100%;
+            max-width: 450px;
+            background: var(--card);
+            height: 95vh;
+            max-height: 800px;
+            border-radius: 40px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+            border: 8px solid #e0e7ff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header { 
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; 
+            padding: 25px 20px; 
+            text-align: center; 
+            position: relative;
+            flex-shrink: 0;
+        }
+        .header h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 2px; }
+        .header p { margin: 5px 0 0; font-size: 10px; font-weight: bold; opacity: 0.9; text-transform: uppercase; letter-spacing: 3px; }
+
+        .btn-nav {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .btn-main {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 22px;
+            color: white;
+            font-weight: 900;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 6px 0px rgba(0,0,0,0.1);
+            transition: all 0.1s;
+        }
+        .btn-main:active { transform: translateY(3px); box-shadow: 0 2px 0px rgba(0,0,0,0.1); }
+
+        .btn-orange { background: #f97316; }
+        .btn-blue { background: #3b82f6; }
+        .btn-purple { background: #a855f7; }
+        .btn-indigo { background: #6366f1; }
+
+        .fact-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 22px;
+            padding: 20px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .fact-icon { font-size: 34px; flex-shrink: 0; }
+        .fact-body b { display: block; color: var(--primary); font-size: 11px; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+        .fact-body p { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.5; color: #334155; }
+
+        .score-pill {
+            background: #eef2ff;
+            padding: 10px 25px;
+            border-radius: 15px;
+            font-weight: 900;
+            color: var(--primary);
+            border: 2px solid #c7d2fe;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        .footer { padding: 15px; text-align: center; font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; }
+
+        .enigma-box {
+            font-size: 22px;
+            font-weight: 800;
+            color: #312e81;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            padding: 35px 20px;
+            background: #fdfbff;
+            border: 4px solid #e0e7ff;
+            border-radius: 30px;
+            text-align: center;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 20px;
+            border-radius: 20px;
+            border: 4px solid #cbd5e1;
+            text-align: center;
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            outline: none;
+            color: var(--primary);
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.98);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app"></div>
+
+    <script>
+        const ENIGMAS = [
+            { q: "Qual o próximo número: 1, 2, 4, 7, 11, ...?", a: "16", h: "Aumenta +1, depois +2, depois +3..." },
+            { q: "Se 3 gatos caçam 3 ratos em 3 minutos, quanto tempo 1 gato leva para caçar 1 rato?", a: "3", h: "Cada gato caça o seu ao mesmo tempo." },
+            { q: "Um avô, dois pais e dois filhos foram pescar. Quantas pessoas foram no total?", a: "3", h: "Pense: o avô é pai, e o pai é filho." },
+            { q: "Quantos números 9 existem entre 1 e 100?", a: "20", h: "Não esqueça do 90, 91... até o 99." },
+            { q: "O que pesa mais: 1kg de chumbo ou 1kg de pipoca?", a: "igual", h: "Ambos são 1 quilo." },
+            { q: "Se você tem uma nota de 20 reais e gasta 7 reais, quanto sobra?", a: "13", h: "Continha de menos." },
+            { q: "Uma família tem 6 filhas e cada filha tem um irmão. Quantos filhos a família tem?", a: "7", h: "O irmão é o mesmo para todas." },
+            { q: "Quantos meses têm 28 dias?", a: "12", h: "Dica: Todos têm!" },
+            { q: "Qual número vem antes do 1000?", a: "999", h: "Tire apenas um." },
+            { q: "Quantas patas têm 4 cavalos e 2 galinhas juntas?", a: "20", h: "Cavalos (4) e Galinhas (2)." },
+            { q: "Qual o dobro da metade de 10?", a: "10", h: "Metade de 10 é 5. O dobro de 5 é...?" },
+            { q: "O pai de Maria tem 5 filhas: Lala, Lele, Lili, Lolo e...?", a: "maria", h: "Olhe o nome do pai." },
+            { q: "Quanto é 10 + 10 x 0?", a: "10", h: "Multiplicação vem primeiro." },
+            { q: "Um ano tem quantos dias normalmente?", a: "365", h: "Três, seis, cinco." },
+            { q: "Quantos lados tem um cubo?", a: "6", h: "Pense num dado de jogo." },
+            { q: "Qual a metade de 50?", a: "25", h: "25 + 25 = 50." },
+            { q: "Se você ultrapassa o 2º lugar numa corrida, onde você fica?", a: "2", h: "Você tomou o lugar dele." },
+            { q: "O que tem 4 pernas mas não consegue andar?", a: "mesa", h: "Ou cadeira!" },
+            { q: "Pense no 5. Dobre ele. Tire 2. Qual o resultado?", a: "8", h: "10 - 2." },
+            { q: "Quantas dezenas existem no número 80?", a: "8", h: "Cada dezena é 10." },
+            { q: "Um relógio marca 12:00. Onde está o ponteiro grande?", a: "12", h: "No topo." },
+            { q: "Se 1=5, 2=10, 3=15, 4=20, quanto é 5=?", a: "1", h: "Leia o começo da pergunta: 1=5." },
+            { q: "Quantos dedos têm 5 pessoas juntas?", a: "50", h: "10 dedos por pessoa." },
+            { q: "Qual o próximo: 10, 20, 30, ...?", a: "40", h: "Contando de 10 em 10." },
+            { q: "O que é que quanto mais se tira, maior fica?", a: "buraco", h: "Pense em cavar." },
+            { q: "Quanto é a metade de 2 mais 2?", a: "3", h: "Metade de 2 (1) + 2." },
+            { q: "Qual número é ímpar e vem depois do 11?", a: "13", h: "Pule o 12." },
+            { q: "Um triângulo tem 3 lados. Quantos lados têm 3 triângulos?", a: "9", h: "3 x 3." },
+            { q: "Qual a última letra do alfabeto?", a: "z", h: "X, Y..." },
+            { q: "Enigma Final: Quanto é 100 - 100?", a: "0", h: "Nada sobra." }
+        ];
+
+        function getCuriosities() {
+            return [
+                { t: "Espaço", x: "Em Marte, o pôr do sol é azul! A poeira espalha a luz de um jeito mágico.", i: "🚀" },
+                { t: "Animais", x: "O elefante é o único animal do mundo que não consegue pular. Ele é pesado demais!", i: "🐘" },
+                { t: "Matemática", x: "O número zero foi inventado na Índia há mais de 1.500 anos.", i: "0️⃣" },
+                { t: "Natureza", x: "As abelhas constroem hexágonos porque é a forma que guarda mais mel com menos cera.", i: "🐝" },
+                { t: "Corpo Humano", x: "Seu coração bate 100 mil vezes por dia sem você precisar pedir!", i: "❤️" },
+                { t: "Espaço", x: "Vênus gira tão devagar que um dia lá dura mais que um ano na Terra!", i: "🪐" },
+                { t: "Animais", x: "Um caracol pode dormir por até 3 anos seguidos!", i: "🐌" },
+                { t: "Tecnologia", x: "O nome Google vem de 'Googol', o número 1 seguido de 100 zeros!", i: "🌐" },
+                { t: "Corpo Humano", x: "Seu nariz consegue lembrar de 50 mil cheiros diferentes!", i: "👃" },
+                { t: "Animais", x: "As formigas nunca dormem e não possuem pulmões!", i: "🐜" },
+                { t: "Oceano", x: "O coração da baleia azul é do tamanho de um carro popular.", i: "🐳" },
+                { t: "Matemática", x: "Em um dado, a soma das faces opostas é sempre 7. Tente somar 1 e 6!", i: "🎲" },
+                { t: "Espaço", x: "Na Lua, suas pegadas durariam 100 milhões de anos porque não existe vento.", i: "👣" },
+                { t: "Animais", x: "O pica-pau bate o bico 20 vezes por segundo e não fica com dor de cabeça!", i: "🐦" },
+                { t: "Corpo Humano", x: "O osso da coxa (fêmur) é mais forte que o concreto!", i: "💪" },
+                { t: "Plantas", x: "Girassóis usam a matemática para organizar suas sementes sem desperdiçar espaço.", i: "🌻" },
+                { t: "História", x: "Antigamente, o sal era tão caro que soldados romanos eram pagos com ele. Daí vem o 'salário'!", i: "🧂" },
+                { t: "Animais", x: "Cavalos e vacas conseguem dormir em pé para fugir rápido de perigos.", i: "🐎" },
+                { t: "Espaço", x: "Existem mais estrelas no céu do que grãos de areia em todas as praias da Terra!", i: "⭐" },
+                { t: "Corpo Humano", x: "Você é 1cm mais alto de manhã do que à noite. Sua coluna se aperta durante o dia.", i: "📏" },
+                { t: "Matemática", x: "111.111.111 x 111.111.111 dá o resultado 12.345.678.987.654.321!", i: "🧮" },
+                { t: "Animais", x: "O polvo tem 3 corações e seu sangue é azul!", i: "🐙" },
+                { t: "Natureza", x: "O bambu pode crescer quase um metro em apenas um dia!", i: "🎋" },
+                { t: "Corpo Humano", x: "Seus dentes são únicos, como impressões digitais. Ninguém tem dentes iguais.", i: "🦷" },
+                { t: "Espaço", x: "Em Saturno e Júpiter, chove diamantes devido à pressão da atmosfera!", i: "💎" },
+                { t: "História", x: "O primeiro rato de computador foi feito de madeira há muito tempo!", i: "🖱️" },
+                { t: "Animais", x: "Cachorros não veem apenas preto e branco; eles veem azul e amarelo também.", i: "🐶" },
+                { t: "Matemática", x: "Um trilhão é o número 1 seguido de 12 zeros!", i: "🔢" },
+                { t: "Natureza", x: "A água pode estar no estado sólido, líquido e gasoso ao mesmo tempo!", i: "🧊" },
+                { t: "Corpo Humano", x: "Seu estômago produz uma nova camada de proteção a cada duas semanas.", i: "🍔" },
+                { t: "Animais", x: "O beija-flor é o único pássaro que consegue voar para trás!", i: "🐦" },
+                { t: "Oceano", x: "O som viaja 5 vezes mais rápido na água do que no ar.", i: "🌊" },
+                { t: "Espaço", x: "Plutão é menor que o Brasil, por isso deixou de ser um planeta principal.", i: "🔭" },
+                { t: "Natureza", x: "Um raio é 5 vezes mais quente que a superfície do Sol!", i: "⚡" },
+                { t: "Corpo Humano", x: "Seus olhos piscam cerca de 15 a 20 vezes por minuto.", i: "👁️" },
+                { t: "Matemática", x: "O número Pi (3,14...) nunca termina e nunca se repete.", i: "🥧" },
+                { t: "Animais", x: "As girafas não têm cordas vocais e sua língua é azul-escura.", i: "🦒" },
+                { t: "Oceano", x: "Luz solar não chega a mais de 1000 metros de profundidade no mar.", i: "🔦" },
+                { t: "História", x: "As pirâmides do Egito foram construídas sem o uso de rodas ou polias!", i: "📐" },
+                { t: "Tecnologia", x: "O primeiro jogo de vídeo foi inventado há mais de 60 anos.", i: "🎮" },
+                { t: "Corpo Humano", x: "Sua língua é o músculo mais forte do corpo em relação ao tamanho.", i: "👅" },
+                { t: "Animais", x: "Os tigres têm a pele listrada, não apenas os pelos!", i: "🐯" },
+                { t: "Espaço", x: "A Via Láctea, nossa galáxia, está sempre girando em velocidade incrível.", i: "🌀" },
+                { t: "Matemática", x: "O número 7 é o favorito de quase todo o mundo nas pesquisas!", i: "7️⃣" },
+                { t: "Natureza", x: "Existem árvores que vivem mais de 5 mil anos!", i: "🌳" },
+                { t: "Corpo Humano", x: "Seus pulmões não são iguais; o esquerdo é menor por causa do coração.", i: "🫁" },
+                { t: "Animais", x: "As borboletas sentem o gosto das coisas com os pés!", i: "🦋" },
+                { t: "Oceano", x: "A Fossa das Marianas é tão profunda que o Everest caberia nela.", i: "🏔️" },
+                { t: "Espaço", x: "O Sol é uma estrela média, existem estrelas gigantescas no universo.", i: "☀️" },
+                { t: "História", x: "A primeira lâmpada durou apenas 13 horas acesa.", i: "💡" },
+                { t: "Animais", x: "Ovelhas conseguem reconhecer os rostos de até 50 outras ovelhas!", i: "🐑" },
+                { t: "Natureza", x: "A neve não é branca, ela é transparente como o vidro!", i: "❄️" },
+                { t: "Corpo Humano", x: "Seu cérebro produz eletricidade para acender uma pequena lâmpada.", i: "🧠" },
+                { t: "Matemática", x: "A soma de 1+2+3+4 até 100 dá exatamente 5.050!", i: "📝" },
+                { t: "Animais", x: "Os pinguins dão uma pedrinha de presente quando gostam de outro pinguim.", i: "🐧" },
+                { t: "Oceano", x: "As pérolas são feitas por ostras para se protegerem de areia.", i: "🐚" },
+                { t: "Espaço", x: "Astronautas ficam mais altos no espaço porque a coluna se estica.", i: "👨‍🚀" },
+                { t: "Tecnologia", x: "Existem mais celulares no mundo do que pessoas!", i: "📱" },
+                { t: "Corpo Humano", x: "Suas unhas das mãos crescem 4 vezes mais rápido que as dos pés.", i: "💅" },
+                { t: "Animais", x: "Uma água-viva é feita de 95% de água!", i: "🎐" },
+                { t: "Natureza", x: "As plantas podem 'ouvir' vibrações quando um inseto as morde.", i: "🪴" },
+                { t: "História", x: "Dinossauros viveram na Terra por 165 milhões de anos!", i: "🦖" },
+                { t: "Matemática", x: "A palavra 'cem' vem de uma palavra antiga que significava '120'.", i: "💯" },
+                { t: "Espaço", x: "O universo está ficando maior a cada segundo!", i: "🌌" },
+                { t: "Corpo Humano", x: "O espirro viaja a 160 quilômetros por hora.", i: "🤧" },
+                { t: "Animais", x: "Golfinhos dão nomes uns aos outros através de assobios!", i: "🐬" },
+                { t: "Oceano", x: "Corais são animais, não plantas!", i: "🪸" },
+                { t: "Natureza", x: "O Saara já foi uma floresta verde cheia de lagos.", i: "🌴" },
+                { t: "Tecnologia", x: "A primeira foto da história levou 8 horas para ser tirada.", i: "📸" },
+                { t: "Corpo Humano", x: "Você perde cerca de 4 quilos de pele morta todos os anos.", i: "🧴" },
+                { t: "Animais", x: "As corujas não conseguem mexer os olhos; elas giram a cabeça!", i: "🦉" },
+                { t: "Matemática", x: "O símbolo de igual (=) foi criado para evitar escrever a mesma frase.", i: "⚖️" },
+                { t: "Espaço", x: "A tempestade em Júpiter (Mancha Vermelha) dura mais de 300 anos!", i: "🌀" },
+                { t: "História", x: "Os maias usavam sementes de cacau como dinheiro!", i: "🍫" },
+                { t: "Natureza", x: "Um dia em Netuno dura apenas 16 horas.", i: "⛈️" },
+                { t: "Corpo Humano", x: "O sangue leva menos de um minuto para circular por todo o corpo.", i: "🩸" },
+                { t: "Animais", x: "Cangurus usam a cauda como uma quinta perna para caminhar.", i: "🦘" },
+                { t: "Oceano", x: "Lulas gigantes têm olhos do tamanho de bolas de basquete!", i: "🦑" },
+                { t: "Espaço", x: "Você pesaria muito menos na Lua porque a gravidade lá é fraca.", i: "🎈" },
+                { t: "Tecnologia", x: "O primeiro computador pesava mais de 27 toneladas!", i: "📟" },
+                { t: "Corpo Humano", x: "Suas orelhas e seu nariz nunca param de crescer.", i: "👂" },
+                { t: "Animais", x: "O porco-espinho flutua na água porque seus espinhos têm ar.", i: "🦔" },
+                { t: "Natureza", x: "O arco-íris é um círculo completo, mas o chão corta a metade.", i: "🌈" },
+                { t: "História", x: "A Grande Muralha da China não pode ser vista da Lua sem aparelhos.", i: "🧱" },
+                { t: "Matemática", x: "O número 40 em inglês (Forty) tem as letras em ordem alfabética.", i: "🔡" },
+                { t: "Espaço", x: "Uma colher de uma estrela de nêutrons pesaria um bilhão de toneladas!", i: "☄️" },
+                { t: "Corpo Humano", x: "Seus ossos são compostos por 31% de água.", i: "💧" },
+                { t: "Animais", x: "Ursos polares têm pele preta por baixo dos pelos brancos.", i: "🐻‍❄️" },
+                { t: "Oceano", x: "Existem montanhas e vulcões gigantes debaixo do mar.", i: "🌋" },
+                { t: "Natureza", x: "O mel de 3 mil anos achado no Egito ainda é comestível!", i: "🍯" },
+                { t: "Tecnologia", x: "O Wi-Fi usa ondas invisíveis como o rádio.", i: "📡" },
+                { t: "Corpo Humano", x: "O cérebro é mais ativo dormindo do que vendo TV.", i: "🛌" },
+                { t: "Animais", x: "Cavalos-marinhos não têm estômago; a comida passa direto.", i: "🎠" },
+                { t: "Espaço", x: "Vênus é o planeta mais quente, mesmo não sendo o mais perto do Sol.", i: "🔥" },
+                { t: "História", x: "Leonardo da Vinci escrevia de trás para frente para esconder notas.", i: "🎨" },
+                { t: "Matemática", x: "O zero não pode ser escrito em algarismos romanos.", i: "🚫" },
+                { t: "Natureza", x: "Cogumelos brilham no escuro para atrair insetos.", i: "🍄" },
+                { t: "Corpo Humano", x: "Você produz cerca de um litro de saliva por dia.", i: "🤤" },
+                { t: "Animais", x: "O grito de uma baleia azul é mais alto que um avião a jato!", i: "🐋" },
+                { t: "Oceano", x: "A maior parte do oxigênio vem das algas marinhas.", i: "🌬️" },
+                { t: "Espaço", x: "Mercúrio é tão quente que o gelo lá só vive em sombras eternas.", i: "🧊" },
+                { t: "Animais", x: "Gatos têm 32 músculos em cada orelha!", i: "🐱" },
+                { t: "Natureza", x: "A água da Terra é a mesma desde o tempo dos dinossauros.", i: "🦕" },
+                { t: "Corpo Humano", x: "Seus cílios duram 5 meses antes de caírem.", i: "👁️" },
+                { t: "Matemática", x: "Ábaco é o nome da calculadora mais antiga do mundo.", i: "🧮" },
+                { t: "Tecnologia", x: "O YouTube nasceu para ser um site de namoro!", i: "🎥" },
+                { t: "Animais", x: "Vacas têm melhores amigas e ficam tristes sozinhas.", i: "🐮" },
+                { t: "Espaço", x: "Dois metais grudam para sempre se se tocarem no espaço!", i: "🖇️" },
+                { t: "História", x: "Ricos no Império Romano tinham aquecimento no chão.", i: "🏛️" },
+                { t: "Corpo Humano", x: "Seu coração é do tamanho do seu punho fechado.", i: "👊" },
+                { t: "Natureza", x: "O som não viaja no espaço porque não tem ar.", i: "🔇" },
+                { t: "Animais", x: "Cachorros suam apenas pelas almofadas das patas!", i: "🐾" },
+                { t: "Oceano", x: "Peixes-palhaço mudam de cor para se esconderem.", i: "🐠" },
+                { t: "Matemática", x: "O número 100 em binário é escrito como 1100100.", i: "💻" },
+                { t: "História", x: "A Coca-Cola era verde no começo por causa da garrafa.", i: "🥤" },
+                { t: "Espaço", x: "Urano gira deitado, diferente de todos os outros planetas.", i: "🪐" },
+                { t: "Corpo Humano", x: "Você tem ferro no corpo para fazer um pequeno prego.", i: "🔨" },
+                { t: "Animais", x: "Tubarões não têm ossos, seu esqueleto é de cartilagem.", i: "🦈" },
+                { t: "Natureza", x: "Uma nuvem branca pesa tanto quanto 100 elefantes!", i: "☁️" },
+                { t: "História", x: "Maias inventaram o chiclete usando resina de árvore.", i: "🍬" },
+                { t: "Tecnologia", x: "O primeiro domínio .com foi o symbolics.com.", i: "🔗" },
+                { t: "Espaço", x: "O Sol faz um som de zumbido que aparelhos captam.", i: "🐝" },
+                { t: "Animais", x: "Crocodilos engolem pedras para mergulhar mais fundo.", i: "🐊" },
+                { t: "Corpo Humano", x: "Sua boca produz bactérias para encher um estádio!", i: "🏟️" },
+                { t: "Matemática", x: "O número 18 é sinal de sorte em muitos países.", i: "🍀" },
+                { t: "Natureza", x: "A luz viaja a 300 mil quilômetros por segundo.", i: "⚡" },
+                { t: "História", x: "O pão foi inventado há 10 mil anos no Egito.", i: "🍞" },
+                { t: "Espaço", x: "Júpiter protege a Terra atraindo asteroides perigosos.", i: "🛡️" },
+                { t: "Animais", x: "Caranguejos têm o coração na perna!", i: "🦀" },
+                { t: "Oceano", x: "O mar é azul porque reflete a cor do céu.", i: "💙" },
+                { t: "Corpo Humano", x: "Seu esqueleto se renova totalmente a cada 10 anos.", i: "💀" },
+                { t: "Tecnologia", x: "Bluetooth tem nome de um rei viking!", i: "👑" },
+                { t: "Animais", x: "O pica-pau enrola a língua no cérebro para proteção.", i: "🪵" },
+                { t: "Matemática", x: "Um baralho tem mais combinações que átomos na Terra.", i: "🃏" },
+                { t: "Natureza", x: "O Everest cresce 4 milímetros por ano.", i: "🗻" },
+                { t: "História", x: "O avião de Santos Dumont se chamava 14-Bis.", i: "✈️" },
+                { t: "Espaço", x: "Andrômeda vai bater na nossa galáxia em bilhões de anos.", i: "🌠" },
+                { t: "Corpo Humano", x: "O cérebro não sente dor, ele apenas a processa.", i: "🤯" },
+                { t: "Animais", x: "Galinhas são parentes próximas do T-Rex!", i: "🐔" },
+                { t: "Oceano", x: "O sal do mar cobriria a Terra com 150 metros.", i: "🧂" },
+                { t: "Tecnologia", x: "O Google faz 40 mil buscas por segundo.", i: "⌨️" },
+                { t: "Animais", x: "Camaleões olham para dois lugares ao mesmo tempo.", i: "🦎" },
+                { t: "Natureza", x: "O trovão é o som do ar expandindo com o calor do raio.", i: "🔊" },
+                { t: "Corpo Humano", x: "Você respira 20 mil vezes por dia.", i: "🌬️" },
+                { t: "História", x: "Vikings usavam pedras de sol como bússolas.", i: "☀️" },
+                { t: "Espaço", x: "O maior vulcão solar fica em Marte: Monte Olimpo.", i: "🌋" },
+                { t: "Animais", x: "Polvos abrem potes de vidro por fora!", i: "🧪" },
+                { t: "Corpo Humano", x: "Seus pulmões cobririam uma quadra de tênis.", i: "🎾" },
+                { t: "Natureza", x: "Madeira é feita de ar que a árvore 'come'.", i: "🌲" },
+                { t: "Tecnologia", x: "O primeiro SMS foi 'Feliz Natal'.", i: "🎄" },
+                { t: "Animais", x: "Hipopótamos suam um protetor solar rosa.", i: "🦛" },
+                { t: "Espaço", x: "Um traje espacial custa 12 milhões de dólares!", i: "💰" },
+                { t: "Corpo Humano", x: "Crianças riem 300 vezes por dia; adultos só 20.", i: "😂" },
+                { t: "Oceano", x: "O fundo do mar é menos conhecido que Marte.", i: "🕳️" },
+                { t: "Matemática", x: "O número 999.999 tem propriedades mágicas.", i: "🔄" },
+                { t: "Natureza", x: "Beija-flores batem asas 80 vezes por segundo!", i: "🌪️" },
+                { t: "História", x: "Papel higiênico foi inventado na China há mil anos.", i: "🧻" },
+                { t: "Animais", x: "Papagaios dão nomes sonoros aos filhotes.", i: "🦜" },
+                { t: "Espaço", x: "A Terra pesa 6 sextilhões de toneladas!", i: "⚖️" },
+                { t: "Corpo Humano", x: "Seus olhos têm o mesmo tamanho desde o nascimento.", i: "👶" },
+                { t: "Oceano", x: "A Grande Barreira de Corais é vista do espaço.", i: "🛰️" },
+                { t: "Matemática", x: "O número 11 é o menor primo com dois dígitos.", i: "🔢" },
+                { t: "Natureza", x: "Sementes de maçã têm veneno, mas precisa comer mil.", i: "🍎" },
+                { t: "História", x: "O primeiro trem era lento como um cavalo.", i: "🚂" },
+                { t: "Animais", x: "Cobras cheiram com a língua.", i: "🐍" },
+                { t: "Espaço", x: "Saturno flutuaria em uma banheira gigante.", i: "🛁" },
+                { t: "Corpo Humano", x: "O DNA humano é 50% igual ao da banana.", i: "🍌" },
+                { t: "Tecnologia", x: "O primeiro mouse de plástico foi da Apple.", i: "🖱️" },
+                { t: "Animais", x: "O morcego é o único mamífero que voa.", i: "🦇" },
+                { t: "Natureza", x: "Um dia em Júpiter dura apenas 10 horas!", i: "🕒" },
+                { t: "História", x: "Xadrez treina generais na Índia antiga.", i: "♟️" },
+                { t: "Matemática", x: "A sorte na loteria é menor que cair um raio.", i: "🌩️" },
+                { t: "Espaço", x: "O Sol gasta 4 milhões de toneladas de energia por segundo.", i: "🔋" },
+                { t: "Corpo Humano", x: "O cérebro usa 20% do oxigênio do corpo.", i: "🧠" },
+                { t: "Animais", x: "Tarântulas vivem até 30 anos!", i: "🕷️" },
+                { t: "Oceano", x: "A água do mar é 3% sal puro.", i: "🌊" },
+                { t: "Natureza", x: "O gelo da Antártida tem 4 quilômetros de altura!", i: "🧊" },
+                { t: "Tecnologia", x: "O primeiro iPod guardava mil músicas.", i: "🎵" },
+                { t: "História", x: "Humanos dominam o fogo há 400 mil anos.", i: "🔥" },
+                { t: "Animais", x: "Guepardos correm 110km/h em 3 segundos!", i: "🐆" },
+                { t: "Espaço", x: "Vemos luz de estrelas que já podem ter morrido.", i: "⌛" },
+                { t: "Corpo Humano", x: "Temos 600 músculos no corpo.", i: "🏋️" },
+                { t: "Oceano", x: "Golfinhos vigiam tubarões dormindo com um olho aberto.", i: "👁️" },
+                { t: "Matemática", x: "Números primos só dividem por 1 e eles mesmos.", i: "🔢" },
+                { t: "Natureza", x: "Pedras andam sozinhas no Vale da Morte.", i: "🗿" },
+                { t: "História", x: "Primeira escola pública nasceu há 400 anos.", i: "🏫" },
+                { t: "Animais", x: "O camarão tem o coração na cabeça!", i: "🍤" },
+                { t: "Espaço", x: "Estrelas fazem som de rádio fora do ar.", i: "📻" },
+                { t: "Corpo Humano", x: "Pés têm 250 mil glândulas de suor cada.", i: "👣" },
+                { t: "Tecnologia", x: "O primeiro email é de 1971.", i: "📧" },
+                { t: "Natureza", x: "Raio escolhe sempre o caminho mais curto.", i: "📏" },
+                { t: "Animais", x: "Orelhas de coelho servem para resfriar o corpo.", i: "🐰" },
+                { t: "Oceano", x: "Músicas de baleias jubarte duram 20 minutos.", i: "🎶" },
+                { t: "Matemática", x: "Um milhão tem 6 zeros, um bilhão tem 9.", i: "📈" },
+                { t: "História", x: "Sorvete nasceu na China com neve e mel.", i: "🍦" },
+                { t: "Espaço", x: "O universo tem 13 bilhões de anos!", i: "🕰️" },
+                { t: "Corpo Humano", x: "Ossos são 4 vezes mais fortes que o aço.", i: "🏗️" },
+                { t: "Animais", x: "Flamingos em grupo são um 'flamboyance'.", i: "🦩" },
+                { t: "Natureza", x: "O mel não estraga por causa do açúcar e acidez.", i: "🍯" },
+                { t: "Espaço", x: "A Terra é o único planeta conhecido com vida.", i: "🌍" },
+                { t: "Corpo Humano", x: "Temos mais bactérias que células no corpo.", i: "🦠" },
+                { t: "Animais", x: "Corujas são silenciosas no voo por causa das penas.", i: "🦉" }
+            ].slice(0, 199);
+        }
+
+        const TRUQUES = [
+            { t: "TRUQUE DO 9", x: "Some os números do resultado de 9x. Ex: 9x5=45. 4+5=9. Sempre dá 9!", i: "🖐️" },
+            { t: "SOMAR 9", x: "Para somar 9 a qualquer número, some 10 e tire 1. É muito mais rápido!", i: "🪄" },
+            { t: "DOBRO RÁPIDO", x: "Para multiplicar por 4, dobre o número duas vezes! Ex: 5x4 -> 10 -> 20!", i: "🧠" }
+        ];
+
+        let state = {
+            screen: 'home',
+            score: 0,
+            idx: 0,
+            unlocked: 1,
+            curPool: getCuriosities(),
+            curSeen: [],
+            curCurrent: [],
+            feedback: null,
+            showReset: false
+        };
+
+        function save() {
+            localStorage.setItem('mat_v199_real_v2', JSON.stringify({
+                s: state.score, u: state.unlocked, idx: state.idx, seen: state.curSeen
+            }));
+        }
+
+        function load() {
+            const data = JSON.parse(localStorage.getItem('mat_v199_real_v2') || '{}');
+            state.score = data.s || 0;
+            state.unlocked = data.u || 1;
+            state.idx = data.idx || 0;
+            state.curSeen = data.seen || [];
+            render();
+        }
+
+        function navigate(s) {
+            state.screen = s;
+            if(s === 'cur') drawCuriosities();
+            render();
+        }
+
+        function drawCuriosities() {
+            let available = state.curPool.filter(c => !state.curSeen.includes(c.x));
+            if(available.length < 4) {
+                state.curSeen = [];
+                available = state.curPool;
+            }
+            const shuffled = [...available].sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, 4);
+            state.curCurrent = selected;
+            selected.forEach(s => state.curSeen.push(s.x));
+            save();
+        }
+
+        function check() {
+            const input = document.getElementById('ans');
+            const val = input.value.trim().toLowerCase();
+            const correct = ENIGMAS[state.idx].a.toLowerCase();
+
+            if(val === correct || (val.length > 2 && correct.includes(val))) {
+                state.score += 10;
+                if(state.idx + 1 === state.unlocked && state.unlocked < 30) state.unlocked++;
+                state.feedback = { type: 'ok', title: 'FANTÁSTICO!', text: 'Você acertou em cheio! +10 pontos.' };
+            } else {
+                state.feedback = { type: 'err', title: 'QUASE LÁ!', text: 'Tente pensar um pouquinho mais.' };
+            }
+            save();
+            render();
+        }
+
+        function next() {
+            if(state.feedback.type === 'ok') {
+                if(state.idx < 29) state.idx++;
+                else return navigate('win');
+            }
+            state.feedback = null;
+            render();
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            let h = `
+                <div class="header">
+                    ${state.screen !== 'home' ? `<button class="btn-nav" onclick="navigate('home')">🏠</button>` : ''}
+                    <h1>MATEMÁGICA</h1>
+                    <p>Mundo de Descobertas</p>
+                </div>
+                <div class="main-content">
+            `;
+
+            if(state.screen === 'home') {
+                h += `
+                    <div style="margin-top: 20px"></div>
+                    <button class="btn-main btn-orange" onclick="navigate('puz')"><span>🏆</span> 30 ENIGMAS (Fase ${state.unlocked})</button>
+                    <button class="btn-main btn-blue" onclick="navigate('cur')"><span>✨</span> CURIOSIDADES (${state.curSeen.length}/199)</button>
+                    <button class="btn-main btn-purple" onclick="navigate('tip')"><span>💡</span> TRUQUES NINJA</button>
+                    
+                    <div style="text-align:center; margin-top: auto">
+                        <div class="score-pill">${state.score} PONTOS</div>
+                        <button style="display:block; width:100%; border:none; background:none; color:#cbd5e1; font-weight:800; font-size:10px; margin-top:20px; cursor:pointer" onclick="state.showReset=true; render()">🗑️ REINICIAR TUDO</button>
+                    </div>
+                `;
+            }
+            else if(state.screen === 'puz') {
+                const p = ENIGMAS[state.idx];
+                h += `
+                    <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:900; color:#94a3b8; margin-bottom:10px;">
+                        <span>ENIGMA ${state.idx+1}/30</span>
+                        <span>${((state.idx+1)/30*100).toFixed(0)}%</span>
+                    </div>
+                    <div class="enigma-box">${p.q}</div>
+                    <input type="text" id="ans" class="input-box" placeholder="..." autofocus onkeydown="if(event.key==='Enter')check()">
+                    <button class="btn-main btn-indigo" onclick="check()">CONFERIR</button>
+                    <p style="text-align:center; font-size:13px; color:#64748b; font-weight:bold;">💡 Dica: ${p.h}</p>
+                `;
+            }
+            else if(state.screen === 'cur' || state.screen === 'tip') {
+                const items = state.screen === 'cur' ? state.curCurrent : TRUQUES;
+                h += `<h2 style="text-align:center; color:var(--primary); margin:0 0 20px 0">${state.screen === 'cur' ? 'BAÚ DE DESCOBERTAS' : 'TRUQUES NINJA'}</h2>`;
+                items.forEach(i => {
+                    h += `
+                        <div class="fact-card">
+                            <div class="fact-icon">${i.i}</div>
+                            <div class="fact-body"><b>${i.t}</b><p>${i.x}</p></div>
+                        </div>
+                    `;
+                });
+                if(state.screen === 'cur') h += `<button class="btn-main btn-blue" onclick="drawCuriosities(); render()">VER NOVAS CURIOSIDADES</button>`;
+                h += `<button class="btn-main btn-purple" onclick="navigate('home')">VOLTAR AO MENU</button>`;
+            }
+            else if(state.screen === 'win') {
+                h += `
+                    <div style="text-align:center; padding:40px 0">
+                        <div style="font-size:80px">👑</div>
+                        <h2 style="font-size:32px; color:var(--primary); font-weight:900;">MAGO SUPREMO!</h2>
+                        <p>Você completou todos os desafios!</p>
+                        <div class="score-pill" style="font-size:30px; padding:20px 40px">${state.score}</div>
+                        <button class="btn-main btn-orange" style="margin-top:40px" onclick="localStorage.clear(); location.reload()">NOVA JORNADA</button>
+                    </div>
+                `;
+            }
+
+            h += `</div><div class="footer">Matemágica v4.0 - 199 Fatos Reais</div>`;
+
+            if(state.feedback) {
+                h += `
+                    <div class="overlay">
+                        <div style="font-size:80px; margin-bottom:20px">${state.feedback.type==='ok'?'🌟':'💫'}</div>
+                        <h2 style="font-size:32px; color:${state.feedback.type==='ok'?'var(--success)':'var(--error)'}">${state.feedback.title}</h2>
+                        <p style="font-size:18px; color:#64748b; margin-bottom:30px">${state.feedback.text}</p>
+                        <button class="btn-main" style="background:${state.feedback.type==='ok'?'var(--success)':'var(--error)'}" onclick="next()">CONTINUAR</button>
+                    </div>
+                `;
+            }
+
+            if(state.showReset) {
+                h += `
+                    <div class="overlay" style="background:rgba(0,0,0,0.7)">
+                        <div style="background:white; padding:30px; border-radius:30px; width:100%">
+                            <h2 style="margin-top:0">REINICIAR?</h2>
+                            <p>Seu progresso será apagado.</p>
+                            <button class="btn-confirm" style="width:100%; padding:20px; background:var(--error); border:none; color:white; border-radius:15px; font-weight:900" onclick="localStorage.clear(); location.reload()">SIM, REINICIAR</button>
+                            <button class="btn-main" style="background:#eee; color:#333; margin-top:10px" onclick="state.showReset=false; render()">CANCELAR</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            app.innerHTML = h;
+            const input = document.getElementById('ans');
+            if(input) input.focus();
+        }
+
+        load();
+    </script>
+</body>
+</html>
+
