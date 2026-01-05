@@ -52,7 +52,7 @@
             border: 1px solid #333;
         }
 
-        input {
+        input[type="text"] {
             background: #000;
             color: #00ff88;
             padding: 1.1rem;
@@ -70,6 +70,7 @@
             margin-top: 1rem;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 0.75rem;
             color: #555;
             text-transform: uppercase;
@@ -77,6 +78,19 @@
         }
 
         .highlight { color: #00ff88; font-weight: bold; }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-container input {
+            cursor: pointer;
+            accent-color: #00ff88;
+        }
     </style>
 </head>
 <body>
@@ -95,9 +109,16 @@
             </div>
             
             <div class="status-panel">
-                <div>COL: <span id="col-display" class="highlight">01</span></div>
-                <div>CHAR: <span id="char-display" class="highlight">-</span></div>
-                <div>PUNCHES: <span id="punches-display" class="highlight">NONE</span></div>
+                <div class="flex gap-8">
+                    <div>COL: <span id="col-display" class="highlight">01</span></div>
+                    <div>CHAR: <span id="char-display" class="highlight">-</span></div>
+                    <div>PUNCHES: <span id="punches-display" class="highlight">NONE</span></div>
+                </div>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="show-text-checkbox" checked>
+                    <span>Imprimir Texto</span>
+                </label>
             </div>
         </div>
     </div>
@@ -109,10 +130,10 @@
         const colDisplay = document.getElementById('col-display');
         const charDisplay = document.getElementById('char-display');
         const punchesDisplay = document.getElementById('punches-display');
+        const showTextCheckbox = document.getElementById('show-text-checkbox');
 
         /**
          * MATRIZ DE FONTES IBM 029 (5x7)
-         * Corrigida para incluir caracteres especiais e espaço vazio.
          */
         const fontMatrix = {
             ' ': [0x00, 0x00, 0x00, 0x00, 0x00],
@@ -203,16 +224,12 @@
             osc.stop(audioCtx.currentTime + 0.035);
         }
 
-        /**
-         * Renderização fiel do ponto de tinta (Ink Color: Deep Charcoal)
-         */
         function drawMatrixDot(x, y, radius) {
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#1c1c1c'; // Cor da tinta original (quase preta mas levemente orgânica)
+            ctx.fillStyle = '#1c1c1c';
             ctx.fill();
             
-            // Halo de expansão da tinta no papel manilha
             ctx.beginPath();
             ctx.arc(x, y, radius * 1.25, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(20, 20, 20, 0.12)';
@@ -240,16 +257,16 @@
         function drawCard() {
             ctx.clearRect(0, 0, cardWidth, cardHeight);
             
-            // Fundo do Cartão (Manila Stock Corrigido)
+            // Fundo do Cartão
             ctx.fillStyle = '#f4e5a9'; 
             ctx.fillRect(0, 0, cardWidth, cardHeight);
 
-            // Corte de canto superior esquerdo
+            // Corte de canto
             ctx.beginPath();
             ctx.moveTo(0, 50); ctx.lineTo(50, 0); ctx.lineTo(0, 0); ctx.closePath();
             ctx.fillStyle = '#1e1e1e'; ctx.fill();
 
-            // Régua e números de fundo (Sépia sutil)
+            // Régua de fundo
             ctx.fillStyle = 'rgba(100, 80, 40, 0.2)';
             ctx.font = '11px monospace';
             ctx.textAlign = 'center';
@@ -265,31 +282,31 @@
                 const char = text[i];
                 const x = marginX + i * colStep;
 
-                // Texto impresso com a cor de tinta corrigida
-                drawMatrixChar(char, x, 38, 2.6);
+                // Texto impresso (condicional)
+                if (showTextCheckbox.checked) {
+                    drawMatrixChar(char, x, 38, 2.6);
+                }
 
-                // Perfurações (Efeito de furo real)
+                // Perfurações
                 const punches = punchMap[char] || [];
                 punches.forEach(rowIdx => {
                     const y = marginY + rowIdx * rowStep;
-                    // O "vazio" do furo é quase preto
                     ctx.fillStyle = '#0d0d0d';
                     ctx.fillRect(x - 3.5, y - 10, 7, 20);
                     
-                    // Pequena borda de profundidade
                     ctx.fillStyle = 'rgba(255,255,255,0.05)';
                     ctx.fillRect(x + 2.5, y - 10, 1, 20);
                 });
             }
 
-            // Cursor de posição (Verde CRT sutil)
+            // Cursor
             if (text.length < 80) {
                 const cx = marginX + text.length * colStep;
                 ctx.fillStyle = 'rgba(0, 255, 136, 0.04)';
                 ctx.fillRect(cx - colStep/2, 10, colStep, cardHeight - 20);
             }
 
-            // Atualização do painel
+            // Status
             const last = text[text.length - 1] || '-';
             colDisplay.innerText = (text.length + 1).toString().padStart(2, '0');
             charDisplay.innerText = last === ' ' ? 'SPACE' : last;
@@ -297,11 +314,17 @@
         }
 
         input.addEventListener('input', () => { playImpact(); drawCard(); });
+        showTextCheckbox.addEventListener('change', drawCard);
+        
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') { input.value = ''; drawCard(); }
             if (e.key === 'Enter') { input.value = ''; drawCard(); }
         });
-        document.addEventListener('click', () => input.focus());
+        
+        document.addEventListener('click', (e) => {
+            if (e.target !== showTextCheckbox) input.focus();
+        });
+        
         window.onload = drawCard;
     </script>
 </body>
