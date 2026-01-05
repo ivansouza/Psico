@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBM 029 Keypunch Emulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        
+        body {
+            background-color: #121213;
+            color: #d1d1d1;
+            font-family: 'Courier Prime', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .machine-container {
+            background: #1e1e1e;
+            padding: 2.5rem;
+            border-radius: 4px;
+            box-shadow: 0 60px 120px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05);
+            border: 1px solid #2a2a2a;
+            max-width: 98vw;
+            position: relative;
+        }
+
+        #card-canvas {
+            background-color: #f4e5a9; /* Manila clássico do site masswerk */
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            max-width: 100%;
+            height: auto;
+            image-rendering: auto;
+        }
+
+        .controls {
+            margin-top: 1.5rem;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            background: #050505;
+            padding: 1px;
+            border: 1px solid #333;
+        }
+
+        input {
+            background: #000;
+            color: #00ff88;
+            padding: 1.1rem;
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.4rem;
+            width: 100%;
+            text-transform: uppercase;
+            outline: none;
+            letter-spacing: 6px;
+            border: none;
+            box-shadow: inset 0 0 20px rgba(0,255,100,0.03);
+        }
+
+        .status-panel {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .highlight { color: #00ff88; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="machine-container">
+        <header class="flex justify-between items-end mb-6 opacity-40">
+            <h1 class="text-[10px] font-bold tracking-[0.5em]">IBM 029 KEYPUNCH EMULATION</h1>
+            <div class="text-[8px] tracking-widest text-right">COLOR ACCURATE PROFILE<br>MATRIX RENDER v2.3</div>
+        </header>
+        
+        <canvas id="card-canvas" width="1200" height="480"></canvas>
+
+        <div class="controls">
+            <div class="input-wrapper">
+                <input type="text" id="input-field" maxlength="80" placeholder="TYPE TO PUNCH CARD..." autofocus autocomplete="off">
+            </div>
+            
+            <div class="status-panel">
+                <div>COL: <span id="col-display" class="highlight">01</span></div>
+                <div>CHAR: <span id="char-display" class="highlight">-</span></div>
+                <div>PUNCHES: <span id="punches-display" class="highlight">NONE</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('card-canvas');
+        const ctx = canvas.getContext('2d');
+        const input = document.getElementById('input-field');
+        const colDisplay = document.getElementById('col-display');
+        const charDisplay = document.getElementById('char-display');
+        const punchesDisplay = document.getElementById('punches-display');
+
+        /**
+         * MATRIZ DE FONTES IBM 029 (5x7)
+         * Corrigida para incluir caracteres especiais e espaço vazio.
+         */
+        const fontMatrix = {
+            ' ': [0x00, 0x00, 0x00, 0x00, 0x00],
+            'A': [0x7C, 0x12, 0x11, 0x12, 0x7C],
+            'B': [0x7F, 0x49, 0x49, 0x49, 0x36],
+            'C': [0x3E, 0x41, 0x41, 0x41, 0x22],
+            'D': [0x7F, 0x41, 0x41, 0x22, 0x1C],
+            'E': [0x7F, 0x49, 0x49, 0x49, 0x41],
+            'F': [0x7F, 0x09, 0x09, 0x09, 0x01],
+            'G': [0x3E, 0x41, 0x49, 0x49, 0x7A],
+            'H': [0x7F, 0x08, 0x08, 0x08, 0x7F],
+            'I': [0x00, 0x41, 0x7F, 0x41, 0x00],
+            'J': [0x20, 0x40, 0x41, 0x3F, 0x01],
+            'K': [0x7F, 0x08, 0x14, 0x22, 0x41],
+            'L': [0x7F, 0x40, 0x40, 0x40, 0x40],
+            'M': [0x7F, 0x02, 0x04, 0x02, 0x7F],
+            'N': [0x7F, 0x04, 0x08, 0x10, 0x7F],
+            'O': [0x3E, 0x41, 0x41, 0x41, 0x3E],
+            'P': [0x7F, 0x09, 0x09, 0x09, 0x06],
+            'Q': [0x3E, 0x41, 0x51, 0x21, 0x5E],
+            'R': [0x7F, 0x09, 0x19, 0x29, 0x46],
+            'S': [0x46, 0x49, 0x49, 0x49, 0x31],
+            'T': [0x01, 0x01, 0x7F, 0x01, 0x01],
+            'U': [0x3F, 0x40, 0x40, 0x40, 0x3F],
+            'V': [0x1F, 0x20, 0x40, 0x20, 0x1F],
+            'W': [0x3F, 0x40, 0x38, 0x40, 0x3F],
+            'X': [0x63, 0x14, 0x08, 0x14, 0x63],
+            'Y': [0x07, 0x08, 0x70, 0x08, 0x07],
+            'Z': [0x61, 0x51, 0x49, 0x45, 0x43],
+            '0': [0x3E, 0x51, 0x49, 0x45, 0x3E],
+            '1': [0x00, 0x42, 0x7F, 0x40, 0x00],
+            '2': [0x42, 0x61, 0x51, 0x49, 0x46],
+            '3': [0x21, 0x41, 0x45, 0x4B, 0x31],
+            '4': [0x18, 0x14, 0x12, 0x7F, 0x10],
+            '5': [0x27, 0x45, 0x45, 0x45, 0x39],
+            '6': [0x3C, 0x4A, 0x49, 0x49, 0x30],
+            '7': [0x01, 0x71, 0x09, 0x05, 0x03],
+            '8': [0x36, 0x49, 0x49, 0x49, 0x36],
+            '9': [0x06, 0x49, 0x49, 0x29, 0x1E],
+            '@': [0x3E, 0x41, 0x5D, 0x55, 0x3E],
+            '#': [0x14, 0x7F, 0x14, 0x7F, 0x14],
+            '.': [0x00, 0x60, 0x60, 0x00, 0x00],
+            ',': [0x00, 0x50, 0x30, 0x00, 0x00],
+            '&': [0x36, 0x49, 0x55, 0x22, 0x50],
+            '(': [0x1C, 0x22, 0x41, 0x00, 0x00],
+            ')': [0x00, 0x00, 0x41, 0x22, 0x1C],
+            '*': [0x2A, 0x1C, 0x08, 0x1C, 0x2A],
+            '+': [0x08, 0x08, 0x3E, 0x08, 0x08],
+            '-': [0x08, 0x08, 0x08, 0x08, 0x08],
+            '/': [0x20, 0x10, 0x08, 0x04, 0x02],
+            '=': [0x14, 0x14, 0x14, 0x14, 0x14],
+            '$': [0x24, 0x2A, 0x7F, 0x2A, 0x12],
+            '!': [0x00, 0x00, 0x5F, 0x00, 0x00],
+            '?': [0x02, 0x01, 0x51, 0x09, 0x06]
+        };
+
+        const punchMap = {
+            ' ': [],
+            '0': [2], '1': [3], '2': [4], '3': [5], '4': [6], '5': [7], '6': [8], '7': [9], '8': [10], '9': [11],
+            'A': [0, 3], 'B': [0, 4], 'C': [0, 5], 'D': [0, 6], 'E': [0, 7], 'F': [0, 8], 'G': [0, 9], 'H': [0, 10], 'I': [0, 11],
+            'J': [1, 3], 'K': [1, 4], 'L': [1, 5], 'M': [1, 6], 'N': [1, 7], 'O': [1, 8], 'P': [1, 9], 'Q': [1, 10], 'R': [1, 11],
+            'S': [2, 4], 'T': [2, 5], 'U': [2, 6], 'V': [2, 7], 'W': [2, 8], 'X': [2, 9], 'Y': [2, 10], 'Z': [2, 11],
+            '@': [10, 6], '#': [10, 5], '$': [1, 10, 5], '*': [1, 10, 6], '.': [0, 10, 5], ',': [2, 10, 5],
+            '(': [0, 10, 7], ')': [1, 10, 7], '&': [0], '-': [1], '/': [2, 3], '+': [0, 10, 11], '=': [1, 10, 11]
+        };
+
+        const rows = ['12', '11', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        const cardWidth = 1200;
+        const cardHeight = 480;
+        const marginX = 60;
+        const marginY = 90;
+        const colStep = (cardWidth - (marginX * 2)) / 80;
+        const rowStep = (cardHeight - (marginY * 2)) / 11;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playImpact() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(45, audioCtx.currentTime + 0.035);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.035);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.035);
+        }
+
+        /**
+         * Renderização fiel do ponto de tinta (Ink Color: Deep Charcoal)
+         */
+        function drawMatrixDot(x, y, radius) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1c1c1c'; // Cor da tinta original (quase preta mas levemente orgânica)
+            ctx.fill();
+            
+            // Halo de expansão da tinta no papel manilha
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 1.25, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(20, 20, 20, 0.12)';
+            ctx.fill();
+        }
+
+        function drawMatrixChar(char, x, y, size = 2.4) {
+            const matrix = fontMatrix[char] || (char === ' ' ? fontMatrix[' '] : fontMatrix['?']);
+            if (!matrix) return;
+            const dotRadius = size * 0.45;
+            for (let c = 0; c < 5; c++) {
+                let colData = matrix[c];
+                for (let r = 0; r < 7; r++) {
+                    if ((colData >> r) & 1) {
+                        drawMatrixDot(
+                            x + (c * size) - (2.5 * size), 
+                            y + (r * size) - (3.5 * size), 
+                            dotRadius
+                        );
+                    }
+                }
+            }
+        }
+
+        function drawCard() {
+            ctx.clearRect(0, 0, cardWidth, cardHeight);
+            
+            // Fundo do Cartão (Manila Stock Corrigido)
+            ctx.fillStyle = '#f4e5a9'; 
+            ctx.fillRect(0, 0, cardWidth, cardHeight);
+
+            // Corte de canto superior esquerdo
+            ctx.beginPath();
+            ctx.moveTo(0, 50); ctx.lineTo(50, 0); ctx.lineTo(0, 0); ctx.closePath();
+            ctx.fillStyle = '#1e1e1e'; ctx.fill();
+
+            // Régua e números de fundo (Sépia sutil)
+            ctx.fillStyle = 'rgba(100, 80, 40, 0.2)';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            for (let r = 2; r < rows.length; r++) {
+                const y = marginY + r * rowStep;
+                for (let c = 0; c < 80; c += 2) {
+                    ctx.fillText(rows[r], marginX + c * colStep, y + 4);
+                }
+            }
+
+            const text = input.value.toUpperCase();
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const x = marginX + i * colStep;
+
+                // Texto impresso com a cor de tinta corrigida
+                drawMatrixChar(char, x, 38, 2.6);
+
+                // Perfurações (Efeito de furo real)
+                const punches = punchMap[char] || [];
+                punches.forEach(rowIdx => {
+                    const y = marginY + rowIdx * rowStep;
+                    // O "vazio" do furo é quase preto
+                    ctx.fillStyle = '#0d0d0d';
+                    ctx.fillRect(x - 3.5, y - 10, 7, 20);
+                    
+                    // Pequena borda de profundidade
+                    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                    ctx.fillRect(x + 2.5, y - 10, 1, 20);
+                });
+            }
+
+            // Cursor de posição (Verde CRT sutil)
+            if (text.length < 80) {
+                const cx = marginX + text.length * colStep;
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.04)';
+                ctx.fillRect(cx - colStep/2, 10, colStep, cardHeight - 20);
+            }
+
+            // Atualização do painel
+            const last = text[text.length - 1] || '-';
+            colDisplay.innerText = (text.length + 1).toString().padStart(2, '0');
+            charDisplay.innerText = last === ' ' ? 'SPACE' : last;
+            punchesDisplay.innerText = (punchMap[last] && punchMap[last].length > 0) ? punchMap[last].map(i => rows[i]).join('-') : 'NONE';
+        }
+
+        input.addEventListener('input', () => { playImpact(); drawCard(); });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { input.value = ''; drawCard(); }
+            if (e.key === 'Enter') { input.value = ''; drawCard(); }
+        });
+        document.addEventListener('click', () => input.focus());
+        window.onload = drawCard;
+    </script>
+</body>
+</html>
