@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualização Cinemática de Pi - Área de Linhas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        canvas { display: block; }
+        .glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+        .settings-panel {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+        }
+        .settings-hidden {
+            transform: translateX(-120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        input[type=range]::-webkit-scrollbar { width: 4px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white">
+
+    <!-- Botão de Engrenagem -->
+    <button id="toggleSettings" class="fixed top-6 left-6 z-50 p-4 rounded-full glass hover:bg-slate-800 transition-all active:scale-90 group" title="Configurações">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 group-hover:rotate-90 transition-transform duration-700">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2v-.44a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+
+    <!-- Painel de Configurações -->
+    <div id="settingsPanel" class="fixed top-24 left-6 z-40 space-y-4 w-72 sm:w-80 settings-panel settings-hidden">
+        <div class="glass p-6 rounded-3xl">
+            <h1 class="text-xl font-bold mb-1 text-purple-400">Trajetória de π</h1>
+            <p class="text-[11px] text-slate-400 mb-6 leading-relaxed">
+                A razão irracional entre as velocidades cria um padrão que nunca se repete.
+            </p>
+            
+            <div class="space-y-6">
+                <!-- Controle de Velocidade -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Velocidade</label>
+                        <span id="speedVal" class="text-xs font-mono text-purple-400">0.50</span>
+                    </div>
+                    <input id="speedRange" type="range" min="0" max="3" step="0.01" value="0.5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                </div>
+
+                <!-- Controle de Comprimento -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Extensão das Hastes</label>
+                        <span id="lenVal" class="text-xs font-mono text-cyan-400">5.0</span>
+                    </div>
+                    <input id="lenRange" type="range" min="1" max="12" step="0.1" value="5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                </div>
+
+                <div class="flex flex-col gap-2 pt-2">
+                    <button id="resetTrail" class="w-full bg-red-500/20 hover:bg-red-500/40 text-red-400 text-[10px] font-bold py-3 rounded-xl transition-all uppercase tracking-widest border border-red-500/30">
+                        Limpar Área de Linhas
+                    </button>
+                    <button id="resetCam" class="w-full bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold py-3 rounded-xl transition-all uppercase tracking-widest">
+                        Centralizar Câmera
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass p-4 rounded-2xl text-[10px] text-slate-400 space-y-2">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                <span>Haste 1: ω</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-cyan-500"></div>
+                <span>Haste 2: π · ω</span>
+            </div>
+            <p class="pt-2 border-t border-white/5 text-slate-500 italic">O rastro é persistente. Arraste para navegar.</p>
+        </div>
+    </div>
+
+    <!-- Indicador de Pontos -->
+    <div class="fixed bottom-6 left-6 z-10 glass px-4 py-2 rounded-xl text-[9px] font-mono text-slate-400">
+        PONTOS NO RASTRO: <span id="pointCount" class="text-purple-400">0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let pivot1, pivot2, rod1, rod2, tip;
+        let trail, trailGeometry;
+        let pointsArray = new Float32Array(3000000); // 1 milhão de pontos (x,y,z)
+        let pointsCount = 0;
+        let clock = new THREE.Clock();
+        
+        // Variáveis para rastrear a rotação acumulada
+        let rotationAngle1 = 0;
+        let rotationAngle2 = 0;
+        
+        const config = {
+            omega: 0.5,
+            L: 5.0,
+            maxPoints: 1000000,
+            rodRadius: 0.08
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020617);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 0, 30);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+            const spotlight = new THREE.PointLight(0xffffff, 1.2);
+            spotlight.position.set(0, 10, 20);
+            scene.add(spotlight);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const mat1 = new THREE.MeshStandardMaterial({ color: 0x9333ea, metalness: 0.9, roughness: 0.1 });
+            const mat2 = new THREE.MeshStandardMaterial({ color: 0x22d3ee, metalness: 0.9, roughness: 0.1 });
+
+            const createRod = (mat) => {
+                const group = new THREE.Group();
+                const geo = new THREE.CylinderGeometry(config.rodRadius, config.rodRadius, 1, 12);
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.y = 0.5;
+                group.add(mesh);
+                return group;
+            };
+
+            pivot1 = new THREE.Group();
+            scene.add(pivot1);
+
+            rod1 = createRod(mat1);
+            rod1.scale.y = config.L;
+            pivot1.add(rod1);
+
+            pivot2 = new THREE.Group();
+            pivot2.position.y = config.L;
+            pivot1.add(pivot2);
+
+            rod2 = createRod(mat2);
+            rod2.scale.y = config.L;
+            pivot2.add(rod2);
+
+            tip = new THREE.Object3D();
+            tip.position.y = config.L;
+            pivot2.add(tip);
+
+            trailGeometry = new THREE.BufferGeometry();
+            trailGeometry.setAttribute('position', new THREE.BufferAttribute(pointsArray, 3));
+            
+            const trailMat = new THREE.LineBasicMaterial({ 
+                color: 0xd946ef, 
+                transparent: true, 
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+            trail = new THREE.Line(trailGeometry, trailMat);
+            trail.frustumCulled = false;
+            scene.add(trail);
+
+            setupInteraction();
+            window.addEventListener('resize', onResize);
+            animate();
+        }
+
+        function setupInteraction() {
+            const panel = document.getElementById('settingsPanel');
+            const toggle = document.getElementById('toggleSettings');
+            
+            toggle.addEventListener('click', () => panel.classList.toggle('settings-hidden'));
+
+            document.getElementById('speedRange').addEventListener('input', (e) => {
+                config.omega = parseFloat(e.target.value);
+                document.getElementById('speedVal').textContent = config.omega.toFixed(2);
+            });
+
+            document.getElementById('lenRange').addEventListener('input', (e) => {
+                const newL = parseFloat(e.target.value);
+                config.L = newL;
+                document.getElementById('lenVal').textContent = newL.toFixed(1);
+                rod1.scale.y = newL;
+                rod2.scale.y = newL;
+                pivot2.position.y = newL;
+                tip.position.y = newL;
+            });
+
+            document.getElementById('resetTrail').addEventListener('click', () => {
+                pointsCount = 0;
+                trailGeometry.setDrawRange(0, 0);
+                document.getElementById('pointCount').textContent = "0";
+            });
+
+            document.getElementById('resetCam').addEventListener('click', () => {
+                camera.position.set(0, 0, 30);
+                controls.target.set(0, 0, 0);
+            });
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Usamos delta para rotação incremental suave
+            const delta = clock.getDelta();
+
+            // Atualiza os ângulos baseados na velocidade atual
+            if (config.omega > 0) {
+                rotationAngle1 += config.omega * delta;
+                rotationAngle2 += Math.PI * config.omega * delta;
+
+                pivot1.rotation.z = rotationAngle1;
+                pivot2.rotation.z = rotationAngle2;
+
+                const currentPos = new THREE.Vector3();
+                tip.getWorldPosition(currentPos);
+                
+                if (pointsCount < config.maxPoints) {
+                    const idx = pointsCount * 3;
+                    pointsArray[idx] = currentPos.x;
+                    pointsArray[idx + 1] = currentPos.y;
+                    pointsArray[idx + 2] = currentPos.z;
+                    pointsCount++;
+                    
+                    trailGeometry.attributes.position.needsUpdate = true;
+                    trailGeometry.setDrawRange(0, pointsCount);
+                    
+                    if (pointsCount % 10 === 0) {
+                        document.getElementById('pointCount').textContent = pointsCount.toLocaleString();
+                    }
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
