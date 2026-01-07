@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>WebXR - Perspectiva Realista</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            --accent: #00d1ff;
+            --panel: rgba(15, 15, 15, 0.9);
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+        
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: #fff; 
+            font-family: 'Inter', system-ui, sans-serif; 
+            overflow: hidden; 
+        }
+
+        #three-canvas { 
+            display: block; 
+            width: 100vw; 
+            height: 100vh; 
+        }
+        
+        /* Botão de Engrenagem (Canto Superior Direito) */
+        #gear-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: var(--panel);
+            border: 1px solid var(--glass);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #gear-btn:hover {
+            background: #222;
+            transform: rotate(45deg);
+        }
+        #gear-btn svg { fill: #fff; width: 24px; height: 24px; }
+
+        /* Painel de Configurações */
+        .gui {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            width: 280px;
+            background: var(--panel);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass);
+            border-radius: 16px;
+            z-index: 1000;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .gui.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+
+        .slider-group { margin-bottom: 16px; }
+        label { 
+            display: block; 
+            font-size: 10px; 
+            color: #aaa; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            margin-bottom: 6px; 
+        }
+        
+        input[type="range"] { 
+            width: 100%; 
+            accent-color: var(--accent); 
+            background: var(--glass); 
+            height: 4px; 
+            border-radius: 2px; 
+            -webkit-appearance: none; 
+        }
+        
+        .val { 
+            float: right; 
+            color: var(--accent); 
+            font-weight: bold; 
+            font-family: monospace; 
+        }
+        
+        select, button {
+            width: 100%; 
+            padding: 10px; 
+            background: var(--glass);
+            border: 1px solid var(--glass); 
+            color: #fff; 
+            border-radius: 8px; 
+            margin-top: 8px;
+            font-size: 12px; 
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        
+        button:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Indicador de Carregamento */
+        #loader {
+            position: fixed; 
+            inset: 0; 
+            background: #000; 
+            z-index: 2000;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+        }
+        
+        .spinner { 
+            width: 40px; 
+            height: 40px; 
+            border: 3px solid var(--accent); 
+            border-top-color: transparent; 
+            border-radius: 50%; 
+            animation: spin 0.8s linear infinite; 
+            margin-bottom: 15px; 
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Estilo para avisos de erro (caso a imagem não seja encontrada) */
+        #error-msg {
+            color: #ff4444;
+            font-size: 12px;
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p id="loader-text" style="letter-spacing: 2px; font-size: 12px; color: #888;">INICIALIZANDO RASTREAMENTO FACIAL</p>
+        <div id="error-msg">A imagem '20260107_194547.jpg' não foi encontrada localmente. Use o painel para carregar uma imagem manualmente.</div>
+    </div>
+
+    <button id="gear-btn" title="Configurações">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.21.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    </button>
+
+    <div class="gui" id="settings-panel">
+        <div class="slider-group">
+            <label>Modo de Perspectiva</label>
+            <select id="mode">
+                <option value="HOLE" selected>BURACO (Pit Infinito)</option>
+                <option value="CUBE">CUBO (Pop-out)</option>
+            </select>
+        </div>
+
+        <div class="slider-group">
+            <label>Escala do Corte <span id="v-scale" class="val">0.6</span></label>
+            <input type="range" id="r-scale" min="0.1" max="0.9" step="0.01" value="0.6">
+        </div>
+
+        <div class="slider-group">
+            <label>Profundidade <span id="v-depth" class="val">4.0</span></label>
+            <input type="range" id="r-depth" min="0.5" max="10" step="0.1" value="4.0">
+        </div>
+
+        <div class="slider-group">
+            <label>Sensibilidade <span id="v-sens" class="val">1.5</span></label>
+            <input type="range" id="r-sens" min="0.1" max="4.0" step="0.1" value="1.5">
+        </div>
+
+        <button id="calibrate">Calibrar Posição Central</button>
+        <button onclick="document.getElementById('file').click()">Carregar Nova Imagem</button>
+        <input type="file" id="file" hidden accept="image/*">
+    </div>
+
+    <canvas id="three-canvas"></canvas>
+    <video id="video" style="display:none;" playsinline></video>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js";
+
+        // UI Logic
+        const gearBtn = document.getElementById('gear-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const errorMsg = document.getElementById('error-msg');
+        
+        gearBtn.onclick = () => settingsPanel.classList.toggle('visible');
+
+        const canvas = document.getElementById("three-canvas");
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+
+        // Core State
+        let currentMode = "HOLE";
+        let trackingOffset = { x: 0.5, y: 0.5 };
+        let smoothedPos = { x: 0, y: 0, z: 6 };
+
+        const textureLoader = new THREE.TextureLoader();
+        
+        // Carregando a imagem especificada pelo usuário
+        let mainTex = textureLoader.load(
+            '20260107_194547.jpg', 
+            (t) => {
+                t.colorSpace = THREE.SRGBColorSpace;
+                checkReady('texture');
+                buildScene();
+            },
+            undefined,
+            (err) => {
+                console.warn("Imagem padrão não encontrada. Aguardando input do usuário.");
+                errorMsg.style.display = 'block';
+                // Carrega uma placeholder para não quebrar a cena
+                mainTex = textureLoader.load('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800', (t) => {
+                    t.colorSpace = THREE.SRGBColorSpace;
+                    buildScene();
+                });
+            }
+        );
+
+        const mat = new THREE.MeshStandardMaterial({ map: mainTex, roughness: 0.8, metalness: 0.1, side: THREE.DoubleSide });
+
+        let wallMesh;
+        const holeGroup = new THREE.Group();
+        const cubeGroup = new THREE.Group();
+        scene.add(holeGroup);
+        scene.add(cubeGroup);
+
+        const readyState = { texture: false, vision: false };
+        function checkReady(key) {
+            readyState[key] = true;
+            if(readyState.texture && readyState.vision) {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        function buildScene() {
+            while(holeGroup.children.length) holeGroup.remove(holeGroup.children[0]);
+            while(cubeGroup.children.length) cubeGroup.remove(cubeGroup.children[0]);
+            if(wallMesh) scene.remove(wallMesh);
+
+            const aspect = window.innerWidth / window.innerHeight;
+            const hScale = parseFloat(document.getElementById('r-scale').value);
+            const depth = parseFloat(document.getElementById('r-depth').value);
+            const holeW = (aspect * 2) * hScale;
+            const holeH = 2 * hScale;
+
+            if (currentMode === "HOLE") {
+                const shape = new THREE.Shape();
+                shape.moveTo(-15, -15); shape.lineTo(15, -15); shape.lineTo(15, 15); shape.lineTo(-15, 15);
+                const hole = new THREE.Path();
+                hole.moveTo(-holeW/2, -holeH/2); hole.lineTo(holeW/2, -holeH/2); hole.lineTo(holeW/2, holeH/2); hole.lineTo(-holeW/2, holeH/2);
+                shape.holes.push(hole);
+                
+                wallMesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat);
+                wallMesh.receiveShadow = true;
+                scene.add(wallMesh);
+
+                const createPlane = (w, h, x, y, z, rx, ry) => {
+                    const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+                    p.position.set(x, y, z); p.rotation.set(rx, ry, 0);
+                    p.receiveShadow = true; holeGroup.add(p);
+                };
+
+                createPlane(holeW, holeH, 0, 0, -depth, 0, 0); 
+                createPlane(holeW, depth, 0, holeH/2, -depth/2, Math.PI/2, 0); 
+                createPlane(holeW, depth, 0, -holeH/2, -depth/2, -Math.PI/2, 0); 
+                createPlane(depth, holeH, -holeW/2, 0, -depth/2, 0, Math.PI/2); 
+                createPlane(depth, holeH, holeW/2, 0, -depth/2, 0, -Math.PI/2); 
+
+                holeGroup.visible = true;
+                cubeGroup.visible = false;
+            } else {
+                const size = hScale;
+                const box = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
+                box.position.z = size/2;
+                box.castShadow = true;
+                cubeGroup.add(box);
+                
+                wallMesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), mat);
+                wallMesh.receiveShadow = true;
+                scene.add(wallMesh);
+
+                holeGroup.visible = false;
+                cubeGroup.visible = true;
+            }
+            mat.map = mainTex;
+            mat.needsUpdate = true;
+        }
+
+        function updateUVs() {
+            const aspect = window.innerWidth / window.innerHeight;
+            const width = aspect * 2;
+            const updateObj = (obj) => {
+                if(!obj.isMesh) return;
+                const pos = obj.geometry.attributes.position;
+                const uv = obj.geometry.attributes.uv;
+                for (let i = 0; i < pos.count; i++) {
+                    const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+                    obj.localToWorld(v);
+                    uv.setXY(i, (v.x / width) + 0.5, (v.y / 2) + 0.5);
+                }
+                uv.needsUpdate = true;
+            };
+            if(wallMesh) updateObj(wallMesh);
+            holeGroup.traverse(updateObj);
+            cubeGroup.traverse(updateObj);
+        }
+
+        const light = new THREE.SpotLight(0xffffff, 180);
+        light.position.set(5, 5, 10);
+        light.castShadow = true;
+        light.shadow.mapSize.set(2048, 2048);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+        async function setupTracking() {
+            try {
+                const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
+                const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", delegate: "GPU" },
+                    runningMode: "VIDEO", numFaces: 1
+                });
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                await video.play();
+
+                function render() {
+                    const results = faceLandmarker.detectForVideo(video, performance.now());
+                    if (results.faceLandmarks?.[0]) {
+                        const nose = results.faceLandmarks[0][1];
+                        const sens = parseFloat(document.getElementById('r-sens').value);
+                        
+                        const targetX = (nose.x - trackingOffset.x) * -2 * sens;
+                        const targetY = (nose.y - trackingOffset.y) * -2 * sens;
+                        const targetZ = (nose.z * 20) + 6;
+
+                        smoothedPos.x += (targetX - smoothedPos.x) * 0.15;
+                        smoothedPos.y += (targetY - smoothedPos.y) * 0.15;
+                        smoothedPos.z += (targetZ - smoothedPos.z) * 0.15;
+                        smoothedPos.rawX = nose.x;
+                        smoothedPos.rawY = nose.y;
+
+                        camera.position.set(smoothedPos.x, smoothedPos.y, smoothedPos.z);
+                        
+                        const aspect = window.innerWidth / window.innerHeight;
+                        const n = camera.near;
+                        const z = camera.position.z;
+                        camera.projectionMatrix.makePerspective(
+                            (n / z) * (-aspect - camera.position.x),
+                            (n / z) * (aspect - camera.position.x),
+                            (n / z) * (1 - camera.position.y),
+                            (n / z) * (-1 - camera.position.y),
+                            n, camera.far
+                        );
+                    }
+                    
+                    updateUVs(); 
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(render);
+                }
+                checkReady('vision');
+                render();
+            } catch (e) {
+                console.error("Erro no rastreamento:", e);
+                document.getElementById('loader-text').innerText = "ERRO: CÂMERA NÃO DETECTADA";
+            }
+        }
+
+        // Eventos
+        document.getElementById('mode').onchange = (e) => { currentMode = e.target.value; buildScene(); };
+        document.getElementById('r-scale').oninput = (e) => { document.getElementById('v-scale').innerText = e.target.value; buildScene(); };
+        document.getElementById('r-depth').oninput = (e) => { document.getElementById('v-depth').innerText = e.target.value; buildScene(); };
+        document.getElementById('r-sens').oninput = (e) => { document.getElementById('v-sens').innerText = e.target.value; };
+        document.getElementById('calibrate').onclick = () => {
+            trackingOffset.x = smoothedPos.rawX || 0.5;
+            trackingOffset.y = smoothedPos.rawY || 0.5;
+            settingsPanel.classList.remove('visible');
+        };
+        
+        document.getElementById('file').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const url = URL.createObjectURL(file);
+            textureLoader.load(url, (t) => { 
+                t.colorSpace = THREE.SRGBColorSpace; 
+                mainTex = t; 
+                mat.map = t; 
+                buildScene(); 
+                errorMsg.style.display = 'none';
+            });
+        };
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            buildScene();
+        });
+
+        setupTracking();
+    </script>
+</body>
+</html>
+
