@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <title>WebXR Head-Tracking Window</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: rgba(0, 0, 0, 0.7);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --accent-color: #ffffff;
+            --text-color: #e0e0e0;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow: hidden;
+        }
+
+        #three-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* GUI Container */
+        .xp-window {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 260px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease;
+        }
+
+        .xp-title-bar {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+
+        .xp-title {
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .xp-win-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0 5px;
+            opacity: 0.5;
+        }
+
+        .xp-win-btn:hover { opacity: 1; }
+
+        .xp-content {
+            padding: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .xp-content.collapsed { display: none; }
+
+        /* Tabs */
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 10px;
+            padding: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Monitor / Stats */
+        .monitor {
+            font-family: monospace;
+            font-size: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            margin-bottom: 15px;
+            color: #888;
+        }
+
+        .slider-group { margin-bottom: 15px; }
+
+        label {
+            display: block;
+            font-size: 10px;
+            margin-bottom: 6px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .val-label { float: right; color: var(--accent-color); }
+
+        .xp-input, .xp-range, .xp-button {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 11px;
+            padding: 6px;
+            border-radius: 2px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .xp-button {
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .xp-button:hover {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .xp-range {
+            -webkit-appearance: none;
+            height: 2px;
+            padding: 0;
+            background: var(--border-color);
+        }
+
+        .xp-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: sans-serif;
+            font-size: 1.2rem;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .xp-window { width: auto; left: 10px; right: 10px; top: 10px; }
+            .xp-content { max-height: 40vh; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loader">
+        <div class="spinner"></div>
+        <div>Iniciando Câmera e IA...</div>
+    </div>
+
+    <div id="controls" class="xp-window">
+        <div class="xp-title-bar" id="xp-title-bar">
+            <div class="xp-title">SETTINGS</div>
+            <button class="xp-win-btn" id="btn-toggle-ui">－</button>
+        </div>
+        <div class="xp-content" id="xp-content">
+            <div class="tab-container">
+                <button class="tab-btn active" data-tab="tab-object">Object</button>
+                <button class="tab-btn" data-tab="tab-lighting">Lighting</button>
+                <button class="tab-btn" data-tab="tab-system">System</button>
+            </div>
+
+            <div id="tab-object" class="tab-content active">
+                <div class="slider-group">
+                    <button id="btn-toggle-frame" class="xp-button" style="margin-bottom: 15px;">Frame: On</button>
+                    <label>Mode</label>
+                    <select id="select-mode" class="xp-input">
+                        <option value="CUBE">CUBE (Pop-out)</option>
+                        <option value="HOLE" selected>HOLE (Pit)</option>
+                        <option value="OBJECT">Custom FBX</option>
+                        <option value="HAND">HAND (hand.fbx)</option>
+                        <option value="CAT">CAT (cat.fbx)</option>
+                    </select>
+                </div>
+
+                <div id="object-params" style="display:none;">
+                    <input type="file" id="input-fbx" accept=".fbx" style="display:none;">
+                    <button id="btn-upload-fbx" onclick="document.getElementById('input-fbx').click()" class="xp-button" style="margin-bottom: 10px;">Upload FBX</button>
+                    <div class="slider-group">
+                        <label>Obj Scale <span id="val-obj-scale" class="val-label">1.0</span></label>
+                        <input type="range" id="range-obj-scale" min="0.1" max="5.0" step="0.1" value="1.0" class="xp-range">
+                    </div>
+                    <div class="slider-group">
+                        <label>Rotation X <span id="val-obj-rot-x" class="val-label">0</span></label>
+                        <input type="range" id="range-obj-rot-x" min="0" max="360" step="5" value="0" class="xp-range">
+                    </div>
+                    <div class="slider-group">
+                        <label>Rotation Y <span id="val-obj-rot" class="val-label">0</span></label>
+                        <input type="range" id="range-obj-rot" min="0" max="360" step="5" value="0" class="xp-range">
+                    </div>
+                </div>
+
+                <div id="cube-params" style="display:none;">
+                    <div class="slider-group">
+                        <label>Cube XY <span id="val-cube-xy" class="val-label">0.25</span></label>
+                        <input type="range" id="range-cube-xy" min="0.1" max="2.0" step="0.05" value="0.25" class="xp-range">
+                    </div>
+                    <div class="slider-group">
+                        <label>Cube Z <span id="val-cube-z" class="val-label">0.5</span></label>
+                        <input type="range" id="range-cube-z" min="0.1" max="5.0" step="0.05" value="0.5" class="xp-range">
+                    </div>
+                </div>
+
+                <div id="hole-params">
+                    <div class="slider-group">
+                        <label>Hole Size <span id="val-hole-scale" class="val-label">0.5</span></label>
+                        <input type="range" id="range-hole-scale" min="0.1" max="1.0" step="0.01" value="0.5" class="xp-range">
+                    </div>
+                    <div class="slider-group">
+                        <label>Hole Depth <span id="val-hole-depth" class="val-label">3.0</span></label>
+                        <input type="range" id="range-hole-depth" min="0.1" max="10" step="0.1" value="3.0" class="xp-range">
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-lighting" class="tab-content">
+                <button id="btn-shadow" class="xp-button">Light: On</button>
+                <div class="slider-group" style="margin-top:15px;">
+                    <label>Intensity <span id="val-light-int" class="val-label">150</span></label>
+                    <input type="range" id="range-light-int" min="0" max="1000" step="10" value="150" class="xp-range">
+                </div>
+                <button id="btn-random-light" class="xp-button">Random Light Pos</button>
+            </div>
+
+            <div id="tab-system" class="tab-content">
+                <div class="monitor">
+                    X:<span id="raw-x">0</span> Y:<span id="raw-y">0</span> Z:<span id="raw-z">0</span>
+                </div>
+                <div class="slider-group">
+                    <label>XY Sens <span id="val-move" class="val-label">0.9</span></label>
+                    <input type="range" id="range-move" min="0.1" max="5.0" step="0.1" value="0.9" class="xp-range">
+                </div>
+                <div class="slider-group">
+                    <label>Z Distance <span id="val-depth" class="val-label">6.0</span></label>
+                    <input type="range" id="range-depth" min="1.0" max="20.0" step="0.5" value="6.0" class="xp-range">
+                </div>
+                <div class="slider-group">
+                    <label>Z Sens <span id="val-z-sens" class="val-label">20.0</span></label>
+                    <input type="range" id="range-z-sens" min="0.1" max="30.0" step="0.1" value="20.0" class="xp-range">
+                </div>
+                <button id="btn-calibrate" class="xp-button">Calibrate Center</button>
+                <input type="file" id="input-file" accept="image/*" style="display:none;">
+                <button onclick="document.getElementById('input-file').click()" class="xp-button" style="margin-top:10px;">Change Image</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="three-canvas"></canvas>
+    <video id="video" style="display:none;" playsinline></video>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+        import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js";
+
+        // UI Logic
+        const xpContent = document.getElementById("xp-content");
+        const btnToggleUI = document.getElementById("btn-toggle-ui");
+        const xpTitleBar = document.getElementById("xp-title-bar");
+        const loaderEl = document.getElementById("loader");
+
+        const loadingState = { texture: false, vision: false };
+        const updateLoadingState = (key) => {
+            loadingState[key] = true;
+            if (loadingState.texture && loadingState.vision) loaderEl.style.display = "none";
+        };
+
+        const toggleUI = () => {
+            xpContent.classList.toggle("collapsed");
+            btnToggleUI.innerText = xpContent.classList.contains("collapsed") ? "□" : "－";
+        };
+        btnToggleUI.onclick = (e) => { e.stopPropagation(); toggleUI(); };
+        xpTitleBar.addEventListener("dblclick", toggleUI);
+
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.onclick = () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            };
+        });
+
+        // Variables
+        const video = document.getElementById("video");
+        const rawXDisp = document.getElementById("raw-x"), rawYDisp = document.getElementById("raw-y"), rawZDisp = document.getElementById("raw-z");
+        const rangeMove = document.getElementById("range-move"), rangeDepth = document.getElementById("range-depth"), rangeZSens = document.getElementById("range-z-sens");
+        const rangeHoleDepth = document.getElementById("range-hole-depth"), rangeHoleScale = document.getElementById("range-hole-scale");
+        const rangeCubeXY = document.getElementById("range-cube-xy"), rangeCubeZ = document.getElementById("range-cube-z");
+        const rangeObjScale = document.getElementById("range-obj-scale"), rangeObjRot = document.getElementById("range-obj-rot"), rangeObjRotX = document.getElementById("range-obj-rot-x"), rangeObjSink = document.getElementById("range-obj-sink");
+        const rangeLightInt = document.getElementById("range-light-int");
+        const selectMode = document.getElementById("select-mode");
+        const valMove = document.getElementById("val-move"), valDepth = document.getElementById("val-depth"), valZSens = document.getElementById("val-z-sens");
+        const valHoleDepth = document.getElementById("val-hole-depth"), valHoleScale = document.getElementById("val-hole-scale"), valLightInt = document.getElementById("val-light-int");
+        const valCubeXY = document.getElementById("val-cube-xy"), valCubeZ = document.getElementById("val-cube-z");
+        const valObjScale = document.getElementById("val-obj-scale"), valObjRot = document.getElementById("val-obj-rot"), valObjRotX = document.getElementById("val-obj-rot-x"), valObjSink = document.getElementById("val-obj-sink");
+        const btnCalibrate = document.getElementById("btn-calibrate"), btnShadow = document.getElementById("btn-shadow"), btnRandomLight = document.getElementById("btn-random-light"), btnToggleFrame = document.getElementById("btn-toggle-frame"), inputFile = document.getElementById("input-file"), inputFbx = document.getElementById("input-fbx");
+
+        let offset = { x: 0.5, y: 0.5 };
+        let currentRaw = { x: 0.5, y: 0.5, z: 0.0 };
+        let smoothedZ = 0.0, shadowsEnabled = true, frameEnabled = true;
+        let currentFrameSize = { w: 1.0, h: 1.0 };
+
+        // Three.js Setup
+        const canvas = document.getElementById("three-canvas");
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+
+        // UI Canvas for Texture
+        const uiCanvas = document.createElement("canvas");
+        const uiCtx = uiCanvas.getContext("2d");
+        const uiTexture = new THREE.CanvasTexture(uiCanvas);
+
+        function updateUIFrameTexture() {
+            if (!currentTexture.image) return;
+            const aspect = window.innerWidth / window.innerHeight;
+            uiCanvas.height = 1024;
+            uiCanvas.width = 1024 * aspect;
+            const w = uiCanvas.width, h = uiCanvas.height;
+
+            uiCtx.clearRect(0, 0, w, h);
+            // Background image
+            const img = currentTexture.image;
+            const imgAspect = img.width / img.height;
+            uiCtx.drawImage(img, (w - h * imgAspect) / 2, 0, h * imgAspect, h);
+
+            // Window Drawing
+            let sw, sh;
+            if (selectMode.value === "CUBE") {
+                const size = parseFloat(rangeCubeXY.value);
+                sw = (size / (aspect * 2)) * w; sh = (size / 2) * h;
+            } else {
+                const scale = parseFloat(rangeHoleScale.value);
+                sw = w * scale; sh = h * scale;
+            }
+            const x = (w - sw) / 2, y = (h - sh) / 2;
+            
+            uiCtx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            uiCtx.roundRect(x - 5, y - 30, sw + 10, sh + 35, 10);
+            uiCtx.fill();
+            uiCtx.fillStyle = "white";
+            uiCtx.font = "bold 20px sans-serif";
+            uiCtx.fillText("Photo.app", x + 10, y - 10);
+            
+            uiTexture.needsUpdate = true;
+        }
+
+        const textureLoader = new THREE.TextureLoader();
+        // Usando uma imagem pública para demonstração imediata
+        let currentTexture = textureLoader.load("https://picsum.photos/1920/1080", (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            updateUIFrameTexture();
+            updateLoadingState('texture');
+        });
+
+        // Lights
+        const spotLight = new THREE.SpotLight(0xffffff, 150);
+        spotLight.castShadow = true;
+        spotLight.position.set(5, 5, 10);
+        scene.add(spotLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        // Materials & Objects
+        const createMat = (tex, trans = false) => new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, transparent: trans });
+        let uiMat = createMat(uiTexture, true);
+        let commonMat = createMat(currentTexture);
+        let whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+        let wall = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), uiMat);
+        wall.receiveShadow = true; wall.castShadow = true;
+        scene.add(wall);
+
+        const cubeGroup = new THREE.Group();
+        const cubePlanes = ["front", "top", "bottom", "left", "right"].reduce((acc, side) => {
+            const p = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), commonMat);
+            p.castShadow = true; p.receiveShadow = true; cubeGroup.add(p);
+            acc[side] = p; return acc;
+        }, {});
+        scene.add(cubeGroup);
+
+        const holeGroup = new THREE.Group();
+        const holePlanes = ["back", "top", "bottom", "left", "right"].reduce((acc, side) => {
+            const p = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), commonMat);
+            p.castShadow = true; p.receiveShadow = true; holeGroup.add(p);
+            acc[side] = p; return acc;
+        }, {});
+        scene.add(holeGroup);
+
+        const objectGroup = new THREE.Group();
+        scene.add(objectGroup);
+        let loadedObject = null;
+
+        function updateUV() {
+            const aspect = window.innerWidth / window.innerHeight, wScale = aspect * 2;
+            const updateObjUV = (mesh) => {
+                if (!mesh.visible) return;
+                const uv = mesh.geometry.attributes.uv, pos = mesh.geometry.attributes.position;
+                mesh.updateMatrixWorld();
+                for (let i = 0; i < pos.count; i++) {
+                    const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+                    mesh.localToWorld(v); uv.setXY(i, (v.x / wScale) + 0.5, (v.y / 2) + 0.5);
+                }
+                uv.needsUpdate = true;
+            };
+            updateObjUV(wall);
+            if (cubeGroup.visible) Object.values(cubePlanes).forEach(updateObjUV);
+            if (holeGroup.visible) Object.values(holePlanes).forEach(updateObjUV);
+        }
+
+        function applyMode() {
+            const mode = selectMode.value, aspect = window.innerWidth / window.innerHeight;
+            document.getElementById('cube-params').style.display = mode === "CUBE" ? "block" : "none";
+            document.getElementById('hole-params').style.display = mode === "HOLE" ? "block" : "none";
+            document.getElementById('object-params').style.display = (mode !== "CUBE" && mode !== "HOLE") ? "block" : "none";
+
+            cubeGroup.visible = mode === "CUBE";
+            holeGroup.visible = mode === "HOLE";
+            objectGroup.visible = (mode !== "CUBE" && mode !== "HOLE");
+
+            if (mode === "CUBE") {
+                const sXY = parseFloat(rangeCubeXY.value), sZ = parseFloat(rangeCubeZ.value);
+                cubePlanes.front.scale.set(sXY, sXY, 1); cubePlanes.front.position.set(0, 0, sZ);
+                cubePlanes.top.rotation.x = -Math.PI / 2; cubePlanes.top.scale.set(sXY, sZ, 1); cubePlanes.top.position.set(0, sXY / 2, sZ / 2);
+                cubePlanes.bottom.rotation.x = Math.PI / 2; cubePlanes.bottom.scale.set(sXY, sZ, 1); cubePlanes.bottom.position.set(0, -sXY / 2, sZ / 2);
+                cubePlanes.left.rotation.y = -Math.PI / 2; cubePlanes.left.scale.set(sZ, sXY, 1); cubePlanes.left.position.set(-sXY / 2, 0, sZ / 2);
+                cubePlanes.right.rotation.y = Math.PI / 2; cubePlanes.right.scale.set(sZ, sXY, 1); cubePlanes.right.position.set(sXY / 2, 0, sZ / 2);
+            } else if (mode === "HOLE") {
+                const hS = parseFloat(rangeHoleScale.value), d = parseFloat(rangeHoleDepth.value);
+                const whw = (aspect * 2) * hS, whh = 2 * hS;
+                holePlanes.back.scale.set(whw, whh, 1); holePlanes.back.position.set(0, 0, -d);
+                holePlanes.top.rotation.x = Math.PI / 2; holePlanes.top.scale.set(whw, d, 1); holePlanes.top.position.set(0, whh / 2, -d / 2);
+                holePlanes.bottom.rotation.x = -Math.PI / 2; holePlanes.bottom.scale.set(whw, d, 1); holePlanes.bottom.position.set(0, -whh / 2, -d / 2);
+                holePlanes.left.rotation.y = Math.PI / 2; holePlanes.left.scale.set(d, whh, 1); holePlanes.left.position.set(-whw / 2, 0, -d / 2);
+                holePlanes.right.rotation.y = -Math.PI / 2; holePlanes.right.scale.set(d, whh, 1); holePlanes.right.position.set(whw / 2, 0, -d / 2);
+            }
+            updateUIFrameTexture(); updateUV();
+        }
+
+        // Listeners
+        btnToggleFrame.onclick = () => {
+            frameEnabled = !frameEnabled;
+            wall.material = frameEnabled ? uiMat : commonMat;
+            btnToggleFrame.innerText = `Frame: ${frameEnabled ? "On" : "Off"}`;
+        };
+
+        const inputs = [rangeMove, rangeDepth, rangeZSens, rangeHoleDepth, rangeHoleScale, rangeCubeXY, rangeCubeZ, rangeLightInt];
+        inputs.forEach(r => r.oninput = () => {
+            valMove.innerText = rangeMove.value; valDepth.innerText = rangeDepth.value; valZSens.innerText = rangeZSens.value;
+            valHoleDepth.innerText = rangeHoleDepth.value; valHoleScale.innerText = rangeHoleScale.value;
+            valCubeXY.innerText = rangeCubeXY.value; valCubeZ.innerText = rangeCubeZ.value;
+            valLightInt.innerText = rangeLightInt.value; spotLight.intensity = parseFloat(rangeLightInt.value);
+            applyMode();
+        });
+
+        selectMode.onchange = applyMode;
+        btnCalibrate.onclick = () => { offset.x = currentRaw.x; offset.y = currentRaw.y; };
+        
+        inputFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                textureLoader.load(url, (tex) => {
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                    currentTexture = tex; commonMat.map = tex; applyMode();
+                });
+            }
+        };
+
+        async function init() {
+            try {
+                const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
+                const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", delegate: "GPU" },
+                    runningMode: "VIDEO", numFaces: 1
+                });
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
+                await video.play();
+
+                function loop() {
+                    const result = faceLandmarker.detectForVideo(video, performance.now());
+                    if (result.faceLandmarks?.[0]) {
+                        const nose = result.faceLandmarks[0][1];
+                        currentRaw = nose;
+                        rawXDisp.textContent = nose.x.toFixed(2);
+                        rawYDisp.textContent = nose.y.toFixed(2);
+                        rawZDisp.textContent = (nose.z * 10).toFixed(2);
+
+                        const hX = (nose.x - offset.x) * -2 * parseFloat(rangeMove.value);
+                        const hY = (nose.y - offset.y) * -2 * parseFloat(rangeMove.value);
+                        smoothedZ += (nose.z - smoothedZ) * 0.2;
+                        const hZ = (smoothedZ * parseFloat(rangeZSens.value)) + parseFloat(rangeDepth.value);
+
+                        camera.position.set(hX, hY, Math.max(0.2, hZ));
+                        const aspect = window.innerWidth / window.innerHeight;
+                        const nOverZ = camera.near / Math.max(0.2, hZ);
+                        camera.projectionMatrix.makePerspective(
+                            nOverZ * (-aspect - hX), nOverZ * (aspect - hX),
+                            nOverZ * (1 - hY), nOverZ * (-1 - hY),
+                            camera.near, camera.far
+                        );
+                    }
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(loop);
+                }
+                applyMode();
+                updateLoadingState('vision');
+                loop();
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao acessar câmera ou carregar modelos de IA.");
+            }
+        }
+
+        window.onresize = () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            applyMode();
+        };
+
+        init();
+    </script>
+</body>
+</html>
+
