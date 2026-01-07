@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ressonador Parabólico Multiforme 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* Botão de Engrenagem */
+        #settings-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            color: #ffaa00;
+        }
+        #settings-toggle:hover {
+            background: rgba(255, 170, 0, 0.2);
+            border-color: #ffaa00;
+            transform: rotate(45deg);
+        }
+
+        /* Janela de Configuração */
+        #ui {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            pointer-events: auto;
+            width: 320px;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid #444;
+            z-index: 99;
+            backdrop-filter: blur(15px);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #ui.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        h1 { margin: 0 0 5px 0; font-size: 18px; color: #ffaa00; }
+        h2 { margin: 15px 0 10px 0; font-size: 14px; color: #aaa; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        
+        .control-group { margin-bottom: 15px; }
+        label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; color: #888; }
+        
+        select {
+            width: 100%;
+            background: #111;
+            color: white;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"] { width: 100%; accent-color: #ffaa00; cursor: pointer; }
+        
+        .color-pickers { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 20px; }
+        .color-item { flex: 1; text-align: center; }
+        input[type="color"] { width: 100%; height: 30px; border: none; background: none; cursor: pointer; border-radius: 4px; }
+
+        .button-group { display: flex; gap: 10px; margin-top: 10px; }
+        button {
+            flex: 1;
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        button:hover { background: #333; border-color: #ffaa00; color: #ffaa00; }
+        button:active { transform: scale(0.95); }
+
+        #status-msg {
+            font-size: 10px;
+            text-align: center;
+            margin-top: 10px;
+            height: 12px;
+            color: #ffaa00;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .hint { font-size: 10px; text-align: center; margin-top: 15px; color: #555; }
+        
+        /* Scrollbar custom */
+        #ui::-webkit-scrollbar { width: 6px; }
+        #ui::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="settings-toggle">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2a2 2 0 0 1-2 2a2 2 0 0 0-2 2a2 2 0 0 1-2 2a2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2a2 2 0 0 1 2 2a2 2 0 0 0 2 2a2 2 0 0 1 2 2a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2a2 2 0 0 1 2-2a2 2 0 0 0 2-2a2 2 0 0 1 2-2a2 2 0 0 0 2-2v-.44a2 2 0 0 0-2-2a2 2 0 0 1-2-2a2 2 0 0 0-2-2a2 2 0 0 1-2-2a2 2 0 0 0-2-2ZM9 12a3 3 0 1 0 6 0a3 3 0 0 0-6 0Z"/></svg>
+</div>
+
+<div id="ui">
+    <h1>Configurações</h1>
+    
+    <h2>Formato</h2>
+    <select id="shape-type">
+        <option value="0" selected>Círculo</option>
+        <option value="1">Hexágono</option>
+        <option value="2">Losango</option>
+    </select>
+
+    <h2>Ondas</h2>
+    <div class="control-group">
+        <label>Frequência <span id="v-freq">3.7</span></label>
+        <input type="range" id="freq" min="1" max="30" step="0.1" value="3.7">
+    </div>
+    <div class="control-group">
+        <label>Harmónicos <span id="v-harm">1.0</span></label>
+        <input type="range" id="harm" min="0" max="12" step="1" value="1">
+    </div>
+    <div class="control-group">
+        <label>Velocidade <span id="v-speed">1.8</span></label>
+        <input type="range" id="speed" min="0" max="5" step="0.1" value="1.8">
+    </div>
+    <div class="control-group">
+        <label>Amplitude <span id="v-amp">1.2</span></label>
+        <input type="range" id="amp" min="0.1" max="4" step="0.1" value="1.2">
+    </div>
+
+    <h2>Relevo</h2>
+    <div class="control-group">
+        <label>Parábola <span id="v-parab">0.02</span></label>
+        <input type="range" id="parab" min="0" max="0.3" step="0.01" value="0.02">
+    </div>
+
+    <h2>Cores</h2>
+    <div class="color-pickers">
+        <div class="color-item">
+            <label>Baixa</label>
+            <input type="color" id="color-low" value="#000005">
+        </div>
+        <div class="color-item">
+            <label>Média</label>
+            <input type="color" id="color-mid" value="#de4968">
+        </div>
+        <div class="color-item">
+            <label>Alta</label>
+            <input type="color" id="color-high" value="#fcfdbf">
+        </div>
+    </div>
+
+    <h2>Gestão</h2>
+    <div class="button-group">
+        <button id="btn-save">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Guardar
+        </button>
+        <button id="btn-copy">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar JSON
+        </button>
+    </div>
+    <div id="status-msg">Definições copiadas!</div>
+
+    <div class="hint">Rode com o rato • Zoom com scroll</div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- Referências UI ---
+    const toggleBtn = document.getElementById('settings-toggle');
+    const uiPanel = document.getElementById('ui');
+    const statusMsg = document.getElementById('status-msg');
+    const shapeSelect = document.getElementById('shape-type');
+    const colorLow = document.getElementById('color-low');
+    const colorMid = document.getElementById('color-mid');
+    const colorHigh = document.getElementById('color-high');
+    const sliders = ['freq', 'harm', 'speed', 'amp', 'parab'];
+
+    toggleBtn.addEventListener('click', () => uiPanel.classList.toggle('open'));
+
+    const updateLabel = (id, val) => {
+        const el = document.getElementById('v-' + id);
+        if (el) el.textContent = val;
+    };
+
+    sliders.forEach(id => {
+        const input = document.getElementById(id);
+        input.addEventListener('input', () => updateLabel(id, input.value));
+    });
+
+    // --- Shaders ---
+    const vertexShader = `
+        varying vec2 vUv;
+        varying float vHeight;
+        varying float vShapeDist;
+        
+        uniform float uTime;
+        uniform float uFrequency;
+        uniform float uAmplitude;
+        uniform float uSpeed;
+        uniform float uHarmonics;
+        uniform float uParabolic;
+        uniform int uShapeType;
+
+        float getShapeDist(vec2 p) {
+            if (uShapeType == 0) return length(p);
+            if (uShapeType == 1) {
+                vec2 q = abs(p);
+                return max(q.x, q.x * 0.5 + q.y * 0.866025);
+            }
+            return abs(p.x) + abs(p.y);
+        }
+
+        void main() {
+            vUv = uv;
+            vec3 pos = position;
+            vec2 centerPos = pos.xz;
+            vShapeDist = getShapeDist(centerPos);
+            
+            float mask = smoothstep(4.5, 4.2, vShapeDist);
+            float dist = length(centerPos);
+            float angle = atan(centerPos.y, centerPos.x);
+            
+            float wave = sin(dist * uFrequency - uTime * uSpeed) * cos(angle * uHarmonics);
+            wave += sin(dist * (uFrequency * 0.7) + uTime * uSpeed * 0.5) * 0.5;
+            
+            float h = wave * uAmplitude * mask;
+            h += (dist * dist * uParabolic) * mask;
+
+            pos.y += h;
+            vHeight = h;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+    `;
+
+    const fragmentShader = `
+        varying vec2 vUv;
+        varying float vHeight;
+        varying float vShapeDist;
+        
+        uniform vec3 uColorLow;
+        uniform vec3 uColorMid;
+        uniform vec3 uColorHigh;
+
+        vec3 colorMap(float t) {
+            t = clamp(t, 0.0, 1.0);
+            if(t < 0.5) return mix(uColorLow, uColorMid, t * 2.0);
+            return mix(uColorMid, uColorHigh, (t - 0.5) * 2.0);
+        }
+
+        void main() {
+            if (vShapeDist > 4.5) discard;
+            float normalizedHeight = (vHeight + 1.8) / 4.0;
+            gl_FragColor = vec4(colorMap(normalizedHeight), 1.0);
+        }
+    `;
+
+    // --- Setup Three.js ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const geometry = new THREE.PlaneGeometry(18, 18, 480, 480);
+    geometry.rotateX(-Math.PI / 2);
+
+    const uniforms = {
+        uTime: { value: 0 },
+        uFrequency: { value: 3.7 },
+        uAmplitude: { value: 1.2 },
+        uSpeed: { value: 1.8 },
+        uHarmonics: { value: 1.0 },
+        uParabolic: { value: 0.02 },
+        uShapeType: { value: 0 },
+        uColorLow: { value: new THREE.Color(0x000005) },
+        uColorMid: { value: new THREE.Color(0xde4968) },
+        uColorHigh: { value: new THREE.Color(0xfcfdbf) }
+    };
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        vertexShader,
+        fragmentShader,
+        side: THREE.DoubleSide,
+        transparent: true
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    // --- Lógica de Dados ---
+
+    function getCurrentSettings() {
+        return {
+            params: {
+                shape: shapeSelect.value,
+                freq: document.getElementById('freq').value,
+                harm: document.getElementById('harm').value,
+                speed: document.getElementById('speed').value,
+                amp: document.getElementById('amp').value,
+                parab: document.getElementById('parab').value,
+                colors: {
+                    low: colorLow.value,
+                    mid: colorMid.value,
+                    high: colorHigh.value
+                }
+            },
+            camera: {
+                position: camera.position.toArray(),
+                target: controls.target.toArray()
+            }
+        };
+    }
+
+    function applySettings(settings) {
+        if (!settings) return;
+        const p = settings.params;
+        shapeSelect.value = p.shape;
+        document.getElementById('freq').value = p.freq;
+        document.getElementById('harm').value = p.harm;
+        document.getElementById('speed').value = p.speed;
+        document.getElementById('amp').value = p.amp;
+        document.getElementById('parab').value = p.parab;
+        colorLow.value = p.colors.low;
+        colorMid.value = p.colors.mid;
+        colorHigh.value = p.colors.high;
+
+        sliders.forEach(id => updateLabel(id, document.getElementById(id).value));
+
+        if (settings.camera) {
+            camera.position.fromArray(settings.camera.position);
+            controls.target.fromArray(settings.camera.target);
+            controls.update();
+        }
+    }
+
+    function showFeedback(text) {
+        statusMsg.textContent = text;
+        statusMsg.style.opacity = "1";
+        setTimeout(() => statusMsg.style.opacity = "0", 2000);
+    }
+
+    document.getElementById('btn-save').addEventListener('click', () => {
+        localStorage.setItem('resonator_settings', JSON.stringify(getCurrentSettings()));
+        showFeedback("Definições guardadas!");
+    });
+
+    document.getElementById('btn-copy').addEventListener('click', () => {
+        const data = JSON.stringify(getCurrentSettings(), null, 2);
+        const el = document.createElement('textarea');
+        el.value = data;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        showFeedback("JSON copiado!");
+    });
+
+    // --- Inicialização com Defaults Solicitados ---
+    const defaultSettings = {
+        params: {
+            shape: "0",
+            freq: "3.7",
+            harm: "1",
+            speed: "1.8",
+            amp: "1.2",
+            parab: "0.02",
+            colors: { low: "#000005", mid: "#de4968", high: "#fcfdbf" }
+        },
+        camera: {
+            position: [1.4562206217851912, 9.189148120854366, 10.680982919509905],
+            target: [-0.511786480841306, 0.4625463743782493, 0.10376439725077914]
+        }
+    };
+
+    const saved = localStorage.getItem('resonator_settings');
+    if (saved) {
+        applySettings(JSON.parse(saved));
+    } else {
+        applySettings(defaultSettings);
+    }
+
+    const clock = new THREE.Clock();
+    function animate() {
+        uniforms.uTime.value = clock.getElapsedTime();
+        
+        uniforms.uShapeType.value = parseInt(shapeSelect.value);
+        uniforms.uFrequency.value = parseFloat(document.getElementById('freq').value);
+        uniforms.uHarmonics.value = parseFloat(document.getElementById('harm').value);
+        uniforms.uSpeed.value = parseFloat(document.getElementById('speed').value);
+        uniforms.uAmplitude.value = parseFloat(document.getElementById('amp').value);
+        uniforms.uParabolic.value = parseFloat(document.getElementById('parab').value);
+        uniforms.uColorLow.value.set(colorLow.value);
+        uniforms.uColorMid.value.set(colorMid.value);
+        uniforms.uColorHigh.value.set(colorHigh.value);
+
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+</script>
+</body>
+</html>
