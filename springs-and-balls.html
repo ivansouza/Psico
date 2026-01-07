@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Physics Springs - Parametric System with Rebound</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #0f172a; }
+        canvas { display: block; }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            color: white;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+        .interactive { pointer-events: auto; }
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+        #toast.visible { transform: translateX(-50%) translateY(0); }
+        
+        input[type=range] {
+            height: 24px;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-overlay">
+        <h1 class="text-2xl font-bold tracking-tight">Diametric Oscillator</h1>
+    </div>
+
+    <!-- Settings Gear Button -->
+    <button id="settingsBtn" class="fixed top-5 right-5 z-50 p-3 rounded-full glass interactive hover:bg-white/20 transition-all text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    </button>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="fixed top-20 right-5 z-40 w-64 glass rounded-2xl p-6 text-white transform translate-x-[120%] transition-transform duration-300 interactive shadow-2xl overflow-y-auto max-h-[80vh]">
+        <h2 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Settings</h2>
+        
+        <!-- Springs Configuration -->
+        <div class="mb-5">
+            <label class="text-xs uppercase tracking-wider text-slate-400 mb-2 block font-bold">Spring Count</label>
+            <input type="range" id="springSlider" min="2" max="60" step="2" value="18" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+            <div class="flex justify-between text-[10px] mt-1 text-slate-500 font-mono">
+                <span>2</span>
+                <span id="springVal">18</span>
+                <span>60</span>
+            </div>
+        </div>
+
+        <!-- Speed Configuration -->
+        <div class="mb-5">
+            <label class="text-xs uppercase tracking-wider text-slate-400 mb-2 block font-bold">Speed</label>
+            <input type="range" id="speedSlider" min="0.1" max="4.0" step="0.1" value="0.8" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+            <div class="flex justify-between text-[10px] mt-1 text-slate-500 font-mono">
+                <span>Slow</span>
+                <span id="speedVal">0.8</span>
+                <span>Fast</span>
+            </div>
+        </div>
+
+        <!-- Colors Configuration -->
+        <div class="space-y-4 mb-6">
+            <div>
+                <label class="text-xs uppercase tracking-wider text-slate-400 mb-1 block">Ball Color</label>
+                <input type="color" id="ballColor" value="#ff0000" class="w-full h-8 bg-transparent cursor-pointer rounded">
+            </div>
+            <div>
+                <label class="text-xs uppercase tracking-wider text-slate-400 mb-1 block">Spring Color</label>
+                <input type="color" id="springColor" value="#ffff00" class="w-full h-8 bg-transparent cursor-pointer rounded">
+            </div>
+            <div>
+                <label class="text-xs uppercase tracking-wider text-slate-400 mb-1 block">Cup Color</label>
+                <input type="color" id="cupColor" value="#94a3b8" class="w-full h-8 bg-transparent cursor-pointer rounded">
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-2 pt-4 border-t border-white/10">
+            <button id="saveBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-center">Save Preset</button>
+            <button id="copyBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-center">Copy Parameters</button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="glass px-6 py-3 rounded-full text-white text-sm shadow-xl border border-white/20">Action successful!</div>
+
+    <!-- Required Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, clock, controls;
+        let springs = []; 
+        let objects = []; 
+        
+        // Initial Physical Parameters
+        const initialParams = {
+            ballColor: "#ff0000",
+            springColor: "#ffff00",
+            cupColor: "#94a3b8",
+            physics: {
+                totalRadius: 10,
+                restSpringLength: 5,   
+                minSpringLength: 2,    
+                frequency: 0.8,
+                ballRadius: 0.4
+            }
+        };
+
+        // Current Application State
+        let currentNumSprings = 18;
+        let currentSpeed = initialParams.physics.frequency;
+        let currentBallColor = new THREE.Color(initialParams.ballColor);
+        let currentSpringColor = new THREE.Color(initialParams.springColor);
+        let currentCupColor = new THREE.Color(initialParams.cupColor);
+
+        // Load saved settings from LocalStorage
+        function loadSavedSettings() {
+            const saved = localStorage.getItem('physics_sim_settings_v4');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    currentNumSprings = data.numSprings !== undefined ? data.numSprings : currentNumSprings;
+                    currentSpeed = data.speed !== undefined ? data.speed : currentSpeed;
+                    currentBallColor = new THREE.Color(data.ballColor || initialParams.ballColor);
+                    currentSpringColor = new THREE.Color(data.springColor || initialParams.springColor);
+                    currentCupColor = new THREE.Color(data.cupColor || initialParams.cupColor);
+                } catch(e) {
+                    console.error("Failed to load settings", e);
+                }
+            }
+            // Update UI elements
+            document.getElementById('springSlider').value = currentNumSprings;
+            document.getElementById('springVal').innerText = currentNumSprings;
+            document.getElementById('speedSlider').value = currentSpeed;
+            document.getElementById('speedVal').innerText = currentSpeed.toFixed(1);
+            document.getElementById('ballColor').value = '#' + currentBallColor.getHexString();
+            document.getElementById('springColor').value = '#' + currentSpringColor.getHexString();
+            document.getElementById('cupColor').value = '#' + currentCupColor.getHexString();
+        }
+
+        function init() {
+            loadSavedSettings();
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.Fog(0x0f172a, 20, 120);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 25);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            clock = new THREE.Clock();
+
+            // Lighting setup
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            mainLight.position.set(15, 15, 25);
+            mainLight.castShadow = true;
+            scene.add(mainLight);
+
+            // External Support Ring
+            const outerRing = new THREE.Mesh(
+                new THREE.TorusGeometry(initialParams.physics.totalRadius, 0.06, 32, 128),
+                new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.2 })
+            );
+            scene.add(outerRing);
+
+            createSpringSystem();
+            setupUI();
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // Wipe current scene components before rebuilding
+        function clearSystem() {
+            springs.forEach(s => {
+                s.mesh.geometry.dispose();
+                s.mesh.material.dispose();
+                s.cup.geometry.dispose();
+                s.cup.material.dispose();
+                scene.remove(s.container);
+            });
+            objects.forEach(o => {
+                o.mesh.geometry.dispose();
+                o.mesh.material.dispose();
+                scene.remove(o.mesh);
+            });
+            springs = [];
+            objects = [];
+        }
+
+        // Core logic for generating springs and balls
+        function createSpringSystem() {
+            const num = currentNumSprings;
+            const tubeRadius = 0.008; // Ultra-thin material
+            const helixRadius = 0.38; // Matches ball diameter
+            const turns = 24; 
+
+            // High-definition spring curve geometry
+            class SpringCurve extends THREE.Curve {
+                constructor(h) { super(); this.height = h; }
+                getPoint(t) {
+                    const theta = t * Math.PI * 2 * turns;
+                    const r = helixRadius * (1 - Math.pow(Math.abs(t * 2 - 1), 32));
+                    return new THREE.Vector3(Math.cos(theta) * r, Math.sin(theta) * r, t * this.height);
+                }
+            }
+
+            for (let i = 0; i < num; i++) {
+                const angle = (i / num) * Math.PI * 2;
+                const dirX = Math.cos(angle);
+                const dirY = Math.sin(angle);
+
+                const springMat = new THREE.MeshStandardMaterial({ 
+                    color: currentSpringColor, metalness: 1.0, roughness: 0.1, emissiveIntensity: 0.0
+                });
+
+                const container = new THREE.Group();
+                container.position.set(dirX * initialParams.physics.totalRadius, dirY * initialParams.physics.totalRadius, 0);
+                container.lookAt(new THREE.Vector3(0, 0, 0));
+                
+                const springMesh = new THREE.Mesh(new THREE.TubeGeometry(new SpringCurve(1), 300, tubeRadius, 8, false), springMat);
+                container.add(springMesh);
+
+                // Semi-spherical cup at the tip of the spring
+                const cupGeo = new THREE.SphereGeometry(helixRadius + 0.06, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+                const cupMat = new THREE.MeshStandardMaterial({ 
+                    color: currentCupColor, metalness: 0.9, roughness: 0.2 
+                });
+                const cup = new THREE.Mesh(cupGeo, cupMat);
+                cup.rotation.x = -Math.PI / 2;
+                container.add(cup);
+
+                scene.add(container);
+
+                springs.push({ 
+                    container: container, 
+                    mesh: springMesh, 
+                    cup: cup, 
+                    angle, dirX, dirY,
+                    releaseTime: 0 // Used for the snap-back rebound effect
+                });
+
+                // Spawn 1 ball for every 2 springs (diametric pairs)
+                if (i < num / 2) {
+                    const obj = new THREE.Mesh(
+                        new THREE.SphereGeometry(initialParams.physics.ballRadius, 32, 32),
+                        new THREE.MeshStandardMaterial({ color: currentBallColor, metalness: 0.9, roughness: 0.1, emissive: currentBallColor, emissiveIntensity: 0.2 })
+                    );
+                    scene.add(obj);
+                    
+                    objects.push({ 
+                        mesh: obj, 
+                        springIndexA: i, 
+                        springIndexB: i + (num / 2),
+                        phase: (i / (num / 2)) * Math.PI 
+                    });
+                }
+            }
+        }
+
+        function setupUI() {
+            const panel = document.getElementById('settingsPanel');
+            const btn = document.getElementById('settingsBtn');
+            let visible = false;
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                visible = !visible;
+                panel.style.transform = visible ? 'translateX(0)' : 'translateX(120%)';
+            });
+
+            // Spring Count Slider Listener
+            document.getElementById('springSlider').addEventListener('input', (e) => {
+                currentNumSprings = parseInt(e.target.value);
+                document.getElementById('springVal').innerText = currentNumSprings;
+                clearSystem();
+                createSpringSystem();
+            });
+
+            // Speed Slider Listener
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                currentSpeed = parseFloat(e.target.value);
+                document.getElementById('speedVal').innerText = currentSpeed.toFixed(1);
+            });
+
+            // Color Picker Listeners
+            document.getElementById('ballColor').addEventListener('input', (e) => {
+                currentBallColor.set(e.target.value);
+                objects.forEach(o => { o.mesh.material.color.copy(currentBallColor); o.mesh.material.emissive.copy(currentBallColor); });
+            });
+
+            document.getElementById('springColor').addEventListener('input', (e) => {
+                currentSpringColor.set(e.target.value);
+                springs.forEach(s => s.mesh.material.color.copy(currentSpringColor));
+            });
+
+            document.getElementById('cupColor').addEventListener('input', (e) => {
+                currentCupColor.set(e.target.value);
+                springs.forEach(s => s.cup.material.color.copy(currentCupColor));
+            });
+
+            // Persistence
+            document.getElementById('saveBtn').addEventListener('click', () => {
+                const settings = { 
+                    numSprings: currentNumSprings,
+                    speed: currentSpeed, 
+                    ballColor: '#' + currentBallColor.getHexString(), 
+                    springColor: '#' + currentSpringColor.getHexString(), 
+                    cupColor: '#' + currentCupColor.getHexString() 
+                };
+                localStorage.setItem('physics_sim_settings_v4', JSON.stringify(settings));
+                showToast("Settings saved!");
+            });
+
+            // JSON Export
+            document.getElementById('copyBtn').addEventListener('click', () => {
+                const settings = { 
+                    numSprings: currentNumSprings,
+                    speed: currentSpeed, 
+                    ballColor: '#' + currentBallColor.getHexString(), 
+                    springColor: '#' + currentSpringColor.getHexString(), 
+                    cupColor: '#' + currentCupColor.getHexString(), 
+                    physics: initialParams.physics 
+                };
+                const json = JSON.stringify(settings, null, 2);
+                const textArea = document.createElement("textarea");
+                textArea.value = json; 
+                document.body.appendChild(textArea); 
+                textArea.select();
+                document.execCommand('copy'); 
+                document.body.removeChild(textArea);
+                showToast("JSON copied!");
+            });
+        }
+
+        function showToast(m) {
+            const t = document.getElementById('toast'); 
+            t.textContent = m; 
+            t.classList.add('visible');
+            setTimeout(() => t.classList.remove('visible'), 2000);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            controls.update();
+
+            const { totalRadius, restSpringLength, minSpringLength } = initialParams.physics;
+            const maxBallPos = totalRadius - minSpringLength;
+
+            objects.forEach(obj => {
+                const progress = Math.sin(time * currentSpeed + obj.phase);
+                const offset = progress * maxBallPos;
+                
+                const sA = springs[obj.springIndexA];
+                const sB = springs[obj.springIndexB];
+                
+                if (sA && sB) {
+                    obj.mesh.position.set(sA.dirX * offset, sA.dirY * offset, 0);
+
+                    const distA = totalRadius - offset;
+                    const distB = totalRadius + offset;
+
+                    // Spring A Logic - Handling Compression and Rebound
+                    let lenA;
+                    if (distA <= restSpringLength) {
+                        lenA = Math.max(minSpringLength, distA);
+                        sA.releaseTime = 0; // In contact, reset timer
+                    } else {
+                        // Just released: start rebound timer
+                        if (sA.releaseTime === 0) sA.releaseTime = time;
+                        const dt = time - sA.releaseTime;
+                        // Damped harmonic oscillation: snap back effect
+                        const overshoot = Math.sin(dt * 20) * Math.exp(-dt * 5) * 1.2;
+                        lenA = restSpringLength + overshoot;
+                    }
+                    sA.mesh.scale.set(1, 1, Math.max(0.05, lenA));
+                    sA.cup.position.z = lenA;
+
+                    // Spring B Logic - Handling Compression and Rebound
+                    let lenB;
+                    if (distB <= restSpringLength) {
+                        lenB = Math.max(minSpringLength, distB);
+                        sB.releaseTime = 0;
+                    } else {
+                        if (sB.releaseTime === 0) sB.releaseTime = time;
+                        const dt = time - sB.releaseTime;
+                        const overshoot = Math.sin(dt * 20) * Math.exp(-dt * 5) * 1.2;
+                        lenB = restSpringLength + overshoot;
+                    }
+                    sB.mesh.scale.set(1, 1, Math.max(0.05, lenB));
+                    sB.cup.position.z = lenB;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+        animate();
+    </script>
+</body>
+</html>
