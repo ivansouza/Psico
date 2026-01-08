@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curiosidade Matemática: Par de Tusi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax para renderização de fórmulas -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; }
+        
+        /* Glassmorphism UI */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            right: -320px;
+            width: 300px;
+            padding: 20px;
+            transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: white;
+            z-index: 100;
+        }
+
+        #ui-panel.open { right: 20px; }
+
+        #gear-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            z-index: 101;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        /* Rotação da engrenagem */
+        #gear-btn svg {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #gear-btn:hover svg, #gear-btn.active svg {
+            transform: rotate(90deg);
+        }
+        #gear-btn:active {
+            transform: scale(0.9);
+        }
+
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; opacity: 0.8; }
+        input[type=range] { width: 100%; accent-color: #4f46e5; margin-bottom: 15px; }
+        
+        .info-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            max-width: 350px;
+            padding: 15px;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.2s ease, background 0.2s ease;
+            z-index: 50;
+        }
+        .info-box:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Modal de Explicação */
+        #explanation-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 95%;
+            max-width: 600px;
+            max-height: 80vh;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            color: white;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        #explanation-modal.active {
+            display: flex;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .modal-content {
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 199;
+            backdrop-filter: blur(4px);
+        }
+
+        mjx-container { color: #818cf8 !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Botão de Engrenagem (Ajustado) -->
+    <div id="gear-btn" class="glass" onclick="togglePanel()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </div>
+
+    <!-- Painel de Configurações -->
+    <div id="ui-panel" class="glass">
+        <h2 class="text-xl font-bold mb-4 border-b border-white/10 pb-2">Configurações</h2>
+        
+        <div class="slider-group">
+            <div class="slider-label"><span>Velocidade</span><span id="speed-val">1.0</span></div>
+            <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-label"><span>Proporção ($R/r$)</span><span id="ratio-val">3.0</span></div>
+            <input type="range" id="ratio-slider" min="1.1" max="5" step="0.1" value="3">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-label"><span>Número de Pontos</span><span id="points-val">12</span></div>
+            <input type="range" id="points-slider" min="1" max="12" step="1" value="12">
+        </div>
+
+        <div class="mt-4 flex flex-col gap-2">
+            <button onclick="resetTrail()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition text-sm font-semibold shadow-lg shadow-indigo-900/40">Limpar Rasto</button>
+            <button onclick="toggleVisuals('circle')" class="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg transition text-sm">Alternar Círculos</button>
+        </div>
+    </div>
+
+    <!-- Janela de Informação Flutuante -->
+    <div class="info-box glass" onclick="toggleModal(true)">
+        <h1 class="text-lg font-bold text-indigo-400">Par de Tusi</h1>
+        <p class="text-sm opacity-80 mt-1">Clica para ver a explicação matemática completa.</p>
+    </div>
+
+    <!-- Overlay e Modal de Explicação -->
+    <div id="overlay" onclick="toggleModal(false)"></div>
+    <div id="explanation-modal" class="glass p-8">
+        <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+            <h2 class="text-2xl font-bold text-indigo-400">O Par de Tusi</h2>
+            <button onclick="toggleModal(false)" class="text-white/50 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-content text-white/90 leading-relaxed text-sm md:text-base">
+            <section class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-white">História</h3>
+                <p>O dispositivo foi descrito pela primeira vez pelo astrónomo e matemático persa <strong>Nasir al-Din al-Tusi</strong> em 1247. Tusi utilizou esta construção para resolver problemas em modelos planetários, procurando uma alternativa aos modelos gregos de Ptolomeu.</p>
+            </section>
+            
+            <section class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-white">O Conceito Matemático</h3>
+                <p>O Par de Tusi é um caso específico de uma <strong>Hipotrocoide</strong>. Trata-se de um círculo de raio $r$ que rola sem deslizar dentro de um círculo maior de raio $R$.</p>
+                <p class="mt-2 font-semibold text-indigo-300 italic">Condição Especial:</p>
+                <p>Quando a proporção é exatamente $$ R = 2r $$ os pontos na circunferência do círculo menor traçam <strong>linhas retas</strong> através do diâmetro do círculo maior. É a demonstração de como o movimento circular pode gerar movimento linear.</p>
+                <p class="mt-2">Em outras proporções, como a inicial de $3.0$ nesta simulação, eles criam curvas hipocicloides complexas (neste caso, uma <em>Deltoide</em> com 3 pontas).</p>
+            </section>
+
+            <section class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-white">A Cinemática</h3>
+                <p>Se o centro do círculo menor gira num ângulo $\theta$, o ponto na sua borda gira $-2\theta$ em relação ao seu próprio centro. Matematicamente:</p>
+                <div class="my-4 text-center">
+                    $$ P(\theta) = \begin{pmatrix} (R-r)\cos\theta + r\cos(\frac{R-r}{r}\theta) \\ (R-r)\sin\theta - r\sin(\frac{R-r}{r}\theta) \end{pmatrix} $$
+                </div>
+                <p>Para $R=2r$, a componente vertical anula-se, resultando numa oscilação linear pura.</p>
+            </section>
+
+            <section class="mb-4">
+                <h3 class="text-lg font-semibold mb-2 text-white">Aplicações Reais</h3>
+                <ul class="list-disc ml-5 space-y-1">
+                    <li><strong>Mecanismos de James White:</strong> Utilizados em prensas de impressão clássicas para converter rotação em movimento linear vertical.</li>
+                    <li><strong>Motores Hipocicloides:</strong> Motores que utilizam esta geometria para eliminar a biela e reduzir o atrito lateral no pistão.</li>
+                </ul>
+            </section>
+        </div>
+        <div class="mt-6 text-center">
+            <button onclick="toggleModal(false)" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-full font-bold transition shadow-lg shadow-indigo-900/20 active:scale-95">Fechar Explicação</button>
+        </div>
+    </div>
+
+    <!-- Shader para o Chão de Grade -->
+    <script id="grid-vertex" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="grid-fragment" type="x-shader/x-fragment">
+        varying vec2 vUv;
+        void main() {
+            vec2 grid = abs(fract(vUv * 20.0 - 0.5) - 0.5) / fwidth(vUv * 20.0);
+            float color = 1.0 - min(min(grid.x, grid.y), 1.0);
+            gl_FragColor = vec4(vec3(0.1, 0.2, 0.5) * color, color * 0.3);
+        }
+    </script>
+
+    <script>
+        // Inicialização de variáveis globais
+        let scene, camera, renderer, controls;
+        let outerCircle, innerGroup, innerCircle, tracePoints = [];
+        let trailLines = [];
+        let clock = new THREE.Clock();
+        
+        // Parâmetros iniciais (Velocidade=1, Proporção=3.0, Pontos=12)
+        const params = {
+            speed: 1.0,
+            ratio: 3.0,
+            numPoints: 12,
+            outerRadius: 5,
+            showCircles: true
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 12);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0x4f46e5, 1, 100);
+            pointLight.position.set(5, 10, 5);
+            scene.add(pointLight);
+
+            // Chão com Shader de Grade
+            const gridGeo = new THREE.PlaneGeometry(100, 100);
+            const gridMat = new THREE.ShaderMaterial({
+                vertexShader: document.getElementById('grid-vertex').textContent,
+                fragmentShader: document.getElementById('grid-fragment').textContent,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const grid = new THREE.Mesh(gridGeo, gridMat);
+            grid.rotation.x = -Math.PI / 2;
+            grid.position.y = -2;
+            scene.add(grid);
+
+            createGeometry();
+            animate();
+        }
+
+        function createGeometry() {
+            if (outerCircle) scene.remove(outerCircle);
+            if (innerGroup) scene.remove(innerGroup);
+            trailLines.forEach(l => scene.remove(l));
+            trailLines = [];
+
+            const rInner = params.outerRadius / params.ratio;
+
+            // Anel externo
+            const outerGeo = new THREE.RingGeometry(params.outerRadius - 0.05, params.outerRadius + 0.05, 128);
+            const outerMat = new THREE.MeshBasicMaterial({ color: 0x444444, side: THREE.DoubleSide });
+            outerCircle = new THREE.Mesh(outerGeo, outerMat);
+            outerCircle.rotation.x = Math.PI / 2;
+            scene.add(outerCircle);
+
+            // Grupo para órbita do círculo interno
+            innerGroup = new THREE.Group();
+            scene.add(innerGroup);
+
+            // Círculo interno
+            const innerCircleGeo = new THREE.RingGeometry(rInner - 0.05, rInner + 0.05, 64);
+            const innerCircleMat = new THREE.MeshBasicMaterial({ color: 0x6366f1, side: THREE.DoubleSide });
+            innerCircle = new THREE.Mesh(innerCircleGeo, innerCircleMat);
+            innerCircle.rotation.x = Math.PI / 2;
+            innerCircle.position.x = params.outerRadius - rInner;
+            innerGroup.add(innerCircle);
+
+            // Criar pontos de rastro
+            tracePoints = [];
+            for (let i = 0; i < params.numPoints; i++) {
+                const angle = (i / params.numPoints) * Math.PI * 2;
+                const dotGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                const dotMat = new THREE.MeshStandardMaterial({ 
+                    color: new THREE.Color().setHSL(i / 12, 0.8, 0.5),
+                    emissive: new THREE.Color().setHSL(i / 12, 0.8, 0.2)
+                });
+                const dot = new THREE.Mesh(dotGeo, dotMat);
+                dot.position.set(Math.cos(angle) * rInner, 0, Math.sin(angle) * rInner);
+                innerCircle.add(dot);
+                
+                // Linha de rastro
+                const trailMat = new THREE.LineBasicMaterial({ color: dotMat.color, transparent: true, opacity: 0.6 });
+                const trailGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+                const trailLine = new THREE.Line(trailGeo, trailMat);
+                trailLine.userData.points = [];
+                trailLines.push(trailLine);
+                scene.add(trailLine);
+                tracePoints.push(dot);
+            }
+            updateVisibility();
+        }
+
+        function togglePanel() {
+            const panel = document.getElementById('ui-panel');
+            const gear = document.getElementById('gear-btn');
+            panel.classList.toggle('open');
+            gear.classList.toggle('active');
+        }
+
+        function toggleModal(show) {
+            const modal = document.getElementById('explanation-modal');
+            const overlay = document.getElementById('overlay');
+            if (show) {
+                modal.style.display = 'flex';
+                overlay.style.display = 'block';
+                setTimeout(() => modal.classList.add('active'), 10);
+            } else {
+                modal.classList.remove('active');
+                overlay.style.display = 'none';
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
+        }
+
+        function updateVisibility() {
+            outerCircle.visible = params.showCircles;
+            innerCircle.visible = params.showCircles;
+        }
+
+        function toggleVisuals(type) {
+            if (type === 'circle') {
+                params.showCircles = !params.showCircles;
+                updateVisibility();
+            }
+        }
+
+        function resetTrail() {
+            trailLines.forEach(line => {
+                line.userData.points = [];
+                line.geometry.setFromPoints([new THREE.Vector3()]);
+            });
+        }
+
+        // Event Listeners para Controlos UI
+        document.getElementById('speed-slider').addEventListener('input', (e) => {
+            params.speed = parseFloat(e.target.value);
+            document.getElementById('speed-val').innerText = params.speed.toFixed(1);
+        });
+
+        document.getElementById('ratio-slider').addEventListener('input', (e) => {
+            params.ratio = parseFloat(e.target.value);
+            document.getElementById('ratio-val').innerText = params.ratio.toFixed(1);
+            createGeometry();
+        });
+
+        document.getElementById('points-slider').addEventListener('input', (e) => {
+            params.numPoints = parseInt(e.target.value);
+            document.getElementById('points-val').innerText = params.numPoints;
+            createGeometry();
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime() * params.speed;
+
+            if (innerGroup && innerCircle) {
+                // Rotação orbital
+                innerGroup.rotation.y = time;
+                // Rotação própria (rolamento sem deslize)
+                innerCircle.rotation.y = -params.ratio * time;
+
+                // Atualizar posições dos pontos no rastro
+                tracePoints.forEach((dot, index) => {
+                    const worldPos = new THREE.Vector3();
+                    dot.getWorldPosition(worldPos);
+                    const points = trailLines[index].userData.points;
+                    points.push(worldPos.clone());
+                    if (points.length > 500) points.shift();
+                    trailLines[index].geometry.setFromPoints(points);
+                });
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
