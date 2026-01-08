@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AstroGuia - Decodificação Existencial</title>
+    <!-- Correção dos links de carregamento -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap" rel="stylesheet">
@@ -16,7 +17,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Glassmorphism */
         .glass {
             background: rgba(15, 23, 42, 0.4);
             backdrop-filter: blur(12px);
@@ -39,18 +39,18 @@
 </head>
 <body class="selection:bg-indigo-500/30">
 
-    <!-- Background -->
+    <!-- Background Decorativo -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-900/10 blur-[150px] rounded-full"></div>
         <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-900/10 blur-[150px] rounded-full"></div>
     </div>
 
-    <!-- Settings Button -->
+    <!-- Botão de Definições -->
     <button onclick="toggleSettings(true)" class="fixed top-6 right-6 z-[60] p-4 glass rounded-2xl hover:bg-white/10 transition-all group">
         <i data-lucide="settings" class="w-6 h-6 text-slate-400 group-hover:rotate-90 transition-transform duration-500"></i>
     </button>
 
-    <!-- Settings Modal -->
+    <!-- Modal de Configuração da Chave -->
     <div id="settings-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="toggleSettings(false)"></div>
         <div class="relative bg-slate-900 border border-slate-800 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
@@ -61,7 +61,7 @@
                 <div class="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400">
                     <i data-lucide="key" class="w-6 h-6"></i>
                 </div>
-                <h2 class="text-2xl font-black uppercase tracking-tight">Configurações</h2>
+                <h2 class="text-2xl font-black uppercase tracking-tight text-white">Configurações</h2>
             </div>
             <div class="space-y-6">
                 <div class="space-y-3">
@@ -72,7 +72,7 @@
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="flex items-center justify-center gap-2 w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:bg-white/10 transition-all">
                     Obter Chave Grátis no AI Studio <i data-lucide="external-link" class="w-4 h-4"></i>
                 </a>
-                <button onclick="saveApiKey()" class="w-full py-4 bg-indigo-600 rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-500 transition-all">
+                <button onclick="saveApiKey()" class="w-full py-4 bg-indigo-600 rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-500 transition-all text-white">
                     Salvar e Fechar
                 </button>
             </div>
@@ -84,19 +84,18 @@
             <div class="inline-block p-3 bg-white/5 rounded-2xl border border-white/10 mb-6">
                 <i data-lucide="sparkles" class="w-8 h-8 text-indigo-400"></i>
             </div>
-            <h1 class="text-5xl md:text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500 mb-4 uppercase">ASTROGUIA</h1>
+            <h1 class="text-5xl md:text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500 mb-4 uppercase text-white">ASTROGUIA</h1>
             <p class="text-slate-500 font-medium tracking-[0.3em] text-[10px] uppercase">Análise Psicológica de Alta Profundidade</p>
         </header>
 
-        <!-- View: Input -->
+        <!-- Vista de Entrada de Dados -->
         <div id="view-input" class="max-w-3xl mx-auto space-y-6 animate-fade">
-            <!-- Identity -->
             <div class="glass rounded-[2.5rem] p-8 md:p-10">
                 <div class="flex items-center gap-4 mb-8">
                     <div class="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400">
                         <i data-lucide="user" class="w-6 h-6"></i>
                     </div>
-                    <h2 class="text-2xl font-bold tracking-tight">Identidade Central</h2>
+                    <h2 class="text-2xl font-bold tracking-tight text-white">Identidade Central</h2>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
@@ -110,16 +109,15 @@
                 </div>
             </div>
 
-            <!-- Partner -->
             <div class="glass rounded-[2.5rem] p-8 md:p-10">
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex items-center gap-4">
                         <div class="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/20 text-rose-400">
                             <i data-lucide="heart" class="w-6 h-6"></i>
                         </div>
-                        <h2 class="text-2xl font-bold tracking-tight">Parceiro(a)</h2>
+                        <h2 class="text-2xl font-bold tracking-tight text-white">Parceiro(a)</h2>
                     </div>
-                    <button id="add-partner-btn" onclick="togglePartnerInput(true)" class="text-[10px] bg-white/5 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-all font-black uppercase tracking-widest">Adicionar</button>
+                    <button id="add-partner-btn" onclick="togglePartnerInput(true)" class="text-[10px] bg-white/5 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-all font-black uppercase tracking-widest text-white">Adicionar</button>
                 </div>
                 <div id="partner-input" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade">
                     <input type="text" id="partner-name" placeholder="Nome do parceiro" class="w-full bg-black/40 border border-slate-800 rounded-2xl px-6 py-5 outline-none text-white">
@@ -130,16 +128,15 @@
                 </div>
             </div>
 
-            <!-- Children -->
             <div class="glass rounded-[2.5rem] p-8 md:p-10">
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex items-center gap-4">
                         <div class="p-3 bg-sky-500/10 rounded-2xl border border-sky-500/20 text-sky-400">
                             <i data-lucide="users" class="w-6 h-6"></i>
                         </div>
-                        <h2 class="text-2xl font-bold tracking-tight">Filhos</h2>
+                        <h2 class="text-2xl font-bold tracking-tight text-white">Filhos</h2>
                     </div>
-                    <button onclick="addChildInput()" class="text-[10px] bg-white/5 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-all font-black uppercase tracking-widest flex items-center gap-2">
+                    <button onclick="addChildInput()" class="text-[10px] bg-white/5 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-all font-black uppercase tracking-widest flex items-center gap-2 text-white">
                         <i data-lucide="plus" class="w-4 h-4"></i> Adicionar
                     </button>
                 </div>
@@ -147,7 +144,7 @@
             </div>
 
             <button id="btn-generate" onclick="startAnalysis()" class="w-full bg-white text-black py-8 rounded-[2.5rem] font-black text-2xl hover:bg-indigo-50 transition-all flex items-center justify-center gap-4 shadow-2xl shadow-white/5">
-                <span id="btn-text" class="flex items-center gap-4"><i data-lucide="sparkles" class="w-8 h-8"></i> INICIAR LEITURA DE ALTA DENSIDADE</span>
+                <span id="btn-text" class="flex items-center gap-4 font-black tracking-tight"><i data-lucide="sparkles" class="w-8 h-8"></i> INICIAR DECODIFICAÇÃO COMPLETA</span>
                 <i id="btn-loader" data-lucide="loader-2" class="hidden w-8 h-8 animate-spin"></i>
             </button>
             
@@ -157,7 +154,7 @@
             </div>
         </div>
 
-        <!-- View: Results -->
+        <!-- Vista de Resultados -->
         <div id="view-results" class="hidden animate-fade">
             <div id="tabs-nav" class="hidden lg:flex flex-wrap gap-2 mb-10 glass p-2 rounded-[2.5rem] backdrop-blur-md"></div>
             <div id="tabs-nav-mobile" class="lg:hidden flex overflow-x-auto no-scrollbar gap-3 mb-8 -mx-4 px-4"></div>
@@ -179,8 +176,8 @@
                             <i data-lucide="history" class="w-4 h-4"></i> Nova Consulta
                         </button>
                         <div class="flex gap-4">
-                            <button onclick="navigateTab(-1)" class="p-5 glass rounded-[1.5rem] hover:bg-white/10"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
-                            <button onclick="navigateTab(1)" class="p-5 glass rounded-[1.5rem] hover:bg-white/10"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
+                            <button onclick="navigateTab(-1)" class="p-5 glass rounded-[1.5rem] hover:bg-white/10 transition-colors"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+                            <button onclick="navigateTab(1)" class="p-5 glass rounded-[1.5rem] hover:bg-white/10 transition-colors"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
                         </div>
                     </div>
                 </div>
@@ -189,7 +186,7 @@
     </main>
 
     <footer class="fixed bottom-0 left-0 w-full p-8 text-center text-[9px] text-slate-700 uppercase tracking-[0.4em] pointer-events-none">
-        © 2026 • AstroGuia • Analítica de Padrões Mentais
+        © 2026 • AstroGuia • Analítica de Padrões Existenciais
     </footer>
 
     <script>
@@ -259,7 +256,7 @@
             const name = document.getElementById('user-name').value;
             const dob = document.getElementById('user-dob').value;
             if (!name || !dob) {
-                showError("Preencha os dados obrigatórios.");
+                showError("Por favor, preencha os dados obrigatórios.");
                 return;
             }
 
@@ -271,26 +268,26 @@
                 dob: row.querySelector('.child-dob').value
             })).filter(c => c.name && c.dob);
 
-            const systemPrompt = `Você é um mentor de vida, psicólogo analítico e estrategista comportamental de elite. Sua tarefa é decodificar padrões de nascimento com profundidade extrema.
-
-            DIRETRIZES DE RESPOSTA (OBRIGATÓRIO):
-            - Cada uma das 9 secções deve ser UM TEXTO LONGO (mínimo de 600 palavras por secção).
-            - Use pelo menos 6 parágrafos detalhados por secção.
-            - Estrutura interna para cada aba: 1. Introdução Arquetípica, 2. Análise Psicológica Profunda, 3. Padrões de Sombra e Luz, 4. Aplicação Prática, 5. Impacto na Dinâmica Familiar, 6. Síntese Evolutiva.
-            - Seja implacavelmente honesto, filosófico e prático.
-            - Use Português de Portugal.
-            - Estrutura JSON: { "blueprint": "...", "purpose": "...", "goals": "...", "career": "...", "relationships": "...", "shadow": "...", "wealth": "...", "timeline": "...", "genius": "..." }`;
+            const systemPrompt = `Você é um mentor de vida e psicólogo analítico de elite. Sua tarefa é decodificar padrões de nascimento.
+            
+            DIRETRIZES:
+            - Escreva textos EXTREMAMENTE LONGOS e PROFUNDOS (600+ palavras por aba).
+            - Use pelo menos 6 parágrafos densos por aba.
+            - Seja filosófico, honesto e prático.
+            - Estrutura JSON obrigatória: { "blueprint": "...", "purpose": "...", "goals": "...", "career": "...", "relationships": "...", "shadow": "...", "wealth": "...", "timeline": "...", "genius": "..." }
+            - Idioma: Português de Portugal.`;
 
             const userPrompt = `DADOS PARA DECODIFICAÇÃO:
             - Utilizador Principal: ${name}, Nascimento: ${dob}
             ${partnerName ? `- Parceiro(a): ${partnerName}, Nascimento: ${partnerDob}` : ''}
             ${children.length > 0 ? `- Filhos: ${children.map(c => `${c.name} (${c.dob})`).join(', ')}` : ''}
 
-            Execute os 9 prompts de autoconhecimento (Blueprint, Soul Purpose, Goal Alignment, Career Destiny, Relationship Map, Shadow Work, Wealth Code, Future Timeline, Inner Genius). 
+            Analise os 9 prompts (Blueprint, Soul Purpose, Goal Alignment, Career Destiny, Relationship Map, Shadow Work, Wealth Code, Future Timeline, Inner Genius). 
             NÃO RESUMA. Forneça o máximo de detalhe possível em cada aba.`;
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                const modelId = "gemini-2.5-flash-preview-09-2025";
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -299,19 +296,27 @@
                         generationConfig: { 
                             responseMimeType: "application/json", 
                             maxOutputTokens: 8192, 
-                            temperature: 0.9 
+                            temperature: 0.8 
                         }
                     })
                 });
 
-                if (!response.ok) throw new Error("Erro na API.");
+                if (!response.ok) {
+                    const errorJson = await response.json();
+                    throw new Error(errorJson.error?.message || `Erro ${response.status}`);
+                }
+
                 const data = await response.json();
-                const jsonText = data.candidates[0].content.parts[0].text;
+                let jsonText = data.candidates[0].content.parts[0].text;
+                
+                // Limpeza de blocos de código se a IA os incluir por engano
+                jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
+                
                 appState.results = JSON.parse(jsonText);
                 renderResults();
             } catch (err) {
                 console.error(err);
-                showError("Erro ao processar dados. Verifique a sua Key ou ligação.");
+                showError("ERRO: " + err.message);
             } finally {
                 setLoading(false);
             }
@@ -327,7 +332,7 @@
             const box = document.getElementById('error-box');
             box.classList.remove('hidden');
             document.getElementById('error-message').innerText = msg;
-            setTimeout(() => box.classList.add('hidden'), 5000);
+            setTimeout(() => box.classList.add('hidden'), 10000);
         }
 
         function renderResults() {
@@ -368,12 +373,12 @@
                 mobileBtns[i].className = `flex-none flex flex-col items-center justify-center w-28 h-28 rounded-[2rem] border transition-all ${i === idx ? 'bg-white border-white text-black' : 'bg-slate-900/40 border-slate-800 text-slate-500'}`;
             }
 
-            document.getElementById('tab-index-label').innerText = `Decodificação 0${idx + 1}`;
+            document.getElementById('tab-index-label').innerText = `Módulo Decodificado 0${idx + 1}`;
             document.getElementById('tab-title-label').innerText = tab.label;
             document.getElementById('active-icon-box').innerHTML = `<i data-lucide="${tab.icon}" class="w-10 h-10"></i>`;
             document.getElementById('tab-icon-bg').innerHTML = `<i data-lucide="${tab.icon}" style="width: 300px; height: 300px;"></i>`;
 
-            const rawText = appState.results[tab.id];
+            const rawText = appState.results[tab.id] || "Aguardando processamento...";
             const formatted = rawText.split('\n').map(line => {
                 if (!line.trim()) return '<br/>';
                 if (line.startsWith('### ') || line.match(/^[0-9]\./)) return `<h3>${line.replace('### ', '')}</h3>`;
