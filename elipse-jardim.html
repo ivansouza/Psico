@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Método do Jardineiro 3D - Exploração Matemática</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- KaTeX para fórmulas matemáticas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: #0f172a; }
+        canvas { display: block; }
+        .glass {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        input[type="range"] {
+            accent-color: #10b981;
+        }
+        .panel-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: top left;
+        }
+        .hidden-panel {
+            opacity: 0;
+            transform: scale(0.9) translateY(-10px);
+            pointer-events: none;
+        }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Botões Superiores -->
+    <div class="fixed top-4 left-4 z-50 flex gap-2">
+        <button id="toggle-settings" title="Configurações" class="p-3 glass rounded-full text-white hover:bg-white/10 transition-all active:scale-95 shadow-lg group">
+            <svg class="group-hover:rotate-90 transition-transform duration-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2a2 2 0 0 1-2 2a2 2 0 0 0-2 2l-.44.44a2 2 0 0 0 0 2.82l.44.44a2 2 0 0 0 2 0a2 2 0 0 1 2 2a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2a2 2 0 0 1 2-2a2 2 0 0 0 2-2l.44-.44a2 2 0 0 0 0-2.82l-.44-.44a2 2 0 0 0-2 0a2 2 0 0 1-2-2a2 2 0 0 0-2-2Z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        </button>
+        <button id="toggle-help" title="Ajuda Matemática" class="p-3 glass rounded-full text-white hover:bg-white/10 transition-all active:scale-95 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Painel de Configurações -->
+    <div id="settings-panel" class="fixed top-20 left-4 z-40 max-w-[300px] w-full panel-transition hidden-panel">
+        <div class="glass p-5 rounded-2xl text-white shadow-2xl border border-emerald-500/20">
+            <h1 class="text-lg font-bold mb-4 text-emerald-400">Controles do Jardim</h1>
+            
+            <div class="space-y-5">
+                <div>
+                    <div class="flex justify-between text-[11px] uppercase tracking-wider mb-1 text-gray-300">
+                        <label>Pinos ($2c$)</label>
+                        <span id="val-c" class="text-emerald-400 font-bold">8.0</span>
+                    </div>
+                    <input type="range" id="param-c" min="0.5" max="8.5" step="0.1" value="8" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-[11px] uppercase tracking-wider mb-1 text-gray-300">
+                        <label>Corda ($2a$)</label>
+                        <span id="val-a" class="text-emerald-400 font-bold">10.0</span>
+                    </div>
+                    <input type="range" id="param-a" min="1" max="14" step="0.1" value="10" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-[11px] uppercase tracking-wider mb-1 text-gray-300">
+                        <label>Espessura do Fio</label>
+                        <span id="val-thickness" class="text-emerald-400 font-bold">0.05</span>
+                    </div>
+                    <input type="range" id="param-thickness" min="0.01" max="0.15" step="0.01" value="0.05" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+                
+                <div>
+                    <div class="flex justify-between text-[11px] uppercase tracking-wider mb-1 text-gray-300">
+                        <label>Velocidade</label>
+                        <span id="val-speed" class="text-emerald-400 font-bold">1.0x</span>
+                    </div>
+                    <input type="range" id="param-speed" min="0" max="3" step="0.1" value="1" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-white/5">
+                <button id="reset-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs transition-colors font-bold uppercase tracking-widest shadow-lg">
+                    Reiniciar Desenho
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de Ajuda -->
+    <div id="help-panel" class="fixed top-20 left-4 z-40 max-w-[400px] w-full panel-transition hidden-panel">
+        <div class="glass p-6 rounded-2xl text-white shadow-2xl max-h-[80vh] flex flex-col border border-emerald-500/20">
+            <h2 class="text-xl font-bold mb-3 text-emerald-400 border-b border-white/10 pb-2 flex items-center gap-2">
+                O Método do Jardineiro
+            </h2>
+            
+            <div id="math-content" class="overflow-y-auto custom-scroll pr-2 text-sm text-gray-300 space-y-5">
+                <section>
+                    <h3 class="text-emerald-400 font-semibold mb-1 uppercase text-[10px] tracking-widest">A Tradição Prática</h3>
+                    <p>Antigamente, jardineiros precisavam criar canteiros elípticos perfeitos usando apenas ferramentas simples. Eles fixavam duas estacas no solo e amarravam uma corda entre elas.</p>
+                </section>
+
+                <section>
+                    <h3 class="text-white font-semibold mb-1 uppercase text-[10px] tracking-widest">Os Elementos Físicos</h3>
+                    <ul class="space-y-3">
+                        <li class="flex gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span><strong class="text-white">Estacas (Pinos):</strong> Representam os <strong>Focos</strong> ($F_1$ e $F_2$). Quanto mais distantes entre si, mais "achatada" será a elipse.</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span><strong class="text-white">Corda:</strong> Representa a soma constante das distâncias ($2a$). Ela deve ser sempre maior que a distância entre as estacas.</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span><strong class="text-white">Lápis (Estaca Móvel):</strong> Ao deslizar mantendo a corda sempre esticada, a ponta desenha naturalmente a curva elíptica.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3 class="text-white font-semibold mb-1 uppercase text-[10px] tracking-widest">A Matemática por Trás</h3>
+                    <p>Geometricamente, a elipse é definida pela soma das distâncias até os focos:</p>
+                    <div class="bg-black/40 p-3 rounded mt-2 text-center text-emerald-300 shadow-inner">
+                        $$d(P, F_1) + d(P, F_2) = 2a$$
+                    </div>
+                    <p class="mt-4">A relação fundamental entre o semi-eixo maior ($a$), o menor ($b$) e a distância focal ($c$) é dada por:</p>
+                    <div class="bg-black/40 p-3 rounded mt-2 text-center text-emerald-300 shadow-inner">
+                        $$a^2 = b^2 + c^2$$
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-white font-semibold mb-1 uppercase text-[10px] tracking-widest">Como Usar</h3>
+                    <p class="text-xs leading-relaxed italic border-l-2 border-emerald-500 pl-3">
+                        Experimente afastar os pinos para ver a elipse "esticar" (aumentar a excentricidade), ou aproxime-os até que se toquem para transformar a elipse em um círculo perfeito!
+                    </p>
+                </section>
+            </div>
+            
+            <button id="close-help" class="mt-6 bg-white/5 hover:bg-white/10 text-[11px] text-emerald-400 py-2 rounded-lg uppercase font-bold tracking-widest transition-colors border border-emerald-500/30">
+                Começar Exploração
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State Management - Ajustados para 2c = 8 (c=4) e corda = 10 (a=5)
+        const state = {
+            a: 5,        // semi-eixo maior (metade da corda)
+            c: 4,        // semi-distância focal (metade da distância entre pinos)
+            speed: 0.015,
+            theta: 0,
+            ropeThickness: 0.05,
+            trailPoints: [],
+            panelOpen: false,
+            helpOpen: true 
+        };
+
+        let scene, camera, renderer, controls;
+        let focus1, focus2, pencilGroup, rope1, rope2, trail, board;
+
+        function renderMath() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError : false
+                });
+            }
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const spotLight = new THREE.SpotLight(0xffffff, 1.4);
+            spotLight.position.set(5, 10, 15);
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 2048;
+            spotLight.shadow.mapSize.height = 2048;
+            scene.add(spotLight);
+
+            createEnvironment();
+            createGeometricElements();
+            setupUI();
+            
+            renderMath();
+            animate();
+            window.addEventListener('resize', onWindowResize);
+            
+            setTimeout(() => {
+                document.getElementById('help-panel').classList.remove('hidden-panel');
+            }, 500);
+        }
+
+        function updateCameraPosition() {
+            const aspect = window.innerWidth / window.innerHeight;
+            const distance = aspect < 1 ? 24 : 18; // Levemente mais longe para garantir visão completa
+            camera.position.set(0, -distance, distance);
+            camera.lookAt(0, 0, 0);
+        }
+
+        function createEnvironment() {
+            const boardGeo = new THREE.BoxGeometry(16, 16, 0.2);
+            const boardMat = new THREE.MeshStandardMaterial({ 
+                color: 0x1e293b, 
+                roughness: 0.85,
+                metalness: 0.1
+            });
+            board = new THREE.Mesh(boardGeo, boardMat);
+            board.receiveShadow = true;
+            board.position.z = -0.11;
+            scene.add(board);
+
+            const grid = new THREE.GridHelper(16, 16, 0x334155, 0x1e293b);
+            grid.rotation.x = Math.PI / 2;
+            grid.position.z = -0.1;
+            scene.add(grid);
+        }
+
+        function createGeometricElements() {
+            const pinGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7, 32);
+            const pinMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.2 });
+            
+            focus1 = new THREE.Mesh(pinGeo, pinMat);
+            focus1.rotation.x = Math.PI / 2;
+            focus1.castShadow = true;
+            scene.add(focus1);
+
+            focus2 = focus1.clone();
+            scene.add(focus2);
+
+            pencilGroup = new THREE.Group();
+            const bodyGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.5, 6);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.5 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1.8;
+            body.castShadow = true;
+            pencilGroup.add(body);
+
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0xd2b48c, roughness: 0.8 });
+            const woodGeo = new THREE.ConeGeometry(0.08, 0.35, 12);
+            const wood = new THREE.Mesh(woodGeo, woodMat);
+            wood.position.y = 0.15;
+            wood.castShadow = true;
+            pencilGroup.add(wood);
+
+            const tipGeo = new THREE.ConeGeometry(0.02, 0.1, 12);
+            const tipMat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
+            const tip = new THREE.Mesh(tipGeo, tipMat);
+            tip.position.y = 0.04;
+            pencilGroup.add(tip);
+
+            pencilGroup.rotation.x = Math.PI / 2;
+            pencilGroup.rotation.z = 0.25; 
+            scene.add(pencilGroup);
+
+            const ropeMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.9 });
+            rope1 = new THREE.Mesh(new THREE.BufferGeometry(), ropeMat);
+            rope1.castShadow = true;
+            scene.add(rope1);
+
+            rope2 = new THREE.Mesh(new THREE.BufferGeometry(), ropeMat);
+            rope2.castShadow = true;
+            scene.add(rope2);
+
+            const trailMat = new THREE.LineBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.7 });
+            trail = new THREE.Line(new THREE.BufferGeometry(), trailMat);
+            scene.add(trail);
+
+            updatePositions();
+        }
+
+        function updatePositions() {
+            if (state.a <= state.c) {
+                state.a = state.c + 0.1;
+                document.getElementById('param-a').value = state.a * 2;
+                document.getElementById('val-a').innerText = (state.a * 2).toFixed(1);
+            }
+
+            const b = Math.sqrt(state.a**2 - state.c**2);
+            focus1.position.set(-state.c, 0, 0.2);
+            focus2.position.set(state.c, 0, 0.2);
+
+            const x = state.a * Math.cos(state.theta);
+            const y = b * Math.sin(state.theta);
+            pencilGroup.position.set(x, y, 0.1);
+
+            const curve1 = new THREE.LineCurve3(new THREE.Vector3(-state.c, 0, 0.2), new THREE.Vector3(x, y, 0.2));
+            if (rope1.geometry) rope1.geometry.dispose();
+            rope1.geometry = new THREE.TubeGeometry(curve1, 32, state.ropeThickness, 12, false);
+
+            const curve2 = new THREE.LineCurve3(new THREE.Vector3(x, y, 0.2), new THREE.Vector3(state.c, 0, 0.2));
+            if (rope2.geometry) rope2.geometry.dispose();
+            rope2.geometry = new THREE.TubeGeometry(curve2, 32, state.ropeThickness, 12, false);
+        }
+
+        function setupUI() {
+            const panel = document.getElementById('settings-panel');
+            const helpPanel = document.getElementById('help-panel');
+            const toggleBtn = document.getElementById('toggle-settings');
+            const toggleHelpBtn = document.getElementById('toggle-help');
+            const closeHelpBtn = document.getElementById('close-help');
+
+            const inputA = document.getElementById('param-a');
+            const inputC = document.getElementById('param-c');
+            const inputT = document.getElementById('param-thickness');
+            const inputS = document.getElementById('param-speed');
+            const btnReset = document.getElementById('reset-btn');
+
+            toggleBtn.addEventListener('click', () => {
+                state.panelOpen = !state.panelOpen;
+                panel.classList.toggle('hidden-panel', !state.panelOpen);
+                if (state.panelOpen) {
+                    state.helpOpen = false;
+                    helpPanel.classList.add('hidden-panel');
+                    renderMath();
+                }
+            });
+
+            toggleHelpBtn.addEventListener('click', () => {
+                state.helpOpen = !state.helpOpen;
+                helpPanel.classList.toggle('hidden-panel', !state.helpOpen);
+                if (state.helpOpen) {
+                    state.panelOpen = false;
+                    panel.classList.add('hidden-panel');
+                    renderMath();
+                }
+            });
+
+            closeHelpBtn.addEventListener('click', () => {
+                state.helpOpen = false;
+                helpPanel.classList.add('hidden-panel');
+            });
+
+            inputC.addEventListener('input', (e) => {
+                const val2c = parseFloat(e.target.value);
+                state.c = val2c / 2;
+                document.getElementById('val-c').innerText = val2c.toFixed(1);
+                if (state.a <= state.c) {
+                    state.a = state.c + 0.05;
+                    inputA.value = state.a * 2;
+                    document.getElementById('val-a').innerText = (state.a * 2).toFixed(1);
+                }
+                clearTrail();
+                updatePositions();
+            });
+
+            inputA.addEventListener('input', (e) => {
+                const val2a = parseFloat(e.target.value);
+                state.a = val2a / 2;
+                document.getElementById('val-a').innerText = val2a.toFixed(1);
+                if (state.a <= state.c) {
+                    state.c = state.a - 0.05;
+                    inputC.value = state.c * 2;
+                    document.getElementById('val-c').innerText = (state.c * 2).toFixed(1);
+                }
+                clearTrail();
+                updatePositions();
+            });
+
+            inputT.addEventListener('input', (e) => {
+                state.ropeThickness = parseFloat(e.target.value);
+                document.getElementById('val-thickness').innerText = state.ropeThickness.toFixed(2);
+                updatePositions();
+            });
+
+            inputS.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                state.speed = 0.015 * val;
+                document.getElementById('val-speed').innerText = val.toFixed(1) + 'x';
+            });
+
+            btnReset.addEventListener('click', clearTrail);
+        }
+
+        function clearTrail() {
+            state.trailPoints = [];
+            trail.geometry.setFromPoints([]);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateCameraPosition();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (state.speed > 0) {
+                state.theta += state.speed;
+                const b = Math.sqrt(state.a**2 - state.c**2);
+                const x = state.a * Math.cos(state.theta);
+                const y = b * Math.sin(state.theta);
+                if (state.trailPoints.length < 3000) {
+                    state.trailPoints.push(new THREE.Vector3(x, y, 0.05));
+                    trail.geometry.setFromPoints(state.trailPoints);
+                }
+                updatePositions();
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
