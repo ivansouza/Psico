@@ -1,0 +1,455 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Dna, 
+  Target, 
+  Briefcase, 
+  Heart, 
+  ShieldAlert, 
+  Coins, 
+  History, 
+  Lightbulb, 
+  Compass,
+  User,
+  Plus,
+  Trash2,
+  Users,
+  Sparkles,
+  Loader2,
+  ChevronRight,
+  Info,
+  Settings,
+  X,
+  ExternalLink,
+  Key
+} from 'lucide-react';
+
+const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+
+const App = () => {
+  const [step, setStep] = useState('input');
+  const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // Gerenciamento da API Key via LocalStorage
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('astroguia_gemini_key') || "";
+  });
+
+  const [profiles, setProfiles] = useState({
+    user: { name: '', dob: '' },
+    partner: null,
+    children: []
+  });
+  const [results, setResults] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('astroguia_gemini_key', apiKey);
+  }, [apiKey]);
+
+  const fetchWithRetry = async (url, options, retries = 5, backoff = 1000) => {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) throw new Error(`Erro HTTP! Status: ${response.status}`);
+      return await response.json();
+    } catch (err) {
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, backoff));
+        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      }
+      throw err;
+    }
+  };
+
+  const generateAnalysis = async () => {
+    if (!apiKey) {
+      setError("Por favor, configure sua Chave de API do Gemini nas configurações (ícone de engrenagem).");
+      setShowSettings(true);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const systemPrompt = `Você é um mentor de vida, psicólogo analítico e estrategista comportamental de elite. Sua função é atuar como um decodificador de padrões existenciais de alta precisão.
+    
+    ESTILO DE REDAÇÃO:
+    - Cada análise deve ser EXTREMAMENTE COMPLETA, PROFUNDA e LONGA (mínimo de 500 palavras por seção).
+    - Use múltiplos parágrafos (pelo menos 4 a 6 por aba).
+    - Evite respostas curtas ou superficiais. Queremos uma consulta de luxo, densa em conteúdo e insights.
+    - Use uma linguagem sofisticada, mas acessível, misturando psicologia analítica com estratégia prática.
+    
+    INSTRUÇÕES CRÍTICAS:
+    1. Gere 9 análises separadas seguindo a lógica dos prompts: blueprint, purpose, goals, career, relationships, shadow, wealth, timeline e genius.
+    2. Integre a dinâmica familiar (cônjuge e filhos) em todas as seções.
+    3. Responda EXCLUSIVAMENTE em formato JSON.
+
+    ESTRUTURA JSON:
+    {
+      "blueprint": "...",
+      "purpose": "...",
+      "goals": "...",
+      "career": "...",
+      "relationships": "...",
+      "shadow": "...",
+      "wealth": "...",
+      "timeline": "...",
+      "genius": "..."
+    }`;
+
+    const userContext = `
+      DADOS PARA DECODIFICAÇÃO:
+      Nome do Usuário: ${profiles.user.name} | Nascimento: ${profiles.user.dob}
+      ${profiles.partner ? `Cônjuge: ${profiles.partner.name} | Nascimento: ${profiles.partner.dob}` : ''}
+      ${profiles.children.length > 0 ? `Filhos: ${profiles.children.map(c => `${c.name} (${c.dob})`).join(', ')}` : ''}
+      
+      Gere agora a análise completa e profunda em Português do Brasil.
+    `;
+
+    try {
+      const result = await fetchWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: userContext }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { 
+              responseMimeType: "application/json",
+              maxOutputTokens: 8192,
+              temperature: 0.8
+            }
+          })
+        }
+      );
+
+      const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (responseText) {
+        setResults(JSON.parse(responseText));
+        setStep('results');
+      } else {
+        throw new Error("Resposta inválida.");
+      }
+    } catch (err) {
+      setError("Erro ao conectar com a API. Verifique sua chave de API nas configurações.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tabs = [
+    { id: 'blueprint', label: 'Blueprint', icon: Dna },
+    { id: 'purpose', label: 'Propósito', icon: Compass },
+    { id: 'goals', label: 'Objetivos', icon: Target },
+    { id: 'career', label: 'Carreira', icon: Briefcase },
+    { id: 'relationships', label: 'Relações', icon: Heart },
+    { id: 'shadow', label: 'Sombra', icon: ShieldAlert },
+    { id: 'wealth', label: 'Riqueza', icon: Coins },
+    { id: 'timeline', label: 'Linha Tempo', icon: History },
+    { id: 'genius', label: 'Gênio', icon: Lightbulb },
+  ];
+
+  const handleAddChild = () => {
+    setProfiles(p => ({ ...p, children: [...p.children, { id: Date.now(), name: '', dob: '' }] }));
+  };
+
+  return (
+    <div className="min-h-screen bg-[#020205] text-slate-200 font-sans selection:bg-indigo-500/30">
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowSettings(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setShowSettings(false)}
+              className="absolute top-6 right-6 p-2 text-slate-500 hover:text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400">
+                <Settings className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold uppercase tracking-tight">Configurações</h2>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Key className="w-3 h-3" /> Gemini API Key
+                </label>
+                <input 
+                  type="password"
+                  placeholder="Cole sua chave aqui..."
+                  className="w-full bg-black/40 border border-slate-800 rounded-2xl px-5 py-4 outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+                <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                  Sua chave é salva apenas localmente no seu navegador e nunca é enviada para nossos servidores.
+                </p>
+              </div>
+
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all text-indigo-300"
+              >
+                Obter Chave Grátis no AI Studio <ExternalLink className="w-4 h-4" />
+              </a>
+
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="w-full py-4 bg-indigo-600 rounded-2xl font-bold uppercase tracking-widest hover:bg-indigo-500 transition-all"
+              >
+                Salvar e Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Background Decor */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-900/10 blur-[150px] rounded-full"></div>
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-900/10 blur-[150px] rounded-full"></div>
+      </div>
+
+      {/* Fixed Settings Toggle */}
+      <button 
+        onClick={() => setShowSettings(true)}
+        className="fixed top-8 right-8 z-[50] p-4 bg-slate-900/50 border border-white/5 rounded-2xl hover:bg-white/10 backdrop-blur-md transition-all group"
+      >
+        <Settings className="w-6 h-6 text-slate-400 group-hover:rotate-90 transition-transform duration-500" />
+      </button>
+
+      <main className="relative z-10 max-w-5xl mx-auto px-4 py-12 pb-32">
+        
+        <header className="text-center mb-16">
+          <div className="inline-block p-3 bg-white/5 rounded-2xl border border-white/10 mb-6">
+            <Sparkles className="w-8 h-8 text-indigo-400" />
+          </div>
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500 mb-4 uppercase">
+            ASTROGUIA
+          </h1>
+          <p className="text-slate-500 font-medium tracking-[0.3em] text-[10px] uppercase">Decodificação Existencial • Planejamento de Vida</p>
+        </header>
+
+        {step === 'input' && (
+          <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            {/* Input Section - Identity */}
+            <div className="bg-slate-900/30 border border-slate-800/50 rounded-[2.5rem] p-8 md:p-10 backdrop-blur-xl">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                  <User className="w-6 h-6 text-indigo-400" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight">Sua Identidade</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
+                  <input 
+                    placeholder="Como você assina sua história?"
+                    className="w-full bg-black/40 border border-slate-800 rounded-2xl px-6 py-5 outline-none focus:border-indigo-500 transition-all text-lg"
+                    value={profiles.user.name}
+                    onChange={e => setProfiles({...profiles, user: {...profiles.user, name: e.target.value}})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nascimento</label>
+                  <input 
+                    type="date"
+                    className="w-full bg-black/40 border border-slate-800 rounded-2xl px-6 py-5 outline-none focus:border-indigo-500 transition-all text-lg"
+                    value={profiles.user.dob}
+                    onChange={e => setProfiles({...profiles, user: {...profiles.user, dob: e.target.value}})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Input Section - Relationships */}
+            <div className="bg-slate-900/30 border border-slate-800/50 rounded-[2.5rem] p-8 md:p-10 backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+                    <Heart className="w-6 h-6 text-rose-400" />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight">Núcleo Familiar</h2>
+                </div>
+                {!profiles.partner && (
+                  <button onClick={() => setProfiles({...profiles, partner: {name: '', dob: ''}})} className="text-[10px] bg-white/5 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-all uppercase font-black tracking-widest">
+                    Adicionar Cônjuge
+                  </button>
+                )}
+              </div>
+              {profiles.partner && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in zoom-in-95">
+                  <input 
+                    placeholder="Nome"
+                    className="w-full bg-black/40 border border-slate-800 rounded-2xl px-6 py-5 outline-none"
+                    value={profiles.partner.name}
+                    onChange={e => setProfiles({...profiles, partner: {...profiles.partner, name: e.target.value}})}
+                  />
+                  <div className="flex gap-4">
+                    <input 
+                      type="date"
+                      className="flex-1 bg-black/40 border border-slate-800 rounded-2xl px-6 py-5 outline-none"
+                      value={profiles.partner.dob}
+                      onChange={e => setProfiles({...profiles, partner: {...profiles.partner, dob: e.target.value}})}
+                    />
+                    <button onClick={() => setProfiles({...profiles, partner: null})} className="p-5 text-slate-600 hover:text-rose-500 transition-colors"><Trash2 className="w-6 h-6" /></button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Section - Children */}
+            <div className="bg-slate-900/30 border border-slate-800/50 rounded-[2.5rem] p-8 md:p-10 backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-sky-500/10 rounded-2xl border border-sky-500/20">
+                    <Users className="w-6 h-6 text-sky-400" />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight">Filhos</h2>
+                </div>
+                <button onClick={handleAddChild} className="text-[10px] bg-white/5 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-all uppercase font-black tracking-widest flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Adicionar
+                </button>
+              </div>
+              <div className="space-y-4">
+                {profiles.children.map((child, idx) => (
+                  <div key={child.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in slide-in-from-left-4">
+                    <input 
+                      placeholder="Nome do filho"
+                      className="md:col-span-2 bg-black/40 border border-slate-800 rounded-2xl px-6 py-4 outline-none text-sm"
+                      value={child.name}
+                      onChange={e => setProfiles({...profiles, children: profiles.children.map(c => c.id === child.id ? {...c, name: e.target.value} : c)})}
+                    />
+                    <div className="flex gap-4">
+                      <input 
+                        type="date"
+                        className="flex-1 bg-black/40 border border-slate-800 rounded-2xl px-6 py-4 outline-none text-sm"
+                        value={child.dob}
+                        onChange={e => setProfiles({...profiles, children: profiles.children.map(c => c.id === child.id ? {...c, dob: e.target.value} : c)})}
+                      />
+                      <button onClick={() => setProfiles({...profiles, children: profiles.children.filter(c => c.id !== child.id)})} className="p-3 text-slate-600 hover:text-rose-500 transition-colors"><Trash2 className="w-5 h-5" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button 
+              disabled={!profiles.user.name || !profiles.user.dob || loading}
+              onClick={generateAnalysis}
+              className="w-full bg-white text-black py-8 rounded-[2.5rem] font-black text-2xl hover:bg-indigo-50 transition-all flex items-center justify-center gap-4 disabled:opacity-20 shadow-2xl"
+            >
+              {loading ? <><Loader2 className="w-8 h-8 animate-spin" /> CODIFICANDO...</> : <><Sparkles className="w-8 h-8" /> INICIAR LEITURA PROFUNDA</>}
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-8 p-6 bg-rose-950/20 border border-rose-500/30 rounded-3xl text-rose-200 text-sm flex gap-4 items-center max-w-3xl mx-auto">
+            <Info className="w-6 h-6 shrink-0" /> {error}
+          </div>
+        )}
+
+        {step === 'results' && results && (
+          <div className="animate-in fade-in duration-1000">
+            {/* Desktop Tabs */}
+            <div className="hidden lg:flex flex-wrap gap-2 mb-10 bg-slate-900/30 p-2 rounded-[2.5rem] border border-slate-800/50 backdrop-blur-md">
+              {tabs.map((tab, idx) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(idx)}
+                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-[2rem] transition-all font-black text-[10px] uppercase tracking-[0.2em] ${activeTab === idx ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Tabs */}
+            <div className="lg:hidden flex overflow-x-auto no-scrollbar gap-3 mb-8 -mx-4 px-4">
+              {tabs.map((tab, idx) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(idx)}
+                  className={`flex-none flex flex-col items-center justify-center w-28 h-28 rounded-[2rem] border transition-all ${activeTab === idx ? 'bg-white border-white text-black shadow-lg shadow-white/10' : 'bg-slate-900/40 border-slate-800 text-slate-500'}`}
+                >
+                  <tab.icon className="w-6 h-6 mb-3" />
+                  <span className="text-[9px] font-black uppercase tracking-tighter text-center leading-tight">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Results Content */}
+            <div className="bg-slate-900/20 border border-slate-800/50 rounded-[3rem] p-8 md:p-16 backdrop-blur-3xl shadow-2xl min-h-[700px] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03] transition-transform duration-1000 group-hover:scale-110">
+                {React.createElement(tabs[activeTab].icon, { size: 300 })}
+              </div>
+              
+              <div className="relative z-10 prose prose-invert max-w-none">
+                <div className="flex flex-col md:flex-row md:items-center gap-6 mb-12">
+                  <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10">
+                    {React.createElement(tabs[activeTab].icon, { className: "w-10 h-10 text-indigo-400" })}
+                  </div>
+                  <div>
+                    <p className="text-indigo-500 text-xs font-black uppercase tracking-[0.4em] mb-2">Análise 0{activeTab + 1}</p>
+                    <h2 className="text-4xl md:text-5xl font-black text-white m-0 uppercase tracking-tighter">{tabs[activeTab].label}</h2>
+                  </div>
+                </div>
+
+                <div className="text-slate-300 leading-[1.8] text-lg md:text-xl space-y-8 font-light">
+                  {results[tabs[activeTab].id].split('\n').map((line, i) => {
+                    if (line.trim() === '') return <div key={i} className="h-4" />;
+                    if (line.startsWith('### ')) return (
+                      <h3 key={i} className="text-2xl font-black text-white mt-12 mb-6 border-b border-white/10 pb-4 uppercase tracking-tight">
+                        {line.replace('### ', '')}
+                      </h3>
+                    );
+                    if (line.startsWith('**') || line.includes(':**')) {
+                      return <p key={i} className="font-semibold text-white/90 bg-white/5 p-6 rounded-2xl border-l-4 border-indigo-500">{line.replace(/\*\*/g, '')}</p>;
+                    }
+                    return <p key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-700">{line}</p>;
+                  })}
+                </div>
+
+                <div className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+                  <button 
+                    onClick={() => setStep('input')} 
+                    className="text-[10px] text-slate-500 hover:text-white transition-all uppercase font-black tracking-[0.3em] flex items-center gap-2 group"
+                  >
+                    <History className="w-4 h-4 group-hover:rotate-[-180deg] transition-transform duration-500" /> Reiniciar Mapeamento
+                  </button>
+                  <div className="flex gap-4">
+                    {activeTab > 0 && (
+                      <button onClick={() => setActiveTab(activeTab - 1)} className="p-5 bg-white/5 border border-white/10 rounded-[1.5rem] hover:bg-white/10 transition-colors"><ChevronRight className="w-6 h-6 rotate-180" /></button>
+                    )}
+                    {activeTab < tabs.length - 1 && (
+                      <button onClick={() => setActiveTab(activeTab + 1)} className="p-5 bg-white/5 border border-white/10 rounded-[1.5rem] hover:bg-white/10 transition-colors"><ChevronRight className="w-6 h-6" /></button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      <footer className="fixed bottom-0 left-0 w-full p-8 text-center text-[9px] text-slate-700 uppercase tracking-[0.4em] pointer-events-none">
+        Copyright © 2026 • AstroGuia • v2.6.0
+      </footer>
+    </div>
+  );
+};
+
+export default App;
+
