@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Square Wheel - Pro Persistence</title>
+    <title>Square Wheel - Local Storage Persistence</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0a0d10; font-family: 'Inter', sans-serif; touch-action: none; }
         
@@ -72,7 +72,7 @@
         #gear-icon svg { fill: #00ffcc; width: 22px; height: 22px; }
         #gear-icon.active { transform: rotate(90deg); border-color: transparent; }
 
-        /* Painel de Definições - Transparente */
+        /* Painel de Definições - Totalmente Transparente */
         #settings-panel {
             position: absolute;
             top: 0;
@@ -127,6 +127,9 @@
         
         .value-display { float: right; color: #00ffcc; font-size: 9px; font-weight: bold; }
 
+        .btn-row { display: flex; gap: 5px; margin-top: 15px; }
+        .small-btn { flex: 1; padding: 6px; font-size: 8px; }
+
         #toast {
             position: absolute;
             top: 80px;
@@ -146,9 +149,6 @@
             pointer-events: none;
             z-index: 100;
         }
-
-        .btn-row { display: flex; gap: 5px; margin-top: 15px; }
-        .small-btn { flex: 1; padding: 6px; font-size: 8px; }
 
         #instructions {
             position: absolute;
@@ -178,7 +178,7 @@
     <div style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Girando com apoio de arcos</div>
 </div>
 
-<div id="toast">Configurações Guardadas</div>
+<div id="toast">Ação Concluída</div>
 
 <div id="gear-icon" onclick="toggleSettings(event)">
     <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
@@ -225,164 +225,32 @@
     </div>
 
     <div class="btn-row">
-        <button class="action-btn small-btn" onclick="saveSettings()">Gravar</button>
-        <button class="action-btn small-btn" onclick="copySettings()">Copiar</button>
+        <button class="action-btn small-btn" onclick="saveToLocalStorage()">Gravar</button>
+        <button class="action-btn small-btn" onclick="copyConfigToClipboard()">Copiar</button>
     </div>
     <button class="action-btn" onclick="resetToDefaults()" style="width: 100%; margin-top: 10px;">Resetar</button>
 </div>
 
-<div id="instructions">Clique na cena para fechar as definições</div>
+<div id="instructions">Arraste para orbitar | Clique fora para fechar o menu</div>
 
 <div id="controls-ui">
     <button class="action-btn" id="playPause">Pausar</button>
     <button class="action-btn" id="resetCamera">Câmara</button>
 </div>
 
-<!-- Firebase SDKs -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // Globals provided by environment
-    const firebaseConfig = JSON.parse(__firebase_config);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    
-    // Init
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    let user = null;
-
-    // Auth logic
-    const initAuth = async () => {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-            await signInAnonymously(auth);
-        }
-    };
-    initAuth();
-
-    onAuthStateChanged(auth, (u) => {
-        user = u;
-        if (user) {
-            loadFromCloud();
-        }
-    });
-
-    // Cloud Persistence Logic
-    window.saveSettings = async () => {
-        if (!user) return;
-        
-        const settingsData = {
-            config: config,
-            camera: {
-                position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
-                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
-            },
-            timestamp: Date.now()
-        };
-
-        try {
-            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'app_settings', 'initial');
-            await setDoc(docRef, settingsData);
-            showToast("Configuração Gravada");
-        } catch (e) {
-            console.error("Erro ao gravar:", e);
-        }
-    };
-
-    const loadFromCloud = async () => {
-        if (!user) return;
-        try {
-            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'app_settings', 'initial');
-            const docSnap = await getDoc(docRef);
-            
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                Object.assign(config, data.config);
-                
-                // Sync UI
-                updateUIFromConfig();
-                
-                // Update Scene
-                updateCalculatedValues();
-                buildScene();
-                renderer.toneMappingExposure = config.exposure;
-                
-                // Set Camera
-                if (data.camera) {
-                    camera.position.set(data.camera.position.x, data.camera.position.y, data.camera.position.z);
-                    controls.target.set(data.camera.target.x, data.camera.target.y, data.camera.target.z);
-                    controls.update();
-                }
-                showToast("Configurações Carregadas");
-            }
-        } catch (e) {
-            console.error("Erro ao carregar:", e);
-        }
-    };
-
-    window.copySettings = () => {
-        const data = {
-            config: config,
-            camera: {
-                position: camera.position,
-                target: controls.target
-            }
-        };
-        const text = JSON.stringify(data, null, 4);
-        
-        // Custom clipboard logic for iFrame
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showToast("JSON copiado para a área de transferência");
-        } catch (err) {
-            console.error('Fallback: Oops, unable to copy', err);
-        }
-        document.body.removeChild(textArea);
-    };
-
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.opacity = '1';
-        setTimeout(() => t.style.opacity = '0', 3000);
-    }
-
-    function updateUIFromConfig() {
-        document.getElementById('input-speed').value = config.speed;
-        document.getElementById('val-speed').innerText = config.speed;
-        document.getElementById('input-size').value = config.cubeSize;
-        document.getElementById('val-size').innerText = config.cubeSize;
-        document.getElementById('input-arches').value = config.numArches;
-        document.getElementById('val-arches').innerText = config.numArches;
-        document.getElementById('input-color-cube').value = config.cubeColor;
-        document.getElementById('input-color-trail').value = config.trailColor;
-        document.getElementById('input-trail-len').value = config.maxTrailPoints;
-        document.getElementById('val-trail-len').innerText = config.maxTrailPoints;
-        document.getElementById('input-exposure').value = config.exposure;
-        document.getElementById('val-exposure').innerText = config.exposure;
-    }
-</script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-    // Traditional scripts handle the 3D Engine
+    // --- Variáveis de Sistema ---
     let scene, camera, renderer, cube, track, pivot, controls, gridHelper, floor, ring, pin;
     let isMoving = true;
     let angle = 0;
     let outerMarker, innerMarker;
     let trailPoints = [];
+    const STORAGE_KEY = 'square_wheel_settings';
 
+    // Parâmetros Iniciais
     let config = {
         speed: 0.008,
         cubeSize: 2.0,
@@ -394,7 +262,92 @@
         pinExtension: 1.5
     };
 
+    // Variáveis Matemáticas
     let SIDE, HALF_SIDE, NUM_ARCHES, RADIUS, CIRCUMFERENCE, VALLEY_Y, MARKER_OFFSET;
+
+    // --- Persistência (Local Storage) ---
+
+    function saveToLocalStorage() {
+        const data = {
+            config: config,
+            camera: {
+                position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+            }
+        };
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            showToast("Configurações Gravadas!");
+        } catch (e) {
+            showToast("Erro ao gravar no LocalStorage");
+        }
+    }
+
+    function loadFromLocalStorage() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return false;
+        try {
+            const data = JSON.parse(stored);
+            if (data.config) Object.assign(config, data.config);
+            
+            // Re-sincronizar UI e Cena
+            updateUIFromConfig();
+            updateCalculatedValues();
+            
+            // A posição da câmara só pode ser definida após o init terminar
+            setTimeout(() => {
+                if (data.camera) {
+                    camera.position.set(data.camera.position.x, data.camera.position.y, data.camera.position.z);
+                    controls.target.set(data.camera.target.x, data.camera.target.y, data.camera.target.z);
+                    controls.update();
+                }
+                showToast("Dados recuperados");
+            }, 100);
+            return true;
+        } catch (e) { return false; }
+    }
+
+    // --- Exportação (Clipboard) ---
+
+    async function copyConfigToClipboard() {
+        const data = {
+            config: config,
+            camera: {
+                position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+            },
+            exportedAt: new Date().toISOString()
+        };
+        const text = JSON.stringify(data, null, 4);
+
+        // API Moderna (HTTPS)
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast("JSON copiado!");
+                return;
+            } catch (err) {}
+        }
+
+        // Fallback robusto
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast("JSON copiado (fallback)");
+        } catch (err) {
+            showToast("Erro ao copiar");
+        }
+        document.body.removeChild(textArea);
+    }
+
+    // --- Motor 3D ---
 
     function toggleSettings(event) {
         if (event) event.stopPropagation();
@@ -413,6 +366,13 @@
             toggleSettings();
         }
     });
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.opacity = '1';
+        setTimeout(() => t.style.opacity = '0', 3000);
+    }
 
     function updateCalculatedValues() {
         SIDE = config.cubeSize;
@@ -437,14 +397,9 @@
         envScene.add(mesh);
 
         for(let i=0; i<6; i++) {
-            const lightPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(15, 40),
-                new THREE.MeshBasicMaterial({ color: 0x888888 })
-            );
-            const r = 50;
-            const a = (i / 6) * Math.PI * 2;
-            lightPlane.position.set(Math.cos(a)*r, 5, Math.sin(a)*r);
-            lightPlane.lookAt(0, 0, 0);
+            const lightPlane = new THREE.Mesh(new THREE.PlaneGeometry(15, 40), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+            const r = 50; const a = (i / 6) * Math.PI * 2;
+            lightPlane.position.set(Math.cos(a)*r, 5, Math.sin(a)*r); lightPlane.lookAt(0, 0, 0);
             envScene.add(lightPlane);
         }
 
@@ -476,16 +431,10 @@
 
         scene.environment = generateEnvMap();
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
-        scene.add(ambient);
-        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.3));
         const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
         mainLight.position.set(20, 40, 20);
         scene.add(mainLight);
-
-        const rim1 = new THREE.PointLight(0x00ffcc, 1.5, 50);
-        rim1.position.set(-20, 10, -20);
-        scene.add(rim1);
 
         const followLight = new THREE.PointLight(0xffffff, 2.0, 20);
         scene.add(followLight);
@@ -500,6 +449,10 @@
         buildScene();
         setupUIEvents();
         updateCameraByAspect();
+        
+        // Tentar carregar dados do LocalStorage após a construção inicial
+        loadFromLocalStorage();
+
         window.addEventListener('resize', onResize);
         animate();
     }
@@ -535,9 +488,8 @@
         const cubeMat = new THREE.MeshStandardMaterial({
             color: config.cubeColor,      
             metalness: 1.0,       
-            roughness: 0.12,
-            envMapIntensity: 1.2,
-            emissive: 0x000000,
+            roughness: 0.12,       
+            envMapIntensity: 1.2
         });
         cube = new THREE.Mesh(cubeGeo, cubeMat);
         cube.position.set(RADIUS, 0, 0);
@@ -563,19 +515,18 @@
 
         const markerGeo = new THREE.SphereGeometry(0.08, 12, 12);
         const faceConfigs = [
-            { pos: [MARKER_OFFSET, 0, 0], color: config.trailColor, type: 'outer' }, 
-            { pos: [-MARKER_OFFSET, 0, 0], color: config.trailColor, type: 'inner' }
+            { pos: [MARKER_OFFSET, 0, 0], type: 'outer' }, 
+            { pos: [-MARKER_OFFSET, 0, 0], type: 'inner' }
         ];
 
         faceConfigs.forEach(cfg => {
-            const mat = new THREE.MeshBasicMaterial({ color: cfg.color });
+            const mat = new THREE.MeshBasicMaterial({ color: config.trailColor });
             const marker = new THREE.Mesh(markerGeo, mat);
             marker.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
             parent.add(marker);
             if (cfg.type === 'outer') outerMarker = marker;
             if (cfg.type === 'inner') innerMarker = marker;
-            const light = new THREE.PointLight(cfg.color, 1.5, 4);
-            marker.add(light);
+            marker.add(new THREE.PointLight(config.trailColor, 1.5, 4));
         });
     }
 
@@ -592,31 +543,19 @@
             const archLengthDist = CIRCUMFERENCE / NUM_ARCHES;
             let localL = (l % archLengthDist);
             if (localL > archLengthDist / 2) localL -= archLengthDist;
-            const a = HALF_SIDE;
-            const y = -a * Math.cosh(localL / a);
+            const y = -HALF_SIDE * Math.cosh(localL / HALF_SIDE);
             const r = RADIUS + w;
-            const finalX = Math.cos(theta) * r;
-            const finalZ = Math.sin(theta) * r;
-            const finalY = y;
-            pos.setXYZ(i, finalX, finalY, finalZ);
+            pos.setXYZ(i, Math.cos(theta) * r, y, Math.sin(theta) * r);
         }
         geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({ 
-            color: 0x1a1c20, 
-            roughness: 0.4, 
-            metalness: 0.6, 
-            side: THREE.DoubleSide,
-            envMapIntensity: 0.3
-        });
-        track = new THREE.Mesh(geometry, material);
+        track = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide }));
         scene.add(track);
     }
 
     function clearTrail() {
         while(scene.trailGroup.children.length > 0) {
             const obj = scene.trailGroup.children[0];
-            obj.geometry.dispose();
-            obj.material.dispose();
+            obj.geometry.dispose(); obj.material.dispose();
             scene.trailGroup.remove(obj);
         }
         trailPoints = [];
@@ -624,53 +563,38 @@
 
     function spawnTrailPoint(marker) {
         if (!marker) return;
-        const worldPos = new THREE.Vector3();
-        marker.getWorldPosition(worldPos);
-
-        const trailNodeGeo = new THREE.SphereGeometry(0.04, 8, 8);
-        const trailNodeMat = new THREE.MeshBasicMaterial({ 
-            color: config.trailColor, 
-            transparent: true, 
-            opacity: 0.8 
-        });
-        const trailNode = new THREE.Mesh(trailNodeGeo, trailNodeMat);
+        const worldPos = new THREE.Vector3(); marker.getWorldPosition(worldPos);
+        const trailNode = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshBasicMaterial({ color: config.trailColor, transparent: true, opacity: 0.8 }));
         trailNode.position.copy(worldPos);
-        
         scene.trailGroup.add(trailNode);
         trailPoints.push({ mesh: trailNode });
     }
 
     function updateTrail() {
-        spawnTrailPoint(outerMarker);
-        spawnTrailPoint(innerMarker);
+        spawnTrailPoint(outerMarker); spawnTrailPoint(innerMarker);
         const fadeSpeed = 0.0018; 
         for (let i = trailPoints.length - 1; i >= 0; i--) {
             const node = trailPoints[i].mesh;
             node.material.opacity -= fadeSpeed;
-            const s = Math.max(0, node.material.opacity);
-            node.scale.set(s, s, s);
+            const s = Math.max(0, node.material.opacity); node.scale.set(s, s, s);
             if (node.material.opacity <= 0) {
-                scene.trailGroup.remove(node);
-                node.geometry.dispose();
-                node.material.dispose();
+                scene.trailGroup.remove(node); node.geometry.dispose(); node.material.dispose();
                 trailPoints.splice(i, 1);
             }
         }
         if (trailPoints.length > config.maxTrailPoints * 2) {
             const oldObj = trailPoints.shift();
             scene.trailGroup.remove(oldObj.mesh);
-            oldObj.mesh.geometry.dispose();
-            oldObj.mesh.material.dispose();
         }
     }
 
     function setupUIEvents() {
         const updateSetting = (id, key, needsRebuild = false) => {
             const el = document.getElementById(id);
-            const display = document.getElementById('val-' + id.split('-')[1]);
             el.addEventListener('input', (e) => {
                 const val = e.target.type === 'range' ? parseFloat(e.target.value) : e.target.value;
                 config[key] = val;
+                const display = document.getElementById('val-' + id.split('-')[1]);
                 if (display) display.innerText = val;
                 if (key === 'exposure') renderer.toneMappingExposure = val;
                 else if (needsRebuild) { updateCalculatedValues(); buildScene(); }
@@ -694,8 +618,23 @@
         document.getElementById('resetCamera').onclick = () => updateCameraByAspect();
     }
 
+    function updateUIFromConfig() {
+        document.getElementById('input-speed').value = config.speed;
+        document.getElementById('val-speed').innerText = config.speed;
+        document.getElementById('input-size').value = config.cubeSize;
+        document.getElementById('val-size').innerText = config.cubeSize;
+        document.getElementById('input-arches').value = config.numArches;
+        document.getElementById('val-arches').innerText = config.numArches;
+        document.getElementById('input-color-cube').value = config.cubeColor;
+        document.getElementById('input-color-trail').value = config.trailColor;
+        document.getElementById('input-trail-len').value = config.maxTrailPoints;
+        document.getElementById('val-trail-len').innerText = config.maxTrailPoints;
+        document.getElementById('input-exposure').value = config.exposure;
+        document.getElementById('val-exposure').innerText = config.exposure;
+    }
+
     function resetToDefaults() {
-        config = { speed: 0.008, cubeSize: 2.0, numArches: 16, cubeColor: '#b0b0b0', trailColor: '#ff0000', exposure: 1.4, maxTrailPoints: 800, pinExtension: 1.5 };
+        localStorage.removeItem(STORAGE_KEY);
         location.reload(); 
     }
 
