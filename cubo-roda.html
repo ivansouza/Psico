@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Roda Quadrada de Metal - Mobile Friendly</title>
+    <title>Square Wheel - Pro Persistence</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #10151a; font-family: 'Inter', sans-serif; touch-action: none; }
+        body { margin: 0; overflow: hidden; background: #0a0d10; font-family: 'Inter', sans-serif; touch-action: none; }
         
-        /* UI Principal */
+        /* Interface Principal */
         #ui {
             position: absolute;
             top: 20px;
@@ -16,108 +16,147 @@
             color: #ffffff;
             pointer-events: none;
             z-index: 10;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
         }
+        #ui.hidden { opacity: 0; }
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; color: #00ffcc; font-weight: bold; }
-        .title { font-size: 20px; font-weight: 300; margin-top: 5px; }
+        .title { font-size: 18px; font-weight: 300; margin-top: 5px; }
         
-        /* Botões Inferiores */
+        /* Controlos Inferiores */
         #controls-ui {
             position: absolute;
-            bottom: 30px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 10px;
+            gap: 8px;
             z-index: 10;
-            width: calc(100% - 40px);
+            width: calc(100% - 20px);
             justify-content: center;
         }
-        button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(0, 255, 204, 0.5);
+        button.action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 204, 0.3);
             color: #00ffcc;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 50px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s;
-            backdrop-filter: blur(15px);
             text-transform: uppercase;
-            font-size: 10px;
+            font-size: 9px;
             letter-spacing: 1px;
             white-space: nowrap;
+            backdrop-filter: blur(5px);
         }
-        button:hover {
-            background: #00ffcc;
-            color: #000;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
-        }
+        button.action-btn:hover { background: rgba(0, 255, 204, 0.2); border-color: #00ffcc; }
 
-        /* Ícone de Engrenagem */
+        /* Ícone da Engrenagem */
         #gear-icon {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(0, 255, 204, 0.5);
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 255, 204, 0.3);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 20;
-            transition: transform 0.3s ease;
-            backdrop-filter: blur(10px);
+            z-index: 30;
+            transition: all 0.3s ease;
         }
-        #gear-icon svg { fill: #00ffcc; width: 24px; height: 24px; }
+        #gear-icon svg { fill: #00ffcc; width: 22px; height: 22px; }
+        #gear-icon.active { transform: rotate(90deg); border-color: transparent; }
 
-        /* Painel de Configurações */
+        /* Painel de Definições - Transparente */
         #settings-panel {
             position: absolute;
             top: 0;
-            right: -100%;
-            width: 320px;
-            max-width: 85%;
+            right: -260px;
+            width: 240px;
             height: 100vh;
-            background: rgba(16, 21, 26, 0.9);
-            backdrop-filter: blur(25px);
-            border-left: 1px solid rgba(0, 255, 204, 0.3);
-            padding: 30px;
+            background: transparent;
+            padding: 25px;
             box-sizing: border-box;
             color: white;
             transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 25;
             overflow-y: auto;
+            text-shadow: 1px 1px 3px rgba(0,0,0,1);
         }
         #settings-panel.open { right: 0; }
-        #settings-panel h3 { 
-            margin-top: 0; 
-            border-bottom: 1px solid rgba(0, 255, 204, 0.3); 
-            padding-bottom: 10px;
+        
+        .panel-header {
+            border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+            margin-bottom: 15px;
+            padding-bottom: 6px;
+        }
+        .panel-header h3 { 
+            margin: 0;
             color: #00ffcc;
-            font-weight: 300;
+            font-weight: 400;
             text-transform: uppercase;
-            font-size: 16px;
+            font-size: 11px;
+            letter-spacing: 2px;
         }
 
-        .setting-group { margin-bottom: 18px; }
-        .setting-group label { display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 8px; opacity: 0.7; }
+        .setting-group { margin-bottom: 14px; }
+        .setting-group label { display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 5px; opacity: 0.9; color: #fff; }
         
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #00ffcc; height: 20px; }
-        input[type="color"] { width: 100%; height: 34px; border: none; background: none; cursor: pointer; }
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: #00ffcc; 
+            height: 4px; 
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            appearance: none;
+            outline: none;
+        }
+        input[type="color"] { 
+            width: 100%; 
+            height: 20px; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            background: rgba(0,0,0,0.3); 
+            cursor: pointer; 
+        }
         
-        .value-display { float: right; color: #00ffcc; font-size: 10px; }
+        .value-display { float: right; color: #00ffcc; font-size: 9px; font-weight: bold; }
+
+        #toast {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 204, 0.15);
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .btn-row { display: flex; gap: 5px; margin-top: 15px; }
+        .small-btn { flex: 1; padding: 6px; font-size: 8px; }
 
         #instructions {
             position: absolute;
-            bottom: 85px;
+            bottom: 70px;
             left: 50%;
             transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
             pointer-events: none;
@@ -125,13 +164,9 @@
             text-align: center;
         }
 
-        /* Ajustes Responsivos para Mobile */
         @media (max-width: 600px) {
-            #ui { text-align: center; top: 80px; }
-            .title { font-size: 18px; }
-            #gear-icon { top: 20px; right: 50%; transform: translateX(50%); }
-            #gear-icon:hover { transform: translateX(50%) rotate(90deg); }
-            #settings-panel { max-width: 90%; }
+            #ui { text-align: center; top: 75px; }
+            #settings-panel { width: 220px; }
         }
     </style>
 </head>
@@ -143,12 +178,16 @@
     <div style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Girando com apoio de arcos</div>
 </div>
 
-<div id="gear-icon" onclick="toggleSettings()">
+<div id="toast">Configurações Guardadas</div>
+
+<div id="gear-icon" onclick="toggleSettings(event)">
     <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
 </div>
 
 <div id="settings-panel">
-    <h3>Definições</h3>
+    <div class="panel-header">
+        <h3>Definições</h3>
+    </div>
     
     <div class="setting-group">
         <label>Velocidade <span id="val-speed" class="value-display">0.008</span></label>
@@ -167,7 +206,7 @@
 
     <div class="setting-group">
         <label>Cor do Cubo</label>
-        <input type="color" id="input-color-cube" value="#eeeeee">
+        <input type="color" id="input-color-cube" value="#b0b0b0">
     </div>
 
     <div class="setting-group">
@@ -176,29 +215,168 @@
     </div>
 
     <div class="setting-group">
-        <label>Intensidade Rastro <span id="val-trail-len" class="value-display">800</span></label>
+        <label>Comprimento Rastro <span id="val-trail-len" class="value-display">800</span></label>
         <input type="range" id="input-trail-len" min="0" max="2000" step="50" value="800">
     </div>
 
     <div class="setting-group">
-        <label>Exposição <span id="val-exposure" class="value-display">1.8</span></label>
-        <input type="range" id="input-exposure" min="0.5" max="3.0" step="0.1" value="1.8">
+        <label>Exposição <span id="val-exposure" class="value-display">1.4</span></label>
+        <input type="range" id="input-exposure" min="0.5" max="3.0" step="0.1" value="1.4">
     </div>
 
-    <button onclick="resetToDefaults()" style="width: 100%; margin-top: 10px;">Reset Padronizado</button>
+    <div class="btn-row">
+        <button class="action-btn small-btn" onclick="saveSettings()">Gravar</button>
+        <button class="action-btn small-btn" onclick="copySettings()">Copiar</button>
+    </div>
+    <button class="action-btn" onclick="resetToDefaults()" style="width: 100%; margin-top: 10px;">Resetar</button>
 </div>
 
-<div id="instructions">Toque e arraste para rodar | Zoom com dois dedos</div>
+<div id="instructions">Clique na cena para fechar as definições</div>
 
 <div id="controls-ui">
-    <button id="playPause">Pausar</button>
-    <button id="resetCamera">Reset Câmara</button>
+    <button class="action-btn" id="playPause">Pausar</button>
+    <button class="action-btn" id="resetCamera">Câmara</button>
 </div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Globals provided by environment
+    const firebaseConfig = JSON.parse(__firebase_config);
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    
+    // Init
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let user = null;
+
+    // Auth logic
+    const initAuth = async () => {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+            await signInAnonymously(auth);
+        }
+    };
+    initAuth();
+
+    onAuthStateChanged(auth, (u) => {
+        user = u;
+        if (user) {
+            loadFromCloud();
+        }
+    });
+
+    // Cloud Persistence Logic
+    window.saveSettings = async () => {
+        if (!user) return;
+        
+        const settingsData = {
+            config: config,
+            camera: {
+                position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+            },
+            timestamp: Date.now()
+        };
+
+        try {
+            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'app_settings', 'initial');
+            await setDoc(docRef, settingsData);
+            showToast("Configuração Gravada");
+        } catch (e) {
+            console.error("Erro ao gravar:", e);
+        }
+    };
+
+    const loadFromCloud = async () => {
+        if (!user) return;
+        try {
+            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'app_settings', 'initial');
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                Object.assign(config, data.config);
+                
+                // Sync UI
+                updateUIFromConfig();
+                
+                // Update Scene
+                updateCalculatedValues();
+                buildScene();
+                renderer.toneMappingExposure = config.exposure;
+                
+                // Set Camera
+                if (data.camera) {
+                    camera.position.set(data.camera.position.x, data.camera.position.y, data.camera.position.z);
+                    controls.target.set(data.camera.target.x, data.camera.target.y, data.camera.target.z);
+                    controls.update();
+                }
+                showToast("Configurações Carregadas");
+            }
+        } catch (e) {
+            console.error("Erro ao carregar:", e);
+        }
+    };
+
+    window.copySettings = () => {
+        const data = {
+            config: config,
+            camera: {
+                position: camera.position,
+                target: controls.target
+            }
+        };
+        const text = JSON.stringify(data, null, 4);
+        
+        // Custom clipboard logic for iFrame
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast("JSON copiado para a área de transferência");
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+        document.body.removeChild(textArea);
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.opacity = '1';
+        setTimeout(() => t.style.opacity = '0', 3000);
+    }
+
+    function updateUIFromConfig() {
+        document.getElementById('input-speed').value = config.speed;
+        document.getElementById('val-speed').innerText = config.speed;
+        document.getElementById('input-size').value = config.cubeSize;
+        document.getElementById('val-size').innerText = config.cubeSize;
+        document.getElementById('input-arches').value = config.numArches;
+        document.getElementById('val-arches').innerText = config.numArches;
+        document.getElementById('input-color-cube').value = config.cubeColor;
+        document.getElementById('input-color-trail').value = config.trailColor;
+        document.getElementById('input-trail-len').value = config.maxTrailPoints;
+        document.getElementById('val-trail-len').innerText = config.maxTrailPoints;
+        document.getElementById('input-exposure').value = config.exposure;
+        document.getElementById('val-exposure').innerText = config.exposure;
+    }
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
+    // Traditional scripts handle the 3D Engine
     let scene, camera, renderer, cube, track, pivot, controls, gridHelper, floor, ring, pin;
     let isMoving = true;
     let angle = 0;
@@ -209,18 +387,32 @@
         speed: 0.008,
         cubeSize: 2.0,
         numArches: 16,
-        cubeColor: '#eeeeee',
+        cubeColor: '#b0b0b0',
         trailColor: '#ff0000',
-        exposure: 1.8,
+        exposure: 1.4,
         maxTrailPoints: 800,
         pinExtension: 1.5
     };
 
     let SIDE, HALF_SIDE, NUM_ARCHES, RADIUS, CIRCUMFERENCE, VALLEY_Y, MARKER_OFFSET;
 
-    function toggleSettings() {
-        document.getElementById('settings-panel').classList.toggle('open');
+    function toggleSettings(event) {
+        if (event) event.stopPropagation();
+        const panel = document.getElementById('settings-panel');
+        const gear = document.getElementById('gear-icon');
+        const ui = document.getElementById('ui');
+        const isOpen = panel.classList.toggle('open');
+        gear.classList.toggle('active');
+        if (window.innerWidth < 600) ui.classList.toggle('hidden', isOpen);
     }
+
+    window.addEventListener('click', (e) => {
+        const panel = document.getElementById('settings-panel');
+        const gear = document.getElementById('gear-icon');
+        if (panel.classList.contains('open') && !panel.contains(e.target) && !gear.contains(e.target)) {
+            toggleSettings();
+        }
+    });
 
     function updateCalculatedValues() {
         SIDE = config.cubeSize;
@@ -235,37 +427,67 @@
         VALLEY_Y = -HALF_SIDE * Math.sqrt(2.0);
     }
 
+    function generateEnvMap() {
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+        const envScene = new THREE.Scene();
+        const geometry = new THREE.SphereGeometry(100, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0x050505, side: THREE.BackSide });
+        const mesh = new THREE.Mesh(geometry, material);
+        envScene.add(mesh);
+
+        for(let i=0; i<6; i++) {
+            const lightPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(15, 40),
+                new THREE.MeshBasicMaterial({ color: 0x888888 })
+            );
+            const r = 50;
+            const a = (i / 6) * Math.PI * 2;
+            lightPlane.position.set(Math.cos(a)*r, 5, Math.sin(a)*r);
+            lightPlane.lookAt(0, 0, 0);
+            envScene.add(lightPlane);
+        }
+
+        const proceduralEnv = pmremGenerator.fromScene(envScene).texture;
+        pmremGenerator.dispose();
+        return proceduralEnv;
+    }
+
     function init() {
         updateCalculatedValues();
 
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x10151a); 
-        scene.fog = new THREE.FogExp2(0x10151a, 0.015);
+        scene.background = new THREE.Color(0x0a0d10); 
+        scene.fog = new THREE.FogExp2(0x0a0d10, 0.015);
 
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = config.exposure; 
+        renderer.outputEncoding = THREE.sRGBEncoding;
         document.body.appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.minDistance = 3;
-        controls.maxDistance = 100;
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
-        scene.add(hemiLight);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        scene.environment = generateEnvMap();
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambient);
         
-        const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
-        mainLight.position.set(20, 30, 20);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
+        mainLight.position.set(20, 40, 20);
         scene.add(mainLight);
 
-        const followLight = new THREE.PointLight(0xffffff, 3, 20);
+        const rim1 = new THREE.PointLight(0x00ffcc, 1.5, 50);
+        rim1.position.set(-20, 10, -20);
+        scene.add(rim1);
+
+        const followLight = new THREE.PointLight(0xffffff, 2.0, 20);
         scene.add(followLight);
         scene.followLight = followLight;
 
@@ -284,9 +506,8 @@
 
     function updateCameraByAspect() {
         const aspect = window.innerWidth / window.innerHeight;
-        // No telemóvel (vertical), afastamos a câmara para o círculo caber
-        const baseDistance = aspect < 1 ? RADIUS * 5 : 22;
-        camera.position.set(baseDistance, baseDistance * 0.7, baseDistance);
+        const baseDistance = aspect < 1 ? RADIUS * 5 : 24;
+        camera.position.set(baseDistance, baseDistance * 0.6, baseDistance);
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0, 0);
     }
@@ -299,30 +520,24 @@
         if (cube) pivot.remove(cube);
         clearTrail();
 
-        gridHelper = new THREE.GridHelper(150, 60, 0x00ffcc, 0x222222);
+        gridHelper = new THREE.GridHelper(200, 80, 0x00ffcc, 0x1a1a1a);
         gridHelper.position.y = VALLEY_Y; 
         scene.add(gridHelper);
 
-        const floorGeo = new THREE.PlaneGeometry(300, 300);
-        const floorMat = new THREE.MeshStandardMaterial({ 
-            color: 0x080c10, 
-            roughness: 0.8, 
-            metalness: 0.2,
-            transparent: true,
-            opacity: 0.5
-        });
+        const floorGeo = new THREE.PlaneGeometry(400, 400);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.95 });
         floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
-        floor.position.y = VALLEY_Y - 0.01;
+        floor.position.y = VALLEY_Y - 0.02;
         scene.add(floor);
 
         const cubeGeo = new THREE.BoxGeometry(SIDE, SIDE, SIDE);
         const cubeMat = new THREE.MeshStandardMaterial({
             color: config.cubeColor,      
             metalness: 1.0,       
-            roughness: 0.05,       
-            emissive: 0x00ffff,
-            emissiveIntensity: 0.02
+            roughness: 0.12,
+            envMapIntensity: 1.2,
+            emissive: 0x000000,
         });
         cube = new THREE.Mesh(cubeGeo, cubeMat);
         cube.position.set(RADIUS, 0, 0);
@@ -333,20 +548,20 @@
 
         ring = new THREE.Mesh(
             new THREE.TorusGeometry(RADIUS, 0.008, 8, 200),
-            new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.2 })
+            new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.1 })
         );
         ring.rotation.x = Math.PI / 2;
         scene.add(ring);
     }
 
     function addFaceMarkersAndPin(parent) {
-        const pinGeo = new THREE.CylinderGeometry(0.06, 0.06, MARKER_OFFSET * 2, 16);
-        const pinMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 1.0, roughness: 0.1 });
+        const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, MARKER_OFFSET * 2, 16);
+        const pinMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 1.0, roughness: 0.1 });
         pin = new THREE.Mesh(pinGeo, pinMat);
         pin.rotation.z = Math.PI / 2; 
         parent.add(pin);
 
-        const markerGeo = new THREE.SphereGeometry(0.1, 12, 12);
+        const markerGeo = new THREE.SphereGeometry(0.08, 12, 12);
         const faceConfigs = [
             { pos: [MARKER_OFFSET, 0, 0], color: config.trailColor, type: 'outer' }, 
             { pos: [-MARKER_OFFSET, 0, 0], color: config.trailColor, type: 'inner' }
@@ -359,7 +574,7 @@
             parent.add(marker);
             if (cfg.type === 'outer') outerMarker = marker;
             if (cfg.type === 'inner') innerMarker = marker;
-            const light = new THREE.PointLight(cfg.color, 1.5, 3);
+            const light = new THREE.PointLight(cfg.color, 1.5, 4);
             marker.add(light);
         });
     }
@@ -386,7 +601,13 @@
             pos.setXYZ(i, finalX, finalY, finalZ);
         }
         geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.4, metalness: 0.3, side: THREE.DoubleSide });
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x1a1c20, 
+            roughness: 0.4, 
+            metalness: 0.6, 
+            side: THREE.DoubleSide,
+            envMapIntensity: 0.3
+        });
         track = new THREE.Mesh(geometry, material);
         scene.add(track);
     }
@@ -406,11 +627,11 @@
         const worldPos = new THREE.Vector3();
         marker.getWorldPosition(worldPos);
 
-        const trailNodeGeo = new THREE.SphereGeometry(0.045, 8, 8);
+        const trailNodeGeo = new THREE.SphereGeometry(0.04, 8, 8);
         const trailNodeMat = new THREE.MeshBasicMaterial({ 
             color: config.trailColor, 
             transparent: true, 
-            opacity: 1.0 
+            opacity: 0.8 
         });
         const trailNode = new THREE.Mesh(trailNodeGeo, trailNodeMat);
         trailNode.position.copy(worldPos);
@@ -422,15 +643,12 @@
     function updateTrail() {
         spawnTrailPoint(outerMarker);
         spawnTrailPoint(innerMarker);
-
-        const fadeSpeed = 0.0016; 
-
+        const fadeSpeed = 0.0018; 
         for (let i = trailPoints.length - 1; i >= 0; i--) {
             const node = trailPoints[i].mesh;
             node.material.opacity -= fadeSpeed;
             const s = Math.max(0, node.material.opacity);
             node.scale.set(s, s, s);
-
             if (node.material.opacity <= 0) {
                 scene.trailGroup.remove(node);
                 node.geometry.dispose();
@@ -438,7 +656,6 @@
                 trailPoints.splice(i, 1);
             }
         }
-
         if (trailPoints.length > config.maxTrailPoints * 2) {
             const oldObj = trailPoints.shift();
             scene.trailGroup.remove(oldObj.mesh);
@@ -455,90 +672,50 @@
                 const val = e.target.type === 'range' ? parseFloat(e.target.value) : e.target.value;
                 config[key] = val;
                 if (display) display.innerText = val;
-                
-                if (key === 'exposure') {
-                    renderer.toneMappingExposure = val;
-                } else if (key === 'cubeColor') {
-                    cube.material.color.set(val);
-                } else if (needsRebuild) {
-                    updateCalculatedValues();
-                    buildScene();
-                }
+                if (key === 'exposure') renderer.toneMappingExposure = val;
+                else if (needsRebuild) { updateCalculatedValues(); buildScene(); }
             });
         };
 
         updateSetting('input-speed', 'speed');
         updateSetting('input-size', 'cubeSize', true);
         updateSetting('input-arches', 'numArches', true);
-        updateSetting('input-color-cube', 'cubeColor');
-        updateSetting('input-color-trail', 'trailColor');
         updateSetting('input-trail-len', 'maxTrailPoints');
         updateSetting('input-exposure', 'exposure');
+
+        document.getElementById('input-color-cube').addEventListener('input', (e) => {
+            if(cube) cube.material.color.set(e.target.value);
+        });
 
         document.getElementById('playPause').onclick = (e) => {
             isMoving = !isMoving;
             e.target.innerText = isMoving ? "Pausar" : "Continuar";
         };
-        document.getElementById('resetCamera').onclick = () => {
-            updateCameraByAspect();
-        };
+        document.getElementById('resetCamera').onclick = () => updateCameraByAspect();
     }
 
     function resetToDefaults() {
-        config = {
-            speed: 0.008,
-            cubeSize: 2.0,
-            numArches: 16,
-            cubeColor: '#eeeeee',
-            trailColor: '#ff0000',
-            exposure: 1.8,
-            maxTrailPoints: 800,
-            pinExtension: 1.5
-        };
-        
-        const syncRange = (id, key) => {
-            document.getElementById(id).value = config[key];
-            const display = document.getElementById('val-' + id.split('-')[1]);
-            if (display) display.innerText = config[key];
-        };
-        syncRange('input-speed', 'speed');
-        syncRange('input-size', 'cubeSize');
-        syncRange('input-arches', 'numArches');
-        syncRange('input-trail-len', 'maxTrailPoints');
-        syncRange('input-exposure', 'exposure');
-        document.getElementById('input-color-cube').value = config.cubeColor;
-        document.getElementById('input-color-trail').value = config.trailColor;
-
-        updateCalculatedValues();
-        buildScene();
-        renderer.toneMappingExposure = config.exposure;
+        config = { speed: 0.008, cubeSize: 2.0, numArches: 16, cubeColor: '#b0b0b0', trailColor: '#ff0000', exposure: 1.4, maxTrailPoints: 800, pinExtension: 1.5 };
+        location.reload(); 
     }
 
     function onResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-        // Não resetamos a posição da câmara violentamente no resize para não quebrar a interação do utilizador,
-        // mas mantemos a lógica de ajuste se necessário.
     }
 
     function animate() {
         requestAnimationFrame(animate);
-
         if (isMoving) {
             angle += config.speed;
             pivot.rotation.y = angle;
-
-            const rollRotation = -(angle / (Math.PI * 2 / NUM_ARCHES)) * (Math.PI / 2);
-            cube.rotation.x = rollRotation;
-
+            cube.rotation.x = -(angle / (Math.PI * 2 / NUM_ARCHES)) * (Math.PI / 2);
             const lX = Math.cos(angle) * (RADIUS + 2);
             const lZ = Math.sin(angle) * (RADIUS + 2);
-            scene.followLight.position.set(lX, 4, lZ);
-
+            scene.followLight.position.set(lX, 5, lZ);
             updateTrail();
         }
-
         controls.update();
         renderer.render(scene, camera);
     }
@@ -547,4 +724,3 @@
 </script>
 </body>
 </html>
-
