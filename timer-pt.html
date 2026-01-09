@@ -119,13 +119,13 @@
             <p id="status-text" class="text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-[0.15em] mt-4 text-[10px] sm:text-xs text-center">Definir tempo com o mouse ou o dedo</p>
         </div>
 
-        <!-- Área do Disco (Garantida Circular) -->
-        <div id="canvas-container" class="relative w-full flex-grow flex items-center justify-center p-4">
+        <!-- Área do Disco (Garantida Circular e com altura limitada para subir os botões) -->
+        <div id="canvas-container" class="relative w-full flex-grow flex items-center justify-center p-4 max-h-[50vh]">
             <canvas id="timer-canvas"></canvas>
         </div>
 
-        <!-- Rodapé -->
-        <div class="w-full max-w-md flex gap-4 p-4 mb-8 sm:mb-16">
+        <!-- Rodapé (Aumentei mb-14 para subir os botões no mobile) -->
+        <div class="w-full max-w-md flex gap-4 p-4 mb-14 sm:mb-20">
             <button id="reset-btn" type="button" class="flex-1 py-5 bg-white/70 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-3xl transition-all active:scale-95 text-sm tracking-widest uppercase shadow-sm border border-slate-200 dark:border-slate-800">
                 Repor
             </button>
@@ -269,7 +269,7 @@
         }
 
         function resize() {
-            const container = canvas.parentElement;
+            const container = document.getElementById('canvas-container');
             const availW = container.clientWidth;
             const availH = container.clientHeight;
             
@@ -482,7 +482,6 @@
         startBtn.addEventListener('click', () => isRunning ? stopTimer() : startTimer());
         resetBtn.addEventListener('click', () => { initAudio(); stopAlarm(); stopTimer(); totalSeconds = 0; updateUI(); });
 
-        // Inicializar resize correto
         window.onload = resize;
         updateUI();
     </script>
