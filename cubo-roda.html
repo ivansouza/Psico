@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Square Wheel - Local Storage Persistence</title>
+    <title>Square Wheel - Matemática e Persistência</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0a0d10; font-family: 'Inter', sans-serif; touch-action: none; }
         
@@ -52,32 +52,47 @@
         }
         button.action-btn:hover { background: rgba(0, 255, 204, 0.2); border-color: #00ffcc; }
 
-        /* Ícone da Engrenagem */
+        /* Ícone da Engrenagem Ajustado */
         #gear-icon {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(0, 255, 204, 0.3);
+            width: 42px;
+            height: 42px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 204, 0.4);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 30;
-            transition: all 0.3s ease;
+            z-index: 35;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(8px);
         }
-        #gear-icon svg { fill: #00ffcc; width: 22px; height: 22px; }
-        #gear-icon.active { transform: rotate(90deg); border-color: transparent; }
+        #gear-icon svg { 
+            fill: #00ffcc; 
+            width: 24px; 
+            height: 24px; 
+            transition: transform 0.4s ease;
+        }
+        #gear-icon:hover {
+            background: rgba(0, 255, 204, 0.15);
+            border-color: #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+        #gear-icon.active { 
+            transform: rotate(90deg);
+            background: rgba(0, 255, 204, 0.2);
+            border-color: #00ffcc;
+        }
 
-        /* Painel de Definições - Totalmente Transparente */
+        /* Painel de Definições */
         #settings-panel {
             position: absolute;
             top: 0;
-            right: -260px;
-            width: 240px;
+            right: -280px;
+            width: 260px;
             height: 100vh;
             background: transparent;
             padding: 25px;
@@ -108,21 +123,11 @@
         .setting-group label { display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 5px; opacity: 0.9; color: #fff; }
         
         input[type="range"] { 
-            width: 100%; 
-            cursor: pointer; 
-            accent-color: #00ffcc; 
-            height: 4px; 
-            background: rgba(255,255,255,0.2);
-            border-radius: 2px;
-            appearance: none;
-            outline: none;
+            width: 100%; cursor: pointer; accent-color: #00ffcc; height: 4px; 
+            background: rgba(255,255,255,0.2); border-radius: 2px; appearance: none; outline: none;
         }
         input[type="color"] { 
-            width: 100%; 
-            height: 20px; 
-            border: 1px solid rgba(255,255,255,0.2); 
-            background: rgba(0,0,0,0.3); 
-            cursor: pointer; 
+            width: 100%; height: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); cursor: pointer; 
         }
         
         .value-display { float: right; color: #00ffcc; font-size: 9px; font-weight: bold; }
@@ -130,43 +135,47 @@
         .btn-row { display: flex; gap: 5px; margin-top: 15px; }
         .small-btn { flex: 1; padding: 6px; font-size: 8px; }
 
-        #toast {
-            position: absolute;
-            top: 80px;
+        /* Janela de Explicação Matemática */
+        #math-modal {
+            position: fixed;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 255, 204, 0.15);
-            border: 1px solid #00ffcc;
-            color: #00ffcc;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            backdrop-filter: blur(10px);
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            background: rgba(10, 13, 16, 0.98);
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            padding: 30px;
+            color: #e0e0e0;
             z-index: 100;
+            display: none;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+        }
+        #math-modal h2 { color: #00ffcc; font-size: 16px; margin-top: 0; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid rgba(0, 255, 204, 0.2); padding-bottom: 10px; }
+        #math-modal p { font-size: 13px; line-height: 1.6; }
+        .math-block { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 4px; margin: 15px 0; font-family: serif; font-style: italic; text-align: center; color: #fff; }
+
+        #toast {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 255, 204, 0.15); border: 1px solid #00ffcc; color: #00ffcc; padding: 10px 20px;
+            border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+            backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100;
         }
 
         #instructions {
-            position: absolute;
-            bottom: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            pointer-events: none;
-            width: 100%;
-            text-align: center;
+            position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.3); font-size: 8px; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; width: 100%; text-align: center;
         }
 
         @media (max-width: 600px) {
             #ui { text-align: center; top: 75px; }
             #settings-panel { width: 220px; }
+            #gear-icon { width: 38px; height: 38px; top: 15px; right: 15px; }
+            #gear-icon svg { width: 20px; height: 20px; }
         }
     </style>
 </head>
@@ -181,7 +190,10 @@
 <div id="toast">Ação Concluída</div>
 
 <div id="gear-icon" onclick="toggleSettings(event)">
-    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+    <!-- Ícone SVG corrigido e limpo -->
+    <svg viewBox="0 0 24 24">
+        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+    </svg>
 </div>
 
 <div id="settings-panel">
@@ -216,7 +228,7 @@
 
     <div class="setting-group">
         <label>Comprimento Rastro <span id="val-trail-len" class="value-display">800</span></label>
-        <input type="range" id="input-trail-len" min="0" max="2000" step="50" value="800">
+        <input type="range" id="input-trail-len" min="50" max="2000" step="50" value="800">
     </div>
 
     <div class="setting-group">
@@ -228,10 +240,33 @@
         <button class="action-btn small-btn" onclick="saveToLocalStorage()">Gravar</button>
         <button class="action-btn small-btn" onclick="copyConfigToClipboard()">Copiar</button>
     </div>
-    <button class="action-btn" onclick="resetToDefaults()" style="width: 100%; margin-top: 10px;">Resetar</button>
+    <button class="action-btn" onclick="toggleMathModal(event)" style="width: 100%; margin-top: 8px; border-color: #ffaa00; color: #ffaa00;">Explicação</button>
+    <button class="action-btn" onclick="resetToDefaults()" style="width: 100%; margin-top: 8px;">Resetar</button>
 </div>
 
-<div id="instructions">Arraste para orbitar | Clique fora para fechar o menu</div>
+<!-- Modal de Explicação Matemática -->
+<div id="math-modal">
+    <h2>A Matemática da Roda Quadrada</h2>
+    <p>Para que um polígono regular (como o nosso cubo) role sem solavancos, a trajetória do seu centro deve ser uma linha reta horizontal perfeita. Isto exige um trilho composto por uma série de curvas chamadas <b>catenárias invertidas</b>.</p>
+    
+    <p>A equação fundamental de uma catenária é:</p>
+    <div class="math-block">
+        y = a * cosh(x/a)
+    </div>
+
+    <p>Nesta simulação, o parâmetro <b>a</b> é exatamente metade do lado do cubo. Se o lado for <b>L</b>, então <b>a = L/2</b>.</p>
+    
+    <p>A largura de cada arco no trilho é calculada para que o canto do cubo encaixe perfeitamente no "vale" entre dois arcos. A distância horizontal do centro do arco até esse ponto é:</p>
+    <div class="math-block">
+        x_max = a * asinh(1)
+    </div>
+
+    <p>Ao rolar, o centro do cubo permanece a uma altura constante em relação ao plano, mas os pontos externos descrevem as órbitas sinusoidais que vês no rastro vermelho. Esta é a solução geométrica para o problema clássico da roda não-circular.</p>
+
+    <button class="action-btn" onclick="toggleMathModal(event)" style="width: 100%; margin-top: 20px;">Entendido</button>
+</div>
+
+<div id="instructions">Clique na cena para fechar os menus</div>
 
 <div id="controls-ui">
     <button class="action-btn" id="playPause">Pausar</button>
@@ -250,7 +285,6 @@
     let trailPoints = [];
     const STORAGE_KEY = 'square_wheel_settings';
 
-    // Parâmetros Iniciais
     let config = {
         speed: 0.008,
         cubeSize: 2.0,
@@ -262,10 +296,9 @@
         pinExtension: 1.5
     };
 
-    // Variáveis Matemáticas
     let SIDE, HALF_SIDE, NUM_ARCHES, RADIUS, CIRCUMFERENCE, VALLEY_Y, MARKER_OFFSET;
 
-    // --- Persistência (Local Storage) ---
+    // --- Persistência e UI ---
 
     function saveToLocalStorage() {
         const data = {
@@ -275,79 +308,38 @@
                 target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
             }
         };
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            showToast("Configurações Gravadas!");
-        } catch (e) {
-            showToast("Erro ao gravar no LocalStorage");
-        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        showToast("Configurações Gravadas!");
     }
 
     function loadFromLocalStorage() {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) return false;
-        try {
-            const data = JSON.parse(stored);
-            if (data.config) Object.assign(config, data.config);
-            
-            // Re-sincronizar UI e Cena
-            updateUIFromConfig();
-            updateCalculatedValues();
-            
-            // A posição da câmara só pode ser definida após o init terminar
-            setTimeout(() => {
-                if (data.camera) {
-                    camera.position.set(data.camera.position.x, data.camera.position.y, data.camera.position.z);
-                    controls.target.set(data.camera.target.x, data.camera.target.y, data.camera.target.z);
-                    controls.update();
-                }
-                showToast("Dados recuperados");
-            }, 100);
-            return true;
-        } catch (e) { return false; }
+        if (!stored) return;
+        const data = JSON.parse(stored);
+        if (data.config) Object.assign(config, data.config);
+        updateUIFromConfig();
+        updateCalculatedValues();
+        setTimeout(() => {
+            if (data.camera) {
+                camera.position.set(data.camera.position.x, data.camera.position.y, data.camera.position.z);
+                controls.target.set(data.camera.target.x, data.camera.target.y, data.camera.target.z);
+                controls.update();
+            }
+        }, 100);
     }
-
-    // --- Exportação (Clipboard) ---
 
     async function copyConfigToClipboard() {
-        const data = {
-            config: config,
-            camera: {
-                position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
-                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
-            },
-            exportedAt: new Date().toISOString()
-        };
+        const data = { config: config, camera: { position: camera.position, target: controls.target } };
         const text = JSON.stringify(data, null, 4);
-
-        // API Moderna (HTTPS)
         if (navigator.clipboard && window.isSecureContext) {
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast("JSON copiado!");
-                return;
-            } catch (err) {}
+            await navigator.clipboard.writeText(text);
+            showToast("JSON copiado!");
+        } else {
+            const ta = document.createElement("textarea"); ta.value = text;
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta); showToast("JSON copiado (fallback)");
         }
-
-        // Fallback robusto
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showToast("JSON copiado (fallback)");
-        } catch (err) {
-            showToast("Erro ao copiar");
-        }
-        document.body.removeChild(textArea);
     }
-
-    // --- Motor 3D ---
 
     function toggleSettings(event) {
         if (event) event.stopPropagation();
@@ -359,27 +351,39 @@
         if (window.innerWidth < 600) ui.classList.toggle('hidden', isOpen);
     }
 
+    function toggleMathModal(event) {
+        if (event) event.stopPropagation();
+        const modal = document.getElementById('math-modal');
+        const currentDisplay = window.getComputedStyle(modal).display;
+        modal.style.display = (currentDisplay === 'none') ? 'block' : 'none';
+    }
+
     window.addEventListener('click', (e) => {
         const panel = document.getElementById('settings-panel');
         const gear = document.getElementById('gear-icon');
+        const modal = document.getElementById('math-modal');
+        
         if (panel.classList.contains('open') && !panel.contains(e.target) && !gear.contains(e.target)) {
             toggleSettings();
+        }
+        
+        if (modal.style.display === 'block' && !modal.contains(e.target)) {
+            modal.style.display = 'none';
         }
     });
 
     function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.opacity = '1';
-        setTimeout(() => t.style.opacity = '0', 3000);
+        const t = document.getElementById('toast'); t.innerText = msg;
+        t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 3000);
     }
+
+    // --- Geometria e 3D ---
 
     function updateCalculatedValues() {
         SIDE = config.cubeSize;
         HALF_SIDE = SIDE / 2.0;
         NUM_ARCHES = config.numArches;
         MARKER_OFFSET = HALF_SIDE + config.pinExtension;
-
         const xForHalfSide = HALF_SIDE * Math.asinh(1.0);
         const archWidthX = xForHalfSide * 2;
         CIRCUMFERENCE = NUM_ARCHES * archWidthX;
@@ -391,18 +395,12 @@
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
         pmremGenerator.compileEquirectangularShader();
         const envScene = new THREE.Scene();
-        const geometry = new THREE.SphereGeometry(100, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: 0x050505, side: THREE.BackSide });
-        const mesh = new THREE.Mesh(geometry, material);
-        envScene.add(mesh);
-
         for(let i=0; i<6; i++) {
             const lightPlane = new THREE.Mesh(new THREE.PlaneGeometry(15, 40), new THREE.MeshBasicMaterial({ color: 0x888888 }));
             const r = 50; const a = (i / 6) * Math.PI * 2;
             lightPlane.position.set(Math.cos(a)*r, 5, Math.sin(a)*r); lightPlane.lookAt(0, 0, 0);
             envScene.add(lightPlane);
         }
-
         const proceduralEnv = pmremGenerator.fromScene(envScene).texture;
         pmremGenerator.dispose();
         return proceduralEnv;
@@ -410,49 +408,35 @@
 
     function init() {
         updateCalculatedValues();
-
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0d10); 
+        scene.background = new THREE.Color(0x0a0d10);
         scene.fog = new THREE.FogExp2(0x0a0d10, 0.015);
-
         camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = config.exposure; 
+        renderer.toneMappingExposure = config.exposure;
         renderer.outputEncoding = THREE.sRGBEncoding;
         document.body.appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-
         scene.environment = generateEnvMap();
-
         scene.add(new THREE.AmbientLight(0xffffff, 0.3));
         const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
-        mainLight.position.set(20, 40, 20);
-        scene.add(mainLight);
-
+        mainLight.position.set(20, 40, 20); scene.add(mainLight);
         const followLight = new THREE.PointLight(0xffffff, 2.0, 20);
-        scene.add(followLight);
-        scene.followLight = followLight;
+        scene.add(followLight); scene.followLight = followLight;
 
-        pivot = new THREE.Group();
-        scene.add(pivot);
-
-        scene.trailGroup = new THREE.Group();
-        scene.add(scene.trailGroup);
+        pivot = new THREE.Group(); scene.add(pivot);
+        scene.trailGroup = new THREE.Group(); scene.add(scene.trailGroup);
 
         buildScene();
         setupUIEvents();
         updateCameraByAspect();
-        
-        // Tentar carregar dados do LocalStorage após a construção inicial
         loadFromLocalStorage();
-
         window.addEventListener('resize', onResize);
         animate();
     }
@@ -474,58 +458,33 @@
         clearTrail();
 
         gridHelper = new THREE.GridHelper(200, 80, 0x00ffcc, 0x1a1a1a);
-        gridHelper.position.y = VALLEY_Y; 
-        scene.add(gridHelper);
+        gridHelper.position.y = VALLEY_Y; scene.add(gridHelper);
 
         const floorGeo = new THREE.PlaneGeometry(400, 400);
         const floorMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.95 });
         floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = VALLEY_Y - 0.02;
-        scene.add(floor);
+        floor.rotation.x = -Math.PI / 2; floor.position.y = VALLEY_Y - 0.02; scene.add(floor);
 
         const cubeGeo = new THREE.BoxGeometry(SIDE, SIDE, SIDE);
-        const cubeMat = new THREE.MeshStandardMaterial({
-            color: config.cubeColor,      
-            metalness: 1.0,       
-            roughness: 0.12,       
-            envMapIntensity: 1.2
-        });
+        const cubeMat = new THREE.MeshStandardMaterial({ color: config.cubeColor, metalness: 1.0, roughness: 0.12, envMapIntensity: 1.2 });
         cube = new THREE.Mesh(cubeGeo, cubeMat);
-        cube.position.set(RADIUS, 0, 0);
-        pivot.add(cube);
+        cube.position.set(RADIUS, 0, 0); pivot.add(cube);
 
         addFaceMarkersAndPin(cube);
         createTrack();
-
-        ring = new THREE.Mesh(
-            new THREE.TorusGeometry(RADIUS, 0.008, 8, 200),
-            new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.1 })
-        );
-        ring.rotation.x = Math.PI / 2;
-        scene.add(ring);
+        ring = new THREE.Mesh(new THREE.TorusGeometry(RADIUS, 0.008, 8, 200), new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.1 }));
+        ring.rotation.x = Math.PI / 2; scene.add(ring);
     }
 
     function addFaceMarkersAndPin(parent) {
-        const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, MARKER_OFFSET * 2, 16);
-        const pinMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 1.0, roughness: 0.1 });
-        pin = new THREE.Mesh(pinGeo, pinMat);
-        pin.rotation.z = Math.PI / 2; 
-        parent.add(pin);
-
+        const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, MARKER_OFFSET * 2, 16), new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 1.0, roughness: 0.1 }));
+        pin.rotation.z = Math.PI / 2; parent.add(pin);
         const markerGeo = new THREE.SphereGeometry(0.08, 12, 12);
-        const faceConfigs = [
-            { pos: [MARKER_OFFSET, 0, 0], type: 'outer' }, 
-            { pos: [-MARKER_OFFSET, 0, 0], type: 'inner' }
-        ];
-
-        faceConfigs.forEach(cfg => {
-            const mat = new THREE.MeshBasicMaterial({ color: config.trailColor });
-            const marker = new THREE.Mesh(markerGeo, mat);
+        [{ pos: [MARKER_OFFSET, 0, 0], type: 'outer' }, { pos: [-MARKER_OFFSET, 0, 0], type: 'inner' }].forEach(cfg => {
+            const marker = new THREE.Mesh(markerGeo, new THREE.MeshBasicMaterial({ color: config.trailColor }));
             marker.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
             parent.add(marker);
-            if (cfg.type === 'outer') outerMarker = marker;
-            if (cfg.type === 'inner') innerMarker = marker;
+            if (cfg.type === 'outer') outerMarker = marker; else innerMarker = marker;
             marker.add(new THREE.PointLight(config.trailColor, 1.5, 4));
         });
     }
@@ -533,18 +492,15 @@
     function createTrack() {
         const segmentsPerArch = 80;
         const totalSegments = segmentsPerArch * NUM_ARCHES;
-        const trackWidth = 5;
-        const geometry = new THREE.PlaneGeometry(trackWidth, CIRCUMFERENCE, 10, totalSegments);
+        const geometry = new THREE.PlaneGeometry(5, CIRCUMFERENCE, 10, totalSegments);
         const pos = geometry.attributes.position;
         for (let i = 0; i < pos.count; i++) {
-            const w = pos.getX(i); 
             const l = pos.getY(i) + CIRCUMFERENCE / 2; 
             const theta = (l / CIRCUMFERENCE) * Math.PI * 2;
             const archLengthDist = CIRCUMFERENCE / NUM_ARCHES;
-            let localL = (l % archLengthDist);
-            if (localL > archLengthDist / 2) localL -= archLengthDist;
+            let localL = (l % archLengthDist); if (localL > archLengthDist / 2) localL -= archLengthDist;
             const y = -HALF_SIDE * Math.cosh(localL / HALF_SIDE);
-            const r = RADIUS + w;
+            const r = RADIUS + pos.getX(i);
             pos.setXYZ(i, Math.cos(theta) * r, y, Math.sin(theta) * r);
         }
         geometry.computeVertexNormals();
@@ -555,8 +511,7 @@
     function clearTrail() {
         while(scene.trailGroup.children.length > 0) {
             const obj = scene.trailGroup.children[0];
-            obj.geometry.dispose(); obj.material.dispose();
-            scene.trailGroup.remove(obj);
+            obj.geometry.dispose(); obj.material.dispose(); scene.trailGroup.remove(obj);
         }
         trailPoints = [];
     }
@@ -565,33 +520,25 @@
         if (!marker) return;
         const worldPos = new THREE.Vector3(); marker.getWorldPosition(worldPos);
         const trailNode = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshBasicMaterial({ color: config.trailColor, transparent: true, opacity: 0.8 }));
-        trailNode.position.copy(worldPos);
-        scene.trailGroup.add(trailNode);
-        trailPoints.push({ mesh: trailNode });
+        trailNode.position.copy(worldPos); scene.trailGroup.add(trailNode); trailPoints.push({ mesh: trailNode });
     }
 
     function updateTrail() {
         spawnTrailPoint(outerMarker); spawnTrailPoint(innerMarker);
-        const fadeSpeed = 0.0018; 
+        const fadeSpeed = 1.0 / Math.max(config.maxTrailPoints, 1); 
         for (let i = trailPoints.length - 1; i >= 0; i--) {
             const node = trailPoints[i].mesh;
             node.material.opacity -= fadeSpeed;
             const s = Math.max(0, node.material.opacity); node.scale.set(s, s, s);
             if (node.material.opacity <= 0) {
-                scene.trailGroup.remove(node); node.geometry.dispose(); node.material.dispose();
-                trailPoints.splice(i, 1);
+                scene.trailGroup.remove(node); node.geometry.dispose(); node.material.dispose(); trailPoints.splice(i, 1);
             }
-        }
-        if (trailPoints.length > config.maxTrailPoints * 2) {
-            const oldObj = trailPoints.shift();
-            scene.trailGroup.remove(oldObj.mesh);
         }
     }
 
     function setupUIEvents() {
         const updateSetting = (id, key, needsRebuild = false) => {
-            const el = document.getElementById(id);
-            el.addEventListener('input', (e) => {
+            document.getElementById(id).addEventListener('input', (e) => {
                 const val = e.target.type === 'range' ? parseFloat(e.target.value) : e.target.value;
                 config[key] = val;
                 const display = document.getElementById('val-' + id.split('-')[1]);
@@ -600,66 +547,41 @@
                 else if (needsRebuild) { updateCalculatedValues(); buildScene(); }
             });
         };
-
-        updateSetting('input-speed', 'speed');
-        updateSetting('input-size', 'cubeSize', true);
-        updateSetting('input-arches', 'numArches', true);
-        updateSetting('input-trail-len', 'maxTrailPoints');
+        updateSetting('input-speed', 'speed'); updateSetting('input-size', 'cubeSize', true);
+        updateSetting('input-arches', 'numArches', true); updateSetting('input-trail-len', 'maxTrailPoints');
         updateSetting('input-exposure', 'exposure');
-
-        document.getElementById('input-color-cube').addEventListener('input', (e) => {
-            if(cube) cube.material.color.set(e.target.value);
-        });
-
-        document.getElementById('playPause').onclick = (e) => {
-            isMoving = !isMoving;
-            e.target.innerText = isMoving ? "Pausar" : "Continuar";
-        };
+        document.getElementById('input-color-cube').addEventListener('input', (e) => { if(cube) cube.material.color.set(e.target.value); });
+        document.getElementById('playPause').onclick = (e) => { isMoving = !isMoving; e.target.innerText = isMoving ? "Pausar" : "Continuar"; };
         document.getElementById('resetCamera').onclick = () => updateCameraByAspect();
     }
 
     function updateUIFromConfig() {
-        document.getElementById('input-speed').value = config.speed;
-        document.getElementById('val-speed').innerText = config.speed;
-        document.getElementById('input-size').value = config.cubeSize;
-        document.getElementById('val-size').innerText = config.cubeSize;
-        document.getElementById('input-arches').value = config.numArches;
-        document.getElementById('val-arches').innerText = config.numArches;
+        ['input-speed', 'input-size', 'input-arches', 'input-trail-len', 'input-exposure'].forEach(id => {
+            const key = id.split('-')[1] === 'size' ? 'cubeSize' : id.split('-')[1] === 'arches' ? 'numArches' : id.split('-')[1] === 'trail' ? 'maxTrailPoints' : id.split('-')[1];
+            document.getElementById(id).value = config[key];
+            const display = document.getElementById('val-' + id.split('-')[1]);
+            if (display) display.innerText = config[key];
+        });
         document.getElementById('input-color-cube').value = config.cubeColor;
         document.getElementById('input-color-trail').value = config.trailColor;
-        document.getElementById('input-trail-len').value = config.maxTrailPoints;
-        document.getElementById('val-trail-len').innerText = config.maxTrailPoints;
-        document.getElementById('input-exposure').value = config.exposure;
-        document.getElementById('val-exposure').innerText = config.exposure;
     }
 
-    function resetToDefaults() {
-        localStorage.removeItem(STORAGE_KEY);
-        location.reload(); 
-    }
-
-    function onResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
+    function resetToDefaults() { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+    function onResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+    
     function animate() {
         requestAnimationFrame(animate);
         if (isMoving) {
-            angle += config.speed;
-            pivot.rotation.y = angle;
+            angle += config.speed; pivot.rotation.y = angle;
             cube.rotation.x = -(angle / (Math.PI * 2 / NUM_ARCHES)) * (Math.PI / 2);
-            const lX = Math.cos(angle) * (RADIUS + 2);
-            const lZ = Math.sin(angle) * (RADIUS + 2);
+            const lX = Math.cos(angle) * (RADIUS + 2); const lZ = Math.sin(angle) * (RADIUS + 2);
             scene.followLight.position.set(lX, 5, lZ);
             updateTrail();
         }
-        controls.update();
-        renderer.render(scene, camera);
+        controls.update(); renderer.render(scene, camera);
     }
-
     init();
 </script>
 </body>
 </html>
+
