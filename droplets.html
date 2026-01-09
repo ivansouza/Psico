@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fluxo de Marangoni - Sincronização de Impacto</title>
+    <title>Fluxo de Marangoni - Dinâmica de Cores</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -47,6 +47,13 @@
             cursor: pointer;
         }
 
+        /* Estilo específico para o slider de cores */
+        #hueSlider::-webkit-slider-runnable-track {
+            background: linear-gradient(to right, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000);
+            border-radius: 2px;
+            height: 6px;
+        }
+
         #toast {
             position: fixed;
             bottom: 20px;
@@ -79,14 +86,23 @@
 
     <!-- Painel de UI -->
     <div id="uiPanel" class="glass-panel panel-hidden fixed top-24 left-6 z-40 p-6 rounded-3xl w-72 text-white overflow-y-auto max-h-[80vh]">
-        <h1 class="text-lg font-bold mb-1">Fluxo de Marangoni</h1>
-        <p class="text-[10px] text-indigo-400 mb-6 uppercase tracking-widest font-bold">Estado Customizado</p>
+        <h1 class="text-lg font-bold mb-1">Fluido 3D</h1>
+        <p class="text-[10px] text-indigo-400 mb-6 uppercase tracking-widest font-bold">Personalização Visual</p>
         
         <div class="space-y-6">
+            <!-- Slider de Cores -->
+            <div class="control-group">
+                <div class="flex justify-between mb-2">
+                    <label class="text-xs font-medium opacity-70">Espectro de Cor</label>
+                    <span id="hueVal" class="text-xs font-mono">0°</span>
+                </div>
+                <input type="range" id="hueSlider" min="0" max="1" step="0.01" value="0" class="w-full">
+            </div>
+
             <div class="control-group">
                 <div class="flex justify-between mb-2">
                     <label class="text-xs font-medium opacity-70">Intensidade</label>
-                    <span id="intensityVal" class="text-xs font-mono">1.3</span>
+                    <span id="intensityVal" class="text-xs font-mono">1.30</span>
                 </div>
                 <input type="range" id="intensity" min="0.1" max="10.0" step="0.1" value="1.3" class="w-full">
             </div>
@@ -109,7 +125,7 @@
 
             <div class="control-group">
                 <div class="flex justify-between mb-2">
-                    <label class="text-xs font-medium opacity-70">Fricção (Zoom/Orb)</label>
+                    <label class="text-xs font-medium opacity-70">Viscosidade (Fricção)</label>
                     <span id="viscosityVal" class="text-xs font-mono">0.15</span>
                 </div>
                 <input type="range" id="viscosity" min="0.01" max="0.5" step="0.01" value="0.15" class="w-full">
@@ -119,7 +135,7 @@
         <div class="mt-8 pt-6 border-t border-white/10 space-y-3">
             <button id="saveStorage" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                Guardar
+                Guardar Estado
             </button>
             <button id="copyJSON" class="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
@@ -213,27 +229,43 @@
         varying vec3 vNormal;
         varying vec3 vViewPosition;
         varying float vElevation;
+        
         uniform float uTime;
+        uniform float uHue;
         uniform vec2 uMouse;
         uniform vec2 uImpactPos[MAX_IMPACTS];
         uniform float uImpactStrength[MAX_IMPACTS];
         uniform float uImpactTime[MAX_IMPACTS];
 
-        vec3 getReflection(vec3 normal, vec3 viewDir) {
+        // Função para converter Hue para RGB
+        vec3 hueToRgb(float h) {
+            float r = abs(h * 6.0 - 3.0) - 1.0;
+            float g = 2.0 - abs(h * 6.0 - 2.0);
+            float b = 2.0 - abs(h * 6.0 - 4.0);
+            return clamp(vec3(r, g, b), 0.0, 1.0);
+        }
+
+        vec3 getReflection(vec3 normal, vec3 viewDir, float hue) {
             vec3 r = reflect(-viewDir, normal);
             float m = 2.828 * sqrt( r.z+1.0 );
             vec2 envUv = r.xy / m + 0.5;
             float l = pow(max(0.0, sin(envUv.x * 12.0) * cos(envUv.y * 10.0)), 15.0);
-            return mix(vec3(0.01, 0.05, 0.22), vec3(0.6, 0.85, 1.0), l);
+            
+            vec3 baseReflect = hueToRgb(hue) * 0.2;
+            return mix(baseReflect, vec3(1.0), l);
         }
 
         void main() {
-            vec3 baseCol = vec3(0.01, 0.06, 0.22);
-            vec3 peakCol = vec3(0.4, 0.85, 1.0);
+            // Cores base extraídas da matiz
+            vec3 tint = hueToRgb(uHue);
+            vec3 baseCol = tint * 0.15;
+            vec3 peakCol = mix(tint, vec3(1.0), 0.5);
+            
             vec3 normal = normalize(vNormal);
             vec3 viewDir = normalize(vViewPosition);
             float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 4.5);
-            vec3 reflectCol = getReflection(normal, viewDir);
+            vec3 reflectCol = getReflection(normal, viewDir, uHue);
+            
             vec3 color = mix(baseCol, peakCol, clamp(vElevation * 5.0, 0.0, 1.0));
             
             float glow = 0.0;
@@ -244,7 +276,7 @@
                 }
             }
             
-            vec3 final = color + reflectCol * (fresnel + 0.3) + glow;
+            vec3 final = color + reflectCol * (fresnel + 0.3) + glow * tint;
             float spec = pow(max(dot(normal, vec3(0,0,1)), 0.0), 128.0);
             gl_FragColor = vec4(final + spec * 0.5, 1.0);
         }
@@ -252,17 +284,18 @@
 
     <script>
         const MAX_DROPS = 16;
-        const STORAGE_KEY = 'marangoni_sim_state';
+        const STORAGE_KEY = 'marangoni_sim_state_v2';
         let scene, camera, renderer, material, mesh, raycaster;
         let drops = [];
         
-        // PARÂMETROS INICIAIS ATUALIZADOS CONFORME JSON
+        // PARÂMETROS INICIAIS (CONFORME PEDIDO)
         let targetIntensity = 1.3;
         let targetDropCount = 13;
         let targetDropSpeed = 1.12; 
         let viscosity = 0.15;
+        let targetHue = 0.65; // Padrão azulado
 
-        // CÂMARA ATUALIZADA CONFORME JSON
+        // CÂMARA (CONFORME PEDIDO)
         let rotX = -0.6047821044921877;
         let rotY = 0.5751355895996094;
         let targetRotX = -0.6047821044921877;
@@ -282,7 +315,7 @@
 
         function createDrop() {
             const dropGeo = new THREE.SphereBufferGeometry(0.045, 12, 12);
-            const dropMat = new THREE.MeshPhongMaterial({ color: 0x99ccff, transparent: true, opacity: 0.8, shininess: 100 });
+            const dropMat = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, shininess: 100 });
             const dropMesh = new THREE.Mesh(dropGeo, dropMat);
             scene.add(dropMesh);
             return { 
@@ -293,7 +326,14 @@
         }
 
         function saveToLocalStorage() {
-            const state = { intensity: targetIntensity, dropCount: targetDropCount, dropSpeed: targetDropSpeed, viscosity: viscosity, rotX: targetRotX, rotY: targetRotY, dist: targetDist };
+            const state = { 
+                hue: targetHue,
+                intensity: targetIntensity, 
+                dropCount: targetDropCount, 
+                dropSpeed: targetDropSpeed, 
+                viscosity: viscosity, 
+                rotX: targetRotX, rotY: targetRotY, dist: targetDist 
+            };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             showToast("Estado Guardado!");
         }
@@ -302,11 +342,14 @@
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const s = JSON.parse(saved);
+                targetHue = s.hue ?? 0.65;
                 targetIntensity = s.intensity; targetDropCount = s.dropCount;
                 targetDropSpeed = s.dropSpeed || 1.12; viscosity = s.viscosity;
                 targetRotX = s.rotX; targetRotY = s.rotY; targetDist = s.dist;
                 
-                // Atualizar Elementos UI
+                // Sincronizar UI
+                document.getElementById('hueSlider').value = targetHue;
+                document.getElementById('hueVal').innerText = Math.round(targetHue * 360) + "°";
                 document.getElementById('intensity').value = targetIntensity;
                 document.getElementById('intensityVal').innerText = targetIntensity.toFixed(2);
                 document.getElementById('dropCount').value = targetDropCount;
@@ -322,6 +365,7 @@
 
         function copyStateAsJSON() {
             const json = JSON.stringify({ 
+                hue: targetHue,
                 intensity: targetIntensity, 
                 dropCount: targetDropCount, 
                 dropSpeed: targetDropSpeed, 
@@ -335,12 +379,6 @@
         }
 
         function init() {
-            // Sincroniza UI com os valores default definidos no início do script
-            document.getElementById('intensityVal').innerText = targetIntensity.toFixed(2);
-            document.getElementById('dropCountVal').innerText = targetDropCount;
-            document.getElementById('dropSpeedVal').innerText = targetDropSpeed.toFixed(2);
-            document.getElementById('viscosityVal').innerText = viscosity.toFixed(2);
-
             loadFromLocalStorage();
 
             scene = new THREE.Scene();
@@ -355,6 +393,7 @@
             material = new THREE.ShaderMaterial({
                 uniforms: {
                     uTime: { value: 0 }, uFrequency: { value: 6.0 }, uIntensity: { value: targetIntensity },
+                    uHue: { value: targetHue },
                     uWaveSpeed: { value: targetDropSpeed }, uMouse: { value: new THREE.Vector2(0.5, 0.5) }, uMouseDown: { value: 0.0 },
                     uImpactPos: { value: Array(MAX_DROPS).fill(new THREE.Vector2()) },
                     uImpactStrength: { value: Array(MAX_DROPS).fill(0.0) },
@@ -385,8 +424,10 @@
 
             const link = (id, cb) => document.getElementById(id).oninput = (e) => {
                 const v = parseFloat(e.target.value); cb(v);
-                document.getElementById(id + 'Val').innerText = v.toFixed(2);
+                const display = document.getElementById(id + 'Val');
+                if(display) display.innerText = (id === 'hueSlider') ? Math.round(v * 360) + "°" : v.toFixed(2);
             };
+            link('hueSlider', v => { targetHue = v; material.uniforms.uHue.value = v; });
             link('intensity', v => targetIntensity = v);
             link('dropCount', v => targetDropCount = v);
             link('dropSpeed', v => { targetDropSpeed = v; material.uniforms.uWaveSpeed.value = v; });
@@ -412,7 +453,7 @@
                     lastTouchX = e.touches[0].pageX; lastTouchY = e.touches[0].pageY;
                 } else if (e.touches.length === 2) {
                     const dist = getDist(e.touches[0], e.touches[1]);
-                    targetDist = Math.max(1.5, Math.min(12.0, targetDist + (lastPinchDist - dist) * 0.02));
+                    targetDist = Math.max(1.5, Math.min(15.0, targetDist + (lastPinchDist - dist) * 0.02));
                     lastPinchDist = dist;
                 }
             }, { passive: false });
@@ -433,7 +474,7 @@
                 }
             });
             window.addEventListener('mouseup', () => { mouseState.down = 0; isOrbiting = false; });
-            window.addEventListener('wheel', (e) => { targetDist = Math.max(1.5, Math.min(12.0, targetDist + e.deltaY * 0.002)); }, { passive: true });
+            window.addEventListener('wheel', (e) => { targetDist = Math.max(1.5, Math.min(15.0, targetDist + e.deltaY * 0.002)); }, { passive: true });
             window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
         }
 
@@ -468,8 +509,8 @@
             material.uniforms.uImpactStrength.value = impactStr;
             material.uniforms.uImpactTime.value = impactT;
             material.uniforms.uIntensity.value += (targetIntensity - material.uniforms.uIntensity.value) * 0.05;
+            material.uniforms.uHue.value = targetHue;
             
-            // Orbit Smoothing com base na Viscosidade/Fricção pedida
             const orbitEase = 1.0 - Math.min(viscosity, 0.99);
             rotX += (targetRotX - rotX) * orbitEase;
             rotY += (targetRotY - rotY) * orbitEase;
