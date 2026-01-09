@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionário de Preferências de Limpeza</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .input-focus:focus {
+            outline: none;
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: rgba(59, 130, 246, 0.2);
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+            .print-only {
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            body {
+                background: white;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-3xl mx-auto">
+        
+        <!-- Header -->
+        <header class="text-center mb-10 no-print">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mb-4 text-2xl">
+                <i class="fas fa-broom"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">Preferências de Limpeza</h1>
+            <p class="text-gray-500 mt-2 text-lg">Personalize o serviço para que tudo saia do seu jeito.</p>
+        </header>
+
+        <!-- Main Form Container -->
+        <div id="mainContainer" class="form-card p-6 md:p-10 no-print">
+            <form id="cleaningForm" class="space-y-8">
+                
+                <!-- Tamanho da Residência -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Qual o tamanho aproximado da sua residência? (número de cômodos ou metragem aproximada)
+                    </label>
+                    <input type="text" name="tamanho" placeholder="Ex: 3 cômodos, 70m², etc." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                </div>
+
+                <!-- Prioridades -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Quais cômodos ou áreas você gostaria que fossem prioridade na limpeza?
+                    </label>
+                    <textarea name="prioridades" rows="3" placeholder="Ex: Cozinha e banheiros..." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus"></textarea>
+                </div>
+
+                <!-- Onde começar -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Existe algum cômodo ou área em que você gostaria que a limpeza começasse? Qual?
+                    </label>
+                    <input type="text" name="inicio" placeholder="Ex: Começar pela varanda..." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus">
+                </div>
+
+                <!-- Serviços Específicos -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">
+                        Quais serviços você gostaria que fossem feitos na faxina? (ex.: lavar louças, limpar armários, vidros, banheiros, etc.)
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="flex items-center space-x-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="servicos" value="Lavar Louças" class="w-5 h-5 text-blue-600 rounded">
+                            <span class="text-gray-700">Lavar Louças</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="servicos" value="Limpar Armários" class="w-5 h-5 text-blue-600 rounded">
+                            <span class="text-gray-700">Limpar Armários</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="servicos" value="Limpar Vidros" class="w-5 h-5 text-blue-600 rounded">
+                            <span class="text-gray-700">Limpar Vidros</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="servicos" value="Limpar Banheiros" class="w-5 h-5 text-blue-600 rounded" checked>
+                            <span class="text-gray-700">Limpar Banheiros</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="servicos" value="Trocar Roupas de Cama" class="w-5 h-5 text-blue-600 rounded">
+                            <span class="text-gray-700">Trocar Roupas de Cama</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Limpeza do Piso -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Como prefere que seja feita a limpeza do piso? (ex.: apenas pano, lavagem com água, aspirador)
+                    </label>
+                    <select name="piso" class="w-full p-3 border border-gray-300 rounded-lg input-focus bg-white">
+                        <option value="Apenas pano úmido">Apenas pano úmido</option>
+                        <option value="Lavagem com água e sabão">Lavagem com água e sabão</option>
+                        <option value="Aspirador e depois pano">Aspirador e depois pano</option>
+                        <option value="Outro (especificar nas observações)">Outro (especificar nas observações)</option>
+                    </select>
+                </div>
+
+                <!-- Produtos de Limpeza -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Quais produtos de limpeza você prefere que sejam usados?
+                    </label>
+                    <input type="text" name="produtos" placeholder="Ex: Apenas neutros, álcool, cloro, etc." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus">
+                </div>
+
+                <!-- Mais Atenção -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Em quais partes ou detalhes da casa você gostaria que fosse dada mais atenção?
+                    </label>
+                    <textarea name="detalhes" rows="3" placeholder="Ex: Rodapés, atrás do sofá, marcas de dedo nas portas..." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus"></textarea>
+                </div>
+
+                <!-- Pets -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Você possui animais de estimação? Se sim, quais?
+                    </label>
+                    <input type="text" name="pets" placeholder="Ex: Sim, dois gatos mansos." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus">
+                </div>
+
+                <!-- Observações -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Há alguma instrução ou observação importante que a diarista precisa saber antes de iniciar o serviço?
+                    </label>
+                    <textarea name="instrucoes" rows="3" placeholder="Algo que a diarista precise saber antes de começar..." 
+                        class="w-full p-3 border border-gray-300 rounded-lg input-focus"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 flex items-center justify-center space-x-2">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Gerar Relatório Completo</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Report View (Hidden by default) -->
+        <div id="reportContainer" class="hidden form-card p-6 md:p-10">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 no-print gap-4">
+                <button onclick="backToForm()" class="text-blue-600 font-medium hover:underline flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Voltar e editar
+                </button>
+                <div class="flex space-x-3">
+                    <button onclick="copyReport()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm flex items-center">
+                        <i class="fas fa-copy mr-2"></i> Copiar Texto
+                    </button>
+                    <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                        <i class="fas fa-print mr-2"></i> Imprimir / PDF
+                    </button>
+                </div>
+            </div>
+
+            <div id="reportContent" class="space-y-8 text-gray-800 border-t-4 border-blue-600 pt-8">
+                <!-- Content will be injected here -->
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-gray-100 text-center text-sm text-gray-400 no-print">
+                Gerado em: <span id="reportDate"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Message Box -->
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none">
+        Relatório copiado para a área de transferência!
+    </div>
+
+    <script>
+        const form = document.getElementById('cleaningForm');
+        const mainContainer = document.getElementById('mainContainer');
+        const reportContainer = document.getElementById('reportContainer');
+        const reportContent = document.getElementById('reportContent');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            const servicos = Array.from(formData.getAll('servicos'));
+            generateReport(data, servicos);
+        });
+
+        function generateReport(data, servicos) {
+            const date = new Date().toLocaleDateString('pt-BR', { 
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+            document.getElementById('reportDate').innerText = date;
+
+            const html = `
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-1">📋 Relatório de Preferências de Limpeza</h2>
+                    <p class="text-gray-500">Orientações detalhadas para o serviço</p>
+                </div>
+
+                <div class="space-y-6">
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Qual o tamanho aproximado da sua residência? (número de cômodos ou metragem aproximada)</h3>
+                        <p class="text-lg text-gray-900">${data.tamanho || 'Não informado'}</p>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Quais cômodos ou áreas você gostaria que fossem prioridade na limpeza?</h3>
+                        <p class="text-lg text-gray-900 font-medium">${data.prioridades || 'Todas as áreas igualmente'}</p>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Existe algum cômodo ou área em que você gostaria que a limpeza começasse? Qual?</h3>
+                        <p class="text-lg text-gray-900">${data.inicio || 'Qualquer um / Sem preferência'}</p>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-2">Quais serviços você gostaria que fossem feitos na faxina? (ex.: lavar louças, limpar armários, vidros, banheiros, etc.)</h3>
+                        <ul class="list-disc list-inside text-lg text-gray-900 grid grid-cols-1 md:grid-cols-2 gap-1">
+                            ${servicos.length > 0 
+                                ? servicos.map(s => `<li>${s}</li>`).join('') 
+                                : '<li>Limpeza geral padrão</li>'}
+                        </ul>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Como prefere que seja feita a limpeza do piso? (ex.: apenas pano, lavagem com água, aspirador)</h3>
+                        <p class="text-lg text-gray-900">${data.piso}</p>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Quais produtos de limpeza você prefere que sejam usados?</h3>
+                        <p class="text-lg text-gray-900">${data.produtos || 'Produtos disponíveis na residência'}</p>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Em quais partes ou detalhes da casa você gostaria que fosse dada mais atenção?</h3>
+                        <p class="text-lg text-gray-900 italic">${data.detalhes || 'Sem detalhes específicos'}</p>
+                    </section>
+
+                    <section class="border-b border-gray-100 pb-4">
+                        <h3 class="text-sm font-bold text-blue-600 mb-1">Você possui animais de estimação? Se sim, quais?</h3>
+                        <p class="text-lg text-gray-900">${data.pets || 'Não possui'}</p>
+                    </section>
+
+                    <section class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-bold text-blue-800 mb-1">Há alguma instrução ou observação importante que a diarista precisa saber antes de iniciar o serviço?</h3>
+                        <p class="text-gray-900 text-lg">${data.instrucoes || 'Nenhuma observação adicional.'}</p>
+                    </section>
+                </div>
+            `;
+
+            reportContent.innerHTML = html;
+            mainContainer.classList.add('hidden');
+            reportContainer.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function backToForm() {
+            reportContainer.classList.add('hidden');
+            mainContainer.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function copyReport() {
+            const text = reportContent.innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast();
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+
