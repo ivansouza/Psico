@@ -6,6 +6,7 @@
     <title>Visual Timer Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Garante que o Tailwind obedece à classe manual 'dark'
         tailwind.config = {
             darkMode: 'class'
         }
@@ -32,7 +33,6 @@
             justify-content: space-between;
             padding: env(safe-area-inset-top) 0.5rem env(safe-area-inset-bottom) 0.5rem;
             box-sizing: border-box;
-            transition: background-color 0.5s ease;
         }
 
         .btn-icon {
@@ -49,16 +49,18 @@
             @apply transition-transform duration-700 ease-out text-slate-500 dark:text-slate-400 pointer-events-none;
         }
 
+        /* Rotação mecânica da engrenagem */
         #settings-btn:hover svg {
             transform: rotate(90deg);
             @apply text-slate-800 dark:text-slate-100;
         }
 
+        /* Canvas forçado a ser um círculo perfeito */
         canvas {
             cursor: pointer;
             touch-action: none;
-            width: 100%;
-            max-height: 55vh;
+            display: block;
+            margin: 0 auto;
         }
 
         @keyframes pulse {
@@ -70,12 +72,12 @@
             animation: pulse 0.8s infinite;
         }
 
-        /* Modal com prioridade máxima */
+        /* Modal com prioridade máxima de exibição */
         .modal-overlay {
             position: fixed;
             inset: 0;
             z-index: 9999;
-            display: none; /* Controlado via JS */
+            display: none; /* Ativado via JS */
             align-items: center;
             justify-content: center;
             padding: 1.5rem;
@@ -92,8 +94,8 @@
 
     <div class="app-container relative bg-yellow-100 dark:bg-slate-950 transition-colors duration-500">
         
-        <!-- Toggle de Tema -->
-        <button id="theme-toggle" class="btn-icon absolute top-8 left-8" title="Alternar Modo Noite/Dia">
+        <!-- Alternar Tema -->
+        <button id="theme-toggle" type="button" class="btn-icon absolute top-8 left-8" title="Alternar Modo Noite/Dia">
             <svg id="sun-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
@@ -103,7 +105,7 @@
         </button>
 
         <!-- Botão de Definições -->
-        <button id="settings-btn" class="btn-icon absolute top-8 right-8" title="Configurações">
+        <button id="settings-btn" type="button" class="btn-icon absolute top-8 right-8" title="Configurações">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3.5"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
@@ -117,17 +119,17 @@
             <p id="status-text" class="text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-[0.15em] mt-4 text-[10px] sm:text-xs text-center">Definir tempo com o mouse ou o dedo</p>
         </div>
 
-        <!-- Área do Disco -->
-        <div class="relative w-full flex-grow flex items-center justify-center">
+        <!-- Área do Disco (Garantida Circular) -->
+        <div id="canvas-container" class="relative w-full flex-grow flex items-center justify-center p-4">
             <canvas id="timer-canvas"></canvas>
         </div>
 
         <!-- Rodapé -->
         <div class="w-full max-w-md flex gap-4 p-4 mb-8 sm:mb-16">
-            <button id="reset-btn" class="flex-1 py-5 bg-white/70 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-3xl transition-all active:scale-95 text-sm tracking-widest uppercase shadow-sm border border-slate-200 dark:border-slate-800">
+            <button id="reset-btn" type="button" class="flex-1 py-5 bg-white/70 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-3xl transition-all active:scale-95 text-sm tracking-widest uppercase shadow-sm border border-slate-200 dark:border-slate-800">
                 Repor
             </button>
-            <button id="start-btn" class="flex-[2] py-5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-3xl shadow-[0_15px_30px_-5px_rgba(239,68,68,0.4)] transition-all active:scale-95 text-sm tracking-[0.15em] uppercase">
+            <button id="start-btn" type="button" class="flex-[2] py-5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-3xl shadow-[0_15px_30px_-5px_rgba(239,68,68,0.4)] transition-all active:scale-95 text-sm tracking-[0.15em] uppercase">
                 Iniciar
             </button>
         </div>
@@ -135,7 +137,7 @@
 
     <!-- Modal de Definições -->
     <div id="settings-modal" class="modal-overlay">
-        <div class="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 w-full max-w-sm shadow-2xl transition-all border border-slate-100 dark:border-slate-800">
+        <div class="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 w-full max-w-sm shadow-2xl border border-slate-100 dark:border-slate-800">
             <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Definições</h2>
             <p class="text-slate-400 dark:text-slate-500 text-sm mb-8">Ajuste o limite de tempo do mostrador.</p>
             
@@ -148,8 +150,8 @@
             </div>
 
             <div class="flex gap-4">
-                <button id="close-modal" class="flex-1 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs uppercase tracking-widest">Sair</button>
-                <button id="save-settings" class="flex-1 py-4 bg-slate-900 dark:bg-red-500 text-white font-bold rounded-xl hover:bg-black dark:hover:bg-red-600 transition-colors text-xs uppercase tracking-widest shadow-xl">Salvar</button>
+                <button id="close-modal" type="button" class="flex-1 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs uppercase tracking-widest">Sair</button>
+                <button id="save-settings" type="button" class="flex-1 py-4 bg-slate-900 dark:bg-red-500 text-white font-bold rounded-xl hover:bg-black dark:hover:bg-red-600 transition-colors text-xs uppercase tracking-widest shadow-xl">Salvar</button>
             </div>
         </div>
     </div>
@@ -178,7 +180,7 @@
         const saveSettingsBtn = document.getElementById('save-settings');
         const maxTimeInput = document.getElementById('max-time-input');
 
-        // INICIALIZA EM MODO NOITE
+        // Estado inicial
         let isDarkMode = true; 
         let totalSeconds = 0;
         let maxMinutes = 60; 
@@ -195,36 +197,30 @@
         // Alternância de Tema
         themeToggle.addEventListener('click', () => {
             isDarkMode = !isDarkMode;
-            if (isDarkMode) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+            document.documentElement.classList.toggle('dark', isDarkMode);
             sunIcon.classList.toggle('hidden', !isDarkMode);
             moonIcon.classList.toggle('hidden', isDarkMode);
             draw();
         });
 
-        // ABRIR DEFINIÇÕES (Corrigido com display direto)
+        // Controlo Robusto do Modal
         settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             initAudio();
             settingsModal.style.display = 'flex';
         });
 
-        // FECHAR DEFINIÇÕES
         closeModalBtn.addEventListener('click', () => {
             settingsModal.style.display = 'none';
         });
 
-        // SALVAR E REPOR ESTADO
         saveSettingsBtn.addEventListener('click', () => {
             const val = parseInt(maxTimeInput.value);
             if (val > 0 && val <= 360) {
                 stopAlarm();
                 stopTimer();
                 maxMinutes = val;
-                totalSeconds = 0; // REPOR O ESTADO
+                totalSeconds = 0;
                 settingsModal.style.display = 'none';
                 updateUI();
             }
@@ -274,17 +270,26 @@
 
         function resize() {
             const container = canvas.parentElement;
-            width = container.clientWidth;
-            height = container.clientHeight;
+            const availW = container.clientWidth;
+            const availH = container.clientHeight;
+            
+            // Forçar forma quadrada para círculo perfeito
+            const size = Math.min(availW, availH);
+            
             const dpr = window.devicePixelRatio || 1;
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            canvas.style.width = width + 'px';
-            canvas.style.height = height + 'px';
-            ctx.scale(dpr, dpr);
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+            
+            width = size;
+            height = size;
+            
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            
             centerX = width / 2;
             centerY = height / 2;
-            radius = (Math.min(width, height) / 2) - 16;
+            radius = (width / 2) - 20; 
             draw();
         }
 
@@ -477,6 +482,8 @@
         startBtn.addEventListener('click', () => isRunning ? stopTimer() : startTimer());
         resetBtn.addEventListener('click', () => { initAudio(); stopAlarm(); stopTimer(); totalSeconds = 0; updateUI(); });
 
+        // Inicializar resize correto
+        window.onload = resize;
         updateUI();
     </script>
 </body>
