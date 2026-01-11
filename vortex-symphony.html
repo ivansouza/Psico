@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vortex Symphony: The Geometry of Infinity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            overflow: hidden;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+        canvas { display: block; }
+        .glass-panel {
+            background: rgba(5, 5, 5, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .hidden-panel {
+            opacity: 0;
+            transform: scale(0.9) translateY(-15px);
+            pointer-events: none;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            accent-color: #ffffff;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            border: 1px solid #3b82f6;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+        }
+        select {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 11px;
+            padding: 10px;
+            border-radius: 10px;
+            width: 100%;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+        }
+        .label-style {
+            font-size: 9px;
+            margin-bottom: 6px;
+            display: block;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+        }
+        
+        #toggleUI {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #toggleUI:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .gear-rotate {
+            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Redesigned Top UI -->
+    <div class="absolute top-6 left-6 md:top-10 md:left-10 z-10 pointer-events-none max-w-[60%] md:max-w-md">
+        <h1 class="text-lg md:text-xl font-black tracking-[0.3em] uppercase text-white opacity-90 leading-tight">Vortex Symphony</h1>
+        <div class="flex items-start gap-2 mt-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6] animate-pulse mt-1 shrink-0"></span>
+            <p class="text-[8px] md:text-[9px] text-gray-500 font-light tracking-[0.2em] uppercase leading-relaxed">Sacred geometry in the dance of chaos</p>
+        </div>
+    </div>
+
+    <!-- Settings Button -->
+    <button id="toggleUI" class="absolute top-6 right-6 md:top-10 md:right-10 z-50 p-3 md:p-4 rounded-xl md:rounded-2xl glass-panel active:scale-90">
+        <svg id="gearIcon" class="gear-rotate text-white opacity-80" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2v-.44a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+
+    <!-- Customization Panel -->
+    <div id="uiPanel" class="glass-panel hidden-panel absolute top-20 right-6 md:top-28 md:right-10 w-64 md:w-72 p-6 rounded-[1.5rem] md:rounded-[2rem] z-40 transition-all shadow-2xl">
+        <div class="space-y-6">
+            <div>
+                <span class="label-style text-blue-400 font-bold">Visual Essence</span>
+                <div class="relative mt-2">
+                    <select id="colorMode">
+                        <option value="interference">Interference Revealed</option>
+                        <option value="vibrant">Energy Flow</option>
+                        <option value="cycle">Continuous Spectrum</option>
+                        <option value="fixed">Ethereal Cyan</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between label-style">
+                    <span>Harmony</span>
+                    <span id="labelFreq" class="text-white font-mono">4.40</span>
+                </div>
+                <input type="range" id="inputFreq" min="1" max="100" step="0.01" value="4.40">
+            </div>
+
+            <div>
+                <div class="flex justify-between label-style">
+                    <span>Vibration</span>
+                    <span id="labelPerturb" class="text-white font-mono">0.10</span>
+                </div>
+                <input type="range" id="inputPerturb" min="0" max="1" step="0.01" value="0.10">
+            </div>
+
+            <div>
+                <div class="flex justify-between label-style">
+                    <span>Time</span>
+                    <span id="labelSpeed" class="text-white font-mono">0.10</span>
+                </div>
+                <input type="range" id="inputSpeed" min="0" max="2" step="0.01" value="0.10">
+            </div>
+
+            <div class="pt-2">
+                <button id="resetTime" class="w-full bg-white/5 hover:bg-white/10 text-[9px] font-black py-3 rounded-xl transition-all uppercase tracking-[0.2em] border border-white/5">Restart</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+            camera.position.z = 5;
+            
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setClearColor(0x000000, 1);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            let N = 35000; 
+            let freqTime = 4.40;
+            let perturbIntensity = 0.10;
+            let evolutionSpeed = 0.10;
+            let currentMode = 'interference';
+            let timeOffset = 0;
+            let lastFrameTime = Date.now();
+            let uiOpen = false;
+
+            let geometry = new THREE.BufferGeometry();
+            let positions = new Float32Array(N * 3);
+            let colors = new Float32Array(N * 3);
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.LineBasicMaterial({ 
+                vertexColors: true, 
+                transparent: true, 
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                linewidth: 2
+            });
+
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+
+            const toggleUI = document.getElementById('toggleUI');
+            const panel = document.getElementById('uiPanel');
+            const gearIcon = document.getElementById('gearIcon');
+            const colorSelect = document.getElementById('colorMode');
+            
+            toggleUI.onclick = () => {
+                uiOpen = !uiOpen;
+                panel.classList.toggle('hidden-panel');
+                gearIcon.style.transform = uiOpen ? 'rotate(120deg)' : 'rotate(0deg)';
+                toggleUI.style.background = uiOpen ? 'rgba(255,255,255,0.1)' : 'rgba(5, 5, 5, 0.75)';
+            };
+
+            const inputs = {
+                freq: document.getElementById('inputFreq'),
+                perturb: document.getElementById('inputPerturb'),
+                speed: document.getElementById('inputSpeed')
+            };
+
+            const labels = {
+                freq: document.getElementById('labelFreq'),
+                perturb: document.getElementById('labelPerturb'),
+                speed: document.getElementById('labelSpeed')
+            };
+
+            inputs.freq.oninput = () => { freqTime = parseFloat(inputs.freq.value); labels.freq.innerText = freqTime.toFixed(2); };
+            inputs.perturb.oninput = () => { perturbIntensity = parseFloat(inputs.perturb.value); labels.perturb.innerText = perturbIntensity.toFixed(2); };
+            inputs.speed.oninput = () => { evolutionSpeed = parseFloat(inputs.speed.value); labels.speed.innerText = evolutionSpeed.toFixed(2); };
+            colorSelect.onchange = (e) => { currentMode = e.target.value; };
+            document.getElementById('resetTime').onclick = () => { timeOffset = 0; };
+
+            function setRGB(array, index, h, s, l) {
+                h = h % 360;
+                const c = (1 - Math.abs(2 * l - 1)) * s;
+                const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+                const m = l - c / 2;
+                let r = 0, g = 0, b = 0;
+                if (h < 60) { r = c; g = x; }
+                else if (h < 120) { r = x; g = c; }
+                else if (h < 180) { g = c; b = x; }
+                else if (h < 240) { g = x; b = c; }
+                else if (h < 300) { r = x; b = c; }
+                else { r = c; b = x; }
+                array[index * 3] = r + m;
+                array[index * 3 + 1] = g + m;
+                array[index * 3 + 2] = b + m;
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                const now = Date.now();
+                const deltaTime = (now - lastFrameTime) / 1000;
+                lastFrameTime = now;
+                timeOffset += deltaTime * evolutionSpeed;
+                const t = timeOffset;
+
+                const globalScale = 0.012; 
+                let maxR = 0;
+
+                for (let i = 0; i < N; i++) {
+                    const n = i * 0.08;
+                    const r_val = (Math.pow(n, 1.5) / (n + 1000)) * 1.5;
+                    const interference_phase = n * Math.sin(freqTime * t * 0.1);
+                    const perturbation = Math.sin(perturbIntensity * interference_phase);
+                    const theta = (0.02 * n * t) + perturbation;
+                    
+                    const x = r_val * Math.cos(theta) * globalScale;
+                    const y = r_val * Math.sin(theta) * globalScale;
+                    
+                    positions[i * 3] = x;
+                    positions[i * 3 + 1] = y;
+                    positions[i * 3 + 2] = 0;
+                    
+                    let h = 0, s = 0.8, l = 0.55;
+                    if (currentMode === 'interference') {
+                        h = (perturbation * 180 + 200 + t * 20); 
+                        l = 0.4 + Math.abs(perturbation) * 0.4;
+                    } else if (currentMode === 'vibrant') {
+                        h = (i * 0.5 + t * 100) % 360; s = 0.9;
+                    } else if (currentMode === 'cycle') {
+                        h = (i / N * 360 + t * 50) % 360;
+                    } else {
+                        h = 190; s = 0.8; l = 0.6;
+                    }
+                    setRGB(colors, i, h, s, l);
+                    const dist = Math.sqrt(x*x + y*y);
+                    if (dist > maxR) maxR = dist;
+                }
+                
+                geometry.attributes.position.needsUpdate = true;
+                geometry.attributes.color.needsUpdate = true;
+
+                const viewSize = Math.max(1.1, maxR * 2.15);
+                const aspect = window.innerWidth / window.innerHeight;
+                if (aspect > 1) {
+                    camera.left = -viewSize * aspect / 2; camera.right = viewSize * aspect / 2;
+                    camera.top = viewSize / 2; camera.bottom = -viewSize / 2;
+                } else {
+                    camera.left = -viewSize / 2; camera.right = viewSize / 2;
+                    camera.top = (viewSize / aspect) / 2; camera.bottom = -(viewSize / aspect) / 2;
+                }
+                camera.updateProjectionMatrix();
+                renderer.render(scene, camera);
+            }
+
+            window.onresize = () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.updateProjectionMatrix();
+            };
+            animate();
+        };
+    </script>
+</body>
+</html>
