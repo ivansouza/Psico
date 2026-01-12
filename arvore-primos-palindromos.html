@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Árvore de Números Primos Palíndromos</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+        
+        #ui {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            color: #00ffcc;
+            pointer-events: none;
+            text-shadow: 0 0 12px #00ffcc;
+            z-index: 10;
+        }
+
+        /* Ícone de Engrenagem */
+        #settings-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 100;
+            fill: #00ffcc;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            filter: drop-shadow(0 0 5px #00ffcc);
+        }
+        #settings-btn:hover {
+            transform: rotate(90deg);
+            filter: drop-shadow(0 0 10px #00ffcc);
+        }
+
+        /* Janela de Parâmetros Transparente */
+        #settings-panel {
+            position: absolute;
+            top: 75px;
+            right: 25px;
+            width: 280px;
+            background: rgba(0, 20, 20, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            color: #00ffcc;
+            display: none;
+            z-index: 99;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .setting-row {
+            margin-bottom: 15px;
+        }
+        .setting-row label {
+            display: block;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .setting-row input {
+            width: 100%;
+            background: transparent;
+            cursor: pointer;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 4px;
+            background: rgba(0, 255, 204, 0.2);
+            border-radius: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00ffcc;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 25px;
+            width: 100%;
+            text-align: center;
+            color: rgba(0, 255, 204, 0.4);
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-size: 1.4rem; font-weight: bold; letter-spacing: 2px;">ÁRVORE DE NÚMEROS PRIMOS PALÍNDROMOS</div>
+</div>
+
+<!-- Botão de Configurações -->
+<svg id="settings-btn" viewBox="0 0 24 24" onclick="toggleSettings()">
+    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.21-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.21,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+</svg>
+
+<!-- Painel de Configurações -->
+<div id="settings-panel">
+    <div class="setting-row">
+        <label>Instâncias Radiais: <span id="val-inst">4</span></label>
+        <input type="range" id="param-inst" min="1" max="12" step="1" value="4">
+    </div>
+    <div class="setting-row">
+        <label>Espaçamento Vertical: <span id="val-space">3.5</span></label>
+        <input type="range" id="param-space" min="1.0" max="10.0" step="0.5" value="3.5">
+    </div>
+    <div class="setting-row">
+        <label>Brilho Base: <span id="val-glow">1.0</span></label>
+        <input type="range" id="param-glow" min="0.2" max="3.0" step="0.1" value="1.0">
+    </div>
+    <div class="setting-row">
+        <label>Oscilação Brilho: <span id="val-osc">0.5</span></label>
+        <input type="range" id="param-osc" min="0.0" max="1.0" step="0.05" value="0.5">
+    </div>
+    <div class="setting-row">
+        <label>Cor (Matiz): <span id="val-hue">165</span></label>
+        <input type="range" id="param-hue" min="0" max="360" step="1" value="165">
+    </div>
+    <div class="setting-row">
+        <label>Velocidade Rotação: <span id="val-speed">1.2</span></label>
+        <input type="range" id="param-speed" min="0" max="5" step="0.1" value="1.2">
+    </div>
+</div>
+
+<div class="controls-hint">
+    BOTÃO ESQUERDO: RODAR | SCROLL: ZOOM | BOTÃO DIREITO: ARRASTAR
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+    varying vec2 vUv;
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+</script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+    uniform vec3 uColor;
+    uniform sampler2D uMap;
+    uniform float uBrightness;
+    uniform float uOscillation;
+    uniform float uTime;
+    varying vec2 vUv;
+
+    void main() {
+        vec4 texColor = texture2D(uMap, vUv);
+        if (texColor.a < 0.2) discard;
+
+        // Cálculo da pulsação temporal
+        float pulse = 1.0 + sin(uTime * 3.0) * uOscillation;
+        
+        // Base da cor com gradiente nas bordas
+        vec3 finalColor = uColor;
+        float distFromCenter = abs(vUv.x - 0.5) * 2.0;
+        finalColor += uColor * pow(distFromCenter, 1.5) * 0.4;
+        
+        // Multiplicação final: Cor * Brilho Base * Fator de Pulso
+        gl_FragColor = vec4(finalColor * uBrightness * pulse, texColor.a);
+    }
+</script>
+
+<script>
+    const PALINDROME_SEQUENCE = [
+        "2", "30203", "133020331", "1713302033171", "12171330203317121",
+        "151217133020331712151", "1815121713302033171215181",
+        "16181512171330203317121518161", "331618151217133020331712151816133",
+        "9333161815121713302033171215181613339", "11933316181512171330203317121518161333911"
+    ];
+
+    let scene, camera, renderer, controls, clock;
+    let treeGroup;
+    
+    // Estado Global
+    const state = {
+        replications: 4,
+        spacing: 3.5,
+        hue: 165,
+        speed: 1.2,
+        brightness: 1.0,
+        oscillation: 0.5,
+        color: new THREE.Color().setHSL(165/360, 1, 0.5)
+    };
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 4000);
+        camera.position.set(35, 15, 70);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        clock = new THREE.Clock();
+        treeGroup = new THREE.Group();
+        scene.add(treeGroup);
+
+        createTree();
+        createStars();
+        setupUI();
+        
+        window.addEventListener('resize', onWindowResize);
+        animate();
+    }
+
+    function toggleSettings() {
+        const panel = document.getElementById('settings-panel');
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function setupUI() {
+        const sliders = [
+            { id: 'param-inst', key: 'replications', valId: 'val-inst', regen: true },
+            { id: 'param-space', key: 'spacing', valId: 'val-space', regen: true },
+            { id: 'param-glow', key: 'brightness', valId: 'val-glow', regen: false, uniform: 'uBrightness' },
+            { id: 'param-osc', key: 'oscillation', valId: 'val-osc', regen: false, uniform: 'uOscillation' },
+            { id: 'param-hue', key: 'hue', valId: 'val-hue', regen: false, custom: () => {
+                state.color.setHSL(state.hue / 360, 1, 0.5);
+                updateUniforms('uColor', state.color);
+            }},
+            { id: 'param-speed', key: 'speed', valId: 'val-speed', regen: false }
+        ];
+
+        sliders.forEach(s => {
+            const input = document.getElementById(s.id);
+            input.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                state[s.key] = val;
+                document.getElementById(s.valId).innerText = val;
+                if(s.regen) regenerateTree();
+                if(s.uniform) updateUniforms(s.uniform, val);
+                if(s.custom) s.custom();
+            });
+        });
+    }
+
+    function updateUniforms(name, value) {
+        treeGroup.traverse(child => {
+            if (child.material && child.material.uniforms && child.material.uniforms[name]) {
+                if (value instanceof THREE.Color) {
+                    child.material.uniforms[name].value.copy(value);
+                } else {
+                    child.material.uniforms[name].value = value;
+                }
+            }
+        });
+    }
+
+    function regenerateTree() {
+        while(treeGroup.children.length > 0) { 
+            const child = treeGroup.children[0];
+            if(child.geometry) child.geometry.dispose();
+            if(child.material) {
+                if(child.material.uniforms && child.material.uniforms.uMap) child.material.uniforms.uMap.value.dispose();
+                child.material.dispose();
+            }
+            treeGroup.remove(child); 
+        }
+        createTree();
+    }
+
+    function createTextTexture(text, isCenter = false) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const fontSize = 80;
+        ctx.font = `bold ${fontSize}px Courier New`;
+        
+        const metrics = ctx.measureText(text);
+        const textWidth = Math.ceil(metrics.width) + (isCenter ? 20 : 80);
+        canvas.width = textWidth;
+        canvas.height = fontSize + 40;
+        
+        const hexColor = '#' + state.color.getHexString();
+        ctx.fillStyle = hexColor;
+        ctx.font = `bold ${fontSize}px Courier New`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = hexColor;
+        ctx.shadowBlur = 12;
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        return { texture, width: textWidth / 45, height: (fontSize + 40) / 45 };
+    }
+
+    function createTree() {
+        const spacingY = state.spacing;
+        const startY = ((PALINDROME_SEQUENCE.length - 1) * spacingY) / 2;
+
+        PALINDROME_SEQUENCE.forEach((num, levelIndex) => {
+            const levelY = startY - (levelIndex * spacingY);
+            
+            let prefix = "", suffix = "";
+            if (num.length > 1) {
+                const midIndex = Math.floor(num.length / 2);
+                prefix = num.substring(0, midIndex);
+                suffix = num.substring(midIndex + 1);
+            }
+
+            // 1. Núcleo '2'
+            const centerData = createTextTexture("2", true);
+            const centerMat = new THREE.ShaderMaterial({
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent,
+                uniforms: { 
+                    uColor: { value: state.color.clone() }, 
+                    uMap: { value: centerData.texture },
+                    uBrightness: { value: state.brightness },
+                    uOscillation: { value: state.oscillation },
+                    uTime: { value: 0 }
+                },
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+            });
+            const centerMesh = new THREE.Mesh(new THREE.PlaneGeometry(centerData.width, centerData.height), centerMat);
+            centerMesh.position.set(0, levelY, 0);
+            centerMesh.onBeforeRender = function(renderer, scene, camera) { this.quaternion.copy(camera.quaternion); };
+            treeGroup.add(centerMesh);
+
+            // 2. Asas radiais
+            if (num.length > 1) {
+                const wingText = prefix + " " + suffix;
+                const wingData = createTextTexture(wingText);
+                const wingMat = new THREE.ShaderMaterial({
+                    vertexShader: document.getElementById('vertexShader').textContent,
+                    fragmentShader: document.getElementById('fragmentShader').textContent,
+                    uniforms: { 
+                        uColor: { value: state.color.clone() }, 
+                        uMap: { value: wingData.texture },
+                        uBrightness: { value: state.brightness },
+                        uOscillation: { value: state.oscillation },
+                        uTime: { value: 0 }
+                    },
+                    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+                });
+
+                for (let i = 0; i < state.replications; i++) {
+                    const angle = (i / state.replications) * Math.PI;
+                    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(wingData.width, wingData.height), wingMat);
+                    mesh.position.set(0, levelY, 0);
+                    mesh.rotation.y = angle;
+                    treeGroup.add(mesh);
+                }
+            }
+        });
+    }
+
+    function createStars() {
+        const geo = new THREE.BufferGeometry();
+        const count = 1000;
+        const pos = new Float32Array(count * 3);
+        for(let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 800;
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.15, color: 0x00ffcc, transparent: true, opacity: 0.15 })));
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const elapsed = clock.getElapsedTime();
+        controls.update();
+        
+        treeGroup.rotation.y += 0.001 * state.speed;
+
+        // Atualizar uTime em todos os materiais para a oscilação
+        treeGroup.traverse(child => {
+            if (child.material && child.material.uniforms && child.material.uniforms.uTime) {
+                child.material.uniforms.uTime.value = elapsed;
+            }
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
+
