@@ -7,41 +7,58 @@
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
         
-        #ui {
+        /* Responsive Header Container */
+        #header {
             position: absolute;
-            top: 25px;
-            left: 25px;
-            color: #00ffcc;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            box-sizing: border-box;
+            z-index: 100;
             pointer-events: none;
+        }
+
+        #ui {
+            color: #00ffcc;
             text-shadow: 0 0 12px #00ffcc;
-            z-index: 10;
+            max-width: 70%; /* Prevents title from hitting the gear */
+        }
+
+        #ui h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: bold;
+            letter-spacing: 2px;
         }
 
         /* Gear Icon Styling */
         #settings-btn {
-            position: absolute;
-            top: 25px;
-            right: 25px;
             width: 40px;
             height: 40px;
             cursor: pointer;
-            z-index: 100;
+            pointer-events: auto;
             fill: #00ffcc;
             transition: transform 0.3s ease, filter 0.3s ease;
             filter: drop-shadow(0 0 5px #00ffcc);
+            flex-shrink: 0;
         }
+
         #settings-btn:hover {
             transform: rotate(90deg);
             filter: drop-shadow(0 0 10px #00ffcc);
         }
 
-        /* Transparent Glassmorphism Settings Panel */
+        /* Transparent Settings Panel */
         #settings-panel {
             position: absolute;
             top: 75px;
-            right: 25px;
+            right: 20px;
             width: 280px;
-            background: rgba(0, 20, 20, 0.6);
+            background: rgba(0, 20, 20, 0.75);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(0, 255, 204, 0.3);
@@ -50,24 +67,19 @@
             color: #00ffcc;
             display: none;
             z-index: 99;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            box-sizing: border-box;
         }
 
-        .setting-row {
-            margin-bottom: 15px;
-        }
+        .setting-row { margin-bottom: 15px; }
         .setting-row label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             margin-bottom: 5px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        .setting-row input {
-            width: 100%;
-            background: transparent;
-            cursor: pointer;
-        }
+        .setting-row input { width: 100%; background: transparent; cursor: pointer; }
         
         input[type="range"] {
             -webkit-appearance: none;
@@ -86,25 +98,40 @@
 
         .controls-hint {
             position: absolute;
-            bottom: 25px;
+            bottom: 20px;
             width: 100%;
             text-align: center;
             color: rgba(0, 255, 204, 0.4);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             pointer-events: none;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            #ui h1 { font-size: 1rem; }
+            #settings-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+                left: 20px;
+            }
+            #settings-btn { width: 32px; height: 32px; }
         }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div style="font-size: 1.4rem; font-weight: bold; letter-spacing: 2px;">PALINDROMIC PRIME NUMBER TREE</div>
-</div>
+<header id="header">
+    <div id="ui">
+        <h1>PALINDROMIC PRIME NUMBER TREE</h1>
+    </div>
 
-<!-- Settings Gear SVG -->
-<svg id="settings-btn" viewBox="0 0 24 24" onclick="toggleSettings()">
-    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.21-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.21,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
-</svg>
+    <!-- Settings Gear SVG -->
+    <svg id="settings-btn" viewBox="0 0 24 24" onclick="toggleSettings()">
+        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.21-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.21,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+    </svg>
+</header>
 
 <!-- Settings Panel -->
 <div id="settings-panel">
@@ -132,13 +159,10 @@
         <label>Rotation Speed: <span id="val-speed">1.2</span></label>
         <input type="range" id="param-speed" min="0" max="5" step="0.1" value="1.2">
     </div>
-    <div style="font-size: 0.6rem; opacity: 0.6; text-align: center; margin-top: 10px;">
-        Longer numbers expand horizontally.
-    </div>
 </div>
 
 <div class="controls-hint">
-    LEFT CLICK: ROTATE | SCROLL: ZOOM | RIGHT CLICK: PAN
+    ROTATE: LEFT CLICK | ZOOM: SCROLL | PAN: RIGHT CLICK
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -164,21 +188,17 @@
         vec4 texColor = texture2D(uMap, vUv);
         if (texColor.a < 0.2) discard;
 
-        // Calculate time-based glow pulse
         float pulse = 1.0 + sin(uTime * 3.0) * uOscillation;
         
-        // Base color with edge glow gradient
         vec3 finalColor = uColor;
         float distFromCenter = abs(vUv.x - 0.5) * 2.0;
         finalColor += uColor * pow(distFromCenter, 1.5) * 0.4;
         
-        // Final Output: Color * Base Brightness * Pulse Factor
         gl_FragColor = vec4(finalColor * uBrightness * pulse, texColor.a);
     }
 </script>
 
 <script>
-    // Specific palindromic prime sequence
     const PALINDROME_SEQUENCE = [
         "2", "30203", "133020331", "1713302033171", "12171330203317121",
         "151217133020331712151", "1815121713302033171215181",
@@ -189,7 +209,6 @@
     let scene, camera, renderer, controls, clock;
     let treeGroup;
     
-    // Global Application State
     const state = {
         replications: 4,
         spacing: 3.5,
@@ -201,21 +220,17 @@
     };
 
     function init() {
-        // Scene setup
         scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x000000, 0.02);
 
-        // Camera setup
         camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 4000);
         camera.position.set(35, 15, 70);
 
-        // Renderer setup
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // OrbitControls for navigation
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -232,13 +247,11 @@
         animate();
     }
 
-    // Toggle the visibility of the settings panel
     function toggleSettings() {
         const panel = document.getElementById('settings-panel');
         panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     }
 
-    // Connect sliders to application state
     function setupUI() {
         const sliders = [
             { id: 'param-inst', key: 'replications', valId: 'val-inst', regen: true },
@@ -265,7 +278,6 @@
         });
     }
 
-    // Update shader uniforms without regenerating geometry
     function updateUniforms(name, value) {
         treeGroup.traverse(child => {
             if (child.material && child.material.uniforms && child.material.uniforms[name]) {
@@ -278,7 +290,6 @@
         });
     }
 
-    // Completely rebuild the tree structure
     function regenerateTree() {
         while(treeGroup.children.length > 0) { 
             const child = treeGroup.children[0];
@@ -292,7 +303,6 @@
         createTree();
     }
 
-    // Draw text to a Canvas to generate a high-res texture
     function createTextTexture(text, isCenter = false) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -332,7 +342,6 @@
                 suffix = num.substring(midIndex + 1);
             }
 
-            // 1. Unique Central '2' Nucleus (Billboard)
             const centerData = createTextTexture("2", true);
             const centerMat = new THREE.ShaderMaterial({
                 vertexShader: document.getElementById('vertexShader').textContent,
@@ -351,7 +360,6 @@
             centerMesh.onBeforeRender = function(renderer, scene, camera) { this.quaternion.copy(camera.quaternion); };
             treeGroup.add(centerMesh);
 
-            // 2. Radial "Wings" (Prefix + Space + Suffix)
             if (num.length > 1) {
                 const wingText = prefix + " " + suffix;
                 const wingData = createTextTexture(wingText);
@@ -379,7 +387,6 @@
         });
     }
 
-    // Static background starfield
     function createStars() {
         const geo = new THREE.BufferGeometry();
         const count = 1000;
@@ -400,10 +407,8 @@
         const elapsed = clock.getElapsedTime();
         controls.update();
         
-        // Continuous tree rotation
         treeGroup.rotation.y += 0.001 * state.speed;
 
-        // Update uTime in all materials for shader oscillation
         treeGroup.traverse(child => {
             if (child.material && child.material.uniforms && child.material.uniforms.uTime) {
                 child.material.uniforms.uTime.value = elapsed;
