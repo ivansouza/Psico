@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explorador Orgânico Collatz - Tempo Real</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background: #000; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* Botão flutuante de configurações */
+    #settings-trigger {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+    #settings-trigger:hover {
+      background: rgba(0, 204, 255, 0.3);
+      transform: rotate(45deg);
+    }
+    #settings-trigger svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    /* Painel de Configuração Transparente */
+    #ui {
+      position: absolute;
+      top: 20px;
+      right: 80px;
+      z-index: 90;
+      color: white;
+      background: rgba(0, 0, 0, 0.65);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      width: 300px;
+      max-height: 85vh;
+      overflow-y: auto;
+      user-select: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(20px);
+    }
+
+    #ui.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+
+    #ui::-webkit-scrollbar { width: 4px; }
+    #ui::-webkit-scrollbar-thumb { background: rgba(0, 204, 255, 0.5); border-radius: 2px; }
+
+    h1 { margin: 0 0 5px 0; font-size: 16px; font-weight: 400; letter-spacing: 1px; color: #0cf; }
+    .subtitle { font-size: 10px; text-transform: uppercase; color: #888; margin-bottom: 15px; }
+    
+    .control-group { margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 10px; }
+    label { display: flex; justify-content: space-between; font-size: 10px; text-transform: uppercase; margin-bottom: 6px; color: #ccc; }
+    label span { color: #0cf; font-family: monospace; }
+    
+    input[type=range] { width: 100%; cursor: pointer; accent-color: #0cf; margin: 0; }
+    
+    /* Ações de Armazenamento */
+    .storage-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: bold;
+    }
+    .btn:hover { background: rgba(0, 204, 255, 0.3); border-color: #0cf; }
+    .btn-save { background: rgba(0, 204, 255, 0.2); border-color: #0cf; }
+
+    .stats { font-family: monospace; font-size: 9px; margin-top: 15px; color: #0f0; opacity: 0.8; }
+    .shortcut-hint { font-size: 9px; color: #666; margin-top: 10px; text-align: center; }
+    
+    #toast {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 204, 255, 0.9);
+      color: black;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 1000;
+      text-align: center;
+      min-width: 200px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="settings-trigger" onclick="toggleUI()" title="Configurações">
+    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12c0,0.31,0.02,0.65,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.5c-1.93,0-3.5-1.57-3.5-3.5 s1.57-3.5,3.5-3.5s3.5,1.57,3.5,3.5S13.93,15.5,12,15.5z"/></svg>
+  </div>
+
+  <div id="ui">
+    <h1>ESTRUTURA COLLATZ</h1>
+    <div class="subtitle">Dimensões & Visualização Real-Time</div>
+    
+    <div class="control-group">
+      <label>Caule Inverso <span>(Stem)</span> <em id="v-stem">10.0</em></label>
+      <input type="range" id="input-stem" min="0" max="15" step="0.5" value="10">
+    </div>
+
+    <div class="control-group">
+      <label>Profundidade <span>(Depth)</span> <em id="v-depth">56</em></label>
+      <input type="range" id="input-depth" min="5" max="80" value="56">
+    </div>
+
+    <div class="control-group">
+      <label>Simetria <span>(N-Fold)</span> <em id="v-nfold">12</em></label>
+      <input type="range" id="input-nfold" min="1" max="24" value="12">
+    </div>
+
+    <div class="control-group">
+      <label>Curvatura <span>(Alpha)</span> <em id="v-alpha">0.54</em></label>
+      <input type="range" id="input-alpha" min="0" max="1.5" step="0.01" value="0.54">
+    </div>
+
+    <div class="control-group">
+      <label>Escala Z <span>(Height)</span> <em id="v-zscale">0.2</em></label>
+      <input type="range" id="input-zscale" min="0.05" max="3" step="0.05" value="0.2">
+    </div>
+
+    <div class="control-group">
+      <label>Espalhamento <span>(Scale)</span> <em id="v-spread">0.41</em></label>
+      <input type="range" id="input-spread" min="0.05" max="1.0" step="0.01" value="0.41">
+    </div>
+
+    <div class="control-group">
+      <label>Ruído <span>(Noise)</span> <em id="v-noise">0.053</em></label>
+      <input type="range" id="input-noise" min="0" max="0.2" step="0.001" value="0.053">
+    </div>
+
+    <div class="control-group">
+      <label>Oscilação <span>(Wiggle)</span> <em id="v-wiggle">0.24</em></label>
+      <input type="range" id="input-wiggle" min="0" max="1" step="0.01" value="0.24">
+    </div>
+
+    <div class="control-group">
+      <label>Desvio de Cor <span>(Hue)</span> <em id="v-hueshift">0.79</em></label>
+      <input type="range" id="input-hueshift" min="0" max="1" step="0.01" value="0.79">
+    </div>
+
+    <div class="storage-actions">
+      <button class="btn btn-save" onclick="saveToLocalAndClipboard()">Copiar Config.</button>
+      <button class="btn" onclick="clearLocal()">Reset</button>
+    </div>
+
+    <div class="stats" id="stats">Segmentos: 0</div>
+    <div class="shortcut-hint">Configurações copiadas em formato JSON</div>
+  </div>
+
+  <div id="toast">Ação concluída!</div>
+
+  <script>
+    // --- Parâmetros Iniciais (Conforme solicitado) ---
+    let params = {
+      alpha: 0.54,
+      maxDepth: 56,
+      maxN: 25000,
+      nFold: 12,
+      spread: 0.41,
+      zScale: 0.2,
+      noise: 0.053,
+      wiggle: 0.24,
+      hueShift: 0.79,
+      stemHeight: 10,
+      rotationSpeed: 0.0015
+    };
+
+    let scene, camera, renderer, controls, treeGroup, stemObject;
+
+    function toggleUI() {
+      document.getElementById('ui').classList.toggle('active');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.opacity = '1';
+      setTimeout(() => t.style.opacity = '0', 3000);
+    }
+
+    // --- Persistência e Clipboard ---
+    function saveToLocalAndClipboard() {
+      const state = {
+        params: params,
+        camera: {
+          pos: camera.position.toArray(),
+          target: controls.target.toArray()
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      const jsonString = JSON.stringify(state, null, 2);
+      localStorage.setItem('collatz_state_v3', jsonString);
+
+      const textArea = document.createElement("textarea");
+      textArea.value = jsonString;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) showToast("Configurações copiadas em JSON!");
+        else showToast("Erro ao copiar.");
+      } catch (err) {
+        showToast("Falha técnica ao copiar.");
+      }
+      
+      document.body.removeChild(textArea);
+    }
+
+    function loadFromLocal() {
+      const saved = localStorage.getItem('collatz_state_v3');
+      if (saved) {
+        try {
+          const state = JSON.parse(saved);
+          Object.assign(params, state.params);
+          updateUIValues();
+          if (state.camera) {
+            camera.position.fromArray(state.camera.pos);
+            if (controls) controls.target.fromArray(state.camera.target);
+          }
+          return true;
+        } catch(e) {
+          console.error("Erro ao carregar JSON salvo.");
+        }
+      }
+      return false;
+    }
+
+    function clearLocal() {
+      localStorage.removeItem('collatz_state_v3');
+      location.reload();
+    }
+
+    function updateUIValues() {
+      const keys = {
+        'input-depth': 'maxDepth',
+        'input-nfold': 'nFold',
+        'input-alpha': 'alpha',
+        'input-zscale': 'zScale',
+        'input-spread': 'spread',
+        'input-noise': 'noise',
+        'input-wiggle': 'wiggle',
+        'input-hueshift': 'hueShift',
+        'input-stem': 'stemHeight'
+      };
+      for (let id in keys) {
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = params[keys[id]];
+          const view = document.getElementById('v-' + id.split('-')[1]);
+          if (view) view.innerText = params[keys[id]].toFixed(id.includes('nfold') || id.includes('depth') ? 0 : 3);
+        }
+      }
+    }
+
+    // --- Inicialização Three.js ---
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+      
+      // Coordenadas iniciais (Câmara)
+      camera.position.set(-0.4468610006515784, -13.79069744728686, -3.995177860938548);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      document.body.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      
+      // Target (Alvo da Câmara)
+      controls.target.set(-0.4788502481559348, 0.09016134799770076, 1.0037720651185056);
+
+      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+      scene.add(ambient);
+      
+      const pointLight = new THREE.PointLight(0x00ccff, 2, 100);
+      pointLight.position.set(10, 10, 10);
+      scene.add(pointLight);
+
+      createStars();
+      
+      // Carrega do localStorage se existir, senão usa os defaults
+      loadFromLocal();
+      
+      regenerate();
+      animate();
+
+      window.addEventListener('resize', onWindowResize);
+      setupRealTimeUI();
+    }
+
+    function createStars() {
+      const geometry = new THREE.BufferGeometry();
+      const vertices = [];
+      for (let i = 0; i < 3000; i++) {
+        vertices.push(THREE.MathUtils.randFloatSpread(1500));
+        vertices.push(THREE.MathUtils.randFloatSpread(1500));
+        vertices.push(THREE.MathUtils.randFloatSpread(1500));
+      }
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      const material = new THREE.PointsMaterial({ color: 0x555555, size: 0.8, transparent: true, opacity: 0.4 });
+      scene.add(new THREE.Points(geometry, material));
+    }
+
+    function getPredecessors(n) {
+      const preds = [];
+      const mEven = 2 * n;
+      if (mEven <= params.maxN) preds.push(mEven);
+      
+      if ((n - 1) % 3 === 0) {
+        const mOdd = (n - 1) / 3;
+        if (Number.isInteger(mOdd) && mOdd % 2 === 1 && mOdd > 1 && mOdd <= params.maxN) {
+          preds.push(mOdd);
+        }
+      }
+      return preds;
+    }
+
+    function buildStem() {
+      if (params.stemHeight <= 0) return null;
+      const segments = [];
+      const colors = [];
+      const steps = 30;
+      const stepSize = params.stemHeight / steps;
+      let lastPos = new THREE.Vector3(0, 0, params.stemHeight); 
+      for(let i = 0; i <= steps; i++) {
+        const currentZ = params.stemHeight - (i * stepSize); 
+        const jitter = (i === steps) ? 0 : 0.05 * (1 + (params.stemHeight - currentZ));
+        const currentPos = new THREE.Vector3((Math.random() - 0.5) * jitter, (Math.random() - 0.5) * jitter, currentZ);
+        if (i > 0) {
+          segments.push(lastPos.x, lastPos.y, lastPos.z);
+          segments.push(currentPos.x, currentPos.y, currentPos.z);
+          const c1 = new THREE.Color();
+          const c2 = new THREE.Color();
+          const g1 = 0.2 + (i/steps) * 0.5;
+          const g2 = 0.2 + ((i+1)/steps) * 0.5;
+          c1.setRGB(0.05, g1, 0.1);
+          c2.setRGB(0.05, g2, 0.1);
+          colors.push(c1.r, c1.g, c1.b);
+          colors.push(c2.r, c2.g, c2.b);
+        }
+        lastPos.copy(currentPos);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(segments, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ vertexColors: true, blending: THREE.AdditiveBlending }));
+    }
+
+    function buildOrganicTree() {
+      const segments = [];
+      const colors = [];
+      const stack = [{ n: 1, pos: new THREE.Vector3(0, 0, 0), theta: 0, k: 0 }];
+      const visited = new Set();
+      visited.add(1);
+
+      while (stack.length > 0) {
+        const current = stack.pop();
+        const preds = getPredecessors(current.n);
+        for (const m of preds) {
+          if (visited.has(m) || current.k + 1 > params.maxDepth) continue;
+          visited.add(m);
+          const delta = current.n - m;
+          const kappa = Math.tanh(delta / 1000); 
+          const thetaNew = current.theta + params.alpha * kappa + params.wiggle * Math.sin(current.k / 2);
+          const s = params.spread / Math.pow(current.k + 1, 0.7);
+          const noiseX = (Math.random() - 0.5) * params.noise;
+          const noiseY = (Math.random() - 0.5) * params.noise;
+          const noiseZ = (Math.random() - 0.5) * params.noise;
+          const dx = s * Math.cos(thetaNew) + noiseX;
+          const dy = s * Math.sin(thetaNew) + noiseY;
+          const dz = (0.12 * Math.sign(delta) * Math.log(1 + Math.abs(delta))) * params.zScale + noiseZ;
+          const newPos = new THREE.Vector3(current.pos.x + dx, current.pos.y + dy, current.pos.z + dz);
+          segments.push(current.pos.x, current.pos.y, current.pos.z);
+          segments.push(newPos.x, newPos.y, newPos.z);
+          const color = new THREE.Color();
+          const hue = (params.hueShift + (current.k / params.maxDepth) * 0.4) % 1.0;
+          color.setHSL(hue, 0.9, 0.55);
+          colors.push(color.r, color.g, color.b);
+          colors.push(color.r, color.g, color.b);
+          stack.push({ n: m, pos: newPos, theta: thetaNew, k: current.k + 1 });
+        }
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(segments, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending });
+      return { line: new THREE.LineSegments(geometry, material), count: segments.length / 6 };
+    }
+
+    function regenerate() {
+      if (treeGroup) scene.remove(treeGroup);
+      if (stemObject) scene.remove(stemObject);
+      stemObject = buildStem();
+      if (stemObject) scene.add(stemObject);
+      treeGroup = new THREE.Group();
+      const { line, count } = buildOrganicTree();
+      for (let i = 0; i < params.nFold; i++) {
+        const instance = line.clone();
+        instance.rotation.z = (Math.PI * 2 * i) / params.nFold;
+        treeGroup.add(instance);
+      }
+      scene.add(treeGroup);
+      document.getElementById('stats').innerText = `Segmentos: ${(count * params.nFold).toLocaleString()}`;
+    }
+
+    function setupRealTimeUI() {
+      const mappings = [
+        { id: 'input-depth', param: 'maxDepth', view: 'v-depth' },
+        { id: 'input-nfold', param: 'nFold', view: 'v-nfold' },
+        { id: 'input-alpha', param: 'alpha', view: 'v-alpha' },
+        { id: 'input-zscale', param: 'zScale', view: 'v-zscale' },
+        { id: 'input-spread', param: 'spread', view: 'v-spread' },
+        { id: 'input-noise', param: 'noise', view: 'v-noise' },
+        { id: 'input-wiggle', param: 'wiggle', view: 'v-wiggle' },
+        { id: 'input-hueshift', param: 'hueShift', view: 'v-hueshift' },
+        { id: 'input-stem', param: 'stemHeight', view: 'v-stem' }
+      ];
+      mappings.forEach(m => {
+        const el = document.getElementById(m.id);
+        const view = document.getElementById(m.view);
+        el.addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          params[m.param] = val;
+          view.innerText = val.toFixed(m.id.includes('nfold') || m.id.includes('depth') ? 0 : 3);
+          regenerate();
+        });
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (treeGroup) treeGroup.rotation.z += params.rotationSpeed;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
+
