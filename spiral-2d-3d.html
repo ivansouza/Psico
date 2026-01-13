@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orbiters 3D Pro Visualizer</title>
+    <style>
+        :root {
+            --bg-color: #050507;
+            --panel-bg: rgba(15, 15, 20, 0.8);
+            --accent-color: #6366f1;
+            --text-color: #f8fafc;
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        canvas { display: block; touch-action: none; }
+
+        #ui-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        #ui-toggle:hover { background: rgba(255,255,255,0.1); }
+
+        #controls {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            max-height: calc(100vh - 120px);
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            z-index: 90;
+            display: none;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        #controls.visible { display: block; animation: fadeIn 0.3s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .control-group { margin-bottom: 18px; }
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+            color: #94a3b8;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+            outline: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .value-display {
+            float: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--accent-color);
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 11px;
+            color: #475569;
+            pointer-events: none;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="ui-toggle">⚙️</button>
+
+    <div id="controls">
+        <div class="control-group">
+            <label>Pontos por Lado <span class="value-display" id="val-density">50</span></label>
+            <input type="range" id="density" min="10" max="150" value="50">
+        </div>
+        <div class="control-group">
+            <label>Espaçamento <span class="value-display" id="val-spacing">8.0</span></label>
+            <input type="range" id="spacing" min="2" max="20" step="0.5" value="8">
+        </div>
+        <div class="control-group">
+            <label>Tamanho do Ponto <span class="value-display" id="val-dotSize">2.0</span></label>
+            <input type="range" id="dotSize" min="0.1" max="10" step="0.1" value="2">
+        </div>
+        <div class="control-group">
+            <label>Raio de Órbita <span class="value-display" id="val-radius">3.0</span></label>
+            <input type="range" id="radius" min="0" max="20" step="0.1" value="3">
+        </div>
+        <div class="control-group">
+            <label>Velocidade <span class="value-display" id="val-speed">1.5</span></label>
+            <input type="range" id="speed" min="0" max="10" step="0.1" value="1.5">
+        </div>
+        <div class="control-group">
+            <label>Força do Mouse <span class="value-display" id="val-mouse">2.0</span></label>
+            <input type="range" id="mouseInfluence" min="0" max="10" step="0.1" value="2">
+        </div>
+        <div class="control-group">
+            <label>Esquema de Cor</label>
+            <select id="colorTheme">
+                <option value="neon">Cosmos Neon</option>
+                <option value="mono">Minimalista Silver</option>
+                <option value="fire">Chama Profunda</option>
+                <option value="ocean">Oceano Abissal</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="hint">Esq: Rodar | Dir: Mover | Scroll: Zoom | Hover: Influência</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Configurações Iniciais
+        const params = {
+            numCols: 50,
+            numRows: 50,
+            spacing: 8,
+            dotSize: 2.0,
+            radius: 3,
+            speed: 1.5,
+            mouseInfluence: 2.0,
+            colorTheme: 'neon'
+        };
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050507);
+
+        // Câmara de Perspetiva para 3D Real
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
+        camera.position.set(0, -350, 400);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Controlos de Órbita
+        const orbit = new THREE.OrbitControls(camera, renderer.domElement);
+        orbit.enableDamping = true;
+        orbit.dampingFactor = 0.05;
+
+        // Variáveis de Objetos
+        let points, geometry, material, homePositions, positions, colors;
+        
+        // Interação de Mouse em 3D (Raycasting)
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2(-1, -1);
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const mouseWorld = new THREE.Vector3(-9999, -9999, 0);
+
+        // UI Binding
+        const controlsUI = document.getElementById('controls');
+        document.getElementById('ui-toggle').onclick = () => controlsUI.classList.toggle('visible');
+
+        function bind(id, key, isFloat = true) {
+            const el = document.getElementById(id);
+            const disp = document.getElementById('val-' + id);
+            el.oninput = (e) => {
+                const val = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                params[key] = val;
+                if(disp) disp.innerText = isFloat ? val.toFixed(1) : val;
+                if(id === 'dotSize') { if(material) material.size = val; }
+                else if(id === 'density' || id === 'spacing') recreate();
+            };
+        }
+
+        bind('density', 'numCols', false);
+        bind('spacing', 'spacing');
+        bind('dotSize', 'dotSize');
+        bind('radius', 'radius');
+        bind('speed', 'speed');
+        bind('mouseInfluence', 'mouseInfluence');
+
+        document.getElementById('colorTheme').onchange = (e) => params.colorTheme = e.target.value;
+
+        function recreate() {
+            if (geometry) geometry.dispose();
+            if (material) material.dispose();
+            if (points) scene.remove(points);
+
+            params.numRows = params.numCols; // Grid quadrada para simplicidade 3D
+
+            const numPoints = params.numCols * params.numRows;
+            homePositions = new Float32Array(numPoints * 3);
+            positions = new Float32Array(numPoints * 3);
+            colors = new Float32Array(numPoints * 3);
+
+            const offsetX = (params.numCols - 1) * params.spacing / 2;
+            const offsetY = (params.numRows - 1) * params.spacing / 2;
+
+            let k = 0;
+            for (let j = 0; j < params.numRows; j++) {
+                for (let i = 0; i < params.numCols; i++) {
+                    const x = i * params.spacing - offsetX;
+                    const y = j * params.spacing - offsetY;
+                    
+                    homePositions[k] = x;
+                    homePositions[k + 1] = y;
+                    homePositions[k + 2] = 0;
+                    
+                    positions[k] = x;
+                    positions[k + 1] = y;
+                    positions[k + 2] = 0;
+                    k += 3;
+                }
+            }
+
+            geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            material = new THREE.PointsMaterial({ 
+                size: params.dotSize, 
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true // Em 3D os pontos ficam menores com a distância
+            });
+            
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+        }
+
+        function getColor(dist, time, angle) {
+            const theme = params.colorTheme;
+            let h = 0, s = 0, l = 0.5;
+
+            if (theme === 'neon') {
+                h = (dist * 0.02 + time * 30 + angle * 20) % 360;
+                s = 0.8; l = 0.6;
+            } else if (theme === 'mono') {
+                l = 0.3 + Math.sin(time + dist * 0.01) * 0.2;
+                return new THREE.Color().setHSL(0, 0, l);
+            } else if (theme === 'fire') {
+                h = (15 + Math.sin(time + dist * 0.01) * 15) % 360;
+                s = 1.0; l = 0.5;
+            } else { // ocean
+                h = (200 + Math.sin(time + dist * 0.02) * 40) % 360;
+                s = 0.7; l = 0.4;
+            }
+
+            return new THREE.Color().setHSL(h / 360, s, l);
+        }
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+
+            const time = now * 0.001;
+            orbit.update();
+
+            // Atualizar Raycaster para pegar posição no plano Z=0
+            raycaster.setFromCamera(pointer, camera);
+            raycaster.ray.intersectPlane(groundPlane, mouseWorld);
+
+            for (let k = 0; k < homePositions.length; k += 3) {
+                const hX = homePositions[k];
+                const hY = homePositions[k + 1];
+                
+                const distFromCenter = Math.sqrt(hX * hX + hY * hY);
+                const phase = distFromCenter * 0.04;
+                const angle = time * params.speed + phase;
+                
+                // Distância do ponto ao mouse no mundo 3D
+                const dx = hX - mouseWorld.x;
+                const dy = hY - mouseWorld.y;
+                const dMouse = Math.sqrt(dx * dx + dy * dy);
+                
+                // Influência local
+                const force = Math.max(0, (150 - dMouse) / 150) * params.mouseInfluence;
+                const r = params.radius * (1 + force * 2.5);
+                
+                // Movimento Circular
+                positions[k] = hX + r * Math.cos(angle);
+                positions[k + 1] = hY + r * Math.sin(angle);
+                // Pequena oscilação em Z baseada na força
+                positions[k + 2] = Math.sin(angle + distFromCenter * 0.1) * (force * 20);
+
+                // Cores dinâmicas
+                const c = getColor(distFromCenter, time, angle);
+                colors[k] = c.r;
+                colors[k + 1] = c.g;
+                colors[k + 2] = c.b;
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+
+        // Gestão de Eventos
+        function onPointerMove(event) {
+            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('touchmove', (e) => {
+            if(e.touches[0]) onPointerMove(e.touches[0]);
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        recreate();
+        animate(0);
+    </script>
+</body>
+</html>
+
