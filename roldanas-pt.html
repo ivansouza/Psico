@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- MathJax para renderização de fórmulas LaTeX -->
+    <!-- Configuração do MathJax para renderização de fórmulas LaTeX -->
     <script>
         window.MathJax = {
             tex: {
@@ -99,112 +99,174 @@
 
         .formula-box {
             background: rgba(0,0,0,0.3);
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 0.75rem;
             border-left: 4px solid #3b82f6;
-            font-family: serif;
+            margin: 1.5rem 0;
         }
-        mjx-container { margin: 0.5em 0 !important; color: white !important; }
+        mjx-container { margin: 1em 0 !important; color: white !important; font-size: 1.1em; }
+        
+        .chapter-title {
+            color: #60a5fa;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Botão de Configurações -->
+    <!-- Botão de Definições -->
     <button onclick="togglePanel()" class="fixed top-6 left-6 z-[80] p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg transition-all active:scale-90">
         <i data-lucide="settings"></i>
     </button>
 
     <div id="toast">Configuração gravada e copiada com sucesso!</div>
 
-    <!-- Modal de Explicação Física -->
+    <!-- Modal de Explicação - Capítulo de Livro -->
     <div id="explanation-modal" class="flex pointer-events-auto">
-        <div class="glass-panel max-w-3xl w-full max-h-[85vh] overflow-y-auto rounded-3xl p-8 text-white relative border border-white/20 shadow-2xl">
+        <div class="glass-panel max-w-4xl w-full max-h-[85vh] overflow-y-auto rounded-3xl p-10 text-white relative border border-white/20 shadow-2xl">
             <button onclick="toggleExplanation()" class="absolute top-6 right-6 text-slate-400 hover:text-white">
                 <i data-lucide="x"></i>
             </button>
-            <h2 class="text-3xl font-black mb-6 text-blue-400 italic text-center border-b border-white/10 pb-4">Fundamentos das Roldanas</h2>
             
-            <div class="space-y-8 text-slate-200 text-sm md:text-base leading-relaxed">
+            <header class="text-center mb-12 border-b border-white/10 pb-8">
+                <h1 class="text-4xl font-black text-blue-400 italic mb-2">Tratado sobre Máquinas Simples</h1>
+                <p class="text-slate-400 font-medium">Volume I: A Ciência das Roldanas e Moitões</p>
+            </header>
+            
+            <div class="space-y-12 text-slate-200 text-base md:text-lg leading-relaxed">
+                
+                <!-- Capítulo 1 -->
                 <section>
-                    <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2 italic text-blue-300">
-                        <i data-lucide="history" class="w-5 h-5"></i> Origem Histórica
+                    <span class="chapter-title">Capítulo 1</span>
+                    <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                        <i data-lucide="book" class="text-blue-400"></i> A Herança de Arquimedes
                     </h3>
                     <p>
-                        O uso sistemático de polias remonta à Grécia Antiga. O inventor <strong>Arquimedes de Siracusa</strong> (c. 287 a.C.) revolucionou a mecânica ao provar que sistemas de roldanas podem multiplicar a força humana para mover massas colossais.
+                        A roldana, ou polia, é uma das seis máquinas simples fundamentais que mudaram a história da civilização. No século III a.C., <strong>Arquimedes de Siracusa</strong> demonstrou ao rei Hierão II que, utilizando um sistema composto de roldanas, era possível movimentar um navio de guerra totalmente carregado utilizando apenas a força de um homem. 
+                    </p>
+                    <p class="mt-4">
+                        A essência desta descoberta reside na troca entre <strong>força e distância</strong>: para reduzir o esforço necessário, devemos aumentar o caminho percorrido.
                     </p>
                 </section>
 
+                <!-- Capítulo 2 -->
                 <section>
-                    <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2 italic text-emerald-300">
-                        <i data-lucide="microscope" class="w-5 h-5"></i> A Física do Moitão
+                    <span class="chapter-title">Capítulo 2</span>
+                    <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-3 text-emerald-300">
+                        <i data-lucide="activity"></i> Vantagem Mecânica e Força
                     </h3>
-                    <p class="mb-4">O sistema demonstrado é um moitão industrial, onde a força é distribuída pelos segmentos de cabo que sustentam o bloco inferior.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="formula-box">
-                            <p class="text-blue-400 text-xs uppercase font-bold mb-1">Vantagem Mecânica (VM)</p>
-                            $$VM = n$$
-                            <p class="text-[10px] mt-1 text-slate-400">Onde $n$ é o número total de roldanas no moitão.</p>
-                        </div>
-                        <div class="formula-box">
-                            <p class="text-emerald-400 text-xs uppercase font-bold mb-1">Força de Esforço ($F_e$)</p>
-                            $$F_e = \frac{P \cdot g}{VM}$$
-                            <p class="text-[10px] mt-1 text-slate-400">$P$: Massa (kg), $g$: Gravidade ($\approx 9,81 m/s^2$).</p>
-                        </div>
+                    <p>
+                        Num sistema de moitão (como o simulado à sua frente), a carga é suportada por múltiplos segmentos de corda. A <strong>Vantagem Mecânica (VM)</strong> é o fator pelo qual a máquina multiplica a força de entrada.
+                    </p>
+                    <div class="formula-box">
+                        <p class="text-blue-400 font-bold mb-2">Equação da Vantagem Mecânica:</p>
+                        $$VM = n$$
+                        <p class="text-sm text-slate-400 italic">Onde $n$ representa o número total de polias no sistema (fixas + móveis).</p>
+                    </div>
+                    <p>
+                        Para calcular a <strong>Força de Esforço ($F_e$)</strong> que o operador deve aplicar para manter o sistema em equilíbrio, utilizamos a segunda lei de Newton adaptada:
+                    </p>
+                    <div class="formula-box">
+                        $$F_e = \frac{P \cdot g}{VM}$$
+                        <p class="text-sm text-slate-400 mt-2">Nesta simulação, estamos a considerar a aceleração da gravidade $g \approx 9,81 m/s^2$.</p>
                     </div>
                 </section>
+
+                <!-- Capítulo 3 -->
+                <section>
+                    <span class="chapter-title">Capítulo 3</span>
+                    <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-3 text-amber-300">
+                        <i data-lucide="scissors"></i> O Sacrifício da Distância
+                    </h3>
+                    <p>
+                        A física é regida pela <strong>Lei da Conservação de Energia</strong>. Uma máquina simples não cria energia; ela apenas a redistribui. Se elevar o peso em $1$ metro com $4$ roldanas, terá de puxar $4$ metros de cabo.
+                    </p>
+                    <div class="formula-box">
+                        <p class="text-amber-400 font-bold mb-2">Comprimento do Cabo Recolhido ($L$):</p>
+                        $$L_{puxado} = h \cdot VM$$
+                        <p class="text-sm text-slate-400 mt-2">É por esta razão que, na simulação, vê o cabo a acumular-se em espirais volumosas no chão: esse é o rastro físico da sua vantagem mecânica.</p>
+                    </div>
+                </section>
+
+                <!-- Capítulo 4 -->
+                <section>
+                    <span class="chapter-title">Capítulo 4</span>
+                    <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-3 text-purple-300">
+                        <i data-lucide="factory"></i> Aplicações na Engenharia Moderna
+                    </h3>
+                    <p>
+                        Os princípios detalhados neste simulador são aplicados diariamente em escalas colossais:
+                    </p>
+                    <ul class="list-disc list-inside space-y-3 mt-4 text-slate-300 ml-4">
+                        <li><strong>Canteiros de Obra:</strong> Guindastes de torre utilizam moitões paralelos para elevar toneladas de concreto e aço.</li>
+                        <li><strong>Indústria Náutica:</strong> Cabrestantes e moitões permitem que marinheiros controlem velas com centenas de metros quadrados de área.</li>
+                        <li><strong>Sistemas de Elevadores:</strong> O uso de roldanas e contrapesos minimiza o consumo energético dos motores elétricos.</li>
+                    </ul>
+                </section>
             </div>
+            
+            <footer class="mt-16 text-center border-t border-white/10 pt-8 text-slate-500 italic text-sm">
+                Fim do Capítulo • Desenvolvido para Fins Educativos
+            </footer>
         </div>
     </div>
 
     <!-- Painel Lateral -->
-    <aside id="controls-panel" class="side-panel pointer-events-auto fixed top-0 left-0 h-full w-full max-w-[300px] glass-panel p-6 text-white flex flex-col gap-4 hidden-panel shadow-2xl overflow-y-auto">
+    <aside id="controls-panel" class="side-panel pointer-events-auto fixed top-0 left-0 h-full w-full max-w-[320px] glass-panel p-8 text-white flex flex-col gap-6 hidden-panel shadow-2xl overflow-y-auto">
         <div class="mt-12">
-            <h1 class="text-xl font-bold italic text-blue-400">Simulador 3D de Roldanas</h1>
-            <p class="text-[10px] text-slate-400 uppercase font-black tracking-widest opacity-70">Controlo de Engenharia</p>
+            <h1 class="text-xl font-bold italic text-blue-400 uppercase tracking-tighter">Parâmetros de Sistema</h1>
+            <p class="text-[10px] text-slate-400 uppercase font-black tracking-widest opacity-70">Ajustes Industriais</p>
         </div>
 
-        <div class="space-y-4">
-            <div class="space-y-1">
+        <div class="space-y-6">
+            <div class="space-y-2">
                 <div class="flex justify-between items-end">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Roldanas Totais:</label>
-                    <span id="pulley-count-label" class="text-lg font-black text-blue-400">4</span>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Número de Polias:</label>
+                    <span id="pulley-count-label" class="text-xl font-black text-blue-400">4</span>
                 </div>
                 <input type="range" id="pulley-count-range" min="1" max="20" step="1" value="4">
             </div>
 
-            <div class="space-y-1">
+            <div class="space-y-2">
                 <div class="flex justify-between items-end">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Posição Suporte:</label>
-                    <span id="pulley-x-label" class="text-lg font-black text-blue-400">6.0</span>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Posição do Suporte:</label>
+                    <span id="pulley-x-label" class="text-xl font-black text-blue-400">6.0</span>
                 </div>
                 <input type="range" id="pulley-x-range" min="-10" max="10" step="0.1" value="6.0">
             </div>
 
-            <div class="space-y-1">
+            <div class="space-y-2">
                 <div class="flex justify-between items-end">
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Massa da Carga:</label>
-                    <span id="mass-label" class="text-lg font-black text-blue-400">100 kg</span>
+                    <span id="mass-label" class="text-xl font-black text-blue-400">100 kg</span>
                 </div>
                 <input type="range" id="mass-range" min="5" max="500" step="5" value="100">
             </div>
         </div>
 
-        <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl flex justify-between items-center mt-2">
-            <span class="text-[9px] font-bold text-slate-400 uppercase">Esforço:</span>
-            <span id="force-val" class="text-base font-black text-blue-400 tracking-tighter">245.3 N</span>
+        <div class="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl flex justify-between items-center mt-2">
+            <div class="flex flex-col">
+                <span class="text-[9px] font-bold text-slate-500 uppercase">Esforço Calculado:</span>
+                <span id="force-val" class="text-xl font-black text-blue-400 tracking-tighter">245.3 N</span>
+            </div>
+            <i data-lucide="gauge" class="text-blue-500 opacity-50"></i>
         </div>
 
-        <div class="flex flex-col gap-2 mt-4">
-            <button onclick="saveAndCopyState()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
+        <div class="flex flex-col gap-3 mt-4">
+            <button onclick="saveAndCopyState()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
                 <i data-lucide="save" class="w-4 h-4"></i> Gravar Configuração
             </button>
-            <button onclick="toggleExplanation()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all border border-white/10">
-                <i data-lucide="book-open" class="w-4 h-4"></i> História e Fórmulas
+            <button onclick="toggleExplanation()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all border border-white/10">
+                <i data-lucide="book-open" class="w-4 h-4"></i> Ciência e História
             </button>
         </div>
         
-        <p class="text-[9px] text-slate-500 text-center italic mt-auto pt-4">As definições serão guardadas no browser e copiadas como JSON.</p>
+        <p class="text-[10px] text-slate-500 text-center italic mt-auto pt-6">Configurações guardadas no browser e exportáveis em formato JSON.</p>
     </aside>
 
     <!-- HUD Inferior -->
@@ -217,7 +279,7 @@
             <div class="hud-slider-container flex flex-col items-center gap-2">
                 <div class="flex justify-between w-full px-4 text-[9px] font-black uppercase tracking-tighter text-blue-400/60">
                     <span>Soltar (10.00m)</span>
-                    <span class="text-white font-bold tracking-widest uppercase italic text-[10px]">Controle de tração</span>
+                    <span class="text-white font-bold tracking-widest uppercase italic text-[10px]">Controle de Tração</span>
                     <span>Elevar (3.42m)</span>
                 </div>
                 <input type="range" id="lift-range-hud" min="0" max="100" value="0" class="hud-range">
@@ -246,7 +308,7 @@
         let slingMesh; 
         let pulleys = { fixed: [], moving: [] };
         
-        // PARÂMETROS INICIAIS EXATOS DO USUÁRIO
+        // PARÂMETROS INICIAIS EXATOS (PRESET FORNECIDO)
         const USER_PRESET = {
           "config": {
             "numPulleys": 4,
@@ -337,13 +399,7 @@
             scene.fog = new THREE.Fog(0x020617, 15, 110);
 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            // CARREGAR POSIÇÃO DA CÂMARA DO PRESET
-            camera.position.set(
-                USER_PRESET.camera.position.x, 
-                USER_PRESET.camera.position.y, 
-                USER_PRESET.camera.position.z
-            );
+            camera.position.set(USER_PRESET.camera.position.x, USER_PRESET.camera.position.y, USER_PRESET.camera.position.z);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -352,13 +408,7 @@
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            
-            // CARREGAR TARGET DA CÂMARA DO PRESET
-            controls.target.set(
-                USER_PRESET.camera.target.x, 
-                USER_PRESET.camera.target.y, 
-                USER_PRESET.camera.target.z
-            );
+            controls.target.set(USER_PRESET.camera.target.x, USER_PRESET.camera.target.y, USER_PRESET.camera.target.z);
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
             const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -406,23 +456,31 @@
             const zS = 0.55;
             const pGeo = createPulleyGeometry();
             const steelMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
+            
             const list = [];
             const totalWidth = (num - 1) * zS;
+
             for (let i = 0; i < num; i++) {
                 const p = new THREE.Mesh(pGeo, new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 1 }));
                 p.position.z = (i * zS) - (totalWidth / 2);
                 g.add(p);
                 list.push(p);
             }
+
             const plateLeft = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.05), steelMat);
             plateLeft.position.set(0, isUpper ? 0.35 : -0.35, - (totalWidth / 2) - 0.1);
             const plateRight = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.05), steelMat);
             plateRight.position.set(0, isUpper ? 0.35 : -0.35, (totalWidth / 2) + 0.1);
             g.add(plateLeft, plateRight);
+
             const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, totalWidth + 0.4, 16), steelMat);
             axle.rotation.x = Math.PI / 2;
             g.add(axle);
+
             if (!isUpper) {
+                const bar = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, totalWidth + 0.25), steelMat);
+                bar.position.set(0, -1.0, 0);
+                g.add(bar);
                 const supportRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 8, 16), steelMat);
                 supportRing.position.set(0, -1.3, 0); supportRing.rotation.y = Math.PI / 2; g.add(supportRing);
             } else {
@@ -459,7 +517,10 @@
             body.position.y = -1.6; 
             wGroup.add(body);
             const weightRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 8, 16), steelMat);
-            weightRing.rotation.y = Math.PI / 2; wGroup.add(weightRing);
+            weightRing.position.y = 0; 
+            weightRing.rotation.y = Math.PI / 2;
+            wGroup.add(weightRing);
+            
             massLabelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: createTextTexture(`${config.mass} kg`), depthTest: false }));
             massLabelSprite.scale.set(2.8, 1.4, 1); massLabelSprite.position.set(0, -1.6, 1.15); wGroup.add(massLabelSprite);
             weightBody = wGroup; scene.add(weightBody);
