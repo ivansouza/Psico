@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Esfera Galáctica 3D</title>
+    <style>
+        :root {
+            --bg-color: #010103;
+            --panel-bg: rgba(8, 8, 12, 0.9);
+            --accent-color: #a78bfa;
+            --text-color: #f1f5f9;
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: var(--bg-color);
+            font-family: 'Inter', system-ui, sans-serif;
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        canvas { display: block; touch-action: none; }
+
+        #ui-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #ui-toggle:hover { background: rgba(255,255,255,0.15); transform: rotate(45deg); }
+
+        #controls {
+            position: absolute;
+            top: 85px;
+            right: 20px;
+            width: 300px;
+            max-height: calc(100vh - 130px);
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 24px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            z-index: 90;
+            display: none;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+
+        #controls.visible { display: block; animation: slideIn 0.4s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px) scale(0.9); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        .control-group { margin-bottom: 20px; }
+        .control-group label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            margin-bottom: 10px;
+            color: #64748b;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: #1e293b;
+            border-radius: 10px;
+            outline: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid #000;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .value-tag {
+            float: right;
+            font-family: 'Monaco', monospace;
+            font-size: 11px;
+            color: var(--accent-color);
+            background: rgba(167, 139, 250, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .footer-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 10px;
+            color: #475569;
+            pointer-events: none;
+            display: flex;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="ui-toggle">⚙️</button>
+
+    <div id="controls">
+        <div class="control-group">
+            <label>Total Partículas <span class="value-tag" id="val-total">4000</span></label>
+            <input type="range" id="totalParticles" min="500" max="10000" step="100" value="4000">
+        </div>
+        <div class="control-group">
+            <label>Raio da Esfera <span class="value-tag" id="val-sphereRadius">250</span></label>
+            <input type="range" id="sphereRadius" min="50" max="600" value="250">
+        </div>
+        <div class="control-group">
+            <label>Dispersão Bordas <span class="value-tag" id="val-dispersion">1.5</span></label>
+            <input type="range" id="dispersion" min="0.5" max="3.0" step="0.1" value="1.5">
+        </div>
+        <div class="control-group">
+            <label>Comprimento do Rastro <span class="value-tag" id="val-trail">15</span></label>
+            <input type="range" id="trailLength" min="1" max="40" value="15">
+        </div>
+        <div class="control-group">
+            <label>Raio de Órbita <span class="value-tag" id="val-radius">12.0</span></label>
+            <input type="range" id="radius" min="0" max="50" step="0.5" value="12">
+        </div>
+        <div class="control-group">
+            <label>Velocidade <span class="value-tag" id="val-speed">1.5</span></label>
+            <input type="range" id="speed" min="0" max="5" step="0.1" value="1.5">
+        </div>
+        <div class="control-group">
+            <label>Paleta de Cor</label>
+            <select id="colorTheme">
+                <option value="nebula">Nebulosa Galáctica</option>
+                <option value="starfield">Campo Estelar</option>
+                <option value="toxic">Radiação Tóxica</option>
+                <option value="ice">Gelo Espacial</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="footer-info">
+        <span><b>Órbita:</b> Mouse Esq.</span>
+        <span><b>Zoom:</b> Scroll</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Parâmetros de Estado
+        const params = {
+            totalParticles: 4000,
+            sphereRadius: 250,
+            dispersion: 1.5, // Controla quão esparsa fica a borda
+            trailLength: 15,
+            radius: 12,
+            speed: 1.5,
+            mouseInfluence: 3.5,
+            colorTheme: 'nebula'
+        };
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x010103);
+        scene.fog = new THREE.FogExp2(0x010103, 0.001);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 15000);
+        camera.position.set(600, 300, 600);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const orbit = new THREE.OrbitControls(camera, renderer.domElement);
+        orbit.enableDamping = true;
+        orbit.dampingFactor = 0.05;
+
+        let points, geometry, material;
+        let homePositions, positions, colors, seedOffsets;
+
+        // UI Binding
+        const controlsUI = document.getElementById('controls');
+        document.getElementById('ui-toggle').onclick = () => controlsUI.classList.toggle('visible');
+
+        function bind(id, key, isFloat = true) {
+            const el = document.getElementById(id);
+            const disp = document.getElementById('val-' + id);
+            el.oninput = (e) => {
+                const val = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                params[key] = val;
+                if(disp) disp.innerText = isFloat ? val.toFixed(1) : val;
+                if(['totalParticles', 'sphereRadius', 'dispersion', 'trailLength'].includes(id)) recreate();
+            };
+        }
+
+        bind('totalParticles', 'totalParticles', false);
+        bind('sphereRadius', 'sphereRadius', false);
+        bind('dispersion', 'dispersion');
+        bind('trailLength', 'trailLength', false);
+        bind('radius', 'radius');
+        bind('speed', 'speed');
+        document.getElementById('colorTheme').onchange = (e) => params.colorTheme = e.target.value;
+
+        // Raycasting
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2(-1, -1);
+        const mouseWorld = new THREE.Vector3(0, 0, 0);
+
+        function recreate() {
+            if (geometry) geometry.dispose();
+            if (material) material.dispose();
+            if (points) scene.remove(points);
+
+            const n = params.totalParticles;
+            const totalVertices = n * params.trailLength;
+            
+            homePositions = new Float32Array(n * 3);
+            positions = new Float32Array(totalVertices * 3);
+            colors = new Float32Array(totalVertices * 3);
+            seedOffsets = new Float32Array(n * 2);
+
+            for (let i = 0; i < n; i++) {
+                // Distribuição esférica com falloff radial
+                // pow(random, dispersion) cria uma maior concentração no centro
+                const r = params.sphereRadius * Math.pow(Math.random(), params.dispersion);
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta);
+                const z = r * Math.cos(phi);
+
+                homePositions[i * 3] = x;
+                homePositions[i * 3 + 1] = y;
+                homePositions[i * 3 + 2] = z;
+
+                seedOffsets[i * 2] = Math.random() * Math.PI * 2;
+                seedOffsets[i * 2 + 1] = Math.random() * Math.PI * 2;
+            }
+
+            geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            material = new THREE.PointsMaterial({ 
+                size: 2.2, 
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                sizeAttenuation: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+        }
+
+        function getThemeColor(dist, time, trailFactor) {
+            const theme = params.colorTheme;
+            const rNorm = dist / params.sphereRadius; // 0 no centro, 1 na borda
+            let h = 0, s = 0.8, l = 0.5 * trailFactor;
+
+            if (theme === 'nebula') {
+                h = (rNorm * 100 + time * 30) % 360;
+            } else if (theme === 'starfield') {
+                h = 210; s = 0.2; l = (0.3 + Math.sin(time + dist * 0.05) * 0.3) * trailFactor;
+            } else if (theme === 'toxic') {
+                h = (110 - rNorm * 60) % 360; s = 0.9;
+            } else { // ice
+                h = (190 + rNorm * 40) % 360; s = 0.5; l = 0.6 * trailFactor;
+            }
+
+            return new THREE.Color().setHSL(h / 360, s, l);
+        }
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const time = now * 0.001;
+            orbit.update();
+
+            raycaster.setFromCamera(pointer, camera);
+            const targetPos = raycaster.ray.at(500, mouseWorld);
+
+            const trailLen = params.trailLength;
+            const n = params.totalParticles;
+
+            for (let i = 0; i < n; i++) {
+                const pIdx = i * 3;
+                const hX = homePositions[pIdx];
+                const hY = homePositions[pIdx + 1];
+                const hZ = homePositions[pIdx + 2];
+                
+                const sTheta = seedOffsets[i * 2];
+                const sPhi = seedOffsets[i * 2 + 1];
+                const distToCenter = Math.sqrt(hX*hX + hY*hY + hZ*hZ);
+
+                for (let t = 0; t < trailLen; t++) {
+                    const tOffset = t * 0.05; 
+                    const currentTime = time - tOffset;
+                    
+                    const theta = currentTime * params.speed + sTheta + distToCenter * 0.02;
+                    const phi = currentTime * params.speed * 0.6 + sPhi;
+                    
+                    const dx = hX - targetPos.x;
+                    const dy = hY - targetPos.y;
+                    const dz = hZ - targetPos.z;
+                    const dMouse = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    
+                    const influence = Math.max(0, (250 - dMouse) / 250) * params.mouseInfluence;
+                    const r = params.radius * (1 + influence * 4);
+
+                    let posX = hX + r * Math.sin(phi) * Math.cos(theta);
+                    let posY = hY + r * Math.sin(phi) * Math.sin(theta);
+                    let posZ = hZ + r * Math.cos(phi);
+
+                    if (influence > 0) {
+                        const push = influence * 50;
+                        posX += (dx / dMouse) * push;
+                        posY += (dy / dMouse) * push;
+                        posZ += (dz / dMouse) * push;
+                    }
+
+                    const vIdx = (i * trailLen + t) * 3;
+                    positions[vIdx] = posX;
+                    positions[vIdx + 1] = posY;
+                    positions[vIdx + 2] = posZ;
+
+                    const trailFade = 1.0 - (t / trailLen);
+                    const c = getThemeColor(distToCenter, currentTime, trailFade);
+                    
+                    colors[vIdx] = c.r;
+                    colors[vIdx + 1] = c.g;
+                    colors[vIdx + 2] = c.b;
+                }
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        recreate();
+        animate(0);
+    </script>
+</body>
+</html>
+
