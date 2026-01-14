@@ -19,10 +19,10 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Mira de foco (foco central) */
+        /* Marcadores de foco centralizados no ORP */
         .focus-indicator {
             position: absolute;
-            left: 35%; /* O ponto de foco é fixo em 35% */
+            left: 35%; 
             transform: translateX(-50%);
             width: 2px;
             height: 30px;
@@ -58,7 +58,7 @@
             transition: width 0.2s ease-out;
         }
 
-        /* Estilização do Slider */
+        /* Estilização do controle de velocidade (Slider) */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -81,7 +81,7 @@
             box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
         }
 
-        /* Removida a transição para evitar movimentação visível lateral */
+        /* Elemento de renderização sem transição para evitar movimento visível */
         #word-render {
             position: absolute;
             white-space: pre;
@@ -91,48 +91,62 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
 
-    <!-- Cabeçalho / Configurações -->
+    <!-- Tela Inicial de Configuração -->
     <div id="setup-screen" class="w-full max-w-2xl space-y-6 animate-in fade-in duration-500">
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-semibold tracking-tight text-white">Leitor RSVP <span class="text-red-500">Pro</span></h1>
-            <p class="text-gray-400 text-sm">Aumente sua velocidade de leitura mantendo o foco.</p>
+            <p class="text-gray-400 text-sm">Treine sua leitura dinâmica com foco total.</p>
         </div>
 
         <textarea id="text-input" 
-            class="w-full h-64 p-4 bg-neutral-900 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all custom-scrollbar text-gray-300 resize-none"
-            placeholder="Cole seu texto aqui...">A leitura dinâmica por RSVP funciona exibindo uma palavra por vez em um ponto fixo. O segredo está no Ponto de Reconhecimento Ótimo (ORP), que é a letra onde seu olho foca para entender a palavra. Ao alinhar essa letra vermelha com as marcas guia, você elimina movimentos oculares desnecessários e lê muito mais rápido. Tente manter seu olhar fixo exatamente entre as duas linhas vermelhas enquanto as palavras passam.</textarea>
+            class="w-full h-80 p-4 bg-neutral-900 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all custom-scrollbar text-gray-300 resize-none"
+            placeholder="Insira o texto aqui...">Speed Reading: O Guia Definitivo de Leitura Dinâmica
+
+Se você conseguisse ler 1000 palavras por minuto, quantos livros leria por ano? Reservando meia hora de leitura por dia, a resposta é 137. Sim, 137 livros em um ano, lendo durante trinta minutos por dia. Quem pratica speed reading (ou leitura dinâmica) alcança esse índice, ou até mais.
+
+Uma pessoa comum lê entre 200 a 400 palavras por minuto. Acima desse número, você já pode ser considerado um leitor ágil, mas existem casos de 3000 palavras por minuto. E é possível chegar lá.
+
+Nos últimos tempos, o conceito de leitura dinâmica entrou em alta. Apesar de existir desde os anos 50, diversos métodos trouxeram uma atualização das técnicas, que não são poucas.
+
+Repare em como você está passando os olhos por esse texto agora. Você quase não percebe, mas lê em blocos de palavras e não de forma contínua. Cada vez que você precisa dar essa parada é chamada de fixação. Para então formar uma linha de raciocínio, os olhos passam de uma fixação para a outra, em um movimento que chamamos de sacadas. Esse é o processo que os praticantes de speed reading querem simplificar e tornar mais rápido.
+
+Os especialistas em speed reading acreditam que o segredo é o treinamento. Basta que você tenha em mente alguns objetivos, como aumentar o número de palavras absorvidas em cada fixação, diminuir o tempo de duração das sacadas e evitar ao máximo a releitura.
+
+A maioria das pessoas fala mentalmente o que está sendo lido. Se esse é o seu caso, é hora de abandonar esse hábito, que funciona como um obstáculo para uma leitura rápida. Isso porque, ao “pronunciar” em sua mente as palavras, antes de compreender os significados delas, você desacelera. Quebre essa barreira, lendo mais rápido e sem pronunciar mentalmente as palavras. Assim, esse novo hábito será reescrito em seu cérebro.
+
+O RSVP (Rapid Serial Visual Presentation) foi o que trouxe o speed reading para o mundo digital. Funciona assim: o aplicativo mostra uma palavra por vez do texto. Dessa forma, não é preciso movimentar os olhos para alcançar as palavras. Mas sua atenção precisa ser esforçada. Esse método parte do princípio de que seus olhos focam em um ponto central da palavra para poder compreendê-la. Além de colocar uma atrás da outra, as palavras são alinhadas para que esse centro (ORP) fique sempre na mesma posição.</textarea>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-neutral-900 p-4 rounded-xl border border-neutral-800 flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-400">Velocidade Inicial (WPM)</span>
+                <span class="text-sm font-medium text-gray-400">WPM Inicial</span>
                 <div class="flex items-center space-x-3">
                     <input type="number" id="wpm-input" value="300" step="50" min="50" max="2000"
                         class="bg-black border border-neutral-700 rounded-lg px-2 py-1 w-20 text-center text-white focus:ring-1 focus:ring-red-500 outline-none">
                 </div>
             </div>
             <button id="btn-start" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-4 rounded-xl transition-all transform active:scale-95 shadow-lg shadow-red-900/20">
-                Começar Leitura
+                Iniciar Treino
             </button>
         </div>
     </div>
 
-    <!-- Tela do Leitor -->
+    <!-- Tela de Leitura -->
     <div id="reader-screen" class="hidden w-full max-w-4xl flex flex-col items-center space-y-8">
         
-        <!-- Área de Exibição -->
+        <!-- Área de Exibição Principal -->
         <div class="relative w-full flex flex-col items-center">
             <div id="word-display-container" class="reader-font text-4xl md:text-5xl flex items-center w-full bg-neutral-900/50 rounded-2xl border border-neutral-800/50 py-10 relative overflow-hidden">
-                <!-- Marcadores de Foco -->
+                <!-- Marcadores de Foco Vermelhos -->
                 <div class="focus-indicator focus-indicator-top"></div>
                 <div class="focus-indicator focus-indicator-bottom"></div>
                 
-                <!-- Palavra Renderizada -->
+                <!-- Palavra Ativa -->
                 <div id="word-render">
                     <span class="text-neutral-600">Pronto?</span>
                 </div>
             </div>
 
-            <!-- Barra de Progresso -->
+            <!-- Barra de Progresso do Texto -->
             <div class="w-full h-1.5 bg-neutral-800 mt-8 rounded-full overflow-hidden">
                 <div id="progress-bar" class="h-full bg-red-500 w-0"></div>
             </div>
@@ -147,7 +161,7 @@
             <input type="range" id="wpm-slider" min="50" max="1500" step="10" value="300" class="w-full">
         </div>
 
-        <!-- Controles Flutuantes -->
+        <!-- Controles de Reprodução -->
         <div class="flex items-center space-x-6 bg-neutral-900 px-8 py-4 rounded-full border border-neutral-800 shadow-2xl">
             <button id="btn-back" class="text-gray-400 hover:text-white transition-colors p-2" title="Voltar 10 palavras">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -162,29 +176,29 @@
                 </div>
             </button>
 
-            <button id="btn-stop" class="text-gray-400 hover:text-red-500 transition-colors p-2" title="Sair">
+            <button id="btn-stop" class="text-gray-400 hover:text-red-500 transition-colors p-2" title="Sair do modo leitura">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
         </div>
     </div>
 
-    <!-- Mensagens -->
+    <!-- Mensagens de Toast -->
     <div id="message-box" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-neutral-800 text-white px-6 py-3 rounded-full shadow-2xl border border-neutral-700 opacity-0 transition-opacity pointer-events-none z-50">
         Texto finalizado!
     </div>
 
     <script>
-        // --- Estado da Aplicação ---
+        // --- Estado Global ---
         let state = {
             words: [],
             currentIndex: 0,
             isPlaying: false,
             wpm: 300,
             timeoutId: null,
-            orpPercent: 0.35 
+            orpPercent: 0.35 // Ponto Ótimo de Reconhecimento (35% da largura)
         };
 
-        // --- Seletores ---
+        // --- Elementos da DOM ---
         const setupScreen = document.getElementById('setup-screen');
         const readerScreen = document.getElementById('reader-screen');
         const textInput = document.getElementById('text-input');
@@ -203,8 +217,9 @@
         const playIcon = document.getElementById('play-icon');
         const pauseIcon = document.getElementById('pause-icon');
 
-        // --- Lógica de Alinhamento ---
-        
+        /**
+         * Calcula o índice da letra ORP baseado no tamanho da palavra.
+         */
         function getOrpIndex(word) {
             const len = word.length;
             if (len <= 1) return 0;
@@ -214,6 +229,9 @@
             return 4;
         }
 
+        /**
+         * Renderiza a palavra alinhando o ORP com os marcadores vermelhos.
+         */
         function renderWord(word) {
             if (!word) return;
 
@@ -222,7 +240,6 @@
             const pivot = word[orpIdx];
             const suffix = word.substring(orpIdx + 1);
 
-            // Limpeza rápida para evitar cintilação
             wordRender.innerHTML = '';
             
             const preSpan = document.createElement('span');
@@ -241,26 +258,21 @@
             wordRender.appendChild(pivotSpan);
             wordRender.appendChild(sufSpan);
 
-            // Alinhamento Instantâneo
+            // Alinhamento matemático instantâneo
             const containerWidth = wordDisplayContainer.offsetWidth;
             const targetX = containerWidth * state.orpPercent;
             const pivotCenterOffset = preSpan.offsetWidth + (pivotSpan.offsetWidth / 2);
             const shift = targetX - pivotCenterOffset;
             
-            // Aplica a posição sem transição de CSS
             wordRender.style.transform = `translateX(${shift}px)`;
         }
 
-        // --- Fluxo de Controle ---
+        // --- Funções de Controle ---
 
-        function showMessage(text) {
+        function showToast(text) {
             msgBox.textContent = text;
             msgBox.style.opacity = '1';
             setTimeout(() => msgBox.style.opacity = '0', 3000);
-        }
-
-        function prepareWords(text) {
-            return text.trim().split(/[\s\n]+/).filter(w => w.length > 0);
         }
 
         function updateProgress() {
@@ -272,7 +284,7 @@
         function nextWord() {
             if (state.currentIndex >= state.words.length) {
                 stopReading();
-                showMessage("Leitura concluída!");
+                showToast("Treino finalizado!");
                 return;
             }
 
@@ -282,7 +294,7 @@
 
             let delay = 60000 / state.wpm;
 
-            // Atrasos inteligentes baseados em pontuação
+            // Atrasos inteligentes para pontuação e clareza
             if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
                 delay *= 2.2;
             } else if (word.endsWith(',') || word.endsWith(';') || word.endsWith(':')) {
@@ -299,7 +311,7 @@
             const rawText = textInput.value;
             if (!rawText.trim()) return;
 
-            state.words = prepareWords(rawText);
+            state.words = rawText.trim().split(/[\s\n]+/).filter(w => w.length > 0);
             state.currentIndex = 0;
             
             const initialWpm = parseInt(wpmInput.value) || 300;
@@ -308,6 +320,7 @@
             setupScreen.classList.add('hidden');
             readerScreen.classList.remove('hidden');
             
+            // Aguarda renderização do layout para cálculo de offset correto
             setTimeout(() => {
                 togglePlay(true);
             }, 100);
@@ -354,7 +367,7 @@
             }
         }
 
-        // --- Eventos ---
+        // --- Event Listeners ---
         btnStart.addEventListener('click', startReading);
         btnPlayPause.addEventListener('click', () => togglePlay());
         btnStop.addEventListener('click', stopReading);
