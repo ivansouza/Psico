@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor RSVP Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+
+        body {
+            background-color: #0a0a0a;
+            color: #e5e5e5;
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+        }
+
+        .reader-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Mira de foco (foco central) */
+        .focus-indicator {
+            position: absolute;
+            left: 35%; /* O ponto de foco é fixo em 35% */
+            transform: translateX(-50%);
+            width: 2px;
+            height: 30px;
+            background: #ef4444; 
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .focus-indicator-top { top: 0; border-radius: 0 0 2px 2px; }
+        .focus-indicator-bottom { bottom: 0; border-radius: 2px 2px 0 0; }
+
+        .orp-red {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
+
+        #word-display-container {
+            min-height: 130px;
+        }
+
+        #progress-bar {
+            transition: width 0.2s ease-out;
+        }
+
+        /* Estilização do Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #262626;
+            border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #ef4444;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Removida a transição para evitar movimentação visível lateral */
+        #word-render {
+            position: absolute;
+            white-space: pre;
+            will-change: transform;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+
+    <!-- Cabeçalho / Configurações -->
+    <div id="setup-screen" class="w-full max-w-2xl space-y-6 animate-in fade-in duration-500">
+        <div class="text-center space-y-2">
+            <h1 class="text-3xl font-semibold tracking-tight text-white">Leitor RSVP <span class="text-red-500">Pro</span></h1>
+            <p class="text-gray-400 text-sm">Aumente sua velocidade de leitura mantendo o foco.</p>
+        </div>
+
+        <textarea id="text-input" 
+            class="w-full h-64 p-4 bg-neutral-900 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all custom-scrollbar text-gray-300 resize-none"
+            placeholder="Cole seu texto aqui...">A leitura dinâmica por RSVP funciona exibindo uma palavra por vez em um ponto fixo. O segredo está no Ponto de Reconhecimento Ótimo (ORP), que é a letra onde seu olho foca para entender a palavra. Ao alinhar essa letra vermelha com as marcas guia, você elimina movimentos oculares desnecessários e lê muito mais rápido. Tente manter seu olhar fixo exatamente entre as duas linhas vermelhas enquanto as palavras passam.</textarea>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-neutral-900 p-4 rounded-xl border border-neutral-800 flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-400">Velocidade Inicial (WPM)</span>
+                <div class="flex items-center space-x-3">
+                    <input type="number" id="wpm-input" value="300" step="50" min="50" max="2000"
+                        class="bg-black border border-neutral-700 rounded-lg px-2 py-1 w-20 text-center text-white focus:ring-1 focus:ring-red-500 outline-none">
+                </div>
+            </div>
+            <button id="btn-start" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-4 rounded-xl transition-all transform active:scale-95 shadow-lg shadow-red-900/20">
+                Começar Leitura
+            </button>
+        </div>
+    </div>
+
+    <!-- Tela do Leitor -->
+    <div id="reader-screen" class="hidden w-full max-w-4xl flex flex-col items-center space-y-8">
+        
+        <!-- Área de Exibição -->
+        <div class="relative w-full flex flex-col items-center">
+            <div id="word-display-container" class="reader-font text-4xl md:text-5xl flex items-center w-full bg-neutral-900/50 rounded-2xl border border-neutral-800/50 py-10 relative overflow-hidden">
+                <!-- Marcadores de Foco -->
+                <div class="focus-indicator focus-indicator-top"></div>
+                <div class="focus-indicator focus-indicator-bottom"></div>
+                
+                <!-- Palavra Renderizada -->
+                <div id="word-render">
+                    <span class="text-neutral-600">Pronto?</span>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso -->
+            <div class="w-full h-1.5 bg-neutral-800 mt-8 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-red-500 w-0"></div>
+            </div>
+        </div>
+
+        <!-- Ajuste de Velocidade em Tempo Real -->
+        <div class="w-full max-w-md space-y-3 bg-neutral-900/40 p-5 rounded-2xl border border-neutral-800/50">
+            <div class="flex justify-between text-xs font-bold uppercase tracking-wider text-neutral-500">
+                <span>Velocidade de Leitura</span>
+                <span class="text-red-500"><span id="current-wpm-display">300</span> WPM</span>
+            </div>
+            <input type="range" id="wpm-slider" min="50" max="1500" step="10" value="300" class="w-full">
+        </div>
+
+        <!-- Controles Flutuantes -->
+        <div class="flex items-center space-x-6 bg-neutral-900 px-8 py-4 rounded-full border border-neutral-800 shadow-2xl">
+            <button id="btn-back" class="text-gray-400 hover:text-white transition-colors p-2" title="Voltar 10 palavras">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            
+            <button id="btn-play-pause" class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:bg-gray-200 transition-all transform active:scale-90">
+                <div id="play-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+                <div id="pause-icon" class="hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </div>
+            </button>
+
+            <button id="btn-stop" class="text-gray-400 hover:text-red-500 transition-colors p-2" title="Sair">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mensagens -->
+    <div id="message-box" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-neutral-800 text-white px-6 py-3 rounded-full shadow-2xl border border-neutral-700 opacity-0 transition-opacity pointer-events-none z-50">
+        Texto finalizado!
+    </div>
+
+    <script>
+        // --- Estado da Aplicação ---
+        let state = {
+            words: [],
+            currentIndex: 0,
+            isPlaying: false,
+            wpm: 300,
+            timeoutId: null,
+            orpPercent: 0.35 
+        };
+
+        // --- Seletores ---
+        const setupScreen = document.getElementById('setup-screen');
+        const readerScreen = document.getElementById('reader-screen');
+        const textInput = document.getElementById('text-input');
+        const wordDisplayContainer = document.getElementById('word-display-container');
+        const wordRender = document.getElementById('word-render');
+        const progressBar = document.getElementById('progress-bar');
+        const wpmInput = document.getElementById('wpm-input');
+        const wpmSlider = document.getElementById('wpm-slider');
+        const currentWpmDisplay = document.getElementById('current-wpm-display');
+        const msgBox = document.getElementById('message-box');
+
+        const btnStart = document.getElementById('btn-start');
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const btnStop = document.getElementById('btn-stop');
+        const btnBack = document.getElementById('btn-back');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+
+        // --- Lógica de Alinhamento ---
+        
+        function getOrpIndex(word) {
+            const len = word.length;
+            if (len <= 1) return 0;
+            if (len <= 5) return 1;
+            if (len <= 9) return 2;
+            if (len <= 13) return 3;
+            return 4;
+        }
+
+        function renderWord(word) {
+            if (!word) return;
+
+            const orpIdx = getOrpIndex(word);
+            const prefix = word.substring(0, orpIdx);
+            const pivot = word[orpIdx];
+            const suffix = word.substring(orpIdx + 1);
+
+            // Limpeza rápida para evitar cintilação
+            wordRender.innerHTML = '';
+            
+            const preSpan = document.createElement('span');
+            preSpan.textContent = prefix;
+            preSpan.className = 'text-white';
+            
+            const pivotSpan = document.createElement('span');
+            pivotSpan.textContent = pivot;
+            pivotSpan.className = 'orp-red';
+            
+            const sufSpan = document.createElement('span');
+            sufSpan.textContent = suffix;
+            sufSpan.className = 'text-white';
+
+            wordRender.appendChild(preSpan);
+            wordRender.appendChild(pivotSpan);
+            wordRender.appendChild(sufSpan);
+
+            // Alinhamento Instantâneo
+            const containerWidth = wordDisplayContainer.offsetWidth;
+            const targetX = containerWidth * state.orpPercent;
+            const pivotCenterOffset = preSpan.offsetWidth + (pivotSpan.offsetWidth / 2);
+            const shift = targetX - pivotCenterOffset;
+            
+            // Aplica a posição sem transição de CSS
+            wordRender.style.transform = `translateX(${shift}px)`;
+        }
+
+        // --- Fluxo de Controle ---
+
+        function showMessage(text) {
+            msgBox.textContent = text;
+            msgBox.style.opacity = '1';
+            setTimeout(() => msgBox.style.opacity = '0', 3000);
+        }
+
+        function prepareWords(text) {
+            return text.trim().split(/[\s\n]+/).filter(w => w.length > 0);
+        }
+
+        function updateProgress() {
+            if (state.words.length === 0) return;
+            const percent = (state.currentIndex / state.words.length) * 100;
+            progressBar.style.width = `${percent}%`;
+        }
+
+        function nextWord() {
+            if (state.currentIndex >= state.words.length) {
+                stopReading();
+                showMessage("Leitura concluída!");
+                return;
+            }
+
+            const word = state.words[state.currentIndex];
+            renderWord(word);
+            updateProgress();
+
+            let delay = 60000 / state.wpm;
+
+            // Atrasos inteligentes baseados em pontuação
+            if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
+                delay *= 2.2;
+            } else if (word.endsWith(',') || word.endsWith(';') || word.endsWith(':')) {
+                delay *= 1.6;
+            } else if (word.length > 10) {
+                delay *= 1.3;
+            }
+
+            state.currentIndex++;
+            state.timeoutId = setTimeout(nextWord, delay);
+        }
+
+        function startReading() {
+            const rawText = textInput.value;
+            if (!rawText.trim()) return;
+
+            state.words = prepareWords(rawText);
+            state.currentIndex = 0;
+            
+            const initialWpm = parseInt(wpmInput.value) || 300;
+            updateWpm(initialWpm);
+
+            setupScreen.classList.add('hidden');
+            readerScreen.classList.remove('hidden');
+            
+            setTimeout(() => {
+                togglePlay(true);
+            }, 100);
+        }
+
+        function updateWpm(newWpm) {
+            state.wpm = parseInt(newWpm);
+            wpmSlider.value = state.wpm;
+            wpmInput.value = state.wpm;
+            currentWpmDisplay.textContent = state.wpm;
+        }
+
+        function togglePlay(forcePlay = null) {
+            const targetState = forcePlay !== null ? forcePlay : !state.isPlaying;
+            
+            if (targetState) {
+                if (state.isPlaying) return;
+                state.isPlaying = true;
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                nextWord();
+            } else {
+                state.isPlaying = false;
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                clearTimeout(state.timeoutId);
+            }
+        }
+
+        function stopReading() {
+            togglePlay(false);
+            state.currentIndex = 0;
+            setupScreen.classList.remove('hidden');
+            readerScreen.classList.add('hidden');
+            wordRender.innerHTML = '<span class="text-neutral-600">Pronto?</span>';
+            progressBar.style.width = '0%';
+        }
+
+        function goBack() {
+            state.currentIndex = Math.max(0, state.currentIndex - 10);
+            updateProgress();
+            if (!state.isPlaying && state.words.length > 0) {
+                renderWord(state.words[state.currentIndex]);
+            }
+        }
+
+        // --- Eventos ---
+        btnStart.addEventListener('click', startReading);
+        btnPlayPause.addEventListener('click', () => togglePlay());
+        btnStop.addEventListener('click', stopReading);
+        btnBack.addEventListener('click', goBack);
+        wpmSlider.addEventListener('input', (e) => updateWpm(e.target.value));
+
+        window.addEventListener('keydown', (e) => {
+            if (readerScreen.classList.contains('hidden')) return;
+            if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+            else if (e.code === 'Escape') { stopReading(); }
+            else if (e.code === 'ArrowLeft') { goBack(); }
+        });
+
+        window.addEventListener('resize', () => {
+            if (state.words.length > 0) {
+                const idx = Math.max(0, state.currentIndex - 1);
+                renderWord(state.words[idx]);
+            }
+        });
+
+    </script>
+</body>
+</html>
