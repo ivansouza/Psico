@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dither & ASCII Studio (Offline Mode)</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #3b82f6;
+            --border: #333;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, monospace;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background-color: var(--panel);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Controls */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #aaa;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--accent);
+            font-family: monospace;
+        }
+
+        /* Buttons */
+        .btn {
+            background: var(--border);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #444; }
+        .btn.active { background: var(--accent); }
+        .btn-primary { background: var(--accent); color: white; width: 100%; margin-top: auto; }
+
+        .mode-switcher {
+            display: flex;
+            gap: 5px;
+        }
+        .mode-switcher button {
+            flex: 1;
+        }
+
+        /* File Input */
+        .file-upload {
+            border: 2px dashed var(--border);
+            padding: 20px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            background: #252525;
+            transition: border-color 0.2s;
+        }
+        .file-upload:hover { border-color: var(--accent); }
+        .file-upload input {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Main Canvas Area */
+        .workspace {
+            flex: 1;
+            background-color: #000;
+            background-image: radial-gradient(#222 1px, transparent 1px);
+            background-size: 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+        }
+
+        canvas {
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated; /* Essential for retro look */
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: 30px;
+            background: #000;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            flex-shrink: 0;
+        }
+        .status-ok { color: #4ade80; }
+        .status-err { color: #f87171; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; }
+            .sidebar { width: auto; height: auto; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="title">Retro FX Studio</div>
+
+            <div class="control-group">
+                <div class="file-upload">
+                    <span>📂 Click to Upload Image</span>
+                    <input type="file" id="uploadInput" accept="image/*">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Mode</label>
+                <div class="mode-switcher">
+                    <button class="btn active" id="btnDither" onclick="setMode('dither')">Dither</button>
+                    <button class="btn" id="btnAscii" onclick="setMode('ascii')">ASCII</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Resolution <span id="valRes" class="value-display">4px</span></label>
+                <input type="range" id="inRes" min="1" max="20" value="4">
+            </div>
+
+            <div class="control-group">
+                <label>Contrast <span id="valCon" class="value-display">1.0</span></label>
+                <input type="range" id="inCon" min="0" max="3" step="0.1" value="1.0">
+            </div>
+            
+            <div class="control-group">
+                <label>Brightness <span id="valBri" class="value-display">0</span></label>
+                <input type="range" id="inBri" min="-100" max="100" value="0">
+            </div>
+
+            <div class="control-group">
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="chkColor"> Color Output
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="chkInvert"> Invert Colors
+                </label>
+            </div>
+
+            <button class="btn btn-primary" id="btnDownload">⬇ Save Image</button>
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace" id="dropZone">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">Initializing...</div>
+
+    <script>
+        // --- 1. Global Setup ---
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusBar = document.getElementById('statusBar');
+        
+        // Base64 Placeholder (A mountain landscape gradient)
+        // Used to guarantee the app starts with content
+        const PLACEHOLDER_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAEsCAMAAAD84hxhAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAADUExURQAAAKd6PdoAAAABdFJOUwBA5thmAAAACXBIWXMAAA7DAAAOwwHHb6hkAAADPUlEQVR4nO3BgQAAAADDoPlTX+EAVQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAowEFAAAAAQAA/2eBrwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO4CFAAAAAEAAP9nga8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADuAhQAAAABAAD/Z4GvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7gIUAAAAAQAA/2eBrwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO4CFAAAAAEAAP9nga8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADuAhQAAAABAAD/Z4GvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4M2SAAAQzJz1QAAAAASUVORK5CYII=";
+
+        // State
+        let currentImage = new Image();
+        let mode = 'dither'; // 'dither' or 'ascii'
+        
+        // Inputs
+        const inRes = document.getElementById('inRes');
+        const inCon = document.getElementById('inCon');
+        const inBri = document.getElementById('inBri');
+        const chkColor = document.getElementById('chkColor');
+        const chkInvert = document.getElementById('chkInvert');
+        
+        // --- 2. Initialization ---
+        window.onload = function() {
+            log("Loading resources...");
+            
+            // Set up error handling for the script
+            window.onerror = function(msg, url, line) {
+                log(`ERROR: ${msg} (Line ${line})`, true);
+                return false;
+            };
+
+            // Setup placeholder
+            currentImage.crossOrigin = "Anonymous";
+            
+            // We use a generated canvas as the default image to be 100% sure it loads
+            const defaultCanvas = createDefaultCanvas();
+            currentImage.src = defaultCanvas.toDataURL();
+
+            currentImage.onload = function() {
+                log("Ready.");
+                update();
+            };
+            
+            currentImage.onerror = function() {
+                log("Error loading image source.", true);
+            };
+
+            // Input Listeners
+            const inputs = [inRes, inCon, inBri, chkColor, chkInvert];
+            inputs.forEach(el => {
+                el.addEventListener('input', () => requestAnimationFrame(update));
+                el.addEventListener('change', update);
+            });
+
+            // Upload Listener
+            document.getElementById('uploadInput').addEventListener('change', handleUpload);
+            
+            // Download Listener
+            document.getElementById('btnDownload').addEventListener('click', download);
+            
+            // Expose globally for button clicks
+            window.setMode = setMode;
+        };
+
+        function createDefaultCanvas() {
+            const c = document.createElement('canvas');
+            c.width = 600;
+            c.height = 400;
+            const x = c.getContext('2d');
+            const g = x.createLinearGradient(0,0,600,400);
+            g.addColorStop(0, '#222');
+            g.addColorStop(1, '#555');
+            x.fillStyle = g;
+            x.fillRect(0,0,600,400);
+            x.fillStyle = '#fff';
+            x.font = 'bold 40px monospace';
+            x.textAlign = 'center';
+            x.fillText('DITHER ME', 300, 200);
+            return c;
+        }
+
+        // --- 3. Main Logic ---
+
+        function update() {
+            // Update labels
+            document.getElementById('valRes').innerText = inRes.value + 'px';
+            document.getElementById('valCon').innerText = inCon.value;
+            document.getElementById('valBri').innerText = inBri.value;
+
+            if(!currentImage.width || currentImage.width === 0) return;
+
+            try {
+                processImage();
+                // Don't spam "Ready" log on slider move, just keep silent or simple
+            } catch(e) {
+                log("Render Error: " + e.message, true);
+                console.error(e);
+            }
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('btnDither').className = mode === 'dither' ? 'btn active' : 'btn';
+            document.getElementById('btnAscii').className = mode === 'ascii' ? 'btn active' : 'btn';
+            update();
+        }
+
+        function handleUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            log("Reading file...");
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    log("Image loaded.");
+                    update();
+                };
+                img.onerror = function() {
+                    log("Error parsing image file.", true);
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function download() {
+            const link = document.createElement('a');
+            link.download = 'retro-fx.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function log(msg, isError = false) {
+            if(statusBar) {
+                statusBar.innerText = msg;
+                statusBar.className = isError ? 'status-bar status-err' : 'status-bar status-ok';
+            }
+        }
+
+        // --- 4. Image Processing Algorithms ---
+
+        function processImage() {
+            const resolution = parseInt(inRes.value);
+            const contrast = parseFloat(inCon.value);
+            const brightness = parseInt(inBri.value);
+            const isColor = chkColor.checked;
+            const invert = chkInvert.checked;
+
+            // 1. Create offline buffer (Downscale)
+            // Ensure w/h are at least 1
+            const w = Math.max(1, Math.floor(currentImage.width / resolution));
+            const h = Math.max(1, Math.floor(currentImage.height / resolution));
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            const tCtx = tempCanvas.getContext('2d');
+            
+            // Draw original
+            tCtx.drawImage(currentImage, 0, 0, w, h);
+            
+            // Get pixel data
+            const imgData = tCtx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+
+            // 2. Pre-process (Contrast/Bright)
+            // Contrast Factor
+            const f = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+            for(let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+
+                // Brightness
+                r += brightness; g += brightness; b += brightness;
+
+                // Contrast
+                r = f * (r - 128) + 128;
+                g = f * (g - 128) + 128;
+                b = f * (b - 128) + 128;
+
+                // Invert
+                if(invert) { r = 255-r; g = 255-g; b = 255-b; }
+
+                // Clamp
+                data[i] = Math.max(0, Math.min(255, r));
+                data[i+1] = Math.max(0, Math.min(255, g));
+                data[i+2] = Math.max(0, Math.min(255, b));
+            }
+
+            // 3. Apply Effect
+            if(mode === 'dither') {
+                applyDither(tCtx, imgData, w, h, isColor, resolution);
+            } else {
+                applyAscii(data, w, h, isColor, resolution);
+            }
+        }
+
+        function applyDither(tCtx, imgData, w, h, isColor, resolution) {
+            const data = imgData.data;
+            
+            for(let y = 0; y < h; y++) {
+                for(let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    
+                    const oldR = data[i];
+                    const oldG = data[i+1];
+                    const oldB = data[i+2];
+                    
+                    let newR, newG, newB;
+
+                    if(isColor) {
+                        // Color Quantization (rounding to nearest 255/levels)
+                        // Simple 1-bit per channel quantization for retro look
+                        newR = oldR > 127 ? 255 : 0;
+                        newG = oldG > 127 ? 255 : 0;
+                        newB = oldB > 127 ? 255 : 0;
+                        
+                        // For a slightly softer look (uncomment if preferred):
+                        // newR = Math.round(oldR/255) * 255;
+                    } else {
+                        // 1-bit BW
+                        const avg = (oldR + oldG + oldB) / 3;
+                        const val = avg < 128 ? 0 : 255;
+                        newR = newG = newB = val;
+                    }
+
+                    data[i] = newR;
+                    data[i+1] = newG;
+                    data[i+2] = newB;
+
+                    // Floyd Steinberg Error
+                    const er = oldR - newR;
+                    const eg = oldG - newG;
+                    const eb = oldB - newB;
+
+                    distribute(data, x+1, y, er, eg, eb, 7/16, w, h);
+                    distribute(data, x-1, y+1, er, eg, eb, 3/16, w, h);
+                    distribute(data, x, y+1, er, eg, eb, 5/16, w, h);
+                    distribute(data, x+1, y+1, er, eg, eb, 1/16, w, h);
+                }
+            }
+
+            // Render to Main Canvas
+            canvas.width = w * resolution;
+            canvas.height = h * resolution;
+            ctx.imageSmoothingEnabled = false;
+            
+            tCtx.putImageData(imgData, 0, 0);
+            ctx.drawImage(tCtx.canvas, 0, 0, canvas.width, canvas.height);
+        }
+
+        function distribute(data, x, y, er, eg, eb, f, w, h) {
+            if(x < 0 || x >= w || y < 0 || y >= h) return;
+            const i = (y * w + x) * 4;
+            data[i] += er * f;
+            data[i+1] += eg * f;
+            data[i+2] += eb * f;
+        }
+
+        function applyAscii(data, w, h, isColor, resolution) {
+            // Setup font
+            const fontSize = resolution + 2;
+            const charW = fontSize * 0.6;
+            const charH = fontSize;
+            
+            canvas.width = w * charW;
+            canvas.height = h * charH;
+            
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = `bold ${fontSize}px monospace`;
+            ctx.textBaseline = 'top';
+
+            const chars = " .:-=+*#%@"; // Simple ramp
+
+            for(let y = 0; y < h; y++) {
+                for(let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    const r = data[i];
+                    const g = data[i+1];
+                    const b = data[i+2];
+                    
+                    const avg = (r+g+b)/3;
+                    const charIdx = Math.floor( (avg/255) * (chars.length-1) );
+                    // Clamp index
+                    const safeIdx = Math.max(0, Math.min(chars.length - 1, charIdx));
+                    const char = chars[safeIdx];
+
+                    if(isColor) ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    else ctx.fillStyle = '#fff';
+
+                    ctx.fillText(char, x * charW, y * charH);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
