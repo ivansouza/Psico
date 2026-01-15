@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shader Art: Neon Flow</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Ícone da Engrenagem */
+        #gear-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
+        }
+        #gear-icon:hover {
+            transform: rotate(90deg);
+            color: #fff;
+        }
+        #gear-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Janela de Configurações */
+        #settings-modal {
+            position: absolute;
+            top: 65px; /* Logo abaixo do ícone */
+            right: 20px;
+            width: 280px; /* Levemente mais largo para acomodar os novos controles */
+            padding: 20px;
+            background-color: rgba(20, 20, 20, 0.85); /* Um pouco mais opaco para legibilidade */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        #settings-modal.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        #settings-modal h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #efefef;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .setting-row {
+            margin-bottom: 15px;
+        }
+
+        .setting-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-row label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #ccc;
+            font-weight: 500;
+        }
+
+        .setting-row label span {
+            font-family: monospace;
+            color: #aaa;
+        }
+
+        /* Estilo dos inputs range */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+        
+        /* Separador visual */
+        .separator {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botão de Configurações -->
+    <div id="gear-icon" title="Configurações">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </div>
+
+    <!-- Modal de Configurações -->
+    <div id="settings-modal">
+        <h3>Controles</h3>
+        
+        <div class="setting-row">
+            <label>Velocidade <span id="speed-val">1.0x</span></label>
+            <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0">
+        </div>
+
+        <div class="setting-row">
+            <label>Zoom <span id="zoom-val">0.30</span></label>
+            <input type="range" id="zoom-slider" min="0.1" max="1.5" step="0.05" value="0.3">
+        </div>
+
+        <div class="separator"></div>
+        <div class="setting-row">
+            <label title="Controla a densidade das ondas">Frequência (Ondas) <span id="freq-val">0.70</span></label>
+            <input type="range" id="freq-slider" min="0.1" max="2.0" step="0.05" value="0.7">
+        </div>
+
+        <div class="setting-row">
+            <label title="Quão rápido as cores mudam pelo loop">Espalhamento de Cor <span id="color-spread-val">27.0</span></label>
+            <input type="range" id="color-spread-slider" min="5.0" max="100.0" step="1.0" value="27.0">
+        </div>
+
+        <div class="setting-row">
+            <label title="Rotaciona a paleta de cores">Fase da Cor <span id="color-shift-val">0.0</span></label>
+            <input type="range" id="color-shift-slider" min="0.0" max="6.3" step="0.1" value="0.0">
+        </div>
+    </div>
+    
+    <!-- Importação do Three.js como módulo -->
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+        // --- Configuração da Cena ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        document.body.appendChild(renderer.domElement);
+
+        // --- Uniforms ---
+        const uniforms = {
+            time: { value: 0.0 },
+            resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            zoom: { value: 0.3 },
+            frequency: { value: 0.7 },      // Novo: controla o divisor dentro do sin
+            colorSpread: { value: 27.0 },   // Novo: controla o divisor do loop de cores
+            colorShift: { value: 0.0 }      // Novo: adiciona offset à cor
+        };
+
+        // --- Shaders ---
+        const vertexShader = `
+            precision highp float;
+            in vec3 position;
+            void main() {
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            precision highp float;
+
+            uniform vec2 resolution;
+            uniform float time;
+            uniform float zoom;
+            uniform float frequency;
+            uniform float colorSpread;
+            uniform float colorShift;
+            
+            out vec4 fragColor;
+
+            void main() {
+                vec2 r = resolution;
+                float t = time;
+                vec2 FC = gl_FragCoord.xy;
+
+                // Zoom aplicado
+                vec2 p = (FC.xy * 2.0 - r) / r.y / zoom;
+                
+                vec4 o = vec4(0.0);
+
+                for(float i = 0.0; i < 100.0; i++) {
+                    float f = i + 1.0; 
+                    
+                    // Distorção senoidal
+                    p += 0.02 * sin(p.yx + 0.5 * t);
+                    
+                    // Cálculo de cor com parâmetros ajustáveis
+                    // colorSpread controla a variação por iteração
+                    // colorShift rotaciona a paleta globalmente
+                    vec4 colorBase = cos(f / colorSpread + vec4(0.0, 1.0, 3.0, 0.0) + colorShift) + 1.1;
+                    
+                    // Frequência controla o denominador do seno interno (densidade das formas)
+                    float dist = length(sin(p * sin((r + f) / frequency)));
+                    
+                    o += colorBase / dist;
+                }
+
+                o = tanh(o * o / 40000.0);
+                o.a = 1.0;
+                fragColor = o;
+            }
+        `;
+
+        const material = new THREE.RawShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: uniforms,
+            glslVersion: THREE.GLSL3
+        });
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // --- Elementos da UI ---
+        const gearIcon = document.getElementById('gear-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        
+        // Elementos de Controle
+        const controls = {
+            speed: { el: document.getElementById('speed-slider'), val: document.getElementById('speed-val') },
+            zoom: { el: document.getElementById('zoom-slider'), val: document.getElementById('zoom-val') },
+            freq: { el: document.getElementById('freq-slider'), val: document.getElementById('freq-val') },
+            colorSpread: { el: document.getElementById('color-spread-slider'), val: document.getElementById('color-spread-val') },
+            colorShift: { el: document.getElementById('color-shift-slider'), val: document.getElementById('color-shift-val') }
+        };
+
+        let animationSpeed = 1.0;
+
+        // Toggle do menu
+        gearIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsModal.classList.toggle('visible');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (settingsModal.classList.contains('visible') && 
+                !settingsModal.contains(e.target) && 
+                !gearIcon.contains(e.target)) {
+                settingsModal.classList.remove('visible');
+            }
+        });
+
+        // Listeners para os Inputs
+        
+        // Velocidade (apenas JS)
+        controls.speed.el.addEventListener('input', (e) => {
+            animationSpeed = parseFloat(e.target.value);
+            controls.speed.val.textContent = animationSpeed.toFixed(1) + 'x';
+        });
+
+        // Zoom (Uniform)
+        controls.zoom.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.zoom.value = val;
+            controls.zoom.val.textContent = val.toFixed(2);
+        });
+
+        // Frequência (Uniform)
+        controls.freq.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.frequency.value = val;
+            controls.freq.val.textContent = val.toFixed(2);
+        });
+
+        // Espalhamento de Cor (Uniform)
+        controls.colorSpread.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.colorSpread.value = val;
+            controls.colorSpread.val.textContent = val.toFixed(1);
+        });
+
+        // Fase da Cor (Uniform)
+        controls.colorShift.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.colorShift.value = val;
+            controls.colorShift.val.textContent = val.toFixed(1);
+        });
+
+        // Resize
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            renderer.setSize(w, h);
+            uniforms.resolution.value.set(w, h);
+        }, false);
+
+        // --- Loop de Animação ---
+        let lastTime = performance.now();
+        let totalTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) * 0.001;
+            lastTime = currentTime;
+
+            totalTime += deltaTime * animationSpeed;
+            uniforms.time.value = totalTime;
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
