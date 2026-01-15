@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shader Art: Organic Tunnel</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab; /* Indica interatividade */
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+        
+        /* Ícone da Engrenagem */
+        #gear-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+        }
+        #gear-icon:hover {
+            transform: rotate(90deg);
+            color: #fff;
+        }
+        #gear-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Janela de Configurações Centralizada */
+        #settings-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            padding: 25px;
+            transform: translate(-50%, -50%) scale(0.9);
+            background-color: rgba(15, 15, 15, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            color: #fff;
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        visibility 0.3s;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        #settings-modal.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #settings-modal h3 {
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-row {
+            margin-bottom: 18px;
+        }
+
+        .setting-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-row label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .setting-row label span {
+            font-family: monospace;
+            color: #88c0d0;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            transition: background 0.3s;
+        }
+        
+        input[type="range"]:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            margin-top: -1px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 10px rgba(255,255,255,0.4);
+        }
+        
+        .separator {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            margin: 20px 0;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.5);
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        
+        #instruction-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="instruction-hint">Arraste para Orbitar &bull; Scroll para Zoom</div>
+
+    <!-- Botão de Configurações -->
+    <div id="gear-icon" title="Configurações">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </div>
+
+    <!-- Modal de Configurações -->
+    <div id="settings-modal">
+        <div class="close-btn" id="close-modal-btn">✕</div>
+        <h3>Controles</h3>
+        
+        <div class="setting-row">
+            <label>Velocidade <span id="speed-val">1.0x</span></label>
+            <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0">
+        </div>
+
+        <div class="setting-row">
+            <label>Zoom (Scroll) <span id="zoom-val">1.00</span></label>
+            <input type="range" id="zoom-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="separator"></div>
+        
+        <div class="setting-row">
+            <label title="Número de passos de Raymarching">Iterações <span id="iter-val">20</span></label>
+            <input type="range" id="iter-slider" min="5" max="50" step="1" value="20">
+        </div>
+
+        <div class="setting-row">
+            <label title="Intensidade da distorção espacial">Distorção <span id="dist-val">7</span></label>
+            <input type="range" id="dist-slider" min="1" max="15" step="1" value="7">
+        </div>
+
+        <div class="setting-row">
+            <label title="Shift no espectro de cores">Cor <span id="color-val">0.0</span></label>
+            <input type="range" id="color-slider" min="0.0" max="6.3" step="0.1" value="0.0">
+        </div>
+    </div>
+    
+    <!-- Importação do Three.js -->
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+        // --- Configuração da Cena ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        document.body.appendChild(renderer.domElement);
+
+        // --- Uniforms ---
+        const uniforms = {
+            time: { value: 0.0 },
+            resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            zoom: { value: 1.0 },
+            iterations: { value: 20.0 },
+            distortion: { value: 7.0 },
+            colorShift: { value: 0.0 },
+            viewRotation: { value: new THREE.Vector2(0.0, 0.0) } // X = Yaw, Y = Pitch
+        };
+
+        // --- Shaders ---
+        const vertexShader = `
+            precision highp float;
+            in vec3 position;
+            void main() {
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            precision highp float;
+
+            uniform vec2 resolution;
+            uniform float time;
+            uniform float zoom;
+            uniform float iterations;
+            uniform float distortion;
+            uniform float colorShift;
+            uniform vec2 viewRotation;
+            
+            out vec4 fragColor;
+
+            // Matriz de rotação 2D simples
+            mat2 rot(float a) {
+                float s = sin(a);
+                float c = cos(a);
+                return mat2(c, -s, s, c);
+            }
+
+            void main() {
+                vec2 r = resolution;
+                float t = time;
+                vec2 FC = gl_FragCoord.xy;
+
+                // Constrói o raio da câmera
+                // FC * 2.0 - r centraliza as coordenadas em (0,0)
+                // z = -r.x / zoom define a profundidade focal (FOV)
+                vec3 rayDir = normalize(vec3(FC * 2.0 - r, -r.x / zoom)); 
+
+                // Aplica a rotação (Orbit) ao raio da câmera
+                // Rotação YZ (Pitch - Cima/Baixo)
+                rayDir.yz *= rot(viewRotation.y);
+                // Rotação XZ (Yaw - Esquerda/Direita)
+                rayDir.xz *= rot(viewRotation.x);
+
+                vec4 o = vec4(0.0);
+                float z = 0.0;
+                float d = 0.0;
+
+                for(float i = 0.0; i < 100.0; i++) {
+                    if (i >= iterations) break;
+
+                    vec3 p = z * rayDir;
+
+                    p = vec3(atan(p.y/0.2, p.x) * 2.0, p.z / 3.0, length(p.xy) - 5.0 - z * 0.2);
+
+                    for(float j = 1.0; j < 20.0; j++) {
+                        if (j >= distortion) break;
+                        p += sin(p.yzx * j + t + 0.3 * i) / j;
+                    }
+
+                    vec3 cosP = 0.4 * cos(p) - 0.4;
+                    d = length(vec4(cosP, p.z));
+                    z += d;
+
+                    o += (cos(p.x + i * 0.4 + z + vec4(6.0, 1.0, 2.0, 0.0) + colorShift) + 1.0) / d;
+                }
+
+                o = tanh(o * o / 400.0);
+                o.a = 1.0;
+                
+                fragColor = o;
+            }
+        `;
+
+        const material = new THREE.RawShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: uniforms,
+            glslVersion: THREE.GLSL3
+        });
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // --- UI & Interaction Logic ---
+        const gearIcon = document.getElementById('gear-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeBtn = document.getElementById('close-modal-btn');
+        
+        const controls = {
+            speed: { el: document.getElementById('speed-slider'), val: document.getElementById('speed-val') },
+            zoom: { el: document.getElementById('zoom-slider'), val: document.getElementById('zoom-val') },
+            iter: { el: document.getElementById('iter-slider'), val: document.getElementById('iter-val') },
+            dist: { el: document.getElementById('dist-slider'), val: document.getElementById('dist-val') },
+            color: { el: document.getElementById('color-slider'), val: document.getElementById('color-val') }
+        };
+
+        // 1. Mouse & Touch Interaction (Orbit & Zoom)
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        const orbitSensitivity = 0.005;
+
+        // Mouse Events
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const delta = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+                
+                // Atualiza a rotação (invertendo Y para controle natural)
+                uniforms.viewRotation.value.x -= delta.x * orbitSensitivity;
+                uniforms.viewRotation.value.y += delta.y * orbitSensitivity;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+        renderer.domElement.addEventListener('mouseleave', () => isDragging = false);
+
+        // Scroll (Zoom)
+        renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.001;
+            // deltaY é positivo ao rolar para baixo (zoom out), negativo para cima (zoom in)
+            let newZoom = uniforms.zoom.value + e.deltaY * zoomSpeed;
+            
+            // Clamp nos limites do slider
+            newZoom = Math.max(0.1, Math.min(newZoom, 5.0));
+            
+            updateZoom(newZoom);
+        }, { passive: false });
+
+        // Touch Events (Mobile Support)
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 1) {
+                isDragging = true;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                e.preventDefault(); // Previne scroll da página
+                const delta = {
+                    x: e.touches[0].clientX - previousMousePosition.x,
+                    y: e.touches[0].clientY - previousMousePosition.y
+                };
+                
+                uniforms.viewRotation.value.x -= delta.x * orbitSensitivity;
+                uniforms.viewRotation.value.y += delta.y * orbitSensitivity;
+
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchend', () => isDragging = false);
+
+        // Helper para atualizar Zoom (UI + Uniform)
+        function updateZoom(val) {
+            uniforms.zoom.value = val;
+            controls.zoom.el.value = val;
+            controls.zoom.val.textContent = val.toFixed(2);
+        }
+
+        // 2. UI Listeners
+        let animationSpeed = 1.0;
+
+        function toggleModal(e) {
+            e.stopPropagation();
+            settingsModal.classList.toggle('visible');
+        }
+
+        gearIcon.addEventListener('click', toggleModal);
+        closeBtn.addEventListener('click', toggleModal);
+
+        document.addEventListener('click', (e) => {
+            if (settingsModal.classList.contains('visible') && 
+                !settingsModal.contains(e.target) && 
+                !gearIcon.contains(e.target)) {
+                settingsModal.classList.remove('visible');
+            }
+        });
+
+        controls.speed.el.addEventListener('input', (e) => {
+            animationSpeed = parseFloat(e.target.value);
+            controls.speed.val.textContent = animationSpeed.toFixed(1) + 'x';
+        });
+
+        controls.zoom.el.addEventListener('input', (e) => {
+            updateZoom(parseFloat(e.target.value));
+        });
+
+        controls.iter.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.iterations.value = val;
+            controls.iter.val.textContent = val;
+        });
+
+        controls.dist.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.distortion.value = val;
+            controls.dist.val.textContent = val;
+        });
+
+        controls.color.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.colorShift.value = val;
+            controls.color.val.textContent = val.toFixed(1);
+        });
+
+        // 3. Resize Handling
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            renderer.setSize(w, h);
+            uniforms.resolution.value.set(w, h);
+        }, false);
+
+        // 4. Animation Loop
+        let lastTime = performance.now();
+        let totalTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) * 0.001;
+            lastTime = currentTime;
+
+            totalTime += deltaTime * animationSpeed;
+            uniforms.time.value = totalTime;
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
+
+
