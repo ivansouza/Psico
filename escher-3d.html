@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esferas Tesselladas: Escher 3D</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            outline: none;
+        }
+        
+        /* Ícone da Engrenagem */
+        #gear-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+        }
+        #gear-icon:hover {
+            transform: rotate(90deg);
+            color: #fff;
+        }
+        #gear-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Janela de Configurações */
+        #settings-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 320px;
+            padding: 25px;
+            transform: translate(-50%, -50%) scale(0.9);
+            background-color: rgba(20, 20, 25, 0.90);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            color: #fff;
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        visibility 0.3s;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        #settings-modal.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #settings-modal h3 {
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-row {
+            margin-bottom: 18px;
+        }
+
+        .setting-row label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .setting-row label span {
+            font-family: monospace;
+            color: #88c0d0;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            transition: border 0.3s;
+        }
+
+        select option {
+            background-color: #222;
+            color: #fff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #88c0d0;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .separator {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            margin: 20px 0;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        #instruction-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.4);
+            font-size: 13px;
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="instruction-hint">Rato/Toque para Orbitar &bull; Scroll para Zoom</div>
+
+    <div id="gear-icon" title="Configurações">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </div>
+
+    <div id="settings-modal">
+        <div class="close-btn" id="close-modal-btn">✕</div>
+        <h3>Mundo Escher 3D</h3>
+        
+        <div class="setting-row">
+            <label>Obras e Padrões</label>
+            <select id="pattern-select">
+                <option value="0">01. Metamorfose (Clássico)</option>
+                <option value="1">02. Peixes e Céu</option>
+                <option value="2">03. Libertação (Pássaros)</option>
+                <option value="3" selected>04. Lagartos (Répteis)</option>
+                <option value="4">05. Limite Circular</option>
+                <option value="5">06. Colmeia Infinita</option>
+                <option value="6">07. Labirinto Duplo</option>
+                <option value="7">08. Células Vivas</option>
+                <option value="8">09. Espiral Yin-Yang</option>
+                <option value="9">10. Mandala Floral</option>
+                <option value="10">11. Nó Celta</option>
+                <option value="11">12. Ondas do Mar</option>
+            </select>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="setting-row">
+            <label>Velocidade (Animação) <span id="speed-val">0.23x</span></label>
+            <input type="range" id="speed-slider" min="0" max="1" step="0.01" value="0.23">
+        </div>
+
+        <div class="setting-row">
+            <label>Densidade da Textura <span id="density-val">2.6</span></label>
+            <input type="range" id="density-slider" min="0.5" max="5.0" step="0.1" value="2.6">
+        </div>
+
+        <div class="setting-row">
+            <label title="Troca a paleta de cores">Paleta de Cores <span id="color-val">0.50</span></label>
+            <input type="range" id="color-slider" min="0.0" max="1.0" step="0.01" value="0.50">
+        </div>
+    </div>
+    
+    <!-- Import Maps para carregar addons como OrbitControls -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuração da Cena 3D ---
+        const scene = new THREE.Scene();
+        // Neblina suave para misturar a esfera com o fundo
+        scene.fog = new THREE.FogExp2(0x050505, 0.035);
+
+        // Câmera Perspectiva
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 6.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        document.body.appendChild(renderer.domElement);
+
+        // Controles de Órbita
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 2.8;
+        controls.maxDistance = 15;
+        controls.enablePan = false; // Manter a esfera centrada
+
+        // --- Uniforms ---
+        const uniforms = {
+            time: { value: 0.0 },
+            density: { value: 2.6 }, 
+            gridScale: { value: 0.3 },
+            colorMix: { value: 0.50 },
+            patternIndex: { value: 3 }
+        };
+
+        // --- Shader 3D (Vertex) ---
+        // Sintaxe GLSL 3.0 para garantir compatibilidade
+        const vertexShader = `
+            out vec2 vUv;
+            out vec3 vNormal;
+            out vec3 vPosition;
+
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        // --- Shader 3D (Fragment) ---
+        const fragmentShader = `
+            precision highp float;
+
+            uniform float time;
+            uniform float density;
+            uniform float gridScale;
+            uniform float colorMix;
+            uniform int patternIndex;
+            
+            in vec2 vUv;
+            in vec3 vNormal;
+            in vec3 vPosition;
+
+            out vec4 fragColor;
+            
+            #define PI 3.14159265359
+
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+            }
+
+            // --- PADRÕES ---
+
+            float patternEscherOriginal(vec2 uv) {
+                // Cálculo manual da matriz para evitar erro de compatibilidade 'mat3x2'
+                // vec3 p = gridScale * uv * mat3x2(...)
+                vec2 scaledUV = uv * gridScale;
+                vec3 p;
+                p.x = dot(scaledUV, vec2(-8.0, 0.0)); // Col 1
+                p.y = dot(scaledUV, vec2(4.0, 7.0));  // Col 2
+                p.z = dot(scaledUV, vec2(4.0, -7.0)); // Col 3
+
+                vec3 fract1 = abs(fract(p.yzx) - 0.3);
+                vec3 fract2 = abs(fract(p.zxy + 0.5) - 0.3);
+                vec3 c = ceil(p + 0.5 + 0.66 * (fract1 + fract2));
+                vec3 col = mod(c + c.yzx, 2.0);
+                return col.x;
+            }
+
+            float patternFish(vec2 uv) {
+                uv *= 4.0 * gridScale;
+                uv.x += time * 0.15;
+                uv.y += sin(uv.x * PI) * 0.2;
+                vec2 id = floor(uv);
+                vec2 f = fract(uv);
+                float checker = mod(id.x + id.y, 2.0);
+                float d = f.x * f.y;
+                float shape = step(0.25, d);
+                if (checker > 0.5) shape = 1.0 - shape;
+                return shape;
+            }
+
+            float patternBirds(vec2 uv) {
+                uv *= 5.0 * gridScale;
+                uv.y += time * 0.2;
+                uv.x += sin(uv.y + time*0.5) * 0.2;
+                vec2 f = fract(uv);
+                vec2 i = floor(uv);
+                float d = f.x - f.y + sin((f.x + f.y)*5.0) * 0.1;
+                float mask = step(0.0, d);
+                if (mod(i.x + i.y, 2.0) > 0.5) mask = 1.0 - mask;
+                return mask;
+            }
+
+            float patternLizards(vec2 uv) {
+                uv *= 6.0 * gridScale;
+                vec2 r = vec2(1.0, 1.73);
+                vec2 h = r * 0.5;
+                vec2 a = mod(uv, r) - h;
+                vec2 b = mod(uv - h, r) - h;
+                vec2 gv = dot(a, a) < dot(b, b) ? a : b;
+                float angle = atan(gv.y, gv.x);
+                float dist = length(gv);
+                float shape = sin(angle * 3.0 + dist * 5.0 - time);
+                return step(0.0, shape);
+            }
+
+            float patternCircleLimit(vec2 uv) {
+                // Mapeamento polar esférico simples
+                vec2 centered = fract(uv) - 0.5; 
+                float r = length(centered) * 2.0;
+                float theta = atan(centered.y, centered.x);
+                float rho = log(r + 0.001); 
+                vec2 grid = vec2(rho * 2.0 + time * 0.2, theta * 4.0 / PI);
+                vec2 f = fract(grid);
+                vec2 i = floor(grid);
+                float mask = step(0.5, f.x);
+                if (mod(i.y, 2.0) > 0.5) mask = 1.0 - mask;
+                return mask;
+            }
+
+            float patternHive(vec2 uv) {
+                uv *= 8.0 * gridScale;
+                vec2 r = vec2(1.0, 1.73);
+                vec2 gv = mod(uv, r) - r*0.5; // Simplificado
+                return step(0.3, length(gv)); 
+            }
+
+            float patternTruchet(vec2 uv) {
+                uv *= 6.0 * gridScale;
+                uv += time * 0.1;
+                vec2 gv = fract(uv) - 0.5;
+                vec2 id = floor(uv);
+                float n = random(id);
+                if (n < 0.5) gv.x *= -1.0;
+                float d = abs(abs(gv.x + gv.y) - 0.5);
+                return step(0.15, d);
+            }
+
+            float patternCells(vec2 uv) {
+                uv *= 4.0 * gridScale;
+                vec2 i_st = floor(uv);
+                vec2 f_st = fract(uv);
+                float m_dist = 1.0; 
+                vec2 m_point;
+                for (int y= -1; y <= 1; y++) {
+                    for (int x= -1; x <= 1; x++) {
+                        vec2 neighbor = vec2(float(x),float(y));
+                        vec2 point = vec2(random(i_st + neighbor));
+                        point = 0.5 + 0.5*sin(time + 6.2831*point);
+                        vec2 diff = neighbor + point - f_st;
+                        float dist = length(diff);
+                        if (dist < m_dist) { m_dist = dist; m_point = point; }
+                    }
+                }
+                return step(0.5, random(i_st + m_point));
+            }
+            
+            float patternSpiral(vec2 uv) {
+                vec2 centered = fract(uv) - 0.5;
+                float r = length(centered);
+                float a = atan(centered.y, centered.x);
+                float arms = 3.0;
+                float spiral = sin(arms * a + log(r+0.01) * 8.0 * gridScale - time * 2.0);
+                return step(0.0, spiral);
+            }
+
+            float patternFlower(vec2 uv) {
+                vec2 centered = fract(uv) - 0.5;
+                vec2 scaled = centered * gridScale * 3.0;
+                float r = length(scaled);
+                float a = atan(centered.y, centered.x);
+                float petal = cos(a * 6.0 + time) * 0.5 + 0.5;
+                float ring = sin(r * 8.0 - time);
+                return step(petal, ring + 0.5); 
+            }
+            
+            float patternCeltic(vec2 uv) {
+                uv *= 5.0 * gridScale;
+                vec2 gv = fract(uv) - 0.5;
+                vec2 id = floor(uv);
+                float d = length(gv);
+                float width = 0.12;
+                float mask = step(0.35 - width, d) * step(d, 0.35 + width);
+                if (mod(id.x + id.y, 2.0) == 0.0) {
+                     if (abs(gv.x) > abs(gv.y)) mask = 1.0 - mask;
+                }
+                return mask;
+            }
+
+            float patternWaves(vec2 uv) {
+                uv *= 8.0 * gridScale;
+                uv.x += time * 0.5;
+                float strips = sin(uv.y * 3.0 + sin(uv.x * 2.0));
+                return step(0.0, strips);
+            }
+
+            void main() {
+                // Mapeamento UV Esférico 
+                // Multiplicamos o UV por density para repetir a textura em volta da esfera
+                vec2 uv = vUv * vec2(density * 4.0, density * 2.0);
+
+                float val = 0.0;
+                
+                if (patternIndex == 0) val = patternEscherOriginal(uv);
+                else if (patternIndex == 1) val = patternFish(uv);
+                else if (patternIndex == 2) val = patternBirds(uv);
+                else if (patternIndex == 3) val = patternLizards(uv);
+                else if (patternIndex == 4) val = patternCircleLimit(vUv * density); 
+                else if (patternIndex == 5) val = patternHive(uv);
+                else if (patternIndex == 6) val = patternTruchet(uv);
+                else if (patternIndex == 7) val = patternCells(uv);
+                else if (patternIndex == 8) val = patternSpiral(uv); 
+                else if (patternIndex == 9) val = patternFlower(uv); 
+                else if (patternIndex == 10) val = patternCeltic(uv);
+                else if (patternIndex == 11) val = patternWaves(uv);
+
+                // --- CORES ---
+                vec3 palA, palB;
+                float pSel = colorMix;
+
+                if (pSel < 0.25) {
+                    palA = vec3(0.15, 0.15, 0.18); 
+                    palB = vec3(0.90, 0.88, 0.82); 
+                } else if (pSel < 0.5) {
+                    palA = vec3(0.1, 0.2, 0.4); 
+                    palB = vec3(0.9, 0.7, 0.3); 
+                } else if (pSel < 0.75) {
+                    palA = vec3(0.2, 0.4, 0.2); 
+                    palB = vec3(0.8, 0.3, 0.2); 
+                } else {
+                    palA = vec3(0.2, 0.0, 0.3); 
+                    palB = vec3(0.2, 0.9, 0.9); 
+                }
+                
+                vec3 albedo = mix(palA, palB, val);
+                
+                // --- ILUMINAÇÃO ---
+                // Luz direcional simples para dar volume à esfera
+                vec3 lightDir = normalize(vec3(1.0, 1.0, 2.0));
+                float diff = max(dot(vNormal, lightDir), 0.0);
+                
+                // Rim lighting (Luz de borda) para destacar a silhueta
+                vec3 viewDir = normalize(-vPosition);
+                float rim = 1.0 - max(dot(viewDir, vNormal), 0.0);
+                rim = smoothstep(0.6, 1.0, rim);
+                
+                // Ambient
+                vec3 ambient = vec3(0.15);
+                
+                // Specular
+                vec3 reflectDir = reflect(-lightDir, vNormal);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+                
+                vec3 finalColor = albedo * (diff + ambient) + spec * 0.4 + rim * palB * 0.3;
+
+                fragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: uniforms,
+            glslVersion: THREE.GLSL3 // FORÇA O USO DE WEBGL 2 / GLSL 3.0
+        });
+
+        const geometry = new THREE.SphereGeometry(2.5, 128, 128);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // --- Fundo (Estrelas) ---
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 3000;
+        const posArray = new Float32Array(starsCount * 3);
+        
+        for(let i = 0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 80;
+        }
+        
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMaterial = new THREE.PointsMaterial({
+            size: 0.08,
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.8
+        });
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+
+        // --- UI Logic ---
+        const gearIcon = document.getElementById('gear-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeBtn = document.getElementById('close-modal-btn');
+        const patternSelect = document.getElementById('pattern-select');
+        
+        const controlsUI = {
+            speed: { el: document.getElementById('speed-slider'), val: document.getElementById('speed-val') },
+            density: { el: document.getElementById('density-slider'), val: document.getElementById('density-val') },
+            color: { el: document.getElementById('color-slider'), val: document.getElementById('color-val') }
+        };
+
+        let animationSpeed = 0.23;
+
+        function toggleModal(e) {
+            e.stopPropagation();
+            settingsModal.classList.toggle('visible');
+        }
+
+        gearIcon.addEventListener('click', toggleModal);
+        closeBtn.addEventListener('click', toggleModal);
+
+        patternSelect.addEventListener('change', (e) => {
+            uniforms.patternIndex.value = parseInt(e.target.value);
+        });
+
+        controlsUI.speed.el.addEventListener('input', (e) => {
+            animationSpeed = parseFloat(e.target.value);
+            controlsUI.speed.val.textContent = animationSpeed.toFixed(2) + 'x';
+        });
+
+        controlsUI.density.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.density.value = val;
+            controlsUI.density.val.textContent = val.toFixed(1);
+        });
+
+        controlsUI.color.el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            uniforms.colorMix.value = val;
+            controlsUI.color.val.textContent = val.toFixed(2);
+        });
+
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }, false);
+
+        // --- Loop ---
+        let lastTime = performance.now();
+        let totalTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) * 0.001;
+            lastTime = currentTime;
+
+            totalTime += deltaTime * animationSpeed;
+            uniforms.time.value = totalTime;
+            
+            controls.update(); 
+            
+            // Rotação suave da esfera e estrelas
+            mesh.rotation.y += 0.001 * animationSpeed;
+            stars.rotation.y -= 0.0002;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
