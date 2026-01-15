@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Resonance Nebulabrot • Pro</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; }
+        canvas { display: block; touch-action: none; }
+        
+        /* Botão de Engrenagem - Isolado para não afetar o centro */
+        #gear-btn {
+            position: absolute; top: 20px; right: 20px;
+            width: 48px; height: 48px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+        #gear-btn:hover { background: rgba(255, 255, 255, 0.2); transform: rotate(90deg) scale(1.1); }
+
+        /* Janela de Configurações Transparente */
+        #settings-panel {
+            position: absolute; top: 85px; right: 20px;
+            width: 320px;
+            max-height: calc(100vh - 120px);
+            background: rgba(10, 10, 20, 0.75);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 24px;
+            color: white;
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-20px) scale(0.9);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            overflow-y: auto;
+            user-select: none;
+        }
+        #settings-panel.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+
+        h1 { margin: 0; font-size: 16px; color: #0cf; letter-spacing: 1px; font-weight: 600; }
+        .formula { display: block; font-family: 'Fira Code', monospace; font-size: 10px; color: #f0f; margin-bottom: 20px; opacity: 0.7; }
+
+        .control-group { margin-bottom: 18px; }
+        label { display: flex; justify-content: space-between; font-size: 10px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; color: #aaa; }
+        label span { color: #0cf; font-weight: bold; }
+        
+        input[type=range] { 
+            width: 100%; appearance: none; background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none; width: 16px; height: 16px; background: #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px #0cf;
+        }
+
+        .section-title { font-size: 11px; font-weight: bold; color: #666; margin: 25px 0 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; text-transform: uppercase; }
+
+        #hint {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.4); font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+            pointer-events: none; transition: opacity 1s;
+        }
+
+        #settings-panel::-webkit-scrollbar { width: 4px; }
+        #settings-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="gear-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </div>
+
+    <div id="settings-panel">
+        <h1>Nebulabrot Pro</h1>
+        <span class="formula">z¹² + mod(t)·z⁸ + ... + c</span>
+        
+        <div class="section-title">Estrutura Matemática</div>
+        <div class="control-group">
+            <label>Qualidade <span id="val-iter">250</span></label>
+            <input type="range" id="iterRange" min="50" max="600" value="250">
+        </div>
+        <div class="control-group">
+            <label>Filamentos <span id="val-fiber">5.5</span></label>
+            <input type="range" id="fiberRange" min="0.5" max="12.0" step="0.1" value="5.5">
+        </div>
+        <div class="control-group">
+            <label>Respiração <span id="val-speed">1.40</span></label>
+            <input type="range" id="speedRange" min="0.0" max="4.0" step="0.05" value="1.40">
+        </div>
+
+        <div class="section-title">Cores & Glow</div>
+        <div class="control-group">
+            <label>Matiz Espacial <span id="val-hue">0.65</span></label>
+            <input type="range" id="hueRange" min="0.0" max="1.0" step="0.01" value="0.65">
+        </div>
+        <div class="control-group">
+            <label>Saturação <span id="val-sat">2.2</span></label>
+            <input type="range" id="satRange" min="0.0" max="4.0" step="0.1" value="2.2">
+        </div>
+        <div class="control-group">
+            <label>Exposição HDR <span id="val-exp">3.2</span></label>
+            <input type="range" id="expRange" min="0.1" max="8.0" step="0.1" value="3.2">
+        </div>
+
+        <div class="section-title">Ambiente</div>
+        <div class="control-group">
+            <label>Poeira Estelar <span id="val-stars">1.2</span></label>
+            <input type="range" id="starRange" min="0.0" max="5.0" step="0.1" value="1.2">
+        </div>
+    </div>
+
+    <div id="hint">Pinch Zoom • Navegação por Órbita</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision highp float;
+        varying vec2 vUv;
+        uniform vec2 u_resolution;
+        uniform vec2 u_offset;
+        uniform float u_zoom;
+        uniform float u_time;
+        uniform float u_iterations;
+        uniform float u_exposure;
+        uniform float u_speed;
+        
+        uniform float u_hue;
+        uniform float u_saturation;
+        uniform float u_fiberStrength;
+        uniform float u_starIntensity;
+
+        #define PI 3.14159265359
+        #define TAU 6.28318530718
+
+        vec2 cPow(vec2 z, float n) {
+            float r = length(z);
+            float a = atan(z.y, z.x);
+            return pow(r, n) * vec2(cos(n*a), sin(n*a));
+        }
+
+        vec3 palette(float t) {
+            vec3 a = vec3(0.5);
+            vec3 b = vec3(0.5) * u_saturation;
+            vec3 c = vec3(1.0, 1.0, 1.0);
+            vec3 d = vec3(u_hue, u_hue + 0.2, u_hue + 0.4);
+            return a + b * cos(TAU * (c * t + d + u_time * 0.04));
+        }
+
+        void main() {
+            // Centralização estrita do UV
+            vec2 uv = (vUv - 0.5);
+            
+            // Correção de Aspect Ratio centralizada
+            if (u_resolution.x > u_resolution.y) {
+                uv.x *= u_resolution.x / u_resolution.y;
+            } else {
+                uv.y *= u_resolution.y / u_resolution.x;
+            }
+            
+            vec2 c = uv * u_zoom + u_offset;
+            
+            float t = u_time * u_speed;
+            float mod1 = 1.0 + 0.6 * sin(t * 1.2) + 0.3 * cos(t * 2.5);
+            float phase1 = 1.618 * t * 0.15;
+
+            vec2 z = c;
+            vec3 orbitAccum = vec3(0.0);
+            bool escaped = false;
+            
+            for(float i = 0.0; i < 600.0; i++) {
+                if(i >= u_iterations) break;
+                
+                vec2 z2  = cPow(z, 2.0);
+                vec2 z8  = cPow(z, 8.0);
+                vec2 z12 = cPow(z, 12.0);
+
+                z = z12 + vec2(0.0, 1.0) * mod1 * z8 + vec2(0.3 + 0.2*sin(phase1), 0.1*cos(phase1)) * z2 + c;
+                
+                float d_axis = min(abs(z.x), abs(z.y));
+                float d_point = length(z);
+                
+                orbitAccum.r += exp(-d_axis * u_fiberStrength) * 0.18;
+                orbitAccum.g += exp(-d_point * (u_fiberStrength * 0.7)) * 0.06;
+                orbitAccum.b += exp(-abs(z.x + z.y) * (u_fiberStrength * 1.1)) * 0.12;
+
+                if (dot(z, z) > 1000.0) {
+                    escaped = true;
+                    break;
+                }
+            }
+
+            if (!escaped) {
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                float stars = fract(sin(dot(uv * 120.0, vec2(12.9898, 78.233))) * 43758.5453);
+                if(stars > 0.9997) gl_FragColor.rgb += (1.8 * u_starIntensity) * stars * palette(stars);
+                return;
+            }
+
+            vec3 color = orbitAccum * 1.4;
+            color = pow(color * u_exposure, vec3(1.5));
+            
+            float angle = atan(z.y, z.x);
+            color *= palette(length(z) * 0.004 + angle/TAU);
+
+            float stars = fract(sin(dot(uv * 120.0, vec2(12.9898, 78.233))) * 43758.5453);
+            if(stars > 0.9997) color += (2.0 * u_starIntensity) * stars * palette(stars);
+
+            float vignette = 1.0 - length(vUv - 0.5) * 0.4;
+            gl_FragColor = vec4(color * vignette, 1.0);
+        }
+    </script>
+
+    <script>
+        let scene, camera, renderer, material;
+        let zoom = 2.2, targetZoom = 2.2;
+        let offset = new THREE.Vector2(0.0, 0.0), targetOffset = new THREE.Vector2(0.0, 0.0);
+        let isDragging = false, lastMousePos = new THREE.Vector2(), initialPinchDist = 0;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+            camera.position.z = 1;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_offset: { value: offset },
+                    u_zoom: { value: zoom },
+                    u_time: { value: 0.0 },
+                    u_iterations: { value: 250.0 },
+                    u_exposure: { value: 3.2 },
+                    u_speed: { value: 1.4 },
+                    u_hue: { value: 0.65 },
+                    u_saturation: { value: 2.2 },
+                    u_fiberStrength: { value: 5.5 },
+                    u_starIntensity: { value: 1.2 }
+                },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+
+            setupUI();
+            setupInteractions();
+            animate();
+            
+            setTimeout(() => document.getElementById('hint').style.opacity = '0', 6000);
+        }
+
+        function setupUI() {
+            const gear = document.getElementById('gear-btn');
+            const panel = document.getElementById('settings-panel');
+            
+            gear.onclick = (e) => {
+                e.stopPropagation(); 
+                panel.classList.toggle('open');
+            };
+            
+            panel.onmousedown = (e) => e.stopPropagation();
+            panel.ontouchstart = (e) => e.stopPropagation();
+            
+            const bind = (id, labelId, uniform) => {
+                const el = document.getElementById(id);
+                const lbl = document.getElementById(labelId);
+                el.oninput = (e) => {
+                    const val = parseFloat(e.target.value);
+                    lbl.innerText = val.toFixed(2);
+                    material.uniforms[uniform].value = val;
+                };
+            };
+            
+            bind('iterRange', 'val-iter', 'u_iterations');
+            bind('fiberRange', 'val-fiber', 'u_fiberStrength');
+            bind('speedRange', 'val-speed', 'u_speed');
+            bind('hueRange', 'val-hue', 'u_hue');
+            bind('satRange', 'val-sat', 'u_saturation');
+            bind('expRange', 'val-exp', 'u_exposure');
+            bind('starRange', 'val-stars', 'u_starIntensity');
+        }
+
+        function setupInteractions() {
+            const getDist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+            window.onmousedown = (e) => { 
+                if (e.target.closest('#settings-panel') || e.target.closest('#gear-btn')) return;
+                isDragging = true; 
+                lastMousePos.set(e.clientX, e.clientY); 
+            };
+            
+            window.onmouseup = () => isDragging = false;
+            
+            window.onmousemove = (e) => {
+                if (!isDragging) return;
+                const aspect = window.innerWidth / window.innerHeight;
+                targetOffset.x -= (e.clientX - lastMousePos.x) / window.innerWidth * targetZoom * Math.max(aspect, 1.0);
+                targetOffset.y += (e.clientY - lastMousePos.y) / window.innerHeight * targetZoom * Math.max(1.0/aspect, 1.0);
+                lastMousePos.set(e.clientX, e.clientY);
+            };
+
+            window.onwheel = (e) => {
+                targetZoom *= (e.deltaY > 0 ? 1.12 : 0.88);
+                targetZoom = Math.max(0.00001, Math.min(12.0, targetZoom));
+            };
+
+            window.ontouchstart = (e) => {
+                if (e.target.closest('#settings-panel') || e.target.closest('#gear-btn')) return;
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastMousePos.set(e.touches[0].clientX, e.touches[0].clientY);
+                } else if (e.touches.length === 2) {
+                    initialPinchDist = getDist(e.touches[0], e.touches[1]);
+                }
+            };
+
+            window.ontouchmove = (e) => {
+                if (e.target.closest('#settings-panel')) return;
+                if (e.touches.length === 1 && isDragging) {
+                    const aspect = window.innerWidth / window.innerHeight;
+                    targetOffset.x -= (e.touches[0].clientX - lastMousePos.x) / window.innerWidth * targetZoom * (aspect > 1 ? aspect : 1);
+                    targetOffset.y += (e.touches[0].clientY - lastMousePos.y) / window.innerHeight * targetZoom * (aspect < 1 ? 1/aspect : 1);
+                    lastMousePos.set(e.touches[0].clientX, e.touches[0].clientY);
+                } else if (e.touches.length === 2) {
+                    const d = getDist(e.touches[0], e.touches[1]);
+                    if (initialPinchDist > 0) {
+                        targetZoom *= (initialPinchDist / d);
+                        initialPinchDist = d;
+                    }
+                }
+                if (e.cancelable) e.preventDefault();
+            }, { passive: false };
+
+            window.onresize = () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+            };
+        }
+
+        let clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.u_time.value = clock.getElapsedTime();
+            
+            offset.lerp(targetOffset, 0.12);
+            zoom += (targetZoom - zoom) * 0.12;
+            
+            material.uniforms.u_offset.value = offset;
+            material.uniforms.u_zoom.value = zoom;
+            
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
