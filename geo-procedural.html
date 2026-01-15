@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Laboratório de Geometria Procedural</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050505; touch-action: none; font-family: 'Inter', system-ui, sans-serif; }
+        canvas { display: block; }
+        
+        /* Painel de Configurações */
+        #settings-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 300px;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            color: white;
+            padding: 28px;
+            z-index: 90;
+            transform: translateX(calc(100% + 50px));
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        #settings-panel.open { transform: translateX(0); }
+
+        /* Botão de Engrenagem Corrigido */
+        .gear-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            color: white;
+            padding: 0;
+        }
+        .gear-btn:hover { 
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        .gear-btn svg { 
+            width: 24px; 
+            height: 24px;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .gear-btn:hover svg { transform: rotate(90deg); }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 80;
+            pointer-events: none;
+            color: white;
+            text-align: center;
+            width: 100%;
+        }
+        .hint-text {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            opacity: 0.35;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-top: 8px;
+            outline: none;
+        }
+        label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; opacity: 0.4; font-weight: 600; }
+
+        .switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px;
+            left: 3px; bottom: 3px; background-color: white;
+            transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: rgba(255,255,255,0.4); }
+        input:checked + .slider:before { transform: translateX(16px); }
+    </style>
+</head>
+<body>
+
+    <button class="gear-btn" id="toggle-settings" onclick="toggleMenu()" aria-label="Definições">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.72v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+
+    <div id="settings-panel">
+        <div class="mb-8">
+            <h2 class="font-black text-xl tracking-tight">Geometria</h2>
+            <p class="text-[10px] opacity-40 uppercase tracking-[0.2em]">Configurações</p>
+        </div>
+
+        <div class="space-y-6">
+            <div>
+                <label>Forma Alvo</label>
+                <select id="shape-selector" onchange="changeShape(this.value)">
+                    <option value="0">Esfera</option>
+                    <option value="5">Pirâmide Quadrada</option>
+                    <option value="1">Cubo Arredondado</option>
+                    <option value="12">Cubo Sólido</option>
+                    <option value="2">Octaedro</option>
+                    <option value="3">Dodecaedro</option>
+                    <option value="10">Tetraedro</option>
+                    <option value="6">Cápsula</option>
+                    <option value="7">Cilindro</option>
+                    <option value="8">Cone</option>
+                    <option value="9">Prisma Hexagonal</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <label class="mb-0">Exibir Grelha</label>
+                <label class="switch">
+                    <input type="checkbox" id="grid-toggle" checked onchange="toggleGridVisibility(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <label class="mb-0">Wireframe</label>
+                <label class="switch">
+                    <input type="checkbox" id="wireframe-toggle" onchange="toggleWireframe(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div>
+                <label>Velocidade</label>
+                <input type="range" id="speed-control" min="0" max="100" value="25" oninput="updateSpeed(this.value)">
+            </div>
+            
+            <button onclick="randomize()" class="w-full bg-white text-black font-black py-4 rounded-2xl text-[10px] uppercase tracking-[0.15em] hover:scale-[1.02] transition-all">Aleatório</button>
+        </div>
+    </div>
+
+    <div class="controls-hint">
+        <p class="hint-text">Duplo Toque: Transformar &bull; Arrastar: Órbita &bull; Pinçar: Zoom</p>
+    </div>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform float uFactor;
+        uniform int uShapeFrom;
+        uniform int uShapeTo;
+
+        #define PI 3.14159265359
+
+        float elasticOut(float t) {
+            return sin(-13.0 * (t + 1.0) * PI / 2.0) * pow(2.0, -10.0 * t) + 1.0;
+        }
+
+        // SDFs
+        float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0); }
+        float sdSphere(vec3 p, float s) { return length(p) - s; }
+        
+        // Pirâmide Quadrada Refinada
+        float sdPyramid(vec3 p, float h) {
+            float m2 = h*h + 0.25;
+            p.xz = abs(p.xz);
+            p.xz = (p.z>p.x) ? p.zx : p.xz;
+            p.xz -= 0.5;
+            vec3 q = vec3( p.z, h*p.y - 0.5*p.x, h*p.x + 0.5*p.y);
+            float s = max(-q.x,0.0);
+            float t = clamp( (q.y-0.5*p.z)/(m2+0.25), 0.0, 1.0 );
+            float a = m2*(q.x+s)*(q.x+s) + q.y*q.y;
+            float b = m2*(q.x+0.5*t)*(q.x+0.5*t) + (q.y-m2*t)*(q.y-m2*t);
+            float d2 = min(q.y,-q.x*m2-q.y*0.5) > 0.0 ? 0.0 : min(a,b);
+            float d = sqrt( (d2+q.z*q.z)/m2 ) * sign(max(q.z,-p.y));
+            // Força a base plana
+            return max(d, -p.y - 0.25);
+        }
+
+        float sdOctahedron(vec3 p, float s) { p = abs(p); return (p.x+p.y+p.z-s)*0.57735027; }
+
+        float getDist(int id, vec3 p) {
+            if(id == 0) return sdSphere(p, 0.6);
+            if(id == 1) return sdBox(p, vec3(0.4)) - 0.1;
+            if(id == 2) return sdOctahedron(p, 0.7);
+            if(id == 5) return sdPyramid(p + vec3(0, 0.1, 0), 1.0); 
+            if(id == 6) return length(p.xz) - 0.3 + max(0.0, abs(p.y)-0.4); 
+            if(id == 7) return max(length(p.xz)-0.35, abs(p.y)-0.5); 
+            if(id == 10) return (abs(p.x)+abs(p.y)+abs(p.z)-0.8)*0.577; 
+            if(id == 12) return sdBox(p, vec3(0.5));
+            return length(p) - 0.5;
+        }
+
+        float map(vec3 p) {
+            float d1 = getDist(uShapeFrom, p);
+            float d2 = getDist(uShapeTo, p);
+            return mix(d1, d2, elasticOut(clamp(uFactor, 0.0, 1.0)));
+        }
+
+        vec3 calcNormal(vec3 p) {
+            vec2 e = vec2(0.002, 0.0);
+            return normalize(vec3(map(p+e.xyy)-map(p-e.xyy), map(p+e.yxy)-map(p-e.yxy), map(p+e.yyx)-map(p-e.yyx)));
+        }
+
+        void main() {
+            vec3 ro = position; vec3 rd = normalize(position) * -1.0; 
+            float t = 0.0;
+            for(int i=0; i<64; i++) {
+                float d = map(ro + rd * t);
+                t += d;
+                if(abs(d) < 0.0001 || t > 2.6) break;
+            }
+            vec3 p = ro + rd * t;
+            vNormal = normalMatrix * calcNormal(p);
+            vPosition = (modelViewMatrix * vec4(p, 1.0)).xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform vec3 uColor;
+        void main() {
+            vec3 n = normalize(vNormal);
+            vec3 l = normalize(vec3(1.0, 1.2, 0.8));
+            float d = max(dot(n, l), 0.0);
+            float r = pow(1.0 - max(dot(n, normalize(-vPosition)), 0.0), 3.5);
+            gl_FragColor = vec4(uColor * (d * 0.7 + 0.3) + uColor * r * 0.8, 1.0);
+        }
+    </script>
+
+    <script>
+        const CORES = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#10b981", "#06b6d4", "#3b82f6", "#8b5cf6", "#d946ef", "#f43f5e"];
+        const VALID_SHAPES = [0, 1, 2, 5, 6, 7, 10, 12];
+        let scene, camera, renderer, material, mesh, clock, controls, gridHelper;
+        let estado = { from: 0, to: 0, factor: 1, color: new THREE.Color(CORES[0]), targetColor: new THREE.Color(CORES[0]), transition: false, speed: 0.25, lastTap: 0 };
+
+        function init() {
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x050505);
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(3, 2.5, 3);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            gridHelper = new THREE.GridHelper(10, 40, 0x1a1a1a, 0x111111); scene.add(gridHelper);
+
+            // Geometria inicial densa
+            const geometry = new THREE.IcosahedronGeometry(2.0, 100); 
+            material = new THREE.ShaderMaterial({
+                uniforms: { uFactor: { value: 1.0 }, uShapeFrom: { value: 0 }, uShapeTo: { value: 0 }, uColor: { value: estado.color } },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+            mesh = new THREE.Mesh(geometry, material); scene.add(mesh);
+            clock = new THREE.Clock(); animate();
+
+            window.addEventListener('pointerdown', (e) => {
+                if(!e.target.closest('#settings-panel') && !e.target.closest('#toggle-settings')) document.getElementById('settings-panel').classList.remove('open');
+                if(e.target.tagName === 'CANVAS') {
+                    const now = Date.now();
+                    if(now - estado.lastTap < 300) { randomize(); estado.lastTap = 0; }
+                    else estado.lastTap = now;
+                }
+            });
+        }
+
+        function toggleMenu() { document.getElementById('settings-panel').classList.toggle('open'); }
+        function toggleGridVisibility(v) { if(gridHelper) gridHelper.visible = v; }
+        
+        function toggleWireframe(enabled) {
+            if(!material) return;
+            material.wireframe = enabled;
+            // Para que o wireframe seja visível e não pareça sólido, reduzimos a subdivisão temporariamente
+            mesh.geometry.dispose();
+            mesh.geometry = new THREE.IcosahedronGeometry(2.0, enabled ? 40 : 100);
+        }
+
+        function changeShape(id) {
+            const target = parseInt(id);
+            if(target === estado.to) return;
+            estado.from = estado.to; estado.to = target;
+            material.uniforms.uShapeFrom.value = estado.from;
+            material.uniforms.uShapeTo.value = estado.to;
+            estado.factor = 0; estado.transition = true;
+        }
+
+        function randomize() {
+            const next = VALID_SHAPES[Math.floor(Math.random() * VALID_SHAPES.length)];
+            document.getElementById('shape-selector').value = next;
+            estado.color.copy(estado.targetColor);
+            estado.targetColor.set(CORES[Math.floor(Math.random() * CORES.length)]);
+            changeShape(next);
+        }
+
+        function updateSpeed(v) { estado.speed = parseFloat(v) / 100; }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+            if(estado.transition) {
+                estado.factor = Math.min(estado.factor + dt * 0.8, 1.0);
+                material.uniforms.uFactor.value = estado.factor;
+                material.uniforms.uColor.value.lerpColors(estado.color, estado.targetColor, estado.factor);
+                if(estado.factor >= 1.0) estado.transition = false;
+            }
+            mesh.rotation.y += dt * estado.speed;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
+
