@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superfície de Riemann Interativa</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        
+        /* Botão de Engrenagem */
+        #settings-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+        #settings-btn:hover {
+            background: rgba(77, 184, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        /* Janela de Configurações */
+        #settings-panel {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.65); /* Transparente */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            transform: translateX(-120%); /* Escondido por padrão */
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 99;
+        }
+        
+        #settings-panel.active {
+            transform: translateX(0);
+        }
+
+        /* Título e Legenda (Mudei posição para acomodar o botão) */
+        #info-panel {
+            position: absolute;
+            bottom: 20px; /* Movido para baixo */
+            left: 20px;
+            pointer-events: none;
+            color: rgba(255,255,255,0.8);
+            max-width: 400px;
+        }
+
+        h2 { margin: 0 0 15px 0; font-size: 1.2rem; color: #4db8ff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        h3 { margin: 15px 0 5px 0; font-size: 0.9rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+
+        .control-group { margin-bottom: 12px; }
+        .control-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
+        
+        /* Sliders customizados */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+            transition: background .15s ease-in-out;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { background: #80d4ff; }
+        
+        /* Checkbox customizado */
+        .checkbox-wrapper { display: flex; align-items: center; cursor: pointer; margin-top: 5px; }
+        input[type="checkbox"] { margin-right: 10px; cursor: pointer; }
+
+        .value-display { font-family: monospace; color: #4db8ff; }
+
+        .legend { margin-top: 5px; font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 6px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
+        .color-box { width: 10px; height: 10px; margin-right: 8px; border-radius: 2px; display: inline-block;}
+        .math-block { font-family: 'Courier New', monospace; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; color: #ffeb3b; }
+
+    </style>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- Botão de Configurações -->
+    <button id="settings-btn" title="Configurações">⚙️</button>
+
+    <!-- Painel de Configurações -->
+    <div id="settings-panel">
+        <h2>Parâmetros</h2>
+
+        <h3>Matemática (f(z) = z^(1/n))</h3>
+        
+        <div class="control-group">
+            <div class="control-header">
+                <label>Grau da Raiz (n)</label>
+                <span id="val-n" class="value-display">2</span>
+            </div>
+            <input type="range" id="nSlider" min="2" max="6" step="1" value="2">
+            <div style="font-size: 0.75rem; color: #888; margin-top:2px;">Define quantas "folhas" a superfície terá.</div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-header">
+                <label>Raio Máximo (Dominio)</label>
+                <span id="val-rmax" class="value-display">3.0</span>
+            </div>
+            <input type="range" id="rMaxSlider" min="1.0" max="10.0" step="0.5" value="3.0">
+        </div>
+
+        <div class="control-group">
+            <div class="control-header">
+                <label>Escala Vertical</label>
+                <span id="val-yscale" class="value-display">1.0</span>
+            </div>
+            <input type="range" id="yScaleSlider" min="0.5" max="3.0" step="0.1" value="1.0">
+        </div>
+
+        <h3>Visualização</h3>
+
+        <div class="control-group">
+            <div class="control-header">
+                <label>Opacidade</label>
+                <span id="val-opacity" class="value-display">0.85</span>
+            </div>
+            <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="0.85">
+        </div>
+
+        <div class="checkbox-wrapper">
+            <input type="checkbox" id="wireframeCheck">
+            <label for="wireframeCheck">Wireframe (Estrutura)</label>
+        </div>
+        
+        <div class="checkbox-wrapper">
+            <input type="checkbox" id="rotateCheck" checked>
+            <label for="rotateCheck">Rotação Automática</label>
+        </div>
+    </div>
+
+    <!-- Info / Legenda (Canto Inferior) -->
+    <div id="info-panel">
+        <h1 style="margin:0; font-size:1.4rem; color:#4db8ff;">Superfície de Riemann</h1>
+        <p style="margin:5px 0 10px 0;">Visualizando <span id="formula-display" class="math-block">f(z) = z^(1/2)</span></p>
+        
+        <div class="legend">
+            <div class="legend-item"><span class="color-box" style="background: red;"></span>Eixo X: Re(z)</div>
+            <div class="legend-item"><span class="color-box" style="background: blue;"></span>Eixo Z: Im(z)</div>
+            <div class="legend-item"><span class="color-box" style="background: white;"></span>Eixo Y: Re(f(z))</div>
+            <div class="legend-item"><span class="color-box" style="background: linear-gradient(90deg, red, yellow, green, cyan, blue, magenta, red);"></span>Cor: Fase/Arg(f(z))</div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- 1. Configuração Básica ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.FogExp2(0x050505, 0.04);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(6, 5, 6);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // --- 2. Estado da Aplicação ---
+        const state = {
+            n: 2,          // Grau da raiz (z^(1/n))
+            rMax: 3.0,     // Raio máximo
+            yScale: 1.0,   // Escala vertical
+            opacity: 0.85,
+            wireframe: false,
+            autoRotate: true
+        };
+
+        // --- 3. Shaders ---
+        const vertexShader = `
+            varying vec2 vUv;
+            varying float vElevation;
+            
+            void main() {
+                vUv = uv;
+                // vElevation é usado para iluminar levemente os picos
+                vElevation = position.y;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            varying vec2 vUv;
+            varying float vElevation;
+            uniform float uOpacity;
+            
+            vec3 hsl2rgb(vec3 c) {
+                vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+                return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+            }
+
+            void main() {
+                // vUv.y é o ângulo normalizado (0 a 1 em todo o domínio)
+                // Isso cria um arco-íris completo ao longo de todas as folhas
+                float hue = vUv.y; 
+                
+                // Grid lines logic
+                // Frequência ajustada para parecer constante visualmente
+                float gridR = step(0.96, fract(vUv.x * 10.0)); 
+                float gridT = step(0.96, fract(vUv.y * 30.0)); 
+                float grid = max(gridR, gridT);
+                
+                // Lightness
+                float lightness = 0.5 + 0.05 * vElevation;
+                
+                vec3 color = hsl2rgb(vec3(hue, 1.0, lightness));
+                vec3 finalColor = mix(color, vec3(1.0), grid * 0.4);
+
+                gl_FragColor = vec4(finalColor, uOpacity);
+            }
+        `;
+
+        let mesh;
+        let axisGroup;
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: {
+                uOpacity: { value: state.opacity }
+            },
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        // --- 4. Geração de Geometria ---
+        function updateGeometry() {
+            if (mesh) {
+                mesh.geometry.dispose();
+                scene.remove(mesh);
+            }
+            if (axisGroup) {
+                // Limpar eixos antigos pois o tamanho muda
+                scene.remove(axisGroup);
+                axisGroup.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                });
+            }
+
+            const n = state.n;
+            const rMax = state.rMax;
+            const yScale = state.yScale;
+
+            const rSegments = 60;
+            const tSegments = 60 * n; // Mais segmentos para mais voltas
+            const maxTheta = n * 2 * Math.PI; // Total de voltas: n * 360 graus
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const indices = [];
+            const uvs = [];
+
+            for (let i = 0; i <= rSegments; i++) {
+                const r = (i / rSegments) * rMax;
+                
+                for (let j = 0; j <= tSegments; j++) {
+                    const theta = (j / tSegments) * maxTheta;
+
+                    // Matemática: z = r * e^(i*theta)
+                    // Input X = r cos(theta), Z = r sin(theta)
+                    const x = r * Math.cos(theta);
+                    const z = r * Math.sin(theta);
+                    
+                    // Resultado: f(z) = r^(1/n) * e^(i*theta/n)
+                    // Altura Y = Real(f(z))
+                    const rOutput = Math.pow(r, 1/n);
+                    const thetaOutput = theta / n;
+                    
+                    const y = rOutput * Math.cos(thetaOutput) * yScale;
+
+                    positions.push(x, y, z);
+                    // Normalizar UVs
+                    uvs.push(r / rMax, theta / maxTheta);
+                }
+            }
+
+            for (let i = 0; i < rSegments; i++) {
+                for (let j = 0; j < tSegments; j++) {
+                    const a = i * (tSegments + 1) + j;
+                    const b = a + 1;
+                    const c = (i + 1) * (tSegments + 1) + j;
+                    const d = c + 1;
+                    indices.push(a, c, b);
+                    indices.push(b, c, d);
+                }
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geometry.setIndex(indices);
+            geometry.computeVertexNormals();
+
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            // Recriar Eixos e Grid baseados no novo tamanho
+            createHelpers(rMax);
+            
+            // Atualizar texto da fórmula
+            document.getElementById('formula-display').innerText = `f(z) = z^(1/${n})`;
+        }
+
+        function createHelpers(size) {
+            axisGroup = new THREE.Group();
+            
+            // Grid de chão
+            const grid = new THREE.GridHelper(size * 2, 10, 0x444444, 0x222222);
+            grid.position.y = -0.05;
+            axisGroup.add(grid);
+
+            // Eixos X e Z
+            const lineMatR = new THREE.LineBasicMaterial({ color: 0xff0000 });
+            const lineMatB = new THREE.LineBasicMaterial({ color: 0x0044ff });
+            
+            const pointsX = [new THREE.Vector3(-size-0.5, 0, 0), new THREE.Vector3(size+0.5, 0, 0)];
+            const geoX = new THREE.BufferGeometry().setFromPoints(pointsX);
+            axisGroup.add(new THREE.Line(geoX, lineMatR));
+
+            const pointsZ = [new THREE.Vector3(0, 0, -size-0.5), new THREE.Vector3(0, 0, size+0.5)];
+            const geoZ = new THREE.BufferGeometry().setFromPoints(pointsZ);
+            axisGroup.add(new THREE.Line(geoZ, lineMatB));
+            
+            // Singularidade
+            const dotGeo = new THREE.SphereGeometry(0.05, 16, 16);
+            const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const dot = new THREE.Mesh(dotGeo, dotMat);
+            axisGroup.add(dot);
+
+            scene.add(axisGroup);
+        }
+
+        // Inicializar
+        updateGeometry();
+
+        // --- 5. UI & Event Listeners ---
+        
+        // Toggle Settings Panel
+        const btn = document.getElementById('settings-btn');
+        const panel = document.getElementById('settings-panel');
+        let panelOpen = false;
+
+        btn.addEventListener('click', () => {
+            panelOpen = !panelOpen;
+            if (panelOpen) {
+                panel.classList.add('active');
+                btn.style.transform = "rotate(90deg)";
+            } else {
+                panel.classList.remove('active');
+                btn.style.transform = "rotate(0deg)";
+            }
+        });
+
+        // Math Controls
+        document.getElementById('nSlider').addEventListener('input', (e) => {
+            state.n = parseInt(e.target.value);
+            document.getElementById('val-n').innerText = state.n;
+            updateGeometry();
+        });
+
+        document.getElementById('rMaxSlider').addEventListener('input', (e) => {
+            state.rMax = parseFloat(e.target.value);
+            document.getElementById('val-rmax').innerText = state.rMax.toFixed(1);
+            updateGeometry();
+        });
+
+        document.getElementById('yScaleSlider').addEventListener('input', (e) => {
+            state.yScale = parseFloat(e.target.value);
+            document.getElementById('val-yscale').innerText = state.yScale.toFixed(1);
+            updateGeometry();
+        });
+
+        // Visual Controls
+        document.getElementById('opacitySlider').addEventListener('input', (e) => {
+            state.opacity = parseFloat(e.target.value);
+            document.getElementById('val-opacity').innerText = state.opacity.toFixed(2);
+            material.uniforms.uOpacity.value = state.opacity;
+        });
+
+        document.getElementById('wireframeCheck').addEventListener('change', (e) => {
+            state.wireframe = e.target.checked;
+            material.wireframe = state.wireframe;
+        });
+
+        document.getElementById('rotateCheck').addEventListener('change', (e) => {
+            state.autoRotate = e.target.checked;
+        });
+
+        // --- 6. Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            if (state.autoRotate && mesh) {
+                mesh.rotation.y = time * 0.15;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+
+    </script>
+</body>
+</html>
+
+
