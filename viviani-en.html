@@ -15,61 +15,129 @@
         body { margin: 0; overflow: hidden; background-color: #020617; font-family: 'Inter', sans-serif; }
         canvas { display: block; }
         .glass-panel {
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .bar-transition {
             transition: height 0.1s ease-out;
         }
         button:active { transform: scale(0.95); }
-        /* Cursor de redimensionamento para as barras interativas */
         .bar-interactive { cursor: ns-resize; touch-action: none; }
+        
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        .collapsed-content {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            overflow: hidden;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .expanded-content {
+            max-height: 550px;
+            opacity: 1;
+            margin-top: 0.75rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+        .formula-container { min-height: 1.5em; display: flex; align-items: center; }
     </style>
 </head>
 <body>
 
-    <!-- UI Overlay - Compacto -->
+    <!-- UI Overlay - Main Control Panel -->
     <div class="fixed bottom-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
-        <div class="glass-panel p-4 rounded-2xl shadow-2xl w-64 pointer-events-auto border-t border-white/10">
-            <div class="flex justify-between items-start mb-1">
+        <div id="main-panel" class="glass-panel p-4 rounded-2xl shadow-2xl w-72 pointer-events-auto border-t border-white/10 relative overflow-hidden">
+            
+            <!-- Header and Control Buttons -->
+            <div class="flex justify-between items-center">
                 <h1 class="text-white text-base font-bold text-slate-100">Viviani's Theorem</h1>
-                <button id="pause-btn" class="bg-white/10 hover:bg-white/20 text-white p-1.5 rounded-lg transition-colors" title="Pause/Resume">
-                    <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </button>
+                <div class="flex gap-1.5">
+                    <button id="reset-btn" class="bg-white/5 hover:bg-white/15 text-white p-1.5 rounded-lg transition-all border border-white/5" title="Reset to Center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                    <button id="pause-btn" class="bg-white/5 hover:bg-white/15 text-white p-1.5 rounded-lg transition-all border border-white/5" title="Pause/Resume">
+                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button id="settings-btn" class="bg-white/5 hover:bg-white/15 text-white p-1.5 rounded-lg transition-all border border-white/5" title="Settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                    <button id="toggle-window-btn" class="bg-white/5 hover:bg-white/15 text-white p-1.5 rounded-lg transition-all border border-white/5 ml-1" title="Hide/Show Details">
+                        <svg id="chevron-down" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        <svg id="chevron-up" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                    </button>
+                </div>
             </div>
             
-            <!-- Fórmula principal renderizada com KaTeX -->
-            <div id="main-formula" class="text-emerald-400 mb-3 py-1.5 border-b border-white/5 flex justify-center text-sm font-semibold"></div>
-            
-            <div id="stats" class="space-y-3">
-                <div id="distance-bars" class="flex items-end gap-2 h-20 pt-1">
-                    <!-- Barras dinâmicas injetadas via JS -->
-                </div>
+            <!-- Main Content Area -->
+            <div id="collapsible-wrapper" class="expanded-content">
+                <div id="main-formula" class="text-emerald-400 mb-4 py-2 border-b border-white/5 flex justify-center text-sm font-bold bg-white/5 rounded-xl shadow-inner min-h-[44px]"></div>
+                
+                <div id="stats" class="space-y-4">
+                    <div id="distance-bars" class="flex items-end gap-2.5 h-20 px-1 pt-1">
+                        <!-- Dynamic bars injected via JS -->
+                    </div>
 
-                <div class="pt-2 border-t border-white/10 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span id="label-sum" class="text-slate-400 text-[10px] font-semibold"></span>
-                        <span id="sum-val" class="text-emerald-400 text-xs font-mono font-bold">0.000</span>
-                    </div>
-                    <div class="w-full bg-slate-900/50 h-2 rounded-full overflow-hidden border border-white/5 shadow-inner">
-                        <div id="sum-bar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#10b981]"></div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span id="label-h" class="text-slate-400 text-[10px] font-semibold"></span>
-                        <span id="h-val" class="text-blue-400 text-xs font-mono font-bold">1000.000</span>
+                    <div class="pt-3 border-t border-white/10 space-y-2.5">
+                        <div class="flex justify-between items-center px-1">
+                            <span id="label-sum" class="text-slate-400 text-[10px] formula-container"></span>
+                            <span id="sum-val" class="text-emerald-400 text-xs font-mono font-bold">0.00</span>
+                        </div>
+                        <div class="w-full bg-slate-900/50 h-2 rounded-full overflow-hidden border border-white/10 shadow-inner">
+                            <div id="sum-bar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full w-0 transition-all duration-300 shadow-[0_0_12px_rgba(16,185,129,0.4)]"></div>
+                        </div>
+                        <div class="flex justify-between items-center px-1">
+                            <span id="label-h" class="text-slate-400 text-[10px] formula-container"></span>
+                            <span id="h-val" class="text-blue-400 text-xs font-mono font-bold">200.00</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div id="manual-tip" class="mt-3 text-[8px] text-slate-500 uppercase text-center hidden font-bold tracking-tighter">
-                Adjust bars to move the point manually
+
+            <!-- Settings Sidebar/Panel -->
+            <div id="settings-panel" class="absolute inset-0 glass-panel z-20 translate-y-full transition-transform duration-300 pointer-events-auto p-4 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-white text-xs font-black uppercase tracking-widest">Configuration</h2>
+                    <button id="close-settings" class="text-slate-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto custom-scroll pr-1 space-y-5">
+                    <section>
+                        <div id="label-weights-title" class="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-3 border-b border-white/5 pb-1 formula-container"></div>
+                        <div id="weights-grid" class="grid grid-cols-2 gap-2">
+                            <!-- Dynamic weights injected via JS -->
+                        </div>
+                    </section>
+                    
+                    <section class="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+                        <div class="text-[9px] text-emerald-400 font-bold mb-1 text-center">Interactive Mode</div>
+                        <p class="text-[9px] text-slate-400 leading-relaxed text-center italic">When <b>paused</b>, you can drag the bars or orbit freely.</p>
+                    </section>
+                </div>
             </div>
         </div>
     </div>
@@ -80,61 +148,79 @@
         let distLines = [], planes = [], feet = [];
         let trailLines = [], trailBuffers = [];
         let stackSegments = []; 
+        let altitudeCone; 
         let tetraVertices = [];
-        let currentDistances = [250, 250, 250, 250]; // Estado inicial
-        let altitude = 1000;
+        let altitude = 200; 
+        let currentDistances = [50, 50, 50, 50]; 
         let isPaused = false;
         let currentTime = 0;
         
         const colors = [0xff4444, 0x44ff44, 0x44aaff, 0xffcc00];
         const tailwindColors = ['bg-red-500', 'bg-green-500', 'bg-blue-400', 'bg-yellow-400'];
-        const MAX_TRAIL_POINTS = 1800; 
+        const MAX_TRAIL_POINTS = 800; 
 
-        // Shaders para a grelha procedural
-        const gridVertexShader = `
-            varying vec3 vPosition;
-            void main() {
-                vPosition = position;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `;
+        // Smaller cone dimensions for better aesthetics
+        const DIST_CONE_HEIGHT = 5; 
+        const ALT_CONE_HEIGHT = 6;
 
-        const gridFragmentShader = `
-            varying vec3 vPosition;
-            float grid(vec3 pos, float res) {
-                vec3 plane = fract(pos / res);
-                vec3 line = step(0.985, plane) + step(plane, vec3(0.015));
-                return max(line.x, max(line.y, line.z));
-            }
-            void main() {
-                float g = grid(vPosition, 100.0);
-                vec3 color = mix(vec3(0.1, 0.15, 0.3), vec3(0.4, 0.5, 0.7), g);
-                float alpha = mix(0.01, 0.18, g); 
-                gl_FragColor = vec4(color, alpha);
-            }
-        `;
+        const gridVertexShader = `varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+        const gridFragmentShader = `varying vec3 vPosition; float grid(vec3 pos, float res) { vec3 plane = fract(pos / res); vec3 line = step(0.98, plane) + step(plane, vec3(0.015)); return max(line.x, max(line.y, line.z)); } void main() { float g = grid(vPosition, 25.0); vec3 color = mix(vec3(0.1, 0.15, 0.3), vec3(0.4, 0.5, 0.7), g); float alpha = mix(0.01, 0.15, g); gl_FragColor = vec4(color, alpha); }`;
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Renderização de fórmulas usando KaTeX
-            katex.render("\\sum_{i=1}^4 d_i = h", document.getElementById('main-formula'), { throwOnError: false });
+            // KaTeX Formula Initialization
+            katex.render("\\sum_{i=1}^4 d_i = h", document.getElementById('main-formula'), { throwOnError: false, displayMode: true });
             katex.render("\\sum d_i", document.getElementById('label-sum'), { throwOnError: false });
-            katex.render("h \\text{ (Height)}", document.getElementById('label-h'), { throwOnError: false });
+            katex.render("h \\text{ (Altitude)}", document.getElementById('label-h'), { throwOnError: false });
+            katex.render("\\text{Barycentric Weights } (w_i)", document.getElementById('label-weights-title'), { throwOnError: false });
+            
             init();
             
             const pauseBtn = document.getElementById('pause-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+            const closeSettings = document.getElementById('close-settings');
+            const settingsPanel = document.getElementById('settings-panel');
+            const toggleWindowBtn = document.getElementById('toggle-window-btn');
+            const collapsibleWrapper = document.getElementById('collapsible-wrapper');
+            
             const pIcon = document.getElementById('pause-icon');
             const playIcon = document.getElementById('play-icon');
-            const manualTip = document.getElementById('manual-tip');
+            const chevronDown = document.getElementById('chevron-down');
+            const chevronUp = document.getElementById('chevron-up');
             
             pauseBtn.onclick = () => {
                 isPaused = !isPaused;
                 pIcon.classList.toggle('hidden', isPaused);
                 playIcon.classList.toggle('hidden', !isPaused);
-                manualTip.classList.toggle('hidden', !isPaused);
+            };
+
+            resetBtn.onclick = () => {
+                isPaused = true;
+                currentTime = 0;
+                pIcon.classList.add('hidden');
+                playIcon.classList.remove('hidden');
+                currentDistances = [50, 50, 50, 50];
+                updateGeometryFromDistances();
+                trailBuffers.forEach(tb => tb.points = []);
+            };
+
+            settingsBtn.onclick = () => settingsPanel.classList.remove('translate-y-full');
+            closeSettings.onclick = () => settingsPanel.classList.add('translate-y-full');
+
+            toggleWindowBtn.onclick = () => {
+                const isCollapsed = collapsibleWrapper.classList.contains('collapsed-content');
+                if (isCollapsed) {
+                    collapsibleWrapper.classList.replace('collapsed-content', 'expanded-content');
+                    chevronDown.classList.remove('hidden');
+                    chevronUp.classList.add('hidden');
+                } else {
+                    collapsibleWrapper.classList.replace('expanded-content', 'collapsed-content');
+                    chevronDown.classList.add('hidden');
+                    chevronUp.classList.remove('hidden');
+                }
             };
         });
 
-        // Mapa de ambiente simples para reflexos no vidro
         function createEnvMap() {
             const size = 128;
             const canvas = document.createElement('canvas');
@@ -142,10 +228,8 @@
             const ctx = canvas.getContext('2d');
             const urls = [];
             for (let i = 0; i < 6; i++) {
-                ctx.fillStyle = '#020617';
-                ctx.fillRect(0, 0, size, size);
-                ctx.fillStyle = '#ffffff';
-                ctx.globalAlpha = 0.05;
+                ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, size, size);
+                ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.05;
                 ctx.fillRect(Math.random()*size, Math.random()*size, size*0.6, size*0.1);
                 urls.push(canvas.toDataURL());
             }
@@ -155,9 +239,8 @@
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x020617);
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 35000);
-            camera.position.set(1700, 1300, 1700);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.set(350, 250, 350);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -169,29 +252,24 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.autoRotate = true;
-            controls.autoRotateSpeed = 0.2;
+            controls.autoRotateSpeed = 0.25;
 
             scene.environment = createEnvMap();
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const pointLight = new THREE.PointLight(0xffffff, 1.8, 20000);
-            pointLight.position.set(2000, 3500, 2000);
+            const pointLight = new THREE.PointLight(0xffffff, 2, 5000);
+            pointLight.position.set(500, 700, 500);
             scene.add(pointLight);
 
             setupGeometry();
             createUIBars();
+            updateGeometryFromDistances();
             animate();
             controls.addEventListener('start', () => controls.autoRotate = false);
         }
 
         function setupGeometry() {
-            // Matemática de coordenadas para h = 1000
             const r = (altitude * Math.sqrt(3)) / 4;
-            tetraVertices = [
-                new THREE.Vector3(r, r, r),
-                new THREE.Vector3(r, -r, -r),
-                new THREE.Vector3(-r, r, -r),
-                new THREE.Vector3(-r, -r, r)
-            ];
+            tetraVertices = [new THREE.Vector3(r, r, r), new THREE.Vector3(r, -r, -r), new THREE.Vector3(-r, r, -r), new THREE.Vector3(-r, -r, r)];
 
             const geometry = new THREE.BufferGeometry();
             const indices = [2, 1, 0, 0, 3, 2, 1, 3, 0, 2, 3, 1];
@@ -201,7 +279,16 @@
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(flattenedVertices, 3));
             geometry.computeVertexNormals();
 
-            // 1. Elementos Internos (desenhados através do vidro)
+            const glassMaterial = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0.02, roughness: 0.01, transmission: 0.95, thickness: 5, ior: 1.4, transparent: true, envMapIntensity: 1.2, side: THREE.DoubleSide, depthWrite: false });
+            glassTetra = new THREE.Mesh(geometry, glassMaterial);
+            glassTetra.renderOrder = 100; scene.add(glassTetra);
+
+            gridMesh = new THREE.Mesh(geometry, new THREE.ShaderMaterial({ vertexShader: gridVertexShader, fragmentShader: gridFragmentShader, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+            gridMesh.renderOrder = 101; scene.add(gridMesh);
+
+            wireframeMesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x64748b, wireframe: true, transparent: true, opacity: 0.1, depthWrite: false }));
+            wireframeMesh.renderOrder = 101; scene.add(wireframeMesh);
+
             const faceIndices = [[2,1,0], [0,3,2], [1,3,0], [2,3,1]];
             faceIndices.forEach((idx, i) => {
                 const p = new THREE.Plane();
@@ -209,263 +296,191 @@
                 if (p.distanceToPoint(new THREE.Vector3(0,0,0)) < 0) p.negate();
                 planes.push(p);
 
-                // Cilindros de distância perpendicular
-                const lineGeom = new THREE.CylinderGeometry(6, 6, 1, 8);
-                const lineMat = new THREE.MeshStandardMaterial({ 
-                    color: colors[i], 
-                    emissive: colors[i], 
-                    emissiveIntensity: 0.8, 
-                    transparent: true, 
-                    opacity: 0.95 
-                });
+                // Distance Shaft
+                const lineGeom = new THREE.CylinderGeometry(1.2, 1.2, 1, 8);
+                const lineMat = new THREE.MeshStandardMaterial({ color: colors[i], emissive: colors[i], emissiveIntensity: 0.8, transparent: true, opacity: 0.95 });
                 const lineMesh = new THREE.Mesh(lineGeom, lineMat);
-                lineMesh.renderOrder = 5;
-                scene.add(lineMesh);
+                lineMesh.renderOrder = 5; scene.add(lineMesh);
                 distLines.push(lineMesh);
 
-                // Pés das perpendiculares (pontos de interseção nas faces)
-                const foot = new THREE.Mesh(new THREE.SphereGeometry(18, 16, 16), new THREE.MeshBasicMaterial({ color: colors[i] }));
-                foot.renderOrder = 6;
-                scene.add(foot);
+                // Much smaller arrow tip cone
+                const footGeom = new THREE.ConeGeometry(1.5, DIST_CONE_HEIGHT, 16);
+                const footMat = new THREE.MeshStandardMaterial({ color: colors[i], emissive: colors[i], emissiveIntensity: 1.0 });
+                const foot = new THREE.Mesh(footGeom, footMat);
+                foot.renderOrder = 6; scene.add(foot);
                 feet.push(foot);
 
-                // Buffer de rastro de movimento
                 const trailPositions = new Float32Array(MAX_TRAIL_POINTS * 3);
                 const trailGeom = new THREE.BufferGeometry();
                 trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
                 const trailLine = new THREE.Line(trailGeom, new THREE.LineBasicMaterial({ color: colors[i], transparent: true, opacity: 0.4 }));
-                trailLine.renderOrder = 4;
-                scene.add(trailLine);
+                trailLine.renderOrder = 4; scene.add(trailLine);
                 trailLines.push(trailLine);
                 trailBuffers.push({ points: [] });
             });
 
-            // Gráfico de Pilha 3D (alinhado com o eixo principal da altura)
             const face0Center = new THREE.Vector3().add(tetraVertices[0]).add(tetraVertices[1]).add(tetraVertices[2]).divideScalar(3);
-            const targetVertex = tetraVertices[3];
+            const targetVertex = tetraVertices[3]; 
             const hDir = new THREE.Vector3().subVectors(targetVertex, face0Center).normalize();
             
             for(let i=0; i<4; i++) {
-                const segmentGeom = new THREE.CylinderGeometry(18, 18, 1, 16);
-                const segmentMat = new THREE.MeshStandardMaterial({ 
-                    color: colors[i], 
-                    emissive: colors[i], 
-                    emissiveIntensity: 0.5, 
-                    transparent: true, 
-                    opacity: 0.9 
-                });
+                const segmentGeom = new THREE.CylinderGeometry(0.2, 0.2, 1, 8);
+                const segmentMat = new THREE.MeshStandardMaterial({ color: colors[i], emissive: colors[i], emissiveIntensity: 0.6, transparent: true, opacity: 0.95 });
                 const segment = new THREE.Mesh(segmentGeom, segmentMat);
                 segment.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), hDir);
-                segment.renderOrder = 10 + i; 
-                scene.add(segment);
+                segment.renderOrder = 10 + i; scene.add(segment);
                 stackSegments.push({ mesh: segment, base: face0Center.clone(), dir: hDir.clone() });
             }
 
-            // Ponto central branco (ajustado para ser menor: raio 15)
-            point = new THREE.Mesh(new THREE.SphereGeometry(15, 32, 32), new THREE.MeshStandardMaterial({ 
-                color: 0xffffff, 
-                emissive: 0xffffff, 
-                emissiveIntensity: 3 
-            }));
-            point.renderOrder = 20;
-            scene.add(point);
+            // Top altitude marker cone
+            const coneGeom = new THREE.ConeGeometry(1, ALT_CONE_HEIGHT, 12);
+            const coneMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.6, metalness: 0.5, roughness: 0.1 });
+            altitudeCone = new THREE.Mesh(coneGeom, coneMat);
+            altitudeCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), hDir);
+            altitudeCone.position.copy(targetVertex).addScaledVector(hDir, -ALT_CONE_HEIGHT / 2);
+            altitudeCone.renderOrder = 105;
+            scene.add(altitudeCone);
 
-            // 2. Vidro Reflexivo e Grelha
-            const glassMaterial = new THREE.MeshPhysicalMaterial({ 
-                color: 0xffffff, metalness: 0.02, roughness: 0.01, transmission: 0.95, thickness: 10, ior: 1.4, transparent: true, envMapIntensity: 1.2, side: THREE.DoubleSide, depthWrite: false 
-            });
-            glassTetra = new THREE.Mesh(geometry, glassMaterial);
-            glassTetra.renderOrder = 100; 
-            scene.add(glassTetra);
-
-            gridMesh = new THREE.Mesh(geometry, new THREE.ShaderMaterial({ 
-                vertexShader: gridVertexShader, fragmentShader: gridFragmentShader, transparent: true, side: THREE.DoubleSide, depthWrite: false 
-            }));
-            gridMesh.renderOrder = 101;
-            scene.add(gridMesh);
-
-            wireframeMesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ 
-                color: 0x64748b, wireframe: true, transparent: true, opacity: 0.1, depthWrite: false 
-            }));
-            wireframeMesh.renderOrder = 101;
-            scene.add(wireframeMesh);
+            point = new THREE.Mesh(new THREE.SphereGeometry(3, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 3 }));
+            point.renderOrder = 20; scene.add(point);
         }
 
         function createUIBars() {
             const container = document.getElementById('distance-bars');
+            const weightsGrid = document.getElementById('weights-grid');
             for (let i = 0; i < 4; i++) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'flex-1 flex flex-col items-center gap-1';
-                
                 const barContainer = document.createElement('div');
-                barContainer.className = 'w-full bg-white/5 rounded-t-lg relative flex items-end h-20 overflow-visible border-x border-t border-white/10 shadow-inner bar-interactive';
-                
+                barContainer.className = 'w-full bg-white/5 rounded-t-xl relative flex items-end h-20 overflow-visible border-x border-t border-white/10 shadow-inner bar-interactive';
                 const bar = document.createElement('div');
                 bar.id = `bar-${i}`;
-                bar.className = `${tailwindColors[i]} w-full bar-transition relative rounded-t-sm shadow-[0_0_10px_rgba(0,0,0,0.3)] pointer-events-none`;
+                bar.className = `${tailwindColors[i]} w-full bar-transition relative rounded-t-lg shadow-[0_0_10px_rgba(0,0,0,0.3)] pointer-events-none`;
                 bar.style.height = '0%';
-                
                 const valDisplay = document.createElement('div');
                 valDisplay.id = `val-d-${i}`;
-                valDisplay.className = 'absolute -top-5 left-0 w-full text-center text-[9px] text-white font-mono font-bold';
-                valDisplay.innerText = '0';
-                
+                valDisplay.className = 'absolute -top-5 left-0 w-full text-center text-[9px] text-white font-mono font-black drop-shadow-md';
                 bar.appendChild(valDisplay);
                 barContainer.appendChild(bar);
                 
                 const label = document.createElement('span');
-                label.className = 'text-[9px] text-slate-500 font-bold mt-1';
-                
-                wrapper.appendChild(barContainer);
-                wrapper.appendChild(label);
+                label.className = 'text-[10px] font-bold mt-1 text-slate-300';
+                wrapper.appendChild(barContainer); wrapper.appendChild(label);
                 container.appendChild(wrapper);
                 katex.render(`d_{${i+1}}`, label, { throwOnError: false });
 
-                // Lógica de Interação
+                const weightBox = document.createElement('div');
+                weightBox.className = 'bg-white/5 rounded-xl p-2 flex flex-col items-center border border-white/5';
+                const wLabel = document.createElement('div');
+                wLabel.className = 'text-[8px] text-slate-500 font-black mb-1';
+                katex.render(`w_{${i+1}}`, wLabel, { throwOnError: false });
+                const wValue = document.createElement('div');
+                wValue.id = `weight-val-${i}`;
+                wValue.className = 'text-xs text-white font-mono font-black';
+                wValue.innerText = '0.00';
+                weightBox.appendChild(wLabel); weightBox.appendChild(wValue);
+                weightsGrid.appendChild(weightBox);
+
                 const handleInteract = (e) => {
                     if (!isPaused) return;
                     e.preventDefault();
-                    
                     const rect = barContainer.getBoundingClientRect();
                     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                     const val = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height));
-                    
-                    const newD = val * altitude;
-                    updateManualDistances(i, newD);
+                    updateManualDistances(i, val * altitude);
                 };
-
                 barContainer.addEventListener('pointerdown', (e) => {
                     if (!isPaused) return;
                     barContainer.setPointerCapture(e.pointerId);
                     handleInteract(e);
-                    
-                    const moveHandler = (me) => handleInteract(me);
-                    const upHandler = () => {
-                        barContainer.removeEventListener('pointermove', moveHandler);
-                        barContainer.removeEventListener('pointerup', upHandler);
-                    };
-                    
-                    barContainer.addEventListener('pointermove', moveHandler);
-                    barContainer.addEventListener('pointerup', upHandler);
+                    const moveH = (me) => handleInteract(me);
+                    const upH = () => { barContainer.removeEventListener('pointermove', moveH); barContainer.removeEventListener('pointerup', upH); };
+                    barContainer.addEventListener('pointermove', moveH);
+                    barContainer.addEventListener('pointerup', upH);
                 });
             }
         }
 
-        // Lógica para redistribuir os outros 3 valores mantendo a soma = 1000
-        function updateManualDistances(changedIndex, newValue) {
-            currentDistances[changedIndex] = newValue;
-            
-            const remaining = altitude - newValue;
-            const otherSum = currentDistances.reduce((acc, v, idx) => idx !== changedIndex ? acc + v : acc, 0);
-
+        function updateManualDistances(idx, newVal) {
+            currentDistances[idx] = newVal;
+            const remaining = altitude - newVal;
+            const otherSum = currentDistances.reduce((acc, v, i) => i !== idx ? acc + v : acc, 0);
             for (let i = 0; i < 4; i++) {
-                if (i === changedIndex) continue;
-                if (otherSum === 0) {
-                    currentDistances[i] = remaining / 3;
-                } else {
-                    currentDistances[i] = (currentDistances[i] / otherSum) * remaining;
-                }
+                if (i === idx) continue;
+                currentDistances[i] = otherSum === 0 ? remaining / 3 : (currentDistances[i] / otherSum) * remaining;
             }
-            
             updateGeometryFromDistances();
         }
 
-        // Mapear distâncias d1-d4 de volta para posição baricêntrica
         function updateGeometryFromDistances() {
             point.position.set(0, 0, 0);
             point.position.addScaledVector(tetraVertices[3], currentDistances[0] / altitude);
             point.position.addScaledVector(tetraVertices[1], currentDistances[1] / altitude);
             point.position.addScaledVector(tetraVertices[2], currentDistances[2] / altitude);
             point.position.addScaledVector(tetraVertices[0], currentDistances[3] / altitude);
-            
             syncVisualization(currentDistances);
         }
 
         function syncVisualization(dists) {
-            let currentSum = 0;
-            let accumulatedHeight = 2;
-
+            let currentSum = 0; let accHeight = 1;
             planes.forEach((plane, i) => {
-                const dist = dists[i];
-                currentSum += dist;
-
-                const footPos = new THREE.Vector3();
-                plane.projectPoint(point.position, footPos);
-                feet[i].position.copy(footPos);
+                const dist = dists[i]; currentSum += dist;
+                const footPos = new THREE.Vector3(); plane.projectPoint(point.position, footPos);
+                const direction = new THREE.Vector3().subVectors(footPos, point.position);
+                const dirNormalized = direction.clone().normalize();
+                const totalDist = direction.length();
 
                 const lineMesh = distLines[i];
-                const direction = new THREE.Vector3().subVectors(footPos, point.position);
-                const length = direction.length();
-                lineMesh.scale.set(1, Math.max(length, 0.1), 1);
-                lineMesh.position.copy(point.position).add(direction.clone().multiplyScalar(0.5));
-                lineMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+                const shaftLength = Math.max(totalDist - DIST_CONE_HEIGHT, 0.1); 
+                lineMesh.scale.set(1, shaftLength, 1);
+                lineMesh.position.copy(point.position).addScaledVector(dirNormalized, shaftLength * 0.5);
+                lineMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirNormalized);
 
-                // Atualizar Barras da UI
+                const foot = feet[i];
+                foot.position.copy(footPos).addScaledVector(dirNormalized, -DIST_CONE_HEIGHT / 2);
+                foot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirNormalized);
+
                 document.getElementById(`bar-${i}`).style.height = `${(dist / altitude) * 100}%`;
                 document.getElementById(`val-d-${i}`).innerText = Math.round(dist);
+                document.getElementById(`weight-val-${i}`).innerText = (dist / altitude).toFixed(2);
             });
 
-            // Atualizar Pilha de Altura 3D
             for(let i=0; i<4; i++) {
-                const segment = stackSegments[i];
-                const d = dists[i];
-                const visualD = Math.max(d, 1.0);
-                segment.mesh.scale.y = visualD;
-                const midPointOffset = accumulatedHeight + (visualD / 2);
-                const newPos = new THREE.Vector3().copy(segment.base).addScaledVector(segment.dir, midPointOffset);
-                segment.mesh.position.copy(newPos);
-                accumulatedHeight += visualD;
+                const seg = stackSegments[i];
+                const d = Math.max(dists[i], 0.1);
+                seg.mesh.scale.y = d;
+                seg.mesh.position.copy(seg.base).addScaledVector(seg.dir, accHeight + (d/2));
+                accHeight += d;
             }
-
-            document.getElementById('sum-val').innerText = currentSum.toFixed(3);
+            document.getElementById('sum-val').innerText = currentSum.toFixed(2);
             document.getElementById('sum-bar').style.width = `${(currentSum / altitude) * 100}%`;
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            
             if (!isPaused) {
-                currentTime += 0.007;
-                
-                // Pesos oscilantes automatizados baricêntricos
-                const w1 = Math.sin(currentTime * 1.0) * 0.4 + 0.6;
-                const w2 = Math.cos(currentTime * 0.7) * 0.4 + 0.6;
-                const w3 = Math.sin(currentTime * 0.4) * 0.4 + 0.6;
-                const w4 = Math.cos(currentTime * 1.2) * 0.4 + 0.6;
-                const sumW = w1 + w2 + w3 + w4;
-
-                currentDistances[0] = (w1 / sumW) * altitude;
-                currentDistances[1] = (w2 / sumW) * altitude;
-                currentDistances[2] = (w3 / sumW) * altitude;
-                currentDistances[3] = (w4 / sumW) * altitude;
-
+                currentTime += 0.006;
+                const weights = [Math.sin(currentTime * 1.0) * 0.4 + 0.6, Math.cos(currentTime * 0.7) * 0.4 + 0.6, Math.sin(currentTime * 0.4) * 0.4 + 0.6, Math.cos(currentTime * 1.2) * 0.4 + 0.6];
+                const sumW = weights.reduce((a,b) => a+b, 0);
+                currentDistances = weights.map(w => (w/sumW) * altitude);
                 updateGeometryFromDistances();
 
-                // Atualizar Rastros (apenas no modo automático)
                 planes.forEach((plane, i) => {
-                    const footPos = new THREE.Vector3();
-                    plane.projectPoint(point.position, footPos);
-                    const trailData = trailBuffers[i];
-                    trailData.points.push(footPos.clone());
-                    if (trailData.points.length > MAX_TRAIL_POINTS) trailData.points.shift();
-                    const trailPosAttr = trailLines[i].geometry.attributes.position;
-                    for (let j = 0; j < trailData.points.length; j++) {
-                        trailPosAttr.setXYZ(j, trailData.points[j].x, trailData.points[j].y, trailData.points[j].z);
-                    }
-                    trailLines[i].geometry.setDrawRange(0, trailData.points.length);
-                    trailPosAttr.needsUpdate = true;
+                    const footPos = new THREE.Vector3(); plane.projectPoint(point.position, footPos);
+                    const trail = trailBuffers[i];
+                    trail.points.push(footPos.clone());
+                    if (trail.points.length > MAX_TRAIL_POINTS) trail.points.shift();
+                    const attr = trailLines[i].geometry.attributes.position;
+                    for (let j = 0; j < trail.points.length; j++) attr.setXYZ(j, trail.points[j].x, trail.points[j].y, trail.points[j].z);
+                    trailLines[i].geometry.setDrawRange(0, trail.points.length);
+                    attr.needsUpdate = true;
                 });
             }
-
             controls.update();
             renderer.render(scene, camera);
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
