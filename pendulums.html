@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Pendulum Wave Simulation</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --panel-bg: rgba(20, 20, 25, 0.95);
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-color: #f3f4f6;
+            --success-color: #10b981;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-color);
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Gear Button */
+        #settings-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.3s ease, background 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        #settings-toggle:hover {
+            transform: rotate(45deg);
+            background: rgba(40, 40, 50, 0.95);
+        }
+
+        #settings-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-color);
+        }
+
+        /* Control Panel */
+        #ui-panel {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            width: 300px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            user-select: none;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #ui-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0 0 20px 0;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .value-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+            height: 4px;
+        }
+
+        .value-display {
+            min-width: 45px;
+            text-align: right;
+            color: var(--accent-color);
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Save Button */
+        #save-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        #save-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        #save-btn:active {
+            transform: scale(0.98);
+        }
+
+        #status-msg {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 10px;
+            color: var(--success-color);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Invisible area for clipboard copy */
+        #copy-area {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+        }
+
+        @media (max-width: 600px) {
+            #ui-panel {
+                width: calc(100% - 64px);
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <textarea id="copy-area"></textarea>
+
+    <div id="settings-toggle" title="Settings">
+        <svg viewBox="0 0 24 24">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+    </div>
+
+    <div id="ui-panel">
+        <h1>Settings</h1>
+        
+        <div class="control-group">
+            <label>Cycle Time (s)</label>
+            <div class="value-wrapper">
+                <input type="range" id="cycle-input" min="30" max="150" value="100">
+                <span id="cycle-val" class="value-display">100</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Gravity (m/s²)</label>
+            <div class="value-wrapper">
+                <input type="range" id="g-input" min="1" max="20" step="0.1" value="9.81">
+                <span id="g-val" class="value-display">9.81</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Max Angle</label>
+            <div class="value-wrapper">
+                <input type="range" id="angle-input" min="0.1" max="0.8" step="0.05" value="0.3">
+                <span id="angle-val" class="value-display">0.3</span>
+            </div>
+        </div>
+
+        <button id="save-btn">
+            Save & Copy JSON
+        </button>
+        <div id="status-msg">Settings saved and copied!</div>
+    </div>
+
+    <div id="instructions">Drag to rotate • Scroll to zoom</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Initial configuration (based on requested parameters)
+        let config = {
+            numPendulums: 16,
+            cycleTime: 100,
+            minOscillations: 50,
+            g: 9.81,
+            thetaMax: 0.3,
+            spacing: 0.15,
+            ballRadius: 0.04,
+            camera: {
+                position: {
+                    x: 2.1141662510635997,
+                    y: -0.028599771801315454,
+                    z: -0.011896930557829425
+                },
+                target: {
+                    x: -0.1235135128242509,
+                    y: -0.5362203929926758,
+                    z: 0.0010760956583385612
+                }
+            }
+        };
+
+        // Load from Local Storage if available
+        const savedData = localStorage.getItem('pendulum_simulation_settings');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                config = { ...config, ...parsed };
+            } catch (e) {
+                console.error("Error loading saved settings", e);
+            }
+        }
+
+        // UI Elements
+        const toggleBtn = document.getElementById('settings-toggle');
+        const panel = document.getElementById('ui-panel');
+        const saveBtn = document.getElementById('save-btn');
+        const statusMsg = document.getElementById('status-msg');
+        const copyArea = document.getElementById('copy-area');
+
+        const inputs = {
+            cycle: { el: document.getElementById('cycle-input'), val: document.getElementById('cycle-val') },
+            g: { el: document.getElementById('g-input'), val: document.getElementById('g-val') },
+            angle: { el: document.getElementById('angle-input'), val: document.getElementById('angle-val') }
+        };
+
+        // Update inputs with initial config
+        inputs.cycle.el.value = config.cycleTime;
+        inputs.cycle.val.innerText = config.cycleTime;
+        inputs.g.el.value = config.g;
+        inputs.g.val.innerText = config.g;
+        inputs.angle.el.value = config.thetaMax;
+        inputs.angle.val.innerText = config.thetaMax;
+
+        toggleBtn.addEventListener('click', () => panel.classList.toggle('active'));
+
+        // Three.js State
+        let scene, camera, renderer, controls, pendulums = [];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0c);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(config.camera.position.x, config.camera.position.y, config.camera.position.z);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(config.camera.target.x, config.camera.target.y, config.camera.target.z);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+            const spot = new THREE.SpotLight(0xffffff, 1);
+            spot.position.set(5, 5, 5);
+            scene.add(spot);
+            const blueLight = new THREE.PointLight(0x6366f1, 1.5, 10);
+            blueLight.position.set(-2, 1, 2);
+            scene.add(blueLight);
+
+            // Upper Bar
+            const barGeom = new THREE.CylinderGeometry(0.02, 0.02, config.numPendulums * config.spacing + 0.5, 16);
+            barGeom.rotateZ(Math.PI / 2);
+            const barMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.1 });
+            scene.add(new THREE.Mesh(barGeom, barMat));
+
+            createPendulums();
+            animate();
+        }
+
+        function createPendulums() {
+            pendulums.forEach(p => {
+                scene.remove(p.ball);
+                scene.remove(p.line);
+            });
+            pendulums = [];
+
+            for (let i = 0; i < config.numPendulums; i++) {
+                const oscillations = config.minOscillations + i;
+                const T = config.cycleTime / oscillations;
+                const L = config.g * Math.pow(T / (2 * Math.PI), 2);
+                const pivotX = (i - (config.numPendulums - 1) / 2) * config.spacing;
+
+                const hue = i / config.numPendulums;
+                const color = new THREE.Color().setHSL(hue, 0.7, 0.5);
+
+                const ballGeom = new THREE.SphereGeometry(config.ballRadius, 32, 32);
+                const ballMat = new THREE.MeshStandardMaterial({ 
+                    color: color, 
+                    metalness: 0.7, 
+                    roughness: 0.2,
+                    emissive: color,
+                    emissiveIntensity: 0.1
+                });
+                const ball = new THREE.Mesh(ballGeom, ballMat);
+                scene.add(ball);
+
+                const linePoints = [new THREE.Vector3(pivotX, 0, 0), new THREE.Vector3(pivotX, -L, 0)];
+                const lineGeom = new THREE.BufferGeometry().setFromPoints(linePoints);
+                const lineMat = new THREE.LineBasicMaterial({ color: 0x666666, transparent: true, opacity: 0.4 });
+                const line = new THREE.Line(lineGeom, lineMat);
+                scene.add(line);
+
+                pendulums.push({ L, pivotX, ball, line, omega: Math.sqrt(config.g / L) });
+            }
+        }
+
+        // Event Handlers
+        inputs.cycle.el.addEventListener('input', (e) => {
+            config.cycleTime = parseFloat(e.target.value);
+            inputs.cycle.val.innerText = config.cycleTime;
+            createPendulums();
+        });
+
+        inputs.g.el.addEventListener('input', (e) => {
+            config.g = parseFloat(e.target.value);
+            inputs.g.val.innerText = config.g;
+            createPendulums();
+        });
+
+        inputs.angle.el.addEventListener('input', (e) => {
+            config.thetaMax = parseFloat(e.target.value);
+            inputs.angle.val.innerText = config.thetaMax;
+        });
+
+        // Save & Copy function
+        saveBtn.addEventListener('click', () => {
+            // Update camera parameters in config object
+            config.camera.position = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+            config.camera.target = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
+
+            const jsonStr = JSON.stringify(config, null, 2);
+            
+            localStorage.setItem('pendulum_simulation_settings', jsonStr);
+
+            // Copy to clipboard
+            copyArea.value = jsonStr;
+            copyArea.select();
+            document.execCommand('copy');
+
+            // UI Feedback
+            statusMsg.style.opacity = '1';
+            setTimeout(() => { statusMsg.style.opacity = '0'; }, 3000);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = performance.now() / 1000;
+
+            pendulums.forEach(p => {
+                const theta = config.thetaMax * Math.cos(p.omega * t);
+                const dy = -p.L * Math.cos(theta);
+                const dz = p.L * Math.sin(theta);
+                p.ball.position.set(p.pivotX, dy, dz);
+                const posAttr = p.line.geometry.attributes.position;
+                posAttr.setXYZ(1, p.pivotX, dy, dz);
+                posAttr.needsUpdate = true;
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
