@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Möbius Trip</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #030305;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+        }
+
+        /* Título no canto superior esquerdo */
+        #app-title {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(102, 204, 255, 0.7);
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 0 0 10px rgba(0, 102, 255, 0.5);
+        }
+
+        /* Botão de Engrenagem */
+        #settings-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            background: rgba(10, 15, 25, 0.8);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+            transition: transform 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #settings-toggle:hover {
+            background: rgba(20, 30, 50, 0.9);
+            transform: rotate(45deg);
+        }
+        #settings-toggle svg {
+            fill: #66ccff;
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Janela de Configuração Transparente */
+        #ui-container {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            background: rgba(10, 15, 25, 0.85);
+            padding: 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 150, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            color: #fff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 280px;
+        }
+        #ui-container.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .label-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .label-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        label {
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #66ccff;
+        }
+        .value-display {
+            font-size: 0.7rem;
+            color: #aaa;
+            font-family: monospace;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #1a2a44;
+            border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #00ccff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
+        }
+
+        /* Checkbox Estilizado */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #00ccff;
+        }
+
+        .stats {
+            font-size: 0.6rem;
+            color: #556688;
+            margin-top: 5px;
+            border-top: 1px solid #223344;
+            padding-top: 10px;
+            text-align: center;
+        }
+        
+        .zoom-instructions {
+            background: rgba(100, 150, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px dashed rgba(100, 150, 255, 0.3);
+        }
+        .zoom-instructions p {
+            margin: 3px 0;
+            font-size: 0.6rem;
+            color: #88aaff;
+            text-align: left;
+            line-height: 1.2;
+        }
+        
+        #hint-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="app-title">Möbius Trip</div>
+
+    <div id="settings-toggle">
+        <svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.12L14.47,2.47C14.44,2.23 14.24,2.05 14,2.05H10C9.76,2.05 9.56,2.23 9.53,2.47L9.14,5.12C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.53,18.66 9.14,18.88L9.53,21.53C9.56,21.77 9.76,21.95 10,21.95H14C14.24,21.95 14.44,21.77 14.47,21.53L14.86,18.88C15.47,18.66 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" /></svg>
+    </div>
+
+    <div id="ui-container">
+        <div class="label-group">
+            <div class="label-header"><label>Velocidade</label><span class="value-display" id="val-speed">2.3</span></div>
+            <input type="range" id="speedSlider" min="0" max="10" step="0.1" value="2.3">
+        </div>
+        <div class="label-group">
+            <div class="label-header"><label>Largura (X)</label><span class="value-display" id="val-width">12.0</span></div>
+            <input type="range" id="widthSlider" min="1" max="25" step="0.5" value="12">
+        </div>
+        <div class="label-group">
+            <div class="label-header"><label>Espessura (Y)</label><span class="value-display" id="val-thickness">3.1</span></div>
+            <input type="range" id="thicknessSlider" min="0.2" max="10" step="0.1" value="3.1">
+        </div>
+        <div class="label-group">
+            <div class="label-header"><label>Raio Interno (Z)</label><span class="value-display" id="val-inner">20</span></div>
+            <input type="range" id="innerSlider" min="5" max="40" step="1" value="20">
+        </div>
+        <div class="label-group">
+            <div class="label-header"><label>Nó (P)</label><span class="value-display" id="val-p">3</span></div>
+            <input type="range" id="pSlider" min="2" max="7" step="1" value="3">
+        </div>
+        <div class="label-group">
+            <div class="label-header"><label>Nó (Q)</label><span class="value-display" id="val-q">2</span></div>
+            <input type="range" id="qSlider" min="2" max="5" step="1" value="2">
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="freezeCamCheckbox">
+            <label for="freezeCamCheckbox" style="color: #fff; cursor: pointer;">Pausar movimento de câmera</label>
+        </div>
+        
+        <div class="zoom-instructions">
+            <label style="color: #fff; margin-bottom: 5px; display: block;">Instruções de Controle</label>
+            <p>• <b>Zoom:</b> Roda do mouse ou "pinch" na tela.</p>
+            <p>• <b>Alternar Modo:</b> Clique duplo na tela para trocar entre Manual e Perseguição.</p>
+        </div>
+
+        <div class="stats" id="camera-status" style="color: #66ccff; font-weight: bold;">Modo: Perseguição</div>
+    </div>
+
+    <div id="hint-overlay">Duplo clique para modo Manual | Scroll/Pinch para Zoom</div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const CONFIG = {
+            mainRadius: 42,
+            innerRadius: 20, 
+            p: 3,            
+            q: 2,            
+            roadWidth: 12,   
+            roadThickness: 3.1, 
+            segments: 2400, 
+            speed: 2.3,      
+            carScale: 2.2,
+            freezeCamera: false
+        };
+
+        const zoomState = {
+            distance: 140, 
+            min: 25,
+            max: 800,
+            initialPinchDist: 0
+        };
+
+        let isCinematicMode = true;
+
+        // --- Gestão de UI ---
+        const toggle = document.getElementById('settings-toggle');
+        const uiPanel = document.getElementById('ui-container');
+        const cameraStatus = document.getElementById('camera-status');
+        const freezeCheckbox = document.getElementById('freezeCamCheckbox');
+
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            uiPanel.classList.toggle('visible');
+        });
+
+        freezeCheckbox.addEventListener('change', (e) => {
+            CONFIG.freezeCamera = e.target.checked;
+        });
+
+        const setupSlider = (id, configKey, valId, isInt = false) => {
+            const slider = document.getElementById(id);
+            const display = document.getElementById(valId);
+            slider.addEventListener('input', (e) => {
+                const val = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
+                CONFIG[configKey] = val;
+                display.innerText = (isInt || val % 1 === 0) ? val : val.toFixed(1);
+                if (configKey !== 'speed') rebuildAll();
+            });
+        };
+
+        setupSlider('speedSlider', 'speed', 'val-speed');
+        setupSlider('widthSlider', 'roadWidth', 'val-width');
+        setupSlider('thicknessSlider', 'roadThickness', 'val-thickness');
+        setupSlider('innerSlider', 'innerRadius', 'val-inner', true);
+        setupSlider('pSlider', 'p', 'val-p', true);
+        setupSlider('qSlider', 'q', 'val-q', true);
+
+        // --- Setup da Cena ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x010204);
+        scene.fog = new THREE.FogExp2(0x010204, 0.0006);
+
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enabled = false;
+
+        scene.add(new THREE.AmbientLight(0x0a1533, 1.2));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(100, 200, 100);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- Eventos ---
+        window.addEventListener('dblclick', () => {
+            isCinematicMode = !isCinematicMode;
+            controls.enabled = !isCinematicMode;
+            if (isCinematicMode) {
+                cameraStatus.innerText = "Modo: Perseguição";
+                cameraStatus.style.color = "#66ccff";
+            } else {
+                cameraStatus.innerText = "Modo: Manual";
+                cameraStatus.style.color = "#ffcc00";
+                controls.target.copy(car.position);
+            }
+        });
+
+        window.addEventListener('wheel', (e) => {
+            zoomState.distance += e.deltaY * 0.15;
+            zoomState.distance = Math.max(zoomState.min, Math.min(zoomState.max, zoomState.distance));
+        }, { passive: true });
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                zoomState.initialPinchDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && zoomState.initialPinchDist > 0) {
+                const currentDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const diff = zoomState.initialPinchDist - currentDist;
+                zoomState.distance += diff * 0.6;
+                zoomState.distance = Math.max(zoomState.min, Math.min(zoomState.max, zoomState.distance));
+                zoomState.initialPinchDist = currentDist;
+            }
+        }, { passive: true });
+
+        // --- Lógica Möbius ---
+        function getKnotFrame(u) {
+            const p = CONFIG.p;
+            const q = CONFIG.q;
+            const r = CONFIG.mainRadius + CONFIG.innerRadius * Math.cos(p * u);
+            const x = r * Math.cos(q * u);
+            const y = r * Math.sin(q * u);
+            const z = CONFIG.innerRadius * Math.sin(p * u);
+            const pos = new THREE.Vector3(x, y, z);
+
+            const eps = 0.0001;
+            const r2 = CONFIG.mainRadius + CONFIG.innerRadius * Math.cos(p * (u + eps));
+            const x2 = r2 * Math.cos(q * (u + eps));
+            const y2 = r2 * Math.sin(q * (u + eps));
+            const z2 = CONFIG.innerRadius * Math.sin(p * (u + eps));
+            const tan = new THREE.Vector3(x2 - x, y2 - y, z2 - z).normalize();
+
+            const upWorld = new THREE.Vector3(0, 1, 0);
+            const side = new THREE.Vector3().crossVectors(tan, upWorld).normalize();
+            const norm = new THREE.Vector3().crossVectors(side, tan).normalize();
+
+            const twistAngle = (u * 0.5);
+            const twistedSide = side.clone().applyAxisAngle(tan, twistAngle);
+            const twistedUp = norm.clone().applyAxisAngle(tan, twistAngle);
+
+            const matrix = new THREE.Matrix4();
+            matrix.makeBasis(twistedSide, twistedUp, tan);
+            matrix.setPosition(pos);
+
+            return { matrix, position: pos, normal: twistedUp, side: twistedSide, tangent: tan };
+        }
+
+        const matTopBlue = new THREE.MeshStandardMaterial({ 
+            color: 0x050510, roughness: 0.1, metalness: 1,
+            emissive: 0x0066ff, emissiveIntensity: 1.5
+        });
+        const matBottomGreen = new THREE.MeshStandardMaterial({ 
+            color: 0x051005, roughness: 0.1, metalness: 1,
+            emissive: 0x00ff66, emissiveIntensity: 1.5
+        });
+        const matSidesRed = new THREE.MeshStandardMaterial({ 
+            color: 0x330000, roughness: 0.1, metalness: 1,
+            emissive: 0xff0000, emissiveIntensity: 1.8 
+        });
+
+        let meshTop, meshBottom, meshSides;
+
+        function rebuildAll() {
+            if(meshTop) scene.remove(meshTop);
+            if(meshBottom) scene.remove(meshBottom);
+            if(meshSides) scene.remove(meshSides);
+
+            const geomTop = new THREE.BufferGeometry();
+            const geomBottom = new THREE.BufferGeometry();
+            const geomSides = new THREE.BufferGeometry();
+
+            const vTop = [], vBottom = [], vSides = [];
+            const steps = CONFIG.segments;
+            const maxU = Math.PI * 2; 
+
+            for(let i = 0; i < steps; i++) {
+                const u1 = (i / steps) * maxU;
+                const u2 = ((i + 1) / steps) * maxU;
+                const f1 = getKnotFrame(u1);
+                const f2 = getKnotFrame(u2);
+                const w = CONFIG.roadWidth / 2;
+                const h = CONFIG.roadThickness / 2;
+
+                const p1TL = new THREE.Vector3(-w, h, 0).applyMatrix4(f1.matrix);
+                const p1TR = new THREE.Vector3( w, h, 0).applyMatrix4(f1.matrix);
+                const p1BL = new THREE.Vector3(-w, -h, 0).applyMatrix4(f1.matrix);
+                const p1BR = new THREE.Vector3( w, -h, 0).applyMatrix4(f1.matrix);
+
+                const p2TL = new THREE.Vector3(-w, h, 0).applyMatrix4(f2.matrix);
+                const p2TR = new THREE.Vector3( w, h, 0).applyMatrix4(f2.matrix);
+                const p2BL = new THREE.Vector3(-w, -h, 0).applyMatrix4(f2.matrix);
+                const p2BR = new THREE.Vector3( w, -h, 0).applyMatrix4(f2.matrix);
+
+                vTop.push(p1TL.x, p1TL.y, p1TL.z, p1TR.x, p1TR.y, p1TR.z, p2TL.x, p2TL.y, p2TL.z);
+                vTop.push(p1TR.x, p1TR.y, p1TR.z, p2TR.x, p2TR.y, p2TR.z, p2TL.x, p2TL.y, p2TL.z);
+
+                vBottom.push(p1BL.x, p1BL.y, p1BL.z, p2BL.x, p2BL.y, p2BL.z, p1BR.x, p1BR.y, p1BR.z);
+                vBottom.push(p1BR.x, p1BR.y, p1BR.z, p2BL.x, p2BL.y, p2BL.z, p2BR.x, p2BR.y, p2BR.z);
+
+                vSides.push(p1TL.x, p1TL.y, p1TL.z, p2TL.x, p2TL.y, p2TL.z, p1BL.x, p1BL.y, p1BL.z);
+                vSides.push(p1BL.x, p1BL.y, p1BL.z, p2TL.x, p2TL.y, p2TL.z, p2BL.x, p2BL.y, p2BL.z);
+
+                vSides.push(p1TR.x, p1TR.y, p1TR.z, p1BR.x, p1BR.y, p1BR.z, p2TR.x, p2TR.y, p2TR.z);
+                vSides.push(p1BR.x, p1BR.y, p1BR.z, p2BR.x, p2BR.y, p2BR.z, p2TR.x, p2TR.y, p2TR.z);
+            }
+
+            geomTop.setAttribute('position', new THREE.Float32BufferAttribute(vTop, 3));
+            geomTop.computeVertexNormals();
+            meshTop = new THREE.Mesh(geomTop, matTopBlue);
+            scene.add(meshTop);
+
+            geomBottom.setAttribute('position', new THREE.Float32BufferAttribute(vBottom, 3));
+            geomBottom.computeVertexNormals();
+            meshBottom = new THREE.Mesh(geomBottom, matBottomGreen);
+            scene.add(meshBottom);
+
+            geomSides.setAttribute('position', new THREE.Float32BufferAttribute(vSides, 3));
+            geomSides.computeVertexNormals();
+            meshSides = new THREE.Mesh(geomSides, matSidesRed);
+            scene.add(meshSides);
+        }
+        rebuildAll();
+
+        // --- Veículo Detalhado ---
+        function createCar() {
+            const carGroup = new THREE.Group();
+            const matBody = new THREE.MeshStandardMaterial({ color: 0x1144aa, roughness: 0.2, metalness: 0.6 });
+            const matSilver = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.8 });
+            const matDark = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.9 });
+            const matGlow = new THREE.MeshBasicMaterial({ color: 0xffffee });
+            const matRed = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+
+            const wheelRadius = 0.35;
+            const wheelGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.3, 24);
+            wheelGeo.rotateZ(Math.PI/2);
+            const wheels = [];
+            const createWheel = (x, z) => {
+                const w = new THREE.Mesh(wheelGeo, matDark);
+                w.position.set(x, wheelRadius, z);
+                carGroup.add(w);
+                return w;
+            };
+            wheels.push(createWheel(0.9, 1.2)); wheels.push(createWheel(-0.9, 1.2));
+            wheels.push(createWheel(0.9, -1.2)); wheels.push(createWheel(-0.9, -1.2));
+
+            const chassis = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), matBody);
+            chassis.scale.set(1.2, 0.5, 2.2); chassis.position.y = 0.6; carGroup.add(chassis);
+
+            const cabin = new THREE.Mesh(new THREE.SphereGeometry(0.85, 32, 16), matBody);
+            cabin.scale.set(1, 0.7, 1.3); cabin.position.set(0, 1.1, -0.2); carGroup.add(cabin);
+            
+            const fenderGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 32); fenderGeo.rotateZ(Math.PI/2);
+            const addFender = (x, z) => { const f = new THREE.Mesh(fenderGeo, matBody); f.position.set(x, 0.5, z); carGroup.add(f); };
+            addFender(0.9, 1.2); addFender(-0.9, 1.2); addFender(0.9, -1.2); addFender(-0.9, -1.2);
+
+            const fb = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.8), matSilver);
+            fb.rotateZ(Math.PI/2); fb.position.set(0, 0.4, 2.1); carGroup.add(fb);
+            const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.8), matSilver);
+            bb.rotateZ(Math.PI/2); bb.position.set(0, 0.4, -2.1); carGroup.add(bb);
+
+            // Invertendo as cores conforme solicitado: 
+            // hL/hR (frente - pos Z positiva) agora vermelhos
+            // tL/tR (atrás - pos Z negativa) agora brancos
+            const hL = new THREE.Mesh(new THREE.SphereGeometry(0.15), matRed); hL.position.set(0.6, 0.75, 1.95); carGroup.add(hL);
+            const hR = new THREE.Mesh(new THREE.SphereGeometry(0.15), matRed); hR.position.set(-0.6, 0.75, 1.95); carGroup.add(hR);
+            const tL = new THREE.Mesh(new THREE.SphereGeometry(0.15), matGlow); tL.position.set(0.6, 0.7, -1.95); carGroup.add(tL);
+            const tR = new THREE.Mesh(new THREE.SphereGeometry(0.15), matGlow); tR.position.set(-0.6, 0.7, -1.95); carGroup.add(tR);
+
+            // Ajustando os SpotLights para seguirem as luzes brancas (agora na traseira em termos de coordenadas locais)
+            const spotL = new THREE.SpotLight(0xffffff, 250, 120, 0.5, 0.5, 1);
+            spotL.position.copy(tL.position); 
+            spotL.target.position.set(0.6, -2, -12); // Apontando para trás localmente
+            carGroup.add(spotL); carGroup.add(spotL.target);
+
+            const spotR = new THREE.SpotLight(0xffffff, 250, 120, 0.5, 0.5, 1);
+            spotR.position.copy(tR.position); 
+            spotR.target.position.set(-0.6, -2, -12); // Apontando para trás localmente
+            carGroup.add(spotR); carGroup.add(spotR.target);
+
+            carGroup.userData = { wheels: wheels };
+            carGroup.scale.set(CONFIG.carScale, CONFIG.carScale, CONFIG.carScale);
+            return carGroup;
+        }
+        const car = createCar();
+        scene.add(car);
+
+        // --- Estrelas ---
+        function createStars() {
+            const geom = new THREE.BufferGeometry();
+            const pos = [];
+            for(let i=0; i<8000; i++) pos.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            scene.add(new THREE.Points(geom, new THREE.PointsMaterial({ color: 0x88aaff, size: 0.7, transparent: true, opacity: 0.8 })));
+        }
+        createStars();
+
+        // --- Loop de Animação ---
+        const clock = new THREE.Clock();
+        let t = 0;
+        const currentCameraPos = new THREE.Vector3(300, 200, 300);
+        const currentLookAt = new THREE.Vector3(0, 0, 0);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            
+            t += delta * CONFIG.speed * 0.25; 
+            const maxCycle = Math.PI * 4; 
+            if (t > maxCycle) t -= maxCycle;
+
+            const frame = getKnotFrame(t);
+            const carOffset = frame.normal.clone().multiplyScalar(CONFIG.roadThickness / 2);
+            car.position.copy(frame.position).add(carOffset);
+            
+            const lookAhead = getKnotFrame(t + 0.02);
+            const carLookAtPos = lookAhead.position.clone().add(lookAhead.normal.clone().multiplyScalar(CONFIG.roadThickness / 2));
+            car.lookAt(carLookAtPos);
+            
+            const matrix = new THREE.Matrix4();
+            matrix.lookAt(car.position, carLookAtPos, frame.normal);
+            car.quaternion.setFromRotationMatrix(matrix);
+
+            if(car.userData.wheels) {
+                const wheelRotSpeed = CONFIG.speed * 60; 
+                car.userData.wheels.forEach(w => w.rotateX(wheelRotSpeed * delta * 10));
+            }
+
+            // --- Lógica de Câmara ---
+            if (isCinematicMode) {
+                if (!CONFIG.freezeCamera) {
+                    const heightFactor = zoomState.distance * 0.45;
+                    const camOffset = new THREE.Vector3(0, heightFactor, -zoomState.distance).applyQuaternion(car.quaternion);
+                    const idealCameraPos = car.position.clone().add(camOffset);
+
+                    currentCameraPos.lerp(idealCameraPos, 0.045);
+                    camera.position.copy(currentCameraPos);
+
+                    const targetLookAt = carLookAtPos.clone();
+                    currentLookAt.lerp(targetLookAt, 0.08);
+                    camera.lookAt(currentLookAt);
+                }
+            } else {
+                controls.target.lerp(car.position, 0.1);
+                controls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+
