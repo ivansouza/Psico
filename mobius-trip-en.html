@@ -16,7 +16,7 @@
             display: block;
         }
 
-        /* App Title top left */
+        /* Título do App no canto superior esquerdo */
         #app-title {
             position: absolute;
             top: 20px;
@@ -31,7 +31,7 @@
             text-shadow: 0 0 10px rgba(0, 102, 255, 0.5);
         }
 
-        /* Gear Settings Button */
+        /* Botão de Engrenagem */
         #settings-toggle {
             position: absolute;
             top: 20px;
@@ -59,7 +59,7 @@
             height: 24px;
         }
 
-        /* Transparent Configuration Window */
+        /* Janela de Configuração Transparente */
         #ui-container {
             position: absolute;
             top: 75px;
@@ -131,7 +131,6 @@
             box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
         }
 
-        /* Checkbox Styling */
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -231,9 +230,10 @@
         </div>
         
         <div class="zoom-instructions">
-            <label style="color: #fff; margin-bottom: 5px; display: block;">Control Instructions</label>
-            <p>• <b>Zoom:</b> Mouse wheel or "pinch" on screen.</p>
-            <p>• <b>Switch Mode:</b> Double-click screen to toggle Manual / Chase.</p>
+            <label style="color: #fff; margin-bottom: 5px; display: block;">Instruções de Controle</label>
+            <p>• <b>Zoom:</b> Roda do mouse ou "pinch" na tela.</p>
+            <p>• <b>Alternar Modo:</b> Clique duplo na tela para trocar entre Manual e Perseguição.</p>
+            <p>• <b>Congelar:</b> Permite controle manual sem sair do modo de perseguição.</p>
         </div>
 
         <div class="stats" id="camera-status" style="color: #66ccff; font-weight: bold;">Mode: Chase</div>
@@ -261,13 +261,13 @@
         const zoomState = {
             distance: 140, 
             min: 25,
-            max: 800,
+            max: 1000,
             initialPinchDist: 0
         };
 
         let isCinematicMode = true;
 
-        // --- UI Management ---
+        // --- Gestão de Interface ---
         const toggle = document.getElementById('settings-toggle');
         const uiPanel = document.getElementById('ui-container');
         const cameraStatus = document.getElementById('camera-status');
@@ -278,8 +278,10 @@
             uiPanel.classList.toggle('visible');
         });
 
+        // Atualiza os controles quando o congelamento muda
         freezeCheckbox.addEventListener('change', (e) => {
             CONFIG.freezeCamera = e.target.checked;
+            updateControlsState();
         });
 
         const setupSlider = (id, configKey, valId, isInt = false) => {
@@ -300,7 +302,7 @@
         setupSlider('pSlider', 'p', 'val-p', true);
         setupSlider('qSlider', 'q', 'val-q', true);
 
-        // --- Scene Setup ---
+        // --- Setup da Cena ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x010204);
         scene.fog = new THREE.FogExp2(0x010204, 0.0006);
@@ -323,20 +325,29 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // --- Interaction Events ---
-        window.addEventListener('dblclick', () => {
-            isCinematicMode = !isCinematicMode;
-            controls.enabled = !isCinematicMode;
+        // --- Lógica de Controle da Câmera ---
+        function updateControlsState() {
+            // Os controles manuais ficam ativos se estivermos em modo Manual OU com a câmera congelada
+            controls.enabled = !isCinematicMode || CONFIG.freezeCamera;
+            
             if (isCinematicMode) {
-                cameraStatus.innerText = "Mode: Chase";
+                cameraStatus.innerText = CONFIG.freezeCamera ? "Mode: Chase (Frozen)" : "Mode: Chase";
                 cameraStatus.style.color = "#66ccff";
             } else {
                 cameraStatus.innerText = "Mode: Manual";
                 cameraStatus.style.color = "#ffcc00";
+            }
+        }
+
+        window.addEventListener('dblclick', () => {
+            isCinematicMode = !isCinematicMode;
+            if (!isCinematicMode) {
                 controls.target.copy(car.position);
             }
+            updateControlsState();
         });
 
+        // Eventos de Zoom
         window.addEventListener('wheel', (e) => {
             zoomState.distance += e.deltaY * 0.15;
             zoomState.distance = Math.max(zoomState.min, Math.min(zoomState.max, zoomState.distance));
@@ -364,7 +375,7 @@
             }
         }, { passive: true });
 
-        // --- Möbius Logic ---
+        // --- Lógica do Nó Möbius ---
         function getKnotFrame(u) {
             const p = CONFIG.p;
             const q = CONFIG.q;
@@ -444,13 +455,10 @@
 
                 vTop.push(p1TL.x, p1TL.y, p1TL.z, p1TR.x, p1TR.y, p1TR.z, p2TL.x, p2TL.y, p2TL.z);
                 vTop.push(p1TR.x, p1TR.y, p1TR.z, p2TR.x, p2TR.y, p2TR.z, p2TL.x, p2TL.y, p2TL.z);
-
                 vBottom.push(p1BL.x, p1BL.y, p1BL.z, p2BL.x, p2BL.y, p2BL.z, p1BR.x, p1BR.y, p1BR.z);
                 vBottom.push(p1BR.x, p1BR.y, p1BR.z, p2BL.x, p2BL.y, p2BL.z, p2BR.x, p2BR.y, p2BR.z);
-
                 vSides.push(p1TL.x, p1TL.y, p1TL.z, p2TL.x, p2TL.y, p2TL.z, p1BL.x, p1BL.y, p1BL.z);
                 vSides.push(p1BL.x, p1BL.y, p1BL.z, p2TL.x, p2TL.y, p2TL.z, p2BL.x, p2BL.y, p2BL.z);
-
                 vSides.push(p1TR.x, p1TR.y, p1TR.z, p1BR.x, p1BR.y, p1BR.z, p2TR.x, p2TR.y, p2TR.z);
                 vSides.push(p1BR.x, p1BR.y, p1BR.z, p2BR.x, p2BR.y, p2BR.z, p2TR.x, p2TR.y, p2TR.z);
             }
@@ -472,7 +480,7 @@
         }
         rebuildAll();
 
-        // --- Detailed Vehicle ---
+        // --- Modelo do Carro ---
         function createCar() {
             const carGroup = new THREE.Group();
             const matBody = new THREE.MeshStandardMaterial({ color: 0x1144aa, roughness: 0.2, metalness: 0.6 });
@@ -509,21 +517,18 @@
             const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.8), matSilver);
             bb.rotateZ(Math.PI/2); bb.position.set(0, 0.4, -2.1); carGroup.add(bb);
 
-            // Inverting lights based on local Z
-            // Front (pos Z) now red, Back (neg Z) now white glow
+            // Faróis: Frente vermelhos, Trás brancos
             const hL = new THREE.Mesh(new THREE.SphereGeometry(0.15), matRed); hL.position.set(0.6, 0.75, 1.95); carGroup.add(hL);
             const hR = new THREE.Mesh(new THREE.SphereGeometry(0.15), matRed); hR.position.set(-0.6, 0.75, 1.95); carGroup.add(hR);
             const tL = new THREE.Mesh(new THREE.SphereGeometry(0.15), matGlow); tL.position.set(0.6, 0.7, -1.95); carGroup.add(tL);
             const tR = new THREE.Mesh(new THREE.SphereGeometry(0.15), matGlow); tR.position.set(-0.6, 0.7, -1.95); carGroup.add(tR);
 
             const spotL = new THREE.SpotLight(0xffffff, 250, 120, 0.5, 0.5, 1);
-            spotL.position.copy(tL.position); 
-            spotL.target.position.set(0.6, -2, -12); 
+            spotL.position.copy(tL.position); spotL.target.position.set(0.6, -2, -12); 
             carGroup.add(spotL); carGroup.add(spotL.target);
 
             const spotR = new THREE.SpotLight(0xffffff, 250, 120, 0.5, 0.5, 1);
-            spotR.position.copy(tR.position); 
-            spotR.target.position.set(-0.6, -2, -12); 
+            spotR.position.copy(tR.position); spotR.target.position.set(-0.6, -2, -12); 
             carGroup.add(spotR); carGroup.add(spotR.target);
 
             carGroup.userData = { wheels: wheels };
@@ -533,7 +538,7 @@
         const car = createCar();
         scene.add(car);
 
-        // --- Stars ---
+        // --- Estrelas ---
         function createStars() {
             const geom = new THREE.BufferGeometry();
             const pos = [];
@@ -543,7 +548,7 @@
         }
         createStars();
 
-        // --- Animation Loop ---
+        // --- Loop de Animação ---
         const clock = new THREE.Clock();
         let t = 0;
         const currentCameraPos = new THREE.Vector3(300, 200, 300);
@@ -574,7 +579,7 @@
                 car.userData.wheels.forEach(w => w.rotateX(wheelRotSpeed * delta * 10));
             }
 
-            // --- Camera Logic ---
+            // --- Lógica de Câmera ---
             if (isCinematicMode) {
                 if (!CONFIG.freezeCamera) {
                     const heightFactor = zoomState.distance * 0.45;
@@ -587,8 +592,12 @@
                     const targetLookAt = carLookAtPos.clone();
                     currentLookAt.lerp(targetLookAt, 0.08);
                     camera.lookAt(currentLookAt);
+                } else {
+                    // Quando congelado em modo Cinematic, permitimos OrbitControls agir livremente
+                    controls.update();
                 }
             } else {
+                // No modo Manual, OrbitControls foca no carro mas permite movimentação total
                 controls.target.lerp(car.position, 0.1);
                 controls.update();
             }
@@ -606,3 +615,4 @@
     </script>
 </body>
 </html>
+
