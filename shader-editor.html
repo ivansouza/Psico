@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Editor GLSL Mobile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-glsl.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Layout em Grade Principal */
+        .app-container {
+            display: grid;
+            grid-template-rows: 40% 60%;
+            height: 100vh;
+            background: #1a1a1a;
+            transition: all 0.3s ease;
+        }
+
+        @media (min-width: 768px) {
+            .app-container {
+                grid-template-rows: 1fr;
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Ocultar editor quando em modo tela cheia ou pseudo-fullscreen */
+        body.is-fullscreen #editor-container {
+            display: none !important;
+        }
+
+        body.is-fullscreen .app-container {
+            grid-template-rows: 100% 0%;
+            grid-template-columns: 100% 0%;
+        }
+
+        /* Seção do Canvas */
+        #canvas-container {
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            touch-action: none;
+        }
+
+        /* Seção do Editor */
+        #editor-container {
+            position: relative;
+            background: #2d2d2d;
+            border-top: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #code-area {
+            position: relative;
+            flex-grow: 1;
+            overflow: auto;
+            font-family: 'Fira Code', 'Source Code Pro', monospace;
+            font-size: 14px;
+        }
+
+        textarea, pre {
+            margin: 0;
+            padding: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            tab-size: 4;
+            white-space: pre;
+            overflow-wrap: normal;
+            box-sizing: border-box;
+            line-height: 1.5;
+        }
+
+        textarea {
+            z-index: 1;
+            color: transparent;
+            background: transparent;
+            caret-color: white;
+            resize: none;
+            border: none;
+            outline: none;
+            -webkit-text-fill-color: transparent;
+        }
+
+        pre {
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Log de Erros */
+        #error-log {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(185, 28, 28, 0.9);
+            color: white;
+            padding: 10px 20px;
+            font-size: 12px;
+            max-height: 30%;
+            overflow-y: auto;
+            display: none;
+            z-index: 10;
+        }
+
+        /* Controles de Interface */
+        .ui-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 20;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+        .status-badge {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Ajustes específicos para Fullscreen nativo */
+        #canvas-container:fullscreen {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas-container:fullscreen canvas {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body id="body-root">
+
+<div class="app-container" id="app-root">
+    <!-- Seção de Visualização -->
+    <div id="canvas-container">
+        <canvas id="gl-canvas"></canvas>
+        <div class="ui-overlay">
+            <button class="btn" onclick="togglePlay()" id="btn-play">Pausar</button>
+            <button class="btn" onclick="handleFullscreen()" id="btn-fs">Ver Resultado (Tela Cheia)</button>
+            <button class="btn" onclick="resetTime()">Reiniciar Tempo</button>
+            <button class="btn" onclick="copyCode()">Copiar Código</button>
+        </div>
+        <div id="status" class="status-badge bg-green-500 text-white">Ao Vivo</div>
+    </div>
+
+    <!-- Seção do Editor -->
+    <div id="editor-container">
+        <div class="flex items-center justify-between px-4 py-2 bg-neutral-800 border-b border-neutral-700">
+            <span class="text-xs text-neutral-400 font-mono">fragmento.glsl</span>
+            <span id="cursor-pos" class="text-xs text-neutral-500 font-mono">Linha 1, Col 1</span>
+        </div>
+        
+        <div id="code-area">
+            <pre id="highlighting" aria-hidden="true"><code class="language-glsl" id="highlighting-content"></code></pre>
+            <textarea id="editing" spellcheck="false" oninput="updateEditor(this.value); syncScroll(this);" onscroll="syncScroll(this);" onkeydown="handleKey(event)"></textarea>
+        </div>
+
+        <div id="error-log"></div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gl-canvas');
+    const gl = canvas.getContext('webgl');
+    const editing = document.getElementById('editing');
+    const highlightingContent = document.getElementById('highlighting-content');
+    const errorLog = document.getElementById('error-log');
+    const statusBadge = document.getElementById('status');
+    const cursorPos = document.getElementById('cursor-pos');
+    const btnPlay = document.getElementById('btn-play');
+    const btnFs = document.getElementById('btn-fs');
+    const canvasContainer = document.getElementById('canvas-container');
+    const bodyRoot = document.getElementById('body-root');
+
+    let program;
+    let positionBuffer;
+    let startTime = Date.now();
+    let pausedTime = 0;
+    let isPaused = false;
+    let mouseX = 0, mouseY = 0;
+
+    const defaultShader = `// Shader exemplo
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+// Função auxiliar para conversão de cores HSV
+vec3 hsv(float h, float s, float v) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+    return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+}
+
+void main() {
+    vec2 r = u_resolution.xy;
+    vec2 FC = gl_FragCoord.xy;
+    float t = u_time;
+    vec4 o = vec4(0.0, 0.0, 0.0, 1.0);
+
+    float i=0.0, e=0.0, R=0.0, s=1.0;
+    vec3 q=vec3(0.0), p=vec3(0.0);
+    vec3 d = vec3(FC.xy / r - vec2(0.6, 0.5), 0.7);
+
+    q.z -= 1.0; 
+    q.x -= 1.0;
+
+    for(int j=0; j<90; j++) {
+        o.rgb += hsv(0.1, 0.2, min(e * s, 0.7 - e) / 35.0);
+        s = 1.0;
+        q += d * e * R * 0.1;
+        p = q;
+        R = length(p);
+        
+        p = vec3(log2(R) - t, exp(1.0 - p.z / R), atan(p.y, p.x) + cos(t) * 0.2);
+        e = p.y - 1.0; 
+        
+        for(int k=0; k<10; k++) {
+            if (s >= 300.0) break;
+            e += sin(dot(sin(p.zxy * s) - 0.5, 1.0 - cos(p.yxz * s))) / s;
+            s += s;
+        }
+        i += 1.0;
+    }
+
+    gl_FragColor = o;
+}`;
+
+    // --- Lógica WebGL ---
+
+    function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            const info = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader);
+            throw new Error(info);
+        }
+        return shader;
+    }
+
+    function initGL(fragmentSource) {
+        try {
+            const vertexSource = `
+                attribute vec4 position;
+                void main() {
+                    gl_Position = position;
+                }
+            `;
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+
+            const newProgram = gl.createProgram();
+            gl.attachShader(newProgram, vertexShader);
+            gl.attachShader(newProgram, fragmentShader);
+            gl.linkProgram(newProgram);
+
+            if (!gl.getProgramParameter(newProgram, gl.LINK_STATUS)) {
+                throw new Error(gl.getProgramInfoLog(newProgram));
+            }
+
+            program = newProgram;
+            errorLog.style.display = 'none';
+            statusBadge.textContent = 'Ao Vivo';
+            statusBadge.className = 'status-badge bg-green-500 text-white';
+
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                -1, -1, 1, -1, -1, 1,
+                -1, 1, 1, -1, 1, 1,
+            ]), gl.STATIC_DRAW);
+
+        } catch (e) {
+            showError(e.message);
+        }
+    }
+
+    function showError(msg) {
+        errorLog.textContent = "Erro de Compilação: " + msg;
+        errorLog.style.display = 'block';
+        statusBadge.textContent = 'Erro';
+        statusBadge.className = 'status-badge bg-red-600 text-white';
+    }
+
+    function render() {
+        if (!program || isPaused) {
+            requestAnimationFrame(render);
+            return;
+        }
+
+        resizeCanvas();
+
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.useProgram(program);
+
+        const posLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(posLoc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const resLoc = gl.getUniformLocation(program, "u_resolution");
+        gl.uniform2f(resLoc, canvas.width, canvas.height);
+
+        const timeLoc = gl.getUniformLocation(program, "u_time");
+        gl.uniform1f(timeLoc, (Date.now() - startTime) / 1000.0);
+
+        const mouseLoc = gl.getUniformLocation(program, "u_mouse");
+        gl.uniform2f(mouseLoc, mouseX, mouseY);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        requestAnimationFrame(render);
+    }
+
+    function resizeCanvas() {
+        const displayWidth = canvasContainer.clientWidth;
+        const displayHeight = canvasContainer.clientHeight;
+        
+        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+        }
+    }
+
+    // --- Lógica do Editor ---
+
+    function updateEditor(text) {
+        highlightingContent.textContent = text + (text.endsWith("\n") ? " " : "");
+        Prism.highlightElement(highlightingContent);
+        initGL(text);
+        updateCursorInfo();
+    }
+
+    function syncScroll(el) {
+        const pre = document.getElementById('highlighting');
+        pre.scrollTop = el.scrollTop;
+        pre.scrollLeft = el.scrollLeft;
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = editing.selectionStart;
+            const end = editing.selectionEnd;
+            editing.value = editing.value.substring(0, start) + "    " + editing.value.substring(end);
+            editing.selectionStart = editing.selectionEnd = start + 4;
+            updateEditor(editing.value);
+        }
+    }
+
+    function updateCursorInfo() {
+        const textBefore = editing.value.substring(0, editing.selectionStart);
+        const lines = textBefore.split('\n');
+        cursorPos.textContent = `Linha ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+    }
+
+    // --- Ações da Interface ---
+
+    function togglePlay() {
+        isPaused = !isPaused;
+        btnPlay.textContent = isPaused ? 'Retomar' : 'Pausar';
+        if (!isPaused) startTime = Date.now() - pausedTime;
+        else pausedTime = Date.now() - startTime;
+    }
+
+    // Lógica corrigida para Sair/Entrar em modo tela cheia ou visualização
+    function handleFullscreen() {
+        const isCurrentlyPseudoFs = bodyRoot.classList.contains('is-fullscreen') && !document.fullscreenElement;
+        
+        // Se já estiver em tela cheia REAL ou modo VISUALIZAÇÃO, sai.
+        if (document.fullscreenElement || isCurrentlyPseudoFs) {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                // Sair manual do modo pseudo-fullscreen
+                bodyRoot.classList.remove('is-fullscreen');
+                btnFs.textContent = 'Ver Resultado (Tela Cheia)';
+                setTimeout(resizeCanvas, 100);
+            }
+        } else {
+            // Tenta entrar no modo real primeiro
+            canvasContainer.requestFullscreen().then(() => {
+                // A classe é adicionada pelo listener 'fullscreenchange'
+            }).catch(err => {
+                // Se falhar (ex: bloqueio de iframe), ativa o modo manual
+                bodyRoot.classList.add('is-fullscreen');
+                btnFs.textContent = 'Sair do Modo Visualização';
+                setTimeout(resizeCanvas, 100);
+            });
+        }
+    }
+
+    function resetTime() {
+        startTime = Date.now();
+        pausedTime = 0;
+    }
+
+    function copyCode() {
+        editing.select();
+        document.execCommand('copy');
+        const btn = event.target;
+        const oldText = btn.textContent;
+        btn.textContent = 'Copiado!';
+        setTimeout(() => btn.textContent = oldText, 2000);
+    }
+
+    // --- Interação e Eventos ---
+
+    const handleInput = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        mouseX = clientX - rect.left;
+        mouseY = rect.height - (clientY - rect.top);
+    };
+
+    canvas.addEventListener('mousemove', handleInput);
+    canvas.addEventListener('touchmove', (e) => {
+        handleInput(e);
+        e.preventDefault();
+    }, { passive: false });
+
+    editing.addEventListener('click', updateCursorInfo);
+    editing.addEventListener('keyup', updateCursorInfo);
+
+    // Ajusta o estado da UI quando o modo tela cheia muda (API Nativa)
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            bodyRoot.classList.add('is-fullscreen');
+            btnFs.textContent = 'Sair da Tela Cheia';
+        } else {
+            bodyRoot.classList.remove('is-fullscreen');
+            btnFs.textContent = 'Ver Resultado (Tela Cheia)';
+        }
+        setTimeout(resizeCanvas, 100);
+    });
+
+    window.onload = () => {
+        editing.value = defaultShader;
+        updateEditor(defaultShader);
+        render();
+    };
+
+</script>
+
+</body>
+</html>
+
