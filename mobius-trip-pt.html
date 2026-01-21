@@ -16,7 +16,7 @@
             display: block;
         }
 
-        /* Título no canto superior esquerdo */
+        /* Título do App no canto superior esquerdo */
         #app-title {
             position: absolute;
             top: 20px;
@@ -31,7 +31,7 @@
             text-shadow: 0 0 10px rgba(0, 102, 255, 0.5);
         }
 
-        /* Botão de Engrenagem */
+        /* Botão de Engrenagem (Configurações) */
         #settings-toggle {
             position: absolute;
             top: 20px;
@@ -131,7 +131,6 @@
             box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
         }
 
-        /* Checkbox Estilizado */
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -183,6 +182,7 @@
             z-index: 50;
         }
     </style>
+    <!-- Importação do Three.js -->
     <script type="importmap">
         {
             "imports": {
@@ -195,10 +195,12 @@
 <body>
     <div id="app-title">Möbius Trip</div>
 
+    <!-- Botão de Configurações -->
     <div id="settings-toggle">
         <svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.12L14.47,2.47C14.44,2.23 14.24,2.05 14,2.05H10C9.76,2.05 9.56,2.23 9.53,2.47L9.14,5.12C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.53,18.66 9.14,18.88L9.53,21.53C9.56,21.77 9.76,21.95 10,21.95H14C14.24,21.95 14.44,21.77 14.47,21.53L14.86,18.88C15.47,18.66 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" /></svg>
     </div>
 
+    <!-- Janela de Interface -->
     <div id="ui-container">
         <div class="label-group">
             <div class="label-header"><label>Velocidade</label><span class="value-display" id="val-speed">2.3</span></div>
@@ -233,18 +235,20 @@
         <div class="zoom-instructions">
             <label style="color: #fff; margin-bottom: 5px; display: block;">Instruções de Controle</label>
             <p>• <b>Zoom:</b> Roda do mouse ou "pinch" na tela.</p>
-            <p>• <b>Alternar Modo:</b> Clique duplo na tela para trocar entre Manual e Perseguição.</p>
+            <p>• <b>Trocar Modo:</b> Clique duplo na tela para alternar Manual / Perseguição.</p>
+            <p>• <b>Congelar:</b> Permite órbita manual sem sair do modo de perseguição.</p>
         </div>
 
         <div class="stats" id="camera-status" style="color: #66ccff; font-weight: bold;">Modo: Perseguição</div>
     </div>
 
-    <div id="hint-overlay">Duplo clique para modo Manual | Scroll/Pinch para Zoom</div>
+    <div id="hint-overlay">Clique duplo para modo Manual | Scroll/Pinch para Zoom</div>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+        // --- Configuração Inicial ---
         const CONFIG = {
             mainRadius: 42,
             innerRadius: 20, 
@@ -261,7 +265,7 @@
         const zoomState = {
             distance: 140, 
             min: 25,
-            max: 800,
+            max: 1000,
             initialPinchDist: 0
         };
 
@@ -280,6 +284,7 @@
 
         freezeCheckbox.addEventListener('change', (e) => {
             CONFIG.freezeCamera = e.target.checked;
+            updateControlsState();
         });
 
         const setupSlider = (id, configKey, valId, isInt = false) => {
@@ -300,7 +305,7 @@
         setupSlider('pSlider', 'p', 'val-p', true);
         setupSlider('qSlider', 'q', 'val-q', true);
 
-        // --- Setup da Cena ---
+        // --- Configuração da Cena ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x010204);
         scene.fog = new THREE.FogExp2(0x010204, 0.0006);
@@ -323,20 +328,28 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // --- Eventos ---
-        window.addEventListener('dblclick', () => {
-            isCinematicMode = !isCinematicMode;
-            controls.enabled = !isCinematicMode;
+        // --- Lógica da Câmera ---
+        function updateControlsState() {
+            controls.enabled = !isCinematicMode || CONFIG.freezeCamera;
+            
             if (isCinematicMode) {
-                cameraStatus.innerText = "Modo: Perseguição";
+                cameraStatus.innerText = CONFIG.freezeCamera ? "Modo: Perseguição (Pausado)" : "Modo: Perseguição";
                 cameraStatus.style.color = "#66ccff";
             } else {
                 cameraStatus.innerText = "Modo: Manual";
                 cameraStatus.style.color = "#ffcc00";
+            }
+        }
+
+        window.addEventListener('dblclick', () => {
+            isCinematicMode = !isCinematicMode;
+            if (!isCinematicMode) {
                 controls.target.copy(car.position);
             }
+            updateControlsState();
         });
 
+        // Eventos de Interação (Zoom)
         window.addEventListener('wheel', (e) => {
             zoomState.distance += e.deltaY * 0.15;
             zoomState.distance = Math.max(zoomState.min, Math.min(zoomState.max, zoomState.distance));
@@ -364,7 +377,7 @@
             }
         }, { passive: true });
 
-        // --- Lógica Möbius ---
+        // --- Lógica do Nó Möbius ---
         function getKnotFrame(u) {
             const p = CONFIG.p;
             const q = CONFIG.q;
@@ -396,6 +409,7 @@
             return { matrix, position: pos, normal: twistedUp, side: twistedSide, tangent: tan };
         }
 
+        // Materiais 3D
         const matTopBlue = new THREE.MeshStandardMaterial({ 
             color: 0x050510, roughness: 0.1, metalness: 1,
             emissive: 0x0066ff, emissiveIntensity: 1.5
@@ -442,15 +456,15 @@
                 const p2BL = new THREE.Vector3(-w, -h, 0).applyMatrix4(f2.matrix);
                 const p2BR = new THREE.Vector3( w, -h, 0).applyMatrix4(f2.matrix);
 
+                // Face Superior
                 vTop.push(p1TL.x, p1TL.y, p1TL.z, p1TR.x, p1TR.y, p1TR.z, p2TL.x, p2TL.y, p2TL.z);
                 vTop.push(p1TR.x, p1TR.y, p1TR.z, p2TR.x, p2TR.y, p2TR.z, p2TL.x, p2TL.y, p2TL.z);
-
+                // Face Inferior
                 vBottom.push(p1BL.x, p1BL.y, p1BL.z, p2BL.x, p2BL.y, p2BL.z, p1BR.x, p1BR.y, p1BR.z);
                 vBottom.push(p1BR.x, p1BR.y, p1BR.z, p2BL.x, p2BL.y, p2BL.z, p2BR.x, p2BR.y, p2BR.z);
-
+                // Laterais
                 vSides.push(p1TL.x, p1TL.y, p1TL.z, p2TL.x, p2TL.y, p2TL.z, p1BL.x, p1BL.y, p1BL.z);
                 vSides.push(p1BL.x, p1BL.y, p1BL.z, p2TL.x, p2TL.y, p2TL.z, p2BL.x, p2BL.y, p2BL.z);
-
                 vSides.push(p1TR.x, p1TR.y, p1TR.z, p1BR.x, p1BR.y, p1BR.z, p2TR.x, p2TR.y, p2TR.z);
                 vSides.push(p1BR.x, p1BR.y, p1BR.z, p2BR.x, p2BR.y, p2BR.z, p2TR.x, p2TR.y, p2TR.z);
             }
@@ -472,7 +486,7 @@
         }
         rebuildAll();
 
-        // --- Veículo Detalhado ---
+        // --- Modelo do Carro ---
         function createCar() {
             const carGroup = new THREE.Group();
             const matBody = new THREE.MeshStandardMaterial({ color: 0x1144aa, roughness: 0.2, metalness: 0.6 });
@@ -509,23 +523,18 @@
             const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.8), matSilver);
             bb.rotateZ(Math.PI/2); bb.position.set(0, 0.4, -2.1); carGroup.add(bb);
 
-            // Invertendo as cores conforme solicitado: 
-            // hL/hR (frente - pos Z positiva) agora vermelhos
-            // tL/tR (atrás - pos Z negativa) agora brancos
+            // Faróis: Traseiros brancos, Frontais vermelhos
             const hL = new THREE.Mesh(new THREE.SphereGeometry(0.15), matRed); hL.position.set(0.6, 0.75, 1.95); carGroup.add(hL);
             const hR = new THREE.Mesh(new THREE.SphereGeometry(0.15), matRed); hR.position.set(-0.6, 0.75, 1.95); carGroup.add(hR);
             const tL = new THREE.Mesh(new THREE.SphereGeometry(0.15), matGlow); tL.position.set(0.6, 0.7, -1.95); carGroup.add(tL);
             const tR = new THREE.Mesh(new THREE.SphereGeometry(0.15), matGlow); tR.position.set(-0.6, 0.7, -1.95); carGroup.add(tR);
 
-            // Ajustando os SpotLights para seguirem as luzes brancas (agora na traseira em termos de coordenadas locais)
             const spotL = new THREE.SpotLight(0xffffff, 250, 120, 0.5, 0.5, 1);
-            spotL.position.copy(tL.position); 
-            spotL.target.position.set(0.6, -2, -12); // Apontando para trás localmente
+            spotL.position.copy(tL.position); spotL.target.position.set(0.6, -2, -12); 
             carGroup.add(spotL); carGroup.add(spotL.target);
 
             const spotR = new THREE.SpotLight(0xffffff, 250, 120, 0.5, 0.5, 1);
-            spotR.position.copy(tR.position); 
-            spotR.target.position.set(-0.6, -2, -12); // Apontando para trás localmente
+            spotR.position.copy(tR.position); spotR.target.position.set(-0.6, -2, -12); 
             carGroup.add(spotR); carGroup.add(spotR.target);
 
             carGroup.userData = { wheels: wheels };
@@ -545,7 +554,7 @@
         }
         createStars();
 
-        // --- Loop de Animação ---
+        // --- Loop de Animação Principal ---
         const clock = new THREE.Clock();
         let t = 0;
         const currentCameraPos = new THREE.Vector3(300, 200, 300);
@@ -576,7 +585,7 @@
                 car.userData.wheels.forEach(w => w.rotateX(wheelRotSpeed * delta * 10));
             }
 
-            // --- Lógica de Câmara ---
+            // --- Lógica de Câmera ---
             if (isCinematicMode) {
                 if (!CONFIG.freezeCamera) {
                     const heightFactor = zoomState.distance * 0.45;
@@ -589,6 +598,8 @@
                     const targetLookAt = carLookAtPos.clone();
                     currentLookAt.lerp(targetLookAt, 0.08);
                     camera.lookAt(currentLookAt);
+                } else {
+                    controls.update();
                 }
             } else {
                 controls.target.lerp(car.position, 0.1);
@@ -608,4 +619,3 @@
     </script>
 </body>
 </html>
-
