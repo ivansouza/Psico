@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Particle Landscape</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #010204;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            color: white;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Sobreposição de UI */
+        .ui-overlay {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .ui-overlay h1 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 300;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        /* Botão de Engrenagem */
+        .settings-btn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 20;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .settings-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+            opacity: 0.8;
+        }
+
+        /* Painel de Definições Transparente */
+        .settings-panel {
+            position: absolute;
+            top: 90px;
+            right: 30px;
+            width: 280px;
+            background: rgba(5, 7, 12, 0.75);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            z-index: 15;
+            transform: translateX(140%);
+            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .settings-panel.active {
+            transform: translateX(0);
+        }
+
+        .settings-panel h2 {
+            margin: 0 0 24px 0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #00ccff;
+            opacity: 0.9;
+        }
+
+        .control-group {
+            margin-bottom: 22px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .control-group label span {
+            color: #00ccff;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            appearance: none;
+            outline: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,204,255,0.5);
+            border: 2px solid #00ccff;
+        }
+
+        /* Botão de Guardar */
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 204, 255, 0.15);
+            border: 1px solid rgba(0, 204, 255, 0.3);
+            color: #00ccff;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .save-btn:hover {
+            background: rgba(0, 204, 255, 0.3);
+            border-color: #00ccff;
+            color: white;
+        }
+
+        /* Notificação Temporária (Toast) */
+        #toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 204, 255, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0, 204, 255, 0.3);
+            opacity: 0;
+        }
+
+        #toast.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.25);
+            pointer-events: none;
+        }
+
+        /* Tela de Carregamento */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #010204;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100;
+            transition: opacity 1.2s ease;
+        }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 2px solid rgba(255,255,255,0.03);
+            border-top-color: #00ccff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        #loader p {
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>A processar pontos...</p>
+    </div>
+
+    <!-- Mensagem de confirmação que desaparece -->
+    <div id="toast">Definições guardadas com sucesso!</div>
+
+    <div class="ui-overlay">
+        <h1>Landscape</h1>
+    </div>
+
+    <div class="settings-btn" id="settingsToggle">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <h2>Parâmetros</h2>
+        
+        <div class="control-group">
+            <label>Densidade <span id="resValue">400</span></label>
+            <input type="range" id="resRange" min="50" max="600" step="10" value="400">
+        </div>
+
+        <div class="control-group">
+            <label>Tamanho <span id="sizeValue">2.3</span></label>
+            <input type="range" id="sizeRange" min="0.5" max="6.0" step="0.1" value="2.3">
+        </div>
+
+        <div class="control-group">
+            <label>Amplitude <span id="ampValue">7.0</span></label>
+            <input type="range" id="ampRange" min="1.0" max="30.0" step="0.5" value="7.0">
+        </div>
+
+        <div class="control-group">
+            <label>Velocidade Onda <span id="waveSpeedValue">20.0</span></label>
+            <input type="range" id="waveSpeedRange" min="5.0" max="100.0" step="1.0" value="20.0">
+        </div>
+
+        <div class="control-group">
+            <label>Duração Espasmo <span id="durationValue">20.0s</span></label>
+            <input type="range" id="durationRange" min="1.0" max="60.0" step="1.0" value="20.0">
+        </div>
+
+        <div class="control-group">
+            <label>Velocidade <span id="speedValue">0.8</span></label>
+            <input type="range" id="speedRange" min="0.1" max="2.5" step="0.1" value="0.8">
+        </div>
+
+        <button class="save-btn" id="saveAction">Guardar & Copiar</button>
+    </div>
+
+    <div class="hint">Toque Duplo para Reverberação • Definições à Direita</div>
+    <div id="canvas-container"></div>
+
+    <!-- Vertex Shader -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        uniform float uTime;
+        uniform float uSize;
+        uniform float uAmplitude;
+        uniform vec2 uPerturbPos;
+        uniform float uPerturbIntensity;
+        uniform float uPerturbStartTime;
+        uniform float uWaveSpeed;
+        
+        varying vec3 vColor;
+        varying float vAlpha;
+
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+        float snoise(vec2 v) {
+            const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+            vec2 i  = floor(v + dot(v, C.yy) );
+            vec2 x0 = v -   i + dot(i, C.xx);
+            vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+            vec4 x12 = x0.xyxy + C.xxzz;
+            x12.xy -= i1;
+            i = mod289(i);
+            vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+            vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+            m = m*m ; m = m*m ;
+            vec3 x = 2.0 * fract(p * C.www) - 1.0;
+            vec3 h = abs(x) - 0.5;
+            vec3 ox = floor(x + 0.5);
+            vec3 a0 = x - ox;
+            m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+            vec3 g;
+            g.x  = a0.x  * x0.x  + h.x  * x0.y;
+            g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+            return 130.0 * dot(m, g);
+        }
+
+        void main() {
+            vec3 pos = position;
+            float noiseScale = 0.055;
+            float timeOffset = uTime * 0.45;
+            float n = snoise(vec2(pos.x * noiseScale, (pos.y * noiseScale) + timeOffset));
+            float n2 = snoise(vec2(pos.x * 0.02, (pos.y * 0.02) - timeOffset * 0.2));
+            pos.z += (n * 0.7 + n2 * 0.3) * uAmplitude;
+
+            float dist = distance(pos.xy, uPerturbPos);
+            float timeSinceStart = uTime - uPerturbStartTime;
+            float waveFront = timeSinceStart * uWaveSpeed;
+            
+            float wavePulse = exp(-abs(dist - waveFront) * 0.12) * uPerturbIntensity;
+            float ripples = sin(dist * 0.4 - waveFront * 0.6) * 0.5 + 0.5;
+            float totalPerturb = wavePulse * (0.4 + ripples * 0.6);
+
+            pos.z += totalPerturb * 25.0;
+
+            float hNorm = (pos.z + uAmplitude) / (uAmplitude * 2.0 + 10.0);
+            vec3 baseColor = mix(vec3(0.01, 0.05, 0.15), vec3(0.0, 0.9, 1.0), clamp(hNorm, 0.0, 1.0));
+            
+            vec3 magenta = vec3(1.0, 0.0, 0.7);
+            vColor = mix(baseColor, magenta, totalPerturb * 1.8);
+
+            float fadeDist = length(position.xy) / 90.0;
+            vAlpha = smoothstep(1.0, 0.5, fadeDist);
+
+            vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = uSize * (350.0 / -mvPos.z);
+            gl_Position = projectionMatrix * mvPos;
+        }
+    </script>
+
+    <!-- Fragment Shader -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying vec3 vColor;
+        varying float vAlpha;
+
+        void main() {
+            float d = distance(gl_PointCoord, vec2(0.5));
+            if (d > 0.5) discard;
+            float intensity = pow(1.0 - d * 2.0, 1.5);
+            gl_FragColor = vec4(vColor, intensity * vAlpha * 0.9);
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        class ParticleLandscape {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x010204);
+                this.scene.fog = new THREE.FogExp2(0x010204, 0.012);
+                
+                // Parâmetros iniciais conforme solicitado
+                this.settings = {
+                    resolution: 400,
+                    size: 2.3,
+                    amplitude: 7.0,
+                    waveSpeed: 20.0,
+                    perturbDuration: 20.0,
+                    speed: 0.8
+                };
+
+                this.clock = new THREE.Clock();
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                this.lastTap = 0;
+                this.decayFactor = 0.9942; 
+                this.toastTimeout = null;
+
+                // Tentar carregar do LocalStorage
+                this.loadSavedState();
+
+                this.init();
+                this.setupUI();
+                this.setupInteraction();
+                this.animate();
+            }
+
+            loadSavedState() {
+                const saved = localStorage.getItem('particle_settings');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        if (data.settings) {
+                            this.settings = { ...this.settings, ...data.settings };
+                        }
+                        this.savedCamera = data.camera;
+                    } catch (e) {
+                        console.error("Erro ao carregar estado guardado", e);
+                    }
+                }
+            }
+
+            saveCurrentState() {
+                const state = {
+                    settings: this.settings,
+                    camera: {
+                        position: this.camera.position.toArray(),
+                        target: this.controls.target.toArray()
+                    }
+                };
+                
+                const jsonStr = JSON.stringify(state, null, 2);
+                
+                localStorage.setItem('particle_settings', jsonStr);
+                
+                const dummy = document.createElement("textarea");
+                document.body.appendChild(dummy);
+                dummy.value = jsonStr;
+                dummy.select();
+                try {
+                    document.execCommand("copy");
+                } catch (err) {
+                    console.error('Falha ao copiar:', err);
+                }
+                document.body.removeChild(dummy);
+                
+                const toast = document.getElementById('toast');
+                toast.classList.add('visible');
+                
+                if (this.toastTimeout) clearTimeout(this.toastTimeout);
+                
+                this.toastTimeout = setTimeout(() => {
+                    toast.classList.remove('visible');
+                    this.toastTimeout = null;
+                }, 3000); 
+            }
+
+            updateDecayFactor() {
+                const totalFrames = 60 * this.settings.perturbDuration;
+                this.decayFactor = Math.pow(0.001, 1 / totalFrames);
+            }
+
+            init() {
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                // Aplicar posição de câmara inicial ou guardada
+                if (this.savedCamera) {
+                    this.camera.position.fromArray(this.savedCamera.position);
+                } else {
+                    // Valores iniciais solicitados
+                    this.camera.position.set(36.94756952018373, 112.58152609661246, 138.41307879311978);
+                }
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.container.appendChild(this.renderer.domElement);
+
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.maxPolarAngle = Math.PI / 2.05;
+
+                // Aplicar alvo de câmara inicial ou guardado
+                if (this.savedCamera) {
+                    this.controls.target.fromArray(this.savedCamera.target);
+                } else {
+                    // Alvo inicial solicitado
+                    this.controls.target.set(-3.3573674557068403, 2.1826824455211598, -0.9671154233029423);
+                }
+
+                this.updateDecayFactor();
+                this.createGeometry();
+                
+                setTimeout(() => {
+                    const l = document.getElementById('loader');
+                    if (l) {
+                        l.style.opacity = '0';
+                        setTimeout(() => l.remove(), 1200);
+                    }
+                }, 1000);
+            }
+
+            createGeometry() {
+                if (this.points) {
+                    this.scene.remove(this.points);
+                    this.points.geometry.dispose();
+                    this.points.material.dispose();
+                }
+
+                const res = this.settings.resolution;
+                const size = 180;
+                const geom = new THREE.PlaneBufferGeometry(size, size, res, res);
+                
+                this.uniforms = {
+                    uTime: { value: 0 },
+                    uSize: { value: this.settings.size },
+                    uAmplitude: { value: this.settings.amplitude },
+                    uWaveSpeed: { value: this.settings.waveSpeed },
+                    uPerturbPos: { value: new THREE.Vector2(0, 0) },
+                    uPerturbIntensity: { value: 0.0 },
+                    uPerturbStartTime: { value: 0.0 }
+                };
+
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: this.uniforms,
+                    vertexShader: document.getElementById('vertexShader').textContent,
+                    fragmentShader: document.getElementById('fragmentShader').textContent,
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+
+                this.points = new THREE.Points(geom, mat);
+                this.points.rotation.x = -Math.PI / 2;
+                this.scene.add(this.points);
+
+                const pGeom = new THREE.PlaneBufferGeometry(size, size);
+                const pMat = new THREE.MeshBasicMaterial({ visible: false });
+                this.collisionPlane = new THREE.Mesh(pGeom, pMat);
+                this.collisionPlane.rotation.x = -Math.PI / 2;
+                this.scene.add(this.collisionPlane);
+            }
+
+            setupUI() {
+                const btn = document.getElementById('settingsToggle');
+                const panel = document.getElementById('settingsPanel');
+                const saveBtn = document.getElementById('saveAction');
+                
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    panel.classList.toggle('active');
+                };
+
+                saveBtn.onclick = () => this.saveCurrentState();
+
+                const syncUI = () => {
+                    document.getElementById('resRange').value = this.settings.resolution;
+                    document.getElementById('resValue').innerText = this.settings.resolution;
+                    document.getElementById('sizeRange').value = this.settings.size;
+                    document.getElementById('sizeValue').innerText = this.settings.size.toFixed(1);
+                    document.getElementById('ampRange').value = this.settings.amplitude;
+                    document.getElementById('ampValue').innerText = this.settings.amplitude.toFixed(1);
+                    document.getElementById('waveSpeedRange').value = this.settings.waveSpeed;
+                    document.getElementById('waveSpeedValue').innerText = this.settings.waveSpeed.toFixed(1);
+                    document.getElementById('durationRange').value = this.settings.perturbDuration;
+                    document.getElementById('durationValue').innerText = this.settings.perturbDuration.toFixed(1) + 's';
+                    document.getElementById('speedRange').value = this.settings.speed;
+                    document.getElementById('speedValue').innerText = this.settings.speed.toFixed(1);
+                };
+
+                syncUI();
+
+                const bind = (id, key, labelId, suffix = '', isUniform = true) => {
+                    const el = document.getElementById(id);
+                    const label = document.getElementById(labelId);
+                    el.oninput = (e) => {
+                        const val = parseFloat(e.target.value);
+                        this.settings[key] = val;
+                        label.innerText = val.toFixed(1) + suffix;
+                        if (isUniform && this.uniforms['u' + key.charAt(0).toUpperCase() + key.slice(1)]) {
+                            this.uniforms['u' + key.charAt(0).toUpperCase() + key.slice(1)].value = val;
+                        }
+                        if (key === 'perturbDuration') this.updateDecayFactor();
+                    };
+                };
+
+                bind('sizeRange', 'size', 'sizeValue');
+                bind('ampRange', 'amplitude', 'ampValue');
+                bind('waveSpeedRange', 'waveSpeed', 'waveSpeedValue');
+                bind('durationRange', 'perturbDuration', 'durationValue', 's', false);
+                bind('speedRange', 'speed', 'speedValue', '', false);
+
+                document.getElementById('resRange').onchange = (e) => {
+                    this.settings.resolution = parseInt(e.target.value);
+                    document.getElementById('resValue').innerText = this.settings.resolution;
+                    this.createGeometry();
+                };
+            }
+
+            setupInteraction() {
+                const handleTap = (x, y) => {
+                    const now = performance.now();
+                    if (now - this.lastTap < 300) {
+                        this.triggerShockwave(x, y);
+                    }
+                    this.lastTap = now;
+                };
+
+                this.container.addEventListener('dblclick', (e) => this.triggerShockwave(e.clientX, e.clientY));
+                this.container.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 1) handleTap(e.touches[0].clientX, e.touches[0].clientY);
+                });
+            }
+
+            triggerShockwave(x, y) {
+                this.mouse.x = (x / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(y / window.innerHeight) * 2 + 1;
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                
+                const intersects = this.raycaster.intersectObject(this.collisionPlane);
+                if (intersects.length > 0) {
+                    const p = intersects[0].point;
+                    this.uniforms.uPerturbPos.value.set(p.x, -p.z);
+                    this.uniforms.uPerturbIntensity.value = 1.0;
+                    this.uniforms.uPerturbStartTime.value = this.uniforms.uTime.value;
+                }
+            }
+
+            onResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                const dt = this.clock.getDelta();
+                this.uniforms.uTime.value += dt * this.settings.speed;
+
+                if (this.uniforms.uPerturbIntensity.value > 0) {
+                    this.uniforms.uPerturbIntensity.value *= this.decayFactor;
+                    if (this.uniforms.uPerturbIntensity.value < 0.001) {
+                        this.uniforms.uPerturbIntensity.value = 0;
+                    }
+                }
+
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        window.onload = () => {
+            new ParticleLandscape();
+        };
+    </script>
+</body>
+</html>
+
