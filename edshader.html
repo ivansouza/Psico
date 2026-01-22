@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GLSL Studio Mobile - Backup System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-glsl.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            background: #050505; color: #eee;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .app-container {
+            display: grid; grid-template-rows: 40% 60%; height: 100vh;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (min-width: 768px) {
+            .app-container { grid-template-rows: 1fr; grid-template-columns: 1fr 1fr; }
+        }
+
+        body.is-fullscreen .app-container { grid-template-rows: 100% 0%; }
+        body.is-fullscreen #editor-container { display: none !important; }
+
+        #canvas-container {
+            position: relative; background: #000;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; object-fit: contain; touch-action: none; }
+
+        #editor-container {
+            position: relative; background: #0d0d0d;
+            display: flex; flex-direction: column; overflow: hidden;
+            border-top: 1px solid #222;
+        }
+
+        #code-area { position: relative; flex-grow: 1; overflow: hidden; }
+
+        #editing, #highlighting {
+            margin: 0; padding: 20px;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none; outline: none;
+            font-family: inherit !important;
+            font-size: 14px !important;
+            line-height: 22px !important; 
+            tab-size: 4; white-space: pre;
+            overflow-wrap: normal; box-sizing: border-box;
+        }
+
+        #editing {
+            z-index: 1; color: transparent; background: transparent;
+            caret-color: #60a5fa; resize: none;
+            -webkit-text-fill-color: transparent; overflow: auto;
+        }
+
+        #highlighting { z-index: 0; pointer-events: none; overflow: hidden; background: #0d0d0d; }
+
+        code[class*="language-"], pre[class*="language-"] {
+            font-family: inherit !important; font-size: inherit !important; line-height: inherit !important;
+        }
+
+        #error-log {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(40, 0, 0, 0.95); color: #fca5a5;
+            padding: 15px; font-size: 11px; max-height: 40%;
+            overflow-y: auto; display: none; z-index: 50;
+            border-top: 1px solid #7f1d1d;
+        }
+
+        .ui-overlay {
+            position: absolute; top: 12px; right: 12px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 100;
+        }
+
+        .btn {
+            background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1); color: #fff;
+            padding: 10px 14px; border-radius: 8px; font-size: 11px;
+            cursor: pointer; transition: 0.2s; font-weight: 600;
+        }
+        .btn:hover { background: #2563eb; border-color: #60a5fa; }
+
+        #slots-panel {
+            position: fixed; top: 0; right: -100%; width: 320px; height: 100%;
+            background: #0a0a0a; border-left: 1px solid #222; z-index: 300;
+            transition: right 0.3s ease; display: flex; flex-direction: column;
+        }
+        #slots-panel.open { right: 0; }
+        
+        .slot-item {
+            background: #121212; border: 1px solid #222; margin-bottom: 8px;
+            border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .slot-name-input { background: transparent; border: none; color: #fbbf24; font-weight: bold; width: 100%; outline: none; }
+        
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #059669; color: white; padding: 12px 24px;
+            border-radius: 30px; font-size: 13px; font-weight: bold;
+            z-index: 600; display: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Área de Importação */
+        #import-area {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d0d0d; z-index: 310; padding: 20px;
+            display: none; flex-direction: column; gap: 15px;
+        }
+    </style>
+</head>
+<body id="body-root">
+
+<div id="toast">Pronto!</div>
+<div id="overlay-screen" class="fixed inset-0 bg-black/60 z-[250] hidden" onclick="toggleSlots()"></div>
+
+<!-- Painel de Slots -->
+<div id="slots-panel">
+    <div class="p-4 border-b border-white/10 flex justify-between items-center bg-black">
+        <span class="text-xs font-black tracking-widest uppercase text-zinc-500">Memória</span>
+        <button onclick="toggleSlots()" class="text-zinc-500 hover:text-white text-xl">✕</button>
+    </div>
+    
+    <!-- Botões de Backup no Topo do Painel -->
+    <div class="p-3 grid grid-cols-2 gap-2 border-b border-white/5 bg-zinc-900/30">
+        <button onclick="exportBackup()" class="py-2 text-[10px] font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded uppercase">Exportar Tudo</button>
+        <button onclick="showImportUI()" class="py-2 text-[10px] font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded uppercase">Importar Backup</button>
+    </div>
+
+    <!-- Interface de Importação -->
+    <div id="import-area">
+        <h3 class="text-xs font-bold uppercase text-zinc-400 mb-2">Colar JSON de Backup</h3>
+        <textarea id="import-json-input" class="flex-grow bg-black border border-white/10 p-3 rounded text-[10px] text-green-500 font-mono outline-none focus:border-green-500/50" placeholder='Cole aqui o JSON exportado...'></textarea>
+        <div class="flex gap-2">
+            <button onclick="hideImportUI()" class="flex-1 py-3 bg-zinc-800 text-[10px] font-bold uppercase rounded">Cancelar</button>
+            <button onclick="processImport()" class="flex-1 py-3 bg-green-700 text-[10px] font-bold uppercase rounded">Confirmar Importação</button>
+        </div>
+    </div>
+
+    <div class="flex-grow overflow-y-auto p-4" id="slots-list"></div>
+</div>
+
+<div class="app-container" id="app-root">
+    <div id="canvas-container">
+        <canvas id="gl-canvas"></canvas>
+        <div class="ui-overlay">
+            <button class="btn border-amber-500/50 text-amber-500" onclick="toggleSlots()">Slots de Memória</button>
+            <div class="h-px bg-white/10 my-1"></div>
+            <button class="btn" onclick="togglePlay()" id="btn-play">Pausar</button>
+            <button class="btn" onclick="handleFullscreen()" id="btn-fs">Resultado</button>
+            <button class="btn" onclick="resetTime()">Reset Tempo</button>
+            <button class="btn" onclick="copyCode()">Copiar Código</button>
+        </div>
+    </div>
+
+    <div id="editor-container">
+        <div class="flex items-center justify-between px-4 py-2 bg-black border-b border-white/5">
+            <span id="gl-version-label" class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">Iniciando...</span>
+            <span id="cursor-pos" class="text-[10px] text-zinc-500 font-mono">Linha 1, Col 1</span>
+        </div>
+        <div id="code-area">
+            <pre id="highlighting" aria-hidden="true"><code class="language-glsl" id="highlighting-content"></code></pre>
+            <textarea id="editing" spellcheck="false" 
+                oninput="updateEditor(this.value); syncScroll(this);" 
+                onscroll="syncScroll(this);" 
+                onkeydown="handleKey(event)"
+                onmousedown="updateCursorInfo()"
+                onkeyup="updateCursorInfo()"></textarea>
+        </div>
+        <div id="error-log"></div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gl-canvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    const isWebGL2 = gl instanceof WebGL2RenderingContext;
+    
+    document.getElementById('gl-version-label').textContent = isWebGL2 ? "WebGL 2.0 (Core)" : "WebGL 1.0 (Legacy Mode)";
+
+    const editing = document.getElementById('editing');
+    const highlightingContent = document.getElementById('highlighting-content');
+    const errorLog = document.getElementById('error-log');
+    const cursorPos = document.getElementById('cursor-pos');
+    const btnPlay = document.getElementById('btn-play');
+    const btnFs = document.getElementById('btn-fs');
+    const canvasContainer = document.getElementById('canvas-container');
+    const bodyRoot = document.getElementById('body-root');
+    const toast = document.getElementById('toast');
+    const slotsPanel = document.getElementById('slots-panel');
+    const slotsList = document.getElementById('slots-list');
+    const overlayScreen = document.getElementById('overlay-screen');
+    const importArea = document.getElementById('import-area');
+    const importInput = document.getElementById('import-json-input');
+
+    let program;
+    let positionBuffer;
+    let startTime = Date.now();
+    let pausedTime = 0;
+    let isPaused = false;
+    let mouseX = 0, mouseY = 0;
+
+    // Snippet padrão estável
+    const initialCode = `vec2 u=FC.xy/r.y*PI;
+vec3 c=vec3(sin(u.x+vec2(0,11))*sin(u.y),cos(u.y)),a=vec3(0.),
+v=mix(dot(a+=.57,c)*a,c,sin(t))+cos(t)*cross(a,c);
+o.rgb=tanh(.1/abs(tan(v/.1)));`;
+
+    function wrapShader(code) {
+        if (code.includes('void main')) return code;
+
+        let fixedCode = code.replace(/vec3\s+([^;]+,)\s*a\s*(,[^;]+|;)/g, (m, p1, p2) => `vec3 ${p1} a=vec3(0.0)${p2}`);
+
+        const header = isWebGL2 ? `#version 300 es
+            precision highp float;
+            uniform vec2 u_resolution, u_mouse;
+            uniform float u_time;
+            out vec4 outColor;
+            #define FC gl_FragCoord
+            #define r u_resolution
+            #define t u_time
+            #define m u_mouse
+            #define o outColor
+            #define PI 3.14159265359
+        ` : `
+            precision highp float;
+            uniform vec2 u_resolution, u_mouse;
+            uniform float u_time;
+            #define FC gl_FragCoord
+            #define r u_resolution
+            #define t u_time
+            #define m u_mouse
+            #define o gl_FragColor
+            #define PI 3.14159265359
+            float tanh(float x) { float e=exp(2.0*x); return (e-1.0)/(e+1.0); }
+            vec2 tanh(vec2 x) { vec2 e=exp(2.0*x); return (e-1.0)/(e+1.0); }
+            vec3 tanh(vec3 x) { vec3 e=exp(2.0*x); return (e-1.0)/(e+1.0); }
+            vec4 tanh(vec4 x) { vec4 e=exp(2.0*x); return (e-1.0)/(e+1.0); }
+        `;
+
+        return `${header}\nvoid main() {\n    o = vec4(0.0, 0.0, 0.0, 1.0);\n    ${fixedCode}\n    ${isWebGL2 ? '' : 'gl_FragColor = o;'}\n}`;
+    }
+
+    function initGL(userInput) {
+        try {
+            const fragmentSource = wrapShader(userInput);
+            const vertexSource = isWebGL2 ? 
+                `#version 300 es\nin vec4 position; void main() { gl_Position = position; }` : 
+                `attribute vec4 position; void main() { gl_Position = position; }`;
+            
+            const vs = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+            const fs = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+
+            const newProgram = gl.createProgram();
+            gl.attachShader(newProgram, vs);
+            gl.attachShader(newProgram, fs);
+            gl.linkProgram(newProgram);
+
+            if (!gl.getProgramParameter(newProgram, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(newProgram));
+
+            program = newProgram;
+            errorLog.style.display = 'none';
+
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+        } catch (e) { showError(e.message); }
+    }
+
+    function createShader(gl, type, source) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, source);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            const i = gl.getShaderInfoLog(s);
+            gl.deleteShader(s);
+            throw new Error(i);
+        }
+        return s;
+    }
+
+    function showError(msg) { errorLog.textContent = msg; errorLog.style.display = 'block'; }
+
+    function render() {
+        if (!program || isPaused) { requestAnimationFrame(render); return; }
+        resizeCanvas();
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(program);
+        gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), canvas.width, canvas.height);
+        gl.uniform1f(gl.getUniformLocation(program, "u_time"), (Date.now() - startTime) / 1000.0);
+        gl.uniform2f(gl.getUniformLocation(program, "u_mouse"), mouseX, mouseY);
+        const posLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(posLoc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        requestAnimationFrame(render);
+    }
+
+    function resizeCanvas() {
+        const w = canvasContainer.clientWidth, h = canvasContainer.clientHeight;
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    }
+
+    function updateEditor(val) {
+        highlightingContent.textContent = val + (val.endsWith("\n") ? " " : "");
+        Prism.highlightElement(highlightingContent);
+        initGL(val);
+    }
+
+    function syncScroll(el) { highlighting.scrollTop = el.scrollTop; highlighting.scrollLeft = el.scrollLeft; }
+
+    function handleKey(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = editing.selectionStart, end = editing.selectionEnd;
+            editing.value = editing.value.substring(0, s) + "    " + editing.value.substring(end);
+            editing.selectionStart = editing.selectionEnd = s + 4;
+            updateEditor(editing.value);
+        }
+    }
+
+    function updateCursorInfo() {
+        setTimeout(() => {
+            const lines = editing.value.substring(0, editing.selectionStart).split('\n');
+            cursorPos.textContent = `Linha ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+        }, 10);
+    }
+
+    // --- Gestão de Backup (Import / Export) ---
+
+    function exportBackup() {
+        const data = localStorage.getItem('glsl_slots_v2');
+        if (!data || data === '{}') {
+            showToast("Nada para exportar");
+            return;
+        }
+        
+        // Copiar para área de transferência
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = data;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        
+        showToast("Backup copiado para o clipboard!");
+    }
+
+    function showImportUI() { importArea.style.display = 'flex'; importInput.value = ''; importInput.focus(); }
+    function hideImportUI() { importArea.style.display = 'none'; }
+
+    function processImport() {
+        const json = importInput.value.trim();
+        if (!json) return;
+        
+        try {
+            const parsed = JSON.parse(json);
+            if (typeof parsed !== 'object') throw new Error();
+            
+            localStorage.setItem('glsl_slots_v2', JSON.stringify(parsed));
+            showToast("Backup restaurado com sucesso!");
+            renderSlots();
+            hideImportUI();
+        } catch (e) {
+            showToast("JSON inválido!");
+        }
+    }
+
+    // --- Sistema de Slots ---
+    function toggleSlots() {
+        const isOpen = slotsPanel.classList.toggle('open');
+        overlayScreen.classList.toggle('hidden', !isOpen);
+        if (isOpen) {
+            renderSlots();
+            hideImportUI();
+        }
+    }
+
+    function renderSlots() {
+        slotsList.innerHTML = '';
+        const saved = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        for (let i = 1; i <= 50; i++) {
+            const s = saved[i], div = document.createElement('div');
+            div.className = 'slot-item';
+            div.innerHTML = `
+                <input type="text" class="slot-name-input" value="${s?.name || 'Slot #'+i}" onblur="renameSlot(${i}, this.value)">
+                <span class="text-[9px] text-zinc-600">${s?.date || 'Vazio'}</span>
+                <div class="flex gap-2 mt-2">
+                    <button class="flex-1 py-2 text-[9px] border border-green-900 text-green-500 rounded font-bold uppercase" onclick="saveSlot(${i})">Gravar</button>
+                    <button class="flex-1 py-2 text-[9px] border border-blue-900 text-blue-500 rounded font-bold uppercase ${!s?'opacity-20':''}" onclick="loadSlot(${i})" ${!s?'disabled':''}>Ler</button>
+                </div>`;
+            slotsList.appendChild(div);
+        }
+    }
+
+    function renameSlot(id, name) {
+        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        if(!data[id]) data[id] = { code: "", date: "---", name: name };
+        else data[id].name = name;
+        localStorage.setItem('glsl_slots_v2', JSON.stringify(data));
+        showToast("Nome atualizado");
+    }
+
+    function saveSlot(id) {
+        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const name = document.querySelectorAll('.slot-name-input')[id-1].value;
+        data[id] = { code: editing.value, date: new Date().toLocaleString(), name: name };
+        localStorage.setItem('glsl_slots_v2', JSON.stringify(data));
+        showToast(`Slot ${id} guardado`);
+        renderSlots();
+    }
+
+    function loadSlot(id) {
+        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        if(data[id]) { 
+            editing.value = data[id].code; 
+            updateEditor(editing.value); 
+            toggleSlots(); 
+            showToast("Código carregado"); 
+        }
+    }
+
+    function showToast(m) { toast.textContent = m; toast.style.display = 'block'; setTimeout(()=>toast.style.display='none', 2000); }
+
+    function togglePlay() { 
+        isPaused = !isPaused; 
+        btnPlay.textContent = isPaused ? 'Retomar' : 'Pausar'; 
+        if (!isPaused) startTime = Date.now() - pausedTime; else pausedTime = Date.now() - startTime; 
+    }
+
+    function handleFullscreen() {
+        if (!document.fullscreenElement) canvasContainer.requestFullscreen().catch(()=>bodyRoot.classList.add('is-fullscreen'));
+        else document.exitFullscreen();
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        const fs = !!document.fullscreenElement;
+        bodyRoot.classList.toggle('is-fullscreen', fs);
+        btnFs.textContent = fs ? 'Sair' : 'Resultado';
+        setTimeout(resizeCanvas, 100);
+    });
+
+    function copyCode() {
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = editing.value;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        showToast("Código copiado!");
+    }
+
+    canvas.addEventListener('mousemove', e => { const r = canvas.getBoundingClientRect(); mouseX = e.clientX - r.left; mouseY = r.height - (e.clientY - r.top); });
+    canvas.addEventListener('touchmove', e => { const r = canvas.getBoundingClientRect(); mouseX = e.touches[0].clientX - r.left; mouseY = r.height - (e.touches[0].clientY - r.top); e.preventDefault(); }, {passive: false});
+
+    window.onload = () => { editing.value = initialCode; updateEditor(initialCode); render(); };
+</script>
+</body>
+</html>
