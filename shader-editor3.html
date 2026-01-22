@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Editor GLSL Mobile - 50 Slots com Nome</title>
+    <title>GLSL Studio Mobile</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-glsl.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
@@ -11,15 +11,13 @@
     <style>
         body, html {
             margin: 0; padding: 0; height: 100%; overflow: hidden;
-            background: #0a0a0a; color: #eee;
-            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background: #050505; color: #eee;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
 
         .app-container {
-            display: grid;
-            grid-template-rows: 40% 60%;
-            height: 100vh;
-            transition: grid-template-rows 0.3s ease;
+            display: grid; grid-template-rows: 40% 60%; height: 100vh;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         @media (min-width: 768px) {
@@ -36,9 +34,9 @@
         canvas { width: 100%; height: 100%; object-fit: contain; touch-action: none; }
 
         #editor-container {
-            position: relative; background: #1a1a1a;
+            position: relative; background: #0d0d0d;
             display: flex; flex-direction: column; overflow: hidden;
-            border-top: 1px solid #333;
+            border-top: 1px solid #222;
         }
 
         #code-area { position: relative; flex-grow: 1; overflow: hidden; }
@@ -48,34 +46,31 @@
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
             border: none; outline: none;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace !important;
+            font-family: inherit !important;
             font-size: 14px !important;
-            line-height: 20px !important; 
+            line-height: 22px !important; 
             tab-size: 4; white-space: pre;
             overflow-wrap: normal; box-sizing: border-box;
-            letter-spacing: normal; word-spacing: normal;
         }
 
         #editing {
             z-index: 1; color: transparent; background: transparent;
-            caret-color: #3b82f6; resize: none;
+            caret-color: #60a5fa; resize: none;
             -webkit-text-fill-color: transparent; overflow: auto;
         }
 
-        #highlighting { z-index: 0; pointer-events: none; overflow: hidden; background: #1a1a1a; }
+        #highlighting { z-index: 0; pointer-events: none; overflow: hidden; background: #0d0d0d; }
 
         code[class*="language-"], pre[class*="language-"] {
-            font-family: inherit !important;
-            font-size: inherit !important;
-            line-height: inherit !important;
+            font-family: inherit !important; font-size: inherit !important; line-height: inherit !important;
         }
 
         #error-log {
             position: absolute; bottom: 0; left: 0; right: 0;
-            background: rgba(127, 29, 29, 0.95); color: #fecaca;
-            padding: 12px; font-size: 12px; max-height: 30%;
+            background: rgba(40, 0, 0, 0.95); color: #fca5a5;
+            padding: 15px; font-size: 11px; max-height: 40%;
             overflow-y: auto; display: none; z-index: 50;
-            font-family: monospace; border-top: 2px solid #ef4444;
+            border-top: 1px solid #7f1d1d;
         }
 
         .ui-overlay {
@@ -84,114 +79,66 @@
         }
 
         .btn {
-            background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(8px);
+            background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1); color: #fff;
-            padding: 8px 12px; border-radius: 6px; font-size: 11px;
-            cursor: pointer; transition: 0.2s; text-transform: uppercase;
-            font-weight: bold;
+            padding: 10px 14px; border-radius: 8px; font-size: 11px;
+            cursor: pointer; transition: 0.2s; font-weight: 600;
         }
-        .btn:hover { background: #3b82f6; border-color: #3b82f6; }
-        .btn-slots { border-color: #f59e0b; color: #fbbf24; }
+        .btn:hover { background: #2563eb; border-color: #60a5fa; }
 
-        .status-badge {
-            position: absolute; bottom: 12px; left: 12px;
-            padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;
-        }
-
-        /* Painel de Slots */
         #slots-panel {
             position: fixed; top: 0; right: -100%; width: 320px; height: 100%;
-            background: #121212; border-left: 1px solid #333; z-index: 300;
+            background: #0a0a0a; border-left: 1px solid #222; z-index: 300;
             transition: right 0.3s ease; display: flex; flex-direction: column;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
         }
         #slots-panel.open { right: 0; }
         
-        .slots-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .slots-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        
         .slot-item {
-            background: #1a1a1a; border: 1px solid #333; margin-bottom: 10px;
-            border-radius: 8px; padding: 12px; display: flex; flex-direction: column;
-            gap: 10px; transition: 0.2s;
+            background: #121212; border: 1px solid #222; margin-bottom: 8px;
+            border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
         }
-        .slot-item:hover { border-color: #444; }
-        
-        .slot-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-        
-        .slot-name-input {
-            background: transparent; border: 1px solid transparent; color: #fbbf24;
-            font-size: 12px; font-weight: bold; width: 100%; padding: 2px 4px;
-            border-radius: 4px; outline: none;
-        }
-        .slot-name-input:focus { background: #222; border-color: #444; }
-        
-        .slot-date { font-size: 9px; color: #666; margin-top: 2px; display: block; }
-        
-        .slot-actions { display: flex; gap: 8px; margin-top: 4px; }
-        
-        .btn-mini { 
-            flex: 1; padding: 6px; font-size: 10px; border-radius: 4px; 
-            border: 1px solid #444; color: #ccc; cursor: pointer; 
-            text-transform: uppercase; font-weight: bold; text-align: center;
-        }
-        .btn-mini-save { border-color: #166534; color: #4ade80; }
-        .btn-mini-load { border-color: #1e40af; color: #60a5fa; }
-        .btn-mini-save:hover { background: rgba(22, 101, 52, 0.2); }
-        .btn-mini-load:hover { background: rgba(30, 64, 175, 0.2); }
 
-        /* Notificação Toast */
+        .slot-name-input { background: transparent; border: none; color: #fbbf24; font-weight: bold; width: 100%; outline: none; }
+        
         #toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #22c55e; color: white; padding: 10px 20px;
-            border-radius: 20px; font-size: 13px; font-weight: bold;
-            z-index: 400; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-
-        #overlay-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 250; display: none;
+            background: #059669; color: white; padding: 12px 24px;
+            border-radius: 30px; font-size: 13px; font-weight: bold;
+            z-index: 500; display: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
     </style>
 </head>
 <body id="body-root">
 
-<div id="toast">Operação concluída!</div>
-<div id="overlay-screen" onclick="toggleSlots()"></div>
+<div id="toast">Pronto!</div>
+<div id="overlay-screen" class="fixed inset-0 bg-black/60 z-[250] hidden" onclick="toggleSlots()"></div>
 
-<!-- Painel Lateral de Slots -->
 <div id="slots-panel">
-    <div class="slots-header">
-        <span class="font-bold text-sm tracking-widest uppercase">Memória (50 Slots)</span>
+    <div class="p-4 border-b border-white/10 flex justify-between items-center">
+        <span class="text-xs font-black tracking-widest uppercase text-zinc-500">Memória (50 Slots)</span>
         <button onclick="toggleSlots()" class="text-zinc-500 hover:text-white text-xl">✕</button>
     </div>
-    <div class="slots-list" id="slots-list">
-        <!-- Slots gerados via JS -->
-    </div>
+    <div class="flex-grow overflow-y-auto p-4" id="slots-list"></div>
 </div>
 
 <div class="app-container" id="app-root">
-    <!-- Visualização -->
     <div id="canvas-container">
         <canvas id="gl-canvas"></canvas>
         <div class="ui-overlay">
-            <button class="btn btn-slots" onclick="toggleSlots()">Slots de Memória</button>
-            <div class="h-1 opacity-20 bg-white my-1"></div>
+            <button class="btn border-amber-500/50 text-amber-500" onclick="toggleSlots()">Slots de Memória</button>
+            <div class="h-px bg-white/10 my-1"></div>
             <button class="btn" onclick="togglePlay()" id="btn-play">Pausar</button>
             <button class="btn" onclick="handleFullscreen()" id="btn-fs">Resultado</button>
-            <button class="btn" onclick="resetTime()">Reiniciar Tempo</button>
+            <button class="btn" onclick="resetTime()">Reset Tempo</button>
             <button class="btn" onclick="copyCode()">Copiar</button>
         </div>
-        <div id="status" class="status-badge bg-blue-600 text-white">Pronto</div>
     </div>
 
-    <!-- Editor -->
     <div id="editor-container">
-        <div class="flex items-center justify-between px-4 py-2 bg-[#121212] border-b border-white/10">
-            <span class="text-[10px] text-zinc-500 font-mono font-bold tracking-widest uppercase">Editor GLSL</span>
+        <div class="flex items-center justify-between px-4 py-2 bg-black border-b border-white/5">
+            <span id="gl-version-label" class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">Iniciando...</span>
             <span id="cursor-pos" class="text-[10px] text-zinc-500 font-mono">Linha 1, Col 1</span>
         </div>
-        
         <div id="code-area">
             <pre id="highlighting" aria-hidden="true"><code class="language-glsl" id="highlighting-content"></code></pre>
             <textarea id="editing" spellcheck="false" 
@@ -208,11 +155,13 @@
 <script>
     const canvas = document.getElementById('gl-canvas');
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    const isWebGL2 = gl instanceof WebGL2RenderingContext;
+    
+    document.getElementById('gl-version-label').textContent = isWebGL2 ? "WebGL 2.0 (Core)" : "WebGL 1.0 (Legacy Mode)";
+
     const editing = document.getElementById('editing');
-    const highlighting = document.getElementById('highlighting');
     const highlightingContent = document.getElementById('highlighting-content');
     const errorLog = document.getElementById('error-log');
-    const statusBadge = document.getElementById('status');
     const cursorPos = document.getElementById('cursor-pos');
     const btnPlay = document.getElementById('btn-play');
     const btnFs = document.getElementById('btn-fs');
@@ -230,15 +179,20 @@
     let isPaused = false;
     let mouseX = 0, mouseY = 0;
 
-    const initialCode = `vec2 p=abs(FC.xy/r-.5);
-o=p.xyxy/p.yxyx/vec4(3,6,9,1);
-o=tanh(o+.1*length(o));`;
+    const initialCode = `vec2 u=FC.xy/r.y*PI;
+vec3 c=vec3(sin(u.x+vec2(0,11))*sin(u.y),cos(u.y)),a=vec3(0.),
+v=mix(dot(a+=.57,c)*a,c,sin(t))+cos(t)*cross(a,c);
+o.rgb=tanh(.1/abs(tan(v/.1)));`;
 
-    // Wrapper inteligente para snippets curtos
     function wrapShader(code) {
         if (code.includes('void main')) return code;
-        const isWebGL2 = gl instanceof WebGL2RenderingContext;
-        
+
+        // Pré-correção do snippet: garante que 'a' seja inicializado se declarado como vec3 c, a, v
+        // Isso resolve o erro 'a' uninitialized que snippets de golf costumam ter
+        let fixedCode = code.replace(/vec3\s+([^;]+,)\s*a\s*(,[^;]+|;)/g, (match, p1, p2) => {
+            return `vec3 ${p1} a=vec3(0.0)${p2}`;
+        });
+
         const header = isWebGL2 ? `#version 300 es
             precision highp float;
             uniform vec2 u_resolution;
@@ -250,6 +204,7 @@ o=tanh(o+.1*length(o));`;
             #define t u_time
             #define m u_mouse
             #define o outColor
+            #define PI 3.14159265359
         ` : `
             precision highp float;
             uniform vec2 u_resolution;
@@ -260,15 +215,18 @@ o=tanh(o+.1*length(o));`;
             #define t u_time
             #define m u_mouse
             #define o gl_FragColor
+            #define PI 3.14159265359
+            float tanh(float x) { float e=exp(2.0*x); return (e-1.0)/(e+1.0); }
+            vec2 tanh(vec2 x) { vec2 e=exp(2.0*x); return (e-1.0)/(e+1.0); }
+            vec3 tanh(vec3 x) { vec3 e=exp(2.0*x); return (e-1.0)/(e+1.0); }
             vec4 tanh(vec4 x) { vec4 e=exp(2.0*x); return (e-1.0)/(e+1.0); }
         `;
 
-        return `${header}\nvoid main() {\n${code}\n}`;
+        return `${header}\nvoid main() {\n    o = vec4(0.0, 0.0, 0.0, 1.0);\n    ${fixedCode}\n    ${isWebGL2 ? '' : 'gl_FragColor = o;'}\n}`;
     }
 
     function initGL(userInput) {
         try {
-            const isWebGL2 = gl instanceof WebGL2RenderingContext;
             const fragmentSource = wrapShader(userInput);
             const vertexSource = isWebGL2 ? 
                 `#version 300 es\nin vec4 position; void main() { gl_Position = position; }` : 
@@ -282,14 +240,10 @@ o=tanh(o+.1*length(o));`;
             gl.attachShader(newProgram, fs);
             gl.linkProgram(newProgram);
 
-            if (!gl.getProgramParameter(newProgram, gl.LINK_STATUS)) {
-                throw new Error(gl.getProgramInfoLog(newProgram));
-            }
+            if (!gl.getProgramParameter(newProgram, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(newProgram));
 
             program = newProgram;
             errorLog.style.display = 'none';
-            statusBadge.textContent = 'Ativo';
-            statusBadge.className = 'status-badge bg-green-600 text-white';
 
             positionBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -314,8 +268,6 @@ o=tanh(o+.1*length(o));`;
     function showError(msg) {
         errorLog.textContent = msg;
         errorLog.style.display = 'block';
-        statusBadge.textContent = 'Erro';
-        statusBadge.className = 'status-badge bg-red-600 text-white';
     }
 
     function render() {
@@ -324,23 +276,19 @@ o=tanh(o+.1*length(o));`;
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.useProgram(program);
-
+        gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), canvas.width, canvas.height);
+        gl.uniform1f(gl.getUniformLocation(program, "u_time"), (Date.now() - startTime) / 1000.0);
+        gl.uniform2f(gl.getUniformLocation(program, "u_mouse"), mouseX, mouseY);
         const posLoc = gl.getAttribLocation(program, "position");
         gl.enableVertexAttribArray(posLoc);
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-        gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), canvas.width, canvas.height);
-        gl.uniform1f(gl.getUniformLocation(program, "u_time"), (Date.now() - startTime) / 1000.0);
-        gl.uniform2f(gl.getUniformLocation(program, "u_mouse"), mouseX, mouseY);
-
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         requestAnimationFrame(render);
     }
 
     function resizeCanvas() {
-        const w = canvasContainer.clientWidth;
-        const h = canvasContainer.clientHeight;
+        const w = canvasContainer.clientWidth, h = canvasContainer.clientHeight;
         if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     }
 
@@ -358,159 +306,90 @@ o=tanh(o+.1*length(o));`;
     function handleKey(e) {
         if (e.key === 'Tab') {
             e.preventDefault();
-            const start = editing.selectionStart;
-            const end = editing.selectionEnd;
-            editing.value = editing.value.substring(0, start) + "    " + editing.value.substring(end);
-            editing.selectionStart = editing.selectionEnd = start + 4;
+            const s = editing.selectionStart, end = editing.selectionEnd;
+            editing.value = editing.value.substring(0, s) + "    " + editing.value.substring(end);
+            editing.selectionStart = editing.selectionEnd = s + 4;
             updateEditor(editing.value);
         }
     }
 
     function updateCursorInfo() {
         setTimeout(() => {
-            const textBefore = editing.value.substring(0, editing.selectionStart);
-            const lines = textBefore.split('\n');
+            const lines = editing.value.substring(0, editing.selectionStart).split('\n');
             cursorPos.textContent = `Linha ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
         }, 10);
     }
 
-    // --- Sistema de Slots com Renomeação ---
-
     function toggleSlots() {
         const isOpen = slotsPanel.classList.toggle('open');
-        overlayScreen.style.display = isOpen ? 'block' : 'none';
+        overlayScreen.classList.toggle('hidden', !isOpen);
         if (isOpen) renderSlots();
     }
 
     function renderSlots() {
         slotsList.innerHTML = '';
-        const savedData = JSON.parse(localStorage.getItem('glsl_mem_slots') || '{}');
-        
+        const saved = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
         for (let i = 1; i <= 50; i++) {
-            const slot = savedData[i];
-            const item = document.createElement('div');
-            item.className = 'slot-item';
-            
-            const slotTitle = slot && slot.name ? slot.name : `Slot #${String(i).padStart(2, '0')}`;
-            
-            item.innerHTML = `
-                <div class="slot-top">
-                    <input type="text" class="slot-name-input" value="${slotTitle}" 
-                        onblur="renameSlot(${i}, this.value)" 
-                        onkeydown="if(event.key==='Enter') this.blur()"
-                        placeholder="Nome do Slot">
-                </div>
-                <span class="slot-date">${slot ? slot.date : 'Vazio'}</span>
-                <div class="slot-actions">
-                    <button class="btn-mini btn-mini-save" onclick="saveSlot(${i})">Gravar</button>
-                    <button class="btn-mini btn-mini-load" onclick="loadSlot(${i})" ${!slot ? 'style="opacity:0.3" disabled' : ''}>Ler</button>
-                </div>
-            `;
-            
-            slotsList.appendChild(item);
+            const s = saved[i], div = document.createElement('div');
+            div.className = 'slot-item';
+            div.innerHTML = `
+                <input type="text" class="slot-name-input" value="${s?.name || 'Slot #'+i}" onblur="renameSlot(${i}, this.value)">
+                <span class="text-[9px] text-zinc-600">${s?.date || 'Vazio'}</span>
+                <div class="flex gap-2 mt-2">
+                    <button class="flex-1 py-1 text-[9px] border border-green-900 text-green-500 rounded font-bold uppercase" onclick="saveSlot(${i})">Gravar</button>
+                    <button class="flex-1 py-1 text-[9px] border border-blue-900 text-blue-500 rounded font-bold uppercase ${!s?'opacity-20':''}" onclick="loadSlot(${i})" ${!s?'disabled':''}>Ler</button>
+                </div>`;
+            slotsList.appendChild(div);
         }
     }
 
-    function renameSlot(id, newName) {
-        const savedData = JSON.parse(localStorage.getItem('glsl_mem_slots') || '{}');
-        const trimmedName = newName.trim();
-        
-        if (!savedData[id]) {
-            // Se o slot estiver vazio, apenas criamos a estrutura básica com o nome
-            savedData[id] = { code: "", date: "Sem dados", name: trimmedName || `Slot #${String(id).padStart(2, '0')}` };
-        } else {
-            savedData[id].name = trimmedName || `Slot #${String(id).padStart(2, '0')}`;
-        }
-        
-        localStorage.setItem('glsl_mem_slots', JSON.stringify(savedData));
-        showToast(`Nome do Slot ${id} atualizado!`);
+    function renameSlot(id, name) {
+        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        if(!data[id]) data[id] = { code: "", date: "---", name: name };
+        else data[id].name = name;
+        localStorage.setItem('glsl_slots_v2', JSON.stringify(data));
+        showToast("Slot renomeado");
     }
 
     function saveSlot(id) {
-        const savedData = JSON.parse(localStorage.getItem('glsl_mem_slots') || '{}');
-        const currentName = document.querySelectorAll('.slot-name-input')[id-1].value;
-        
-        savedData[id] = {
-            code: editing.value,
-            date: new Date().toLocaleString('pt-PT'),
-            name: currentName.trim() || `Slot #${String(id).padStart(2, '0')}`
-        };
-        
-        localStorage.setItem('glsl_mem_slots', JSON.stringify(savedData));
-        showToast(`Conteúdo guardado no Slot ${id}!`);
+        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const name = document.querySelectorAll('.slot-name-input')[id-1].value;
+        data[id] = { code: editing.value, date: new Date().toLocaleString(), name: name };
+        localStorage.setItem('glsl_slots_v2', JSON.stringify(data));
+        showToast(`Slot ${id} guardado`);
         renderSlots();
     }
 
     function loadSlot(id) {
-        const savedData = JSON.parse(localStorage.getItem('glsl_mem_slots') || '{}');
-        const slot = savedData[id];
-        if (slot && slot.code) {
-            editing.value = slot.code;
-            updateEditor(slot.code);
-            showToast(`Código carregado do Slot ${id}!`);
-            toggleSlots();
+        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        if(data[id]) { 
+            editing.value = data[id].code; 
+            updateEditor(editing.value); 
+            toggleSlots(); 
+            showToast("Código carregado"); 
         }
     }
 
-    function showToast(msg) {
-        toast.textContent = msg;
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 2000);
-    }
+    function showToast(m) { toast.textContent = m; toast.style.display = 'block'; setTimeout(()=>toast.style.display='none', 2000); }
 
-    // --- Controles de Playback ---
-
-    function togglePlay() {
-        isPaused = !isPaused;
-        btnPlay.textContent = isPaused ? 'Retomar' : 'Pausar';
-        if (!isPaused) startTime = Date.now() - pausedTime;
-        else pausedTime = Date.now() - startTime;
-    }
+    function togglePlay() { isPaused = !isPaused; btnPlay.textContent = isPaused ? 'Retomar' : 'Pausar'; if (!isPaused) startTime = Date.now() - pausedTime; else pausedTime = Date.now() - startTime; }
 
     function handleFullscreen() {
-        const isPseudo = bodyRoot.classList.contains('is-fullscreen');
-        if (document.fullscreenElement || isPseudo) {
-            if (document.fullscreenElement) document.exitFullscreen();
-            else { bodyRoot.classList.remove('is-fullscreen'); btnFs.textContent = 'Resultado'; }
-        } else {
-            canvasContainer.requestFullscreen().catch(() => {
-                bodyRoot.classList.add('is-fullscreen');
-                btnFs.textContent = 'Sair';
-            });
-        }
-        setTimeout(resizeCanvas, 100);
-    }
-
-    const handleInput = (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        mouseX = clientX - rect.left;
-        mouseY = rect.height - (clientY - rect.top);
-    };
-
-    canvas.addEventListener('mousemove', handleInput);
-    canvas.addEventListener('touchmove', (e) => { handleInput(e); e.preventDefault(); }, { passive: false });
-
-    function resetTime() { startTime = Date.now(); pausedTime = 0; }
-    function copyCode() {
-        editing.select();
-        document.execCommand('copy');
-        showToast("Copiado!");
+        if (!document.fullscreenElement) canvasContainer.requestFullscreen().catch(()=>bodyRoot.classList.add('is-fullscreen'));
+        else document.exitFullscreen();
     }
 
     document.addEventListener('fullscreenchange', () => {
-        const isFs = !!document.fullscreenElement;
-        bodyRoot.classList.toggle('is-fullscreen', isFs);
-        btnFs.textContent = isFs ? 'Sair' : 'Resultado';
+        const fs = !!document.fullscreenElement;
+        bodyRoot.classList.toggle('is-fullscreen', fs);
+        btnFs.textContent = fs ? 'Sair' : 'Resultado';
         setTimeout(resizeCanvas, 100);
     });
 
-    window.onload = () => {
-        editing.value = initialCode;
-        updateEditor(initialCode);
-        render();
-    };
+    canvas.addEventListener('mousemove', e => { const r = canvas.getBoundingClientRect(); mouseX = e.clientX - r.left; mouseY = r.height - (e.clientY - r.top); });
+    canvas.addEventListener('touchmove', e => { const r = canvas.getBoundingClientRect(); mouseX = e.touches[0].clientX - r.left; mouseY = r.height - (e.touches[0].clientY - r.top); e.preventDefault(); }, {passive: false});
+
+    window.onload = () => { editing.value = initialCode; updateEditor(initialCode); render(); };
 </script>
 </body>
 </html>
