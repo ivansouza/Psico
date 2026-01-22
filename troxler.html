@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ilusão de Troxler - Three.js</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #808080; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        /* Container de Controles */
+        #controls-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        /* Estilização do Slider */
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            cursor: pointer;
+            width: 100px;
+            accent-color: #00ff00;
+        }
+
+        /* Botão de Engrenagem */
+        #settings-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        #settings-btn:hover {
+            background: rgba(0, 0, 0, 0.6);
+            transform: rotate(45deg);
+        }
+
+        #settings-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* Janela de Instruções (Modal) */
+        #instructions-panel {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 280px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            display: none; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            z-index: 99;
+            font-size: 14px;
+            line-height: 1.4;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #instructions-panel.active {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+    <!-- Painel de Instruções -->
+    <div id="instructions-panel">
+        <strong style="display: block; margin-bottom: 5px;">Como observar:</strong>
+        Fixe o olhar no <strong>ponto verde central</strong> sem piscar. 
+        <br><br>
+        Em alguns segundos, os círculos amarelos e a grade vermelha começarão a desvanecer até desaparecerem completamente da sua percepção periférica.
+    </div>
+
+    <!-- Container de Controles Inferior -->
+    <div id="controls-container">
+        <!-- Slider de Velocidade -->
+        <div class="slider-wrapper">
+            <span>Velocidade</span>
+            <input type="range" id="speed-slider" min="0" max="100" value="30">
+        </div>
+
+        <!-- Botão Engrenagem -->
+        <div id="settings-btn" title="Instruções">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L13.4,2.81c-0.05-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L8.25,5.35C7.66,5.59,7.13,5.92,6.63,6.29l-2.39-0.96c-0.22-0.08-0.47,0-0.59,0.22L1.74,8.87 c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58C3.84,11.36,3.82,11.68,3.82,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.11-0.2,0.06-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        /**
+         * CONFIGURAÇÕES E ESTADO
+         */
+        const CONFIG = {
+            bgColor: 0x808080,
+            dotSize: 18,           
+            rotationSpeed: 0.0003,
+            crossThickness: 1.5,
+            crossSize: 6
+        };
+
+        let currentRotationFactor = 0.0003; 
+
+        /**
+         * LÓGICA DE INTERFACE
+         */
+        const settingsBtn = document.getElementById('settings-btn');
+        const instructionsPanel = document.getElementById('instructions-panel');
+        const speedSlider = document.getElementById('speed-slider');
+
+        settingsBtn.addEventListener('click', (e) => {
+            instructionsPanel.classList.toggle('active');
+            e.stopPropagation();
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            currentRotationFactor = e.target.value / 10000; 
+        });
+
+        speedSlider.addEventListener('click', (e) => e.stopPropagation());
+
+        document.addEventListener('click', () => {
+            instructionsPanel.classList.remove('active');
+        });
+
+        /**
+         * SETUP THREE.JS
+         */
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(CONFIG.bgColor);
+
+        const camera = new THREE.OrthographicCamera(
+            window.innerWidth / -2, window.innerWidth / 2, 
+            window.innerHeight / 2, window.innerHeight / -2, 
+            1, 1000
+        );
+        camera.position.z = 10;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        function createSoftCircleTexture(colorStr) {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            gradient.addColorStop(0, colorStr);
+            gradient.addColorStop(0.4, colorStr);
+            gradient.addColorStop(1, 'rgba(128, 128, 128, 0)');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const yellowTexture = createSoftCircleTexture('rgba(255, 255, 0, 0.7)');
+        const greenTexture = createSoftCircleTexture('rgba(0, 255, 0, 1)');
+
+        function createDot(texture, x, y, size) {
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, 0);
+            sprite.scale.set(size, size, 1);
+            scene.add(sprite);
+            return sprite;
+        }
+
+        // Ponto central - Agora com o mesmo tamanho dos amarelos
+        createDot(greenTexture, 0, 0, CONFIG.dotSize * 2);
+
+        // Pontos amarelos - Mais afastados (distance = 180)
+        const distance = 180; 
+        createDot(yellowTexture, 0, distance, CONFIG.dotSize * 2);
+        createDot(yellowTexture, -distance * 0.86, -distance * 0.5, CONFIG.dotSize * 2);
+        createDot(yellowTexture, distance * 0.86, -distance * 0.5, CONFIG.dotSize * 2);
+
+        /**
+         * GRADE DE CRUZES
+         */
+        const crossGroup = new THREE.Group();
+        scene.add(crossGroup);
+
+        const crossMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xaa0000, 
+            transparent: true, 
+            opacity: 0.35 
+        });
+
+        const geomH = new THREE.PlaneGeometry(CONFIG.crossSize * 2, CONFIG.crossThickness);
+        const geomV = new THREE.PlaneGeometry(CONFIG.crossThickness, CONFIG.crossSize * 2);
+
+        function createCross(x, y) {
+            const meshH = new THREE.Mesh(geomH, crossMaterial);
+            const meshV = new THREE.Mesh(geomV, crossMaterial);
+            const container = new THREE.Group();
+            container.add(meshH);
+            container.add(meshV);
+            container.position.set(x, y, -1);
+            crossGroup.add(container);
+        }
+
+        const spacing = 40;
+        const limit = 20; 
+        for (let i = -limit; i <= limit; i++) {
+            for (let j = -limit; j <= limit; j++) {
+                createCross(i * spacing, j * spacing);
+            }
+        }
+        crossGroup.rotation.z = Math.PI / 8;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            crossGroup.rotation.z += currentRotationFactor;
+            renderer.render(scene, camera);
+        }
+
+        window.onload = animate;
+
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.left = w / -2;
+            camera.right = w / 2;
+            camera.top = h / 2;
+            camera.bottom = h / -2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+    </script>
+</body>
+</html>
+
