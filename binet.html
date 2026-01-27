@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora Fibonacci - Fórmula de Binet</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- KaTeX para renderização de fórmulas matemáticas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+  <header class="max-w-2xl w-full text-center mb-8">
+    <h1 class="text-4xl font-bold text-slate-800 mb-4 tracking-tight">Fórmula de Binet</h1>
+    <p class="text-slate-600 leading-relaxed mb-6">
+      A fórmula de Binet permite encontrar o n-ésimo termo da sequência de Fibonacci de forma direta.
+    </p>
+    
+    <!-- Renderização LaTeX Principal -->
+    <div class="p-6 bg-white rounded-2xl shadow-sm border border-slate-200 inline-block">
+      <div class="text-2xl text-slate-800">
+        $$F_n = \frac{\phi^n - \psi^n}{\sqrt{5}}$$
+      </div>
+      <div class="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-500 border-t pt-4">
+        <div>$$\phi = \frac{1 + \sqrt{5}}{2}$$</div>
+        <div>$$\psi = \frac{1 - \sqrt{5}}{2}$$</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl w-full space-y-6">
+    <!-- Input Card -->
+    <div class="glass-card p-6 rounded-2xl shadow-xl border border-slate-100">
+      <div class="flex flex-col space-y-4">
+        <label for="n-input" class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Índice da Sequência ($n$)</label>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input 
+            type="number" 
+            id="n-input" 
+            min="0" 
+            max="1474" 
+            value="10"
+            class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-lg font-semibold text-slate-800"
+          >
+          <button 
+            onclick="processCalculation()"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg shadow-blue-200"
+          >
+            Calcular
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Display -->
+    <div id="result-container" class="hidden space-y-6">
+      <div class="glass-card p-8 rounded-2xl shadow-lg border border-slate-100 relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4">
+            <button onclick="copyToClipboard()" class="text-slate-400 hover:text-blue-600 transition-colors" title="Copiar Resultado">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                </svg>
+            </button>
+        </div>
+        
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Resultado para $F_{n}$</h3>
+        <div id="fib-value" class="text-4xl md:text-5xl font-bold text-blue-600 break-all mb-6"></div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span class="block text-slate-500 mb-1">Cálculo Preciso:</span>
+            <span id="float-val" class="mono font-medium text-slate-700"></span>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span class="block text-slate-500 mb-1">Estado de Precisão:</span>
+            <span id="precision-status" class="font-medium"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sequence list -->
+      <div class="glass-card p-6 rounded-2xl shadow-md border border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">Sequência de Fibonacci até $n$</h3>
+        <div id="sequence-list" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2">
+            <!-- Gerado via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Box -->
+    <div id="error-message" class="hidden p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 font-medium"></div>
+
+    <!-- Info Section -->
+    <section id="info-section" class="mt-12 text-slate-600 text-sm leading-relaxed space-y-6 pb-12 border-t pt-8">
+        <div>
+            <h2 class="text-lg font-bold text-slate-800 mb-4">A Lógica Matemática</h2>
+            <p class="mb-4">
+                Definida de forma recursiva pela relação:
+                $$F_n = F_{n-1} + F_{n-2}$$
+                com os valores iniciais $F_0 = 0$ e $F_1 = 1$.
+            </p>
+            <p class="mb-4">
+                A fórmula de Binet fornece uma solução analítica para esta recorrência. Ela utiliza a <strong>Proporção Áurea</strong> ($\phi$), que é a raiz positiva da equação $x^2 - x - 1 = 0$:
+                $$\phi = \frac{1 + \sqrt{5}}{2} \approx 1,6180339887...$$
+            </p>
+            <p class="mb-4">
+                Como o valor absoluto da base conjugada $|\psi| = |(1 - \sqrt{5})/2| \approx 0,618$ é inferior a $1$, o termo $\psi^n$ converge rapidamente para zero quando $n$ aumenta:
+                $$\lim_{n \to \infty} \psi^n = 0$$
+            </p>
+            <p class="mb-4">
+                Isto significa que, para qualquer $n \ge 0$, o n-ésimo número de Fibonacci pode ser encontrado simplesmente arredondando o seguinte cálculo para o inteiro mais próximo:
+                $$F_n = \text{round}\left( \frac{\phi^n}{\sqrt{5}} \right)$$
+            </p>
+        </div>
+        <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-blue-800">
+            <strong>Nota Computacional:</strong> Em JavaScript, a precisão total para inteiros é mantida até $n = 78$. Para valores superiores, a calculadora utiliza notação científica de alta precisão para evitar erros de arredondamento visual.
+        </div>
+    </section>
+  </main>
+
+  <footer class="mt-auto py-6 text-slate-400 text-xs text-center">
+    Renderizado com KaTeX & Tailwind • 2026
+  </footer>
+
+  <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-medium opacity-0 pointer-events-none transition-all duration-300 shadow-2xl">
+    Copiado!
+  </div>
+
+  <script>
+    const PHI = (1 + Math.sqrt(5)) / 2;
+    const PSI = (1 - Math.sqrt(5)) / 2;
+    const SQRT5 = Math.sqrt(5);
+
+    // Função de renderização robusta para KaTeX
+    function refreshMath() {
+        if (typeof renderMathInElement === 'function') {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false
+            });
+        }
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.opacity = '1';
+        toast.style.bottom = '32px';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.bottom = '24px';
+        }, 2000);
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('fib-value').innerText;
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = text;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        showToast("Valor copiado para a área de transferência!");
+    }
+
+    function generateSequence(n) {
+        if (n > 200) return `<div class="text-slate-400 italic p-2 text-center w-full">Sequência omitida para n > 200 para preservar o desempenho.</div>`;
+        
+        let seq = [BigInt(0)];
+        if (n > 0) seq.push(BigInt(1));
+        
+        for (let i = 2; i <= n; i++) {
+            seq.push(seq[i-1] + seq[i-2]);
+        }
+        
+        return seq.map((val, idx) => `
+            <div class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs shadow-sm flex items-center gap-2">
+                <span class="text-blue-500 font-bold">F<sub>${idx}</sub></span>
+                <span class="font-mono text-slate-700">${val.toString().length > 12 ? val.toString().slice(0, 10) + '...' : val.toString()}</span>
+            </div>
+        `).join('');
+    }
+
+    function processCalculation() {
+        const input = document.getElementById('n-input');
+        const container = document.getElementById('result-container');
+        const errorBox = document.getElementById('error-message');
+        
+        const n = parseInt(input.value);
+
+        if (isNaN(n) || n < 0) {
+            errorBox.innerText = "Introduza um índice válido (inteiro não negativo).";
+            errorBox.classList.remove('hidden');
+            container.classList.add('hidden');
+            return;
+        }
+
+        if (n > 1474) {
+            errorBox.innerText = "Limite excedido: o valor ultrapassa a capacidade de representação (Infinito).";
+            errorBox.classList.remove('hidden');
+            container.classList.add('hidden');
+            return;
+        }
+
+        errorBox.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        const exactResult = (Math.pow(PHI, n) - Math.pow(PSI, n)) / SQRT5;
+        const fibFinal = Math.round(exactResult);
+
+        document.getElementById('float-val').innerText = exactResult.toLocaleString('pt-PT', { maximumFractionDigits: 10 });
+        
+        const precisionStatus = document.getElementById('precision-status');
+        const fibDisplay = document.getElementById('fib-value');
+
+        if (n > 78) {
+            precisionStatus.innerText = "Aproximação Científica";
+            precisionStatus.className = "text-amber-500 font-semibold uppercase text-xs tracking-tighter";
+            fibDisplay.innerText = exactResult.toExponential(12).replace('e+', ' × 10^');
+            fibDisplay.classList.add('text-amber-600', 'text-2xl', 'md:text-3xl');
+            fibDisplay.classList.remove('text-blue-600', 'text-4xl', 'md:text-5xl');
+        } else {
+            precisionStatus.innerText = "Valor Exato";
+            precisionStatus.className = "text-emerald-500 font-semibold uppercase text-xs tracking-tighter";
+            fibDisplay.innerText = fibFinal.toLocaleString('pt-PT');
+            fibDisplay.classList.add('text-blue-600', 'text-4xl', 'md:text-5xl');
+            fibDisplay.classList.remove('text-amber-600', 'text-2xl', 'md:text-3xl');
+        }
+
+        document.getElementById('sequence-list').innerHTML = generateSequence(n);
+        
+        // Atualiza a matemática após renderizar novos elementos
+        refreshMath();
+    }
+
+    window.onload = () => {
+        processCalculation();
+        refreshMath();
+    };
+  </script>
+</body>
+</html>
+
