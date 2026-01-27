@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Perception Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-grid: 
+                linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+        }
+
+        .bg-grid-pattern {
+            background-color: #eee;
+            background-image: var(--bg-grid);
+            background-size: 40px 40px;
+            background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+        }
+
+        .illusion-container {
+            transition: background 0.3s ease;
+            touch-action: none;
+        }
+
+        .square {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.1s ease, box-shadow 0.3s ease, border 0.3s ease;
+            cursor: grab;
+            border: 0px solid transparent;
+        }
+
+        .square:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+
+        /* Completely removing the emboss/relief effect in camouflage mode */
+        .square.camouflaged {
+            box-shadow: none !important; 
+            border: none !important;
+            outline: none !important;
+        }
+
+        .info-card {
+            backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-900">
+
+    <!-- Header -->
+    <header class="p-6 text-center">
+        <h1 class="text-3xl font-bold text-slate-800">Simultaneous Contrast Illusion</h1>
+        <p class="text-slate-600 mt-2">Observe how identical colors appear different depending on the context.</p>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center px-4 max-w-5xl mx-auto w-full">
+        
+        <!-- Playground -->
+        <div id="playground" class="illusion-container relative w-full h-80 rounded-2xl border-4 border-white shadow-2xl overflow-hidden mb-8 bg-[linear-gradient(to_right,#000,#fff)]">
+            
+            <div id="square" class="square absolute w-24 h-24 bg-[rgb(128,128,128)] rounded-lg z-20 flex items-center justify-center text-[10px] text-white/50 select-none">
+                DRAG ME
+            </div>
+
+            <!-- Comparison Square -->
+            <div id="compare-square" class="square absolute w-24 h-24 bg-[rgb(128,128,128)] rounded-lg z-10 hidden border-2 border-white/20"></div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-12">
+            
+            <!-- Appearance Settings -->
+            <div class="info-card p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="font-bold mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    Appearance
+                </h2>
+                
+                <div class="space-y-4">
+                    <div id="solid-control">
+                        <label class="text-sm font-medium text-slate-500 block mb-2">Static Tone (Grayscale)</label>
+                        <input type="range" id="grayScale" min="0" max="255" value="128" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="setBG('gradient')" class="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition shadow-sm font-medium">Gradient</button>
+                        <button onclick="setBG('split')" class="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition shadow-sm font-medium">Split</button>
+                        <button onclick="setBG('grid')" class="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition shadow-sm font-medium">Grid</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Perception Tools -->
+            <div class="info-card p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="font-bold mb-4 flex items-center text-indigo-600">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    Perception Effects
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                        <div>
+                            <span class="block text-sm font-bold text-indigo-900">Camouflage Mode</span>
+                            <span class="text-xs text-indigo-700 italic">Total invisibility at capture point.</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="toggleCamouflage" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:width-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-sm font-medium text-slate-700">Show Fixed Comparison</span>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="toggleCompare" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:width-5 after:transition-all peer-checked:bg-slate-600"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const square = document.getElementById('square');
+        const compareSquare = document.getElementById('compare-square');
+        const playground = document.getElementById('playground');
+        const grayScaleInput = document.getElementById('grayScale');
+        const toggleCompare = document.getElementById('toggleCompare');
+        const toggleCamouflage = document.getElementById('toggleCamouflage');
+        const solidControl = document.getElementById('solid-control');
+
+        let isDragging = false;
+        let offsetX, offsetY;
+        let currentBG = 'gradient';
+        let frozenCamouflageStyle = null;
+
+        function init() {
+            resetSquarePosition();
+            updateDisplay();
+        }
+
+        function resetSquarePosition() {
+            square.style.left = '50%';
+            square.style.top = '50%';
+            square.style.transform = 'translate(-50%, -50%)';
+            
+            compareSquare.style.left = '15%';
+            compareSquare.style.top = '50%';
+            compareSquare.style.transform = 'translate(-50%, -50%)';
+        }
+
+        function captureCamouflage() {
+            const pRect = playground.getBoundingClientRect();
+            const sRect = square.getBoundingClientRect();
+            
+            const leftPerc = (sRect.left - pRect.left) / pRect.width;
+            const rightPerc = (sRect.right - pRect.left) / pRect.width;
+
+            if (currentBG === 'gradient') {
+                const colorLeft = Math.floor(leftPerc * 255);
+                const colorRight = Math.floor(rightPerc * 255);
+                return `linear-gradient(to right, rgb(${colorLeft},${colorLeft},${colorLeft}), rgb(${colorRight},${colorRight},${colorRight}))`;
+            } else if (currentBG === 'split') {
+                const splitPoint = 0.5;
+                if (rightPerc < splitPoint) return 'black';
+                if (leftPerc > splitPoint) return 'white';
+                const mid = ((splitPoint - leftPerc) / (rightPerc - leftPerc)) * 100;
+                return `linear-gradient(to right, black ${mid}%, white ${mid}%)`;
+            } else {
+                return '#eee';
+            }
+        }
+
+        function updateDisplay() {
+            if (toggleCamouflage.checked) {
+                if (!frozenCamouflageStyle) {
+                    frozenCamouflageStyle = captureCamouflage();
+                }
+                square.style.background = frozenCamouflageStyle;
+                square.classList.add('camouflaged');
+                square.innerText = ""; 
+                solidControl.style.opacity = '0.3';
+                solidControl.style.pointerEvents = 'none';
+            } else {
+                frozenCamouflageStyle = null;
+                const val = grayScaleInput.value;
+                const color = `rgb(${val}, ${val}, ${val})`;
+                square.style.background = color;
+                square.classList.remove('camouflaged');
+                square.innerText = "DRAG ME";
+                solidControl.style.opacity = '1';
+                solidControl.style.pointerEvents = 'auto';
+            }
+
+            const valComp = grayScaleInput.value;
+            compareSquare.style.background = `rgb(${valComp}, ${valComp}, ${valComp})`;
+        }
+
+        function startDrag(e) {
+            isDragging = true;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const rect = square.getBoundingClientRect();
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+            
+            square.style.transform = 'none';
+        }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const pRect = playground.getBoundingClientRect();
+            let x = clientX - pRect.left - offsetX;
+            let y = clientY - pRect.top - offsetY;
+
+            x = Math.max(0, Math.min(x, pRect.width - square.offsetWidth));
+            y = Math.max(0, Math.min(y, pRect.height - square.offsetHeight));
+
+            square.style.left = `${x}px`;
+            square.style.top = `${y}px`;
+
+            updateDisplay();
+        }
+
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        function setBG(type) {
+            currentBG = type;
+            playground.classList.remove('bg-grid-pattern');
+            playground.style.background = '';
+            
+            if(type === 'gradient') {
+                playground.style.background = 'linear-gradient(to right, #000, #fff)';
+            } else if (type === 'split') {
+                playground.style.background = 'linear-gradient(to right, #000 50%, #fff 50%)';
+            } else {
+                playground.classList.add('bg-grid-pattern');
+            }
+            
+            if(toggleCamouflage.checked) {
+                resetSquarePosition();
+                frozenCamouflageStyle = null;
+            }
+            updateDisplay();
+        }
+
+        square.addEventListener('mousedown', startDrag);
+        square.addEventListener('touchstart', startDrag, {passive: false});
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('mouseup', stopDrag);
+        window.addEventListener('touchend', stopDrag);
+
+        grayScaleInput.addEventListener('input', updateDisplay);
+        
+        toggleCamouflage.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                resetSquarePosition();
+                frozenCamouflageStyle = null;
+            }
+            updateDisplay();
+        });
+
+        toggleCompare.addEventListener('change', (e) => {
+            compareSquare.classList.toggle('hidden', !e.target.checked);
+        });
+
+        init();
+    </script>
+</body>
+</html>
+
