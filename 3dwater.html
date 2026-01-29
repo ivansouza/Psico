@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Ripple - Orbit & Touch</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            user-select: none;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        #loading {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 100;
+            transition: opacity 0.5s;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div id="status-text">A configurar controlos 3D...</div>
+    </div>
+    
+    <div id="info">
+        <h1 style="margin:0; font-size: 1.2rem;">Água 3D Interativa</h1>
+        <p style="font-size: 0.8rem; opacity: 0.8;">Arraste para Rodar | Pinça/Roda para Zoom</p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.webgpu.js",
+                "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.webgpu.js",
+                "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.tsl.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { tslFn, uniform, uv, vec3, sin, time, float, mix, step } from 'three/tsl';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let renderer, scene, camera, mesh, controls;
+        let raycaster, pointerMesh;
+        
+        const uPointer = uniform(new THREE.Vector2(0.5, 0.5));
+        const mouseCoords = new THREE.Vector2(-1, -1);
+
+        async function init() {
+            try {
+                renderer = new THREE.WebGPURenderer({ antialias: true });
+                await renderer.init();
+                
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x010204);
+
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+                camera.position.set(0, 8, 12); // Vista angular para melhor percepção 3D
+
+                // Adicionar OrbitControls (Orbit, Zoom, Pinch)
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true; // Suaviza o movimento
+                controls.dampingFactor = 0.05;
+                controls.minDistance = 5;
+                controls.maxDistance = 25;
+
+                raycaster = new THREE.Raycaster();
+
+                // Material TSL
+                const material = new THREE.MeshBasicNodeMaterial({ side: THREE.DoubleSide });
+                
+                const waterEffect = tslFn(() => {
+                    const st = uv();
+                    const dist = st.distance(uPointer);
+                    
+                    const freq = 30.0;
+                    const speed = 5.0;
+                    const wave = sin(dist.mul(freq).sub(time.mul(speed))).mul(0.08);
+                    
+                    const radius = 0.5;
+                    const falloff = step(dist, radius).mul(float(1.0).sub(dist.div(radius)));
+                    const ripple = wave.mul(falloff);
+
+                    const colorDeep = vec3(0.01, 0.08, 0.2);
+                    const colorWave = vec3(0.0, 0.9, 1.0);
+                    
+                    return mix(colorDeep, colorWave, ripple.add(0.2));
+                });
+
+                material.colorNode = waterEffect();
+
+                // Plano da Água
+                const size = 20;
+                const geometry = new THREE.PlaneGeometry(size, size);
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.rotation.x = -Math.PI / 2; // Deitar o plano horizontalmente
+                scene.add(mesh);
+
+                // Remover loading
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading').remove(), 500);
+
+                window.addEventListener('resize', onWindowResize);
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerdown', onPointerMove);
+
+                renderer.setAnimationLoop(render);
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status-text').innerText = "Erro ao carregar WebGPU/WebGL.";
+            }
+        }
+
+        function onPointerMove(event) {
+            // Coordenadas normalizadas (-1 a +1) para o Raycaster
+            mouseCoords.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseCoords.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            updateRipplePosition();
+        }
+
+        function updateRipplePosition() {
+            if (!mesh) return;
+
+            raycaster.setFromCamera(mouseCoords, camera);
+            const intersects = raycaster.intersectObject(mesh);
+
+            if (intersects.length > 0) {
+                // Obtemos o ponto de intersecção e convertemos para UV (0 a 1)
+                // Como o plano tem 20 unidades e está centrado em 0,0:
+                const hitPoint = intersects[0].point;
+                const uvX = (hitPoint.x / 20) + 0.5;
+                const uvZ = (hitPoint.z / 20) + 0.5; // Usamos Z porque o plano foi rodado
+                
+                uPointer.value.set(uvX, uvZ);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function render() {
+            controls.update(); // Necessário para o damping das OrbitControls
+            
+            // Atualiza a intersecção mesmo se o rato não mexer (caso a câmara rode)
+            updateRipplePosition();
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
