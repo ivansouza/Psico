@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Water Ripple - Single File</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <h1>WebGPU Water</h1>
+        <p id="status">Iniciando WebGPU...</p>
+    </div>
+
+    <div id="instructions">Clique ou arraste para criar ondulações</div>
+
+    <div id="error" class="error-message">
+        Seu navegador não suporta WebGPU ou ele não está habilitado.<br>
+        Tente usar o Chrome ou Edge versão 113+.
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <!-- Importando gl-matrix para cálculos matemáticos de 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+
+    <script type="module">
+        // --- CONFIGURAÇÃO E SHADERS ---
+        
+        const GRID_SIZE = 512;
+
+        const shaderSource = `
+            struct Uniforms {
+                viewProjectionMatrix: mat4x4<f32>,
+                modelMatrix: mat4x4<f32>,
+                time: f32,
+                gridSize: f32,
+            };
+
+            @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+            @group(0) @binding(1) var textureSampler: sampler;
+            @group(0) @binding(2) var currTexture: texture_2d<f32>;
+
+            struct VertexOutput {
+                @builtin(position) position: vec4<f32>,
+                @location(0) uv: vec2<f32>,
+                @location(1) height: f32,
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                let x = f32(vertexIndex % u32(uniforms.gridSize));
+                let z = f32(vertexIndex / u32(uniforms.gridSize));
+                
+                let uv = vec2<f32>(x / (uniforms.gridSize - 1.0), z / (uniforms.gridSize - 1.0));
+                let heightData = textureLoad(currTexture, vec2<i32>(i32(x), i32(z)), 0);
+                let height = heightData.r * 5.0; // Escala da altura
+
+                let pos = vec4<f32>(
+                    (uv.x - 0.5) * 20.0, 
+                    height, 
+                    (uv.y - 0.5) * 20.0, 
+                    1.0
+                );
+
+                var output: VertexOutput;
+                output.position = uniforms.viewProjectionMatrix * uniforms.modelMatrix * pos;
+                output.uv = uv;
+                output.height = height;
+                return output;
+            }
+
+            @fragment
+            fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+                let baseColor = vec3<f32>(0.1, 0.4, 0.8);
+                let deepColor = vec3<f32>(0.02, 0.1, 0.2);
+                
+                // Simulação simples de sombreamento baseado na altura
+                let color = mix(deepColor, baseColor, input.height * 0.5 + 0.5);
+                
+                // Adiciona um brilho "refletivo"
+                let specular = pow(max(0.0, input.height), 2.0) * 0.5;
+                
+                return vec4<f32>(color + specular, 0.8);
+            }
+        `;
+
+        const computeShaderSource = `
+            @group(0) @binding(0) var prevTexture: texture_2d<f32>;
+            @group(0) @binding(1) var currTexture: texture_2d<f32>;
+            @group(0) @binding(2) var outTexture: texture_storage_2d<r32f, write>;
+
+            struct Config {
+                damping: f32,
+                dropPos: vec2<f32>,
+                dropRadius: f32,
+                dropStrength: f32,
+            };
+            @group(0) @binding(3) var<uniform> config: Config;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+                let size = textureDimensions(outTexture);
+                if (id.x >= size.x || id.y >= size.y) { return; }
+
+                let coords = vec2<i32>(i32(id.x), i32(id.y));
+
+                // Algoritmo de ondulação clássico
+                let val1 = textureLoad(currTexture, coords + vec2<i32>(1, 0), 0).r;
+                let val2 = textureLoad(currTexture, coords + vec2<i32>(-1, 0), 0).r;
+                let val3 = textureLoad(currTexture, coords + vec2<i32>(0, 1), 0).r;
+                let val4 = textureLoad(currTexture, coords + vec2<i32>(0, -1), 0).r;
+
+                var newValue = (val1 + val2 + val3 + val4) / 2.0 - textureLoad(prevTexture, coords, 0).r;
+                newValue = newValue * config.damping;
+
+                // Interação do mouse
+                let dist = distance(vec2<f32>(f32(id.x), f32(id.y)), config.dropPos);
+                if (dist < config.dropRadius) {
+                    newValue += config.dropStrength * (1.0 - dist / config.dropRadius);
+                }
+
+                textureStore(outTexture, coords, vec4<f32>(newValue, 0.0, 0.0, 0.0));
+            }
+        `;
+
+        async function init() {
+            if (!navigator.gpu) {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('status').innerText = 'Falha: WebGPU não suportado';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            const device = await adapter.requestDevice();
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('webgpu');
+
+            const devicePixelRatio = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * devicePixelRatio;
+            canvas.height = window.innerHeight * devicePixelRatio;
+
+            const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device,
+                format: presentationFormat,
+                alphaMode: 'premultiplied',
+            });
+
+            // --- TEXTURAS DE PING-PONG PARA A SIMULAÇÃO ---
+            const textureDesc = {
+                size: [GRID_SIZE, GRID_SIZE],
+                format: 'r32float',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST
+            };
+
+            let textures = [
+                device.createTexture(textureDesc),
+                device.createTexture(textureDesc),
+                device.createTexture(textureDesc)
+            ];
+
+            // --- PIPELINE DE COMPUTAÇÃO ---
+            const computeModule = device.createShaderModule({ code: computeShaderSource });
+            const computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: { module: computeModule, entryPoint: 'main' }
+            });
+
+            const configBuffer = device.createBuffer({
+                size: 32,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // --- PIPELINE DE RENDERIZAÇÃO ---
+            const renderModule = device.createShaderModule({ code: shaderSource });
+            const renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: { module: renderModule, entryPoint: 'vs_main' },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat, blend: {
+                        color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+                        alpha: { srcFactor: 'one', dstFactor: 'one' }
+                    }}]
+                },
+                primitive: { topology: 'point-list' } // Desenhando como pontos para simplificar o grid
+            });
+
+            const uniformBuffer = device.createBuffer({
+                size: 64 * 2 + 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+
+            // --- ESTADO DA CÂMERA E MOUSE ---
+            const viewMatrix = mat4.create();
+            const projectionMatrix = mat4.create();
+            const viewProjectionMatrix = mat4.create();
+            const modelMatrix = mat4.create();
+
+            let dropX = -100, dropY = -100, isMouseDown = false;
+
+            canvas.addEventListener('mousemove', (e) => {
+                dropX = (e.clientX / window.innerWidth) * GRID_SIZE;
+                dropY = (e.clientY / window.innerHeight) * GRID_SIZE;
+            });
+            canvas.addEventListener('mousedown', () => isMouseDown = true);
+            canvas.addEventListener('mouseup', () => isMouseDown = false);
+            canvas.addEventListener('touchstart', (e) => {
+                isMouseDown = true;
+                dropX = (e.touches[0].clientX / window.innerWidth) * GRID_SIZE;
+                dropY = (e.touches[0].clientY / window.innerHeight) * GRID_SIZE;
+            });
+            canvas.addEventListener('touchend', () => isMouseDown = false);
+
+            document.getElementById('status').innerText = 'WebGPU Ativo';
+
+            let step = 0;
+            function frame() {
+                const now = Date.now() / 1000;
+                
+                // 1. Atualizar Uniforms de Configuração (Computação)
+                const configData = new Float32Array([
+                    0.98,               // damping
+                    dropX, dropY,       // dropPos
+                    isMouseDown ? 15.0 : 0.0, // dropRadius
+                    0.5,                // dropStrength
+                    0, 0, 0             // padding
+                ]);
+                device.queue.writeBuffer(configBuffer, 0, configData);
+
+                // 2. Rodar Simulação (Compute Pass)
+                const commandEncoder = device.createCommandEncoder();
+                
+                const tPrev = textures[step % 3];
+                const tCurr = textures[(step + 1) % 3];
+                const tOut = textures[(step + 2) % 3];
+
+                const computeBindGroup = device.createBindGroup({
+                    layout: computePipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: tPrev.createView() },
+                        { binding: 1, resource: tCurr.createView() },
+                        { binding: 2, resource: tOut.createView() },
+                        { binding: 3, resource: { buffer: configBuffer } }
+                    ]
+                });
+
+                const computePass = commandEncoder.beginComputePass();
+                computePass.setPipeline(computePipeline);
+                computePass.setBindGroup(0, computeBindGroup);
+                computePass.dispatchWorkgroups(GRID_SIZE / 8, GRID_SIZE / 8);
+                computePass.end();
+
+                // 3. Renderizar (Render Pass)
+                mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 1000.0);
+                mat4.lookAt(viewMatrix, [0, 15, 20], [0, 0, 0], [0, 1, 0]);
+                mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
+                
+                device.queue.writeBuffer(uniformBuffer, 0, viewProjectionMatrix);
+                device.queue.writeBuffer(uniformBuffer, 64, modelMatrix);
+                device.queue.writeBuffer(uniformBuffer, 128, new Float32Array([now, GRID_SIZE]));
+
+                const renderBindGroup = device.createBindGroup({
+                    layout: renderPipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: uniformBuffer } },
+                        { binding: 1, resource: sampler },
+                        { binding: 2, resource: tOut.createView() }
+                    ]
+                });
+
+                const renderPass = commandEncoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: { r: 0, g: 0.05, b: 0.1, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }]
+                });
+                renderPass.setPipeline(renderPipeline);
+                renderPass.setBindGroup(0, renderBindGroup);
+                renderPass.draw(GRID_SIZE * GRID_SIZE);
+                renderPass.end();
+
+                device.queue.submit([commandEncoder.finish()]);
+                
+                step++;
+                requestAnimationFrame(frame);
+            }
+
+            requestAnimationFrame(frame);
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth * devicePixelRatio;
+                canvas.height = window.innerHeight * devicePixelRatio;
+                context.configure({
+                    device,
+                    format: presentationFormat,
+                    alphaMode: 'premultiplied',
+                });
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
