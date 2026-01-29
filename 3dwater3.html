@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Water - Estável</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; background: #000;
+            font-family: sans-serif;
+        }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            color: white; pointer-events: none;
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;
+        }
+        #error {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; color: #ff4444; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <b>WebGPU Water</b><br>
+        Toque e arraste para criar ondas.
+    </div>
+
+    <div id="error">
+        <h1>WebGPU não suportado</h1>
+        <p id="err-msg">O seu navegador ou hardware não suporta WebGPU.</p>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script type="module">
+        // --- CÓDIGO DOS SHADERS (ORIGINALMENTE EM ARQUIVOS .WGSL) ---
+        const shaderSource = `
+            struct Uniforms {
+                res: vec2<f32>,
+                mouse: vec2<f32>,
+                is_down: f32,
+                time: f32,
+            };
+
+            @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+            @group(0) @binding(1) var s: sampler;
+            @group(0) @binding(2) var texPrev: texture_2d<f32>;
+            @group(0) @binding(3) var texCurr: texture_2d<f32>;
+            @group(0) @binding(4) var texBg: texture_2d<f32>;
+
+            struct VOut {
+                @builtin(position) pos: vec4<f32>,
+                @location(0) uv: vec2<f32>,
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) idx: u32) -> VOut {
+                var p = array<vec2<f32>, 4>(vec2(-1,-1), vec2(1,-1), vec2(-1,1), vec2(1,1));
+                var u = array<vec2<f32>, 4>(vec2(0,1), vec2(1,1), vec2(0,0), vec2(1,0));
+                var o: VOut;
+                o.pos = vec4<f32>(p[idx], 0.0, 1.0);
+                o.uv = u[idx];
+                return o;
+            }
+
+            @fragment
+            fn fs_update(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
+                let dx = 1.0 / uniforms.res.x;
+                let dy = 1.0 / uniforms.res.y;
+                
+                let p_curr = textureSample(texCurr, s, uv).r;
+                let p_prev = textureSample(texPrev, s, uv).r;
+                
+                let n = textureSample(texCurr, s, uv + vec2(0, dy)).r;
+                let s_ = textureSample(texCurr, s, uv - vec2(0, dy)).r;
+                let e = textureSample(texCurr, s, uv + vec2(dx, 0)).r;
+                let w = textureSample(texCurr, s, uv - vec2(dx, 0)).r;
+                
+                var h = (n + s_ + e + w) * 0.5 - p_prev;
+                h *= 0.98;
+
+                if (uniforms.is_down > 0.5) {
+                    let d = distance(uv * uniforms.res, uniforms.mouse);
+                    if (d < 15.0) { h = 0.5; }
+                }
+
+                return vec4<f32>(h, 0, 0, 1);
+            }
+
+            @fragment
+            fn fs_render(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
+                let dx = 1.0 / uniforms.res.x;
+                let dy = 1.0 / uniforms.res.y;
+                
+                let hL = textureSample(texCurr, s, uv - vec2(dx, 0)).r;
+                let hR = textureSample(texCurr, s, uv + vec2(dx, 0)).r;
+                let hT = textureSample(texCurr, s, uv + vec2(0, dy)).r;
+                let hB = textureSample(texCurr, s, uv - vec2(0, dy)).r;
+                
+                let normal = normalize(vec3(hL - hR, hB - hT, 0.1));
+                let refracted_uv = uv + normal.xy * 0.05;
+                
+                let bg = textureSample(texBg, s, refracted_uv).rgb;
+                let light = max(dot(normal, normalize(vec3(0.5, 0.5, 1.0))), 0.0);
+                
+                return vec4<f32>(bg + pow(light, 20.0) * 0.4, 1.0);
+            }
+        `;
+
+        async function start() {
+            if (!navigator.gpu) {
+                document.getElementById('error').style.display = 'flex';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) return;
+            const device = await adapter.requestDevice();
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('webgpu');
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+
+            const format = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({ device, format, alphaMode: 'premultiplied' });
+
+            // Criar textura de fundo via Canvas (Simulando o tiles.jpg original)
+            const bgCanvas = document.createElement('canvas');
+            bgCanvas.width = 512; bgCanvas.height = 512;
+            const ctx = bgCanvas.getContext('2d');
+            ctx.fillStyle = '#005f73'; ctx.fillRect(0,0,512,512);
+            ctx.strokeStyle = '#0a9396'; ctx.lineWidth = 2;
+            for(let i=0; i<=512; i+=32) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+            }
+            const bgBitmap = await createImageBitmap(bgCanvas);
+            const texBg = device.createTexture({
+                size: [512, 512], format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            device.queue.copyExternalImageToTexture({source: bgBitmap}, {texture: texBg}, [512, 512]);
+
+            // Texturas de simulação (Ping-pong)
+            const simSize = [canvas.width, canvas.height];
+            const simDesc = { size: simSize, format: 'rgba32float', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT };
+            let t0 = device.createTexture(simDesc);
+            let t1 = device.createTexture(simDesc);
+            let tTemp = device.createTexture(simDesc);
+
+            const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+            const uBuffer = device.createBuffer({ size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+            const mod = device.createShaderModule({ code: shaderSource });
+
+            const pipeU = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: { module: mod, entryPoint: 'vs_main' },
+                fragment: { module: mod, entryPoint: 'fs_update', targets: [{ format: 'rgba32float' }] },
+                primitive: { topology: 'triangle-strip' }
+            });
+
+            const pipeR = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: { module: mod, entryPoint: 'vs_main' },
+                fragment: { module: mod, entryPoint: 'fs_render', targets: [{ format }] },
+                primitive: { topology: 'triangle-strip' }
+            });
+
+            let mouse = { x: 0, y: 0, down: 0 };
+            const track = (e) => {
+                const c = e.touches ? e.touches[0] : e;
+                mouse.x = c.clientX * dpr; mouse.y = c.clientY * dpr;
+            };
+            canvas.onmousedown = (e) => { mouse.down = 1; track(e); };
+            window.onmousemove = track;
+            window.onmouseup = () => mouse.down = 0;
+            canvas.ontouchstart = (e) => { mouse.down = 1; track(e); e.preventDefault(); };
+            canvas.ontouchmove = (e) => { track(e); e.preventDefault(); };
+            window.ontouchend = () => mouse.down = 0;
+
+            function loop() {
+                device.queue.writeBuffer(uBuffer, 0, new Float32Array([canvas.width, canvas.height, mouse.x, mouse.y, mouse.down, 0, 0, 0]));
+                const enc = device.createCommandEncoder();
+
+                const passU = enc.beginRenderPass({ colorAttachments: [{ view: tTemp.createView(), loadOp: 'clear', clearValue:[0,0,0,1], storeOp:'store' }] });
+                passU.setPipeline(pipeU);
+                passU.setBindGroup(0, device.createBindGroup({
+                    layout: pipeU.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: uBuffer } },
+                        { binding: 1, resource: sampler },
+                        { binding: 2, resource: t0.createView() },
+                        { binding: 3, resource: t1.createView() },
+                        { binding: 4, resource: texBg.createView() }
+                    ]
+                }));
+                passU.draw(4);
+                passU.end();
+
+                let old = t0; t0 = t1; t1 = tTemp; tTemp = old;
+
+                const passR = enc.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), loadOp: 'clear', clearValue:[0,0,0,1], storeOp:'store' }] });
+                passR.setPipeline(pipeR);
+                passR.setBindGroup(0, device.createBindGroup({
+                    layout: pipeR.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: uBuffer } },
+                        { binding: 1, resource: sampler },
+                        { binding: 2, resource: t0.createView() },
+                        { binding: 3, resource: t1.createView() },
+                        { binding: 4, resource: texBg.createView() }
+                    ]
+                }));
+                passR.draw(4);
+                passR.end();
+
+                device.queue.submit([enc.finish()]);
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        start();
+    </script>
+</body>
+</html>
+
