@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poemotion Lab - Moiré 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; color: #fff; font-family: 'Inter', system-ui, sans-serif; }
+        canvas { display: block; }
+        .glass {
+            background: rgba(15, 15, 15, 0.7);
+            backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+        input[type="range"] { appearance: none; background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; }
+        .label-text { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem; display: block; }
+        
+        #ui {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+        #ui.hidden-panel {
+            transform: translateX(320px);
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Botão para alternar a visibilidade das definições -->
+<button id="ui-toggle" class="fixed top-6 right-6 z-20 glass p-3 rounded-full hover:bg-white/10 transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+</button>
+
+<!-- Painel de Configurações Inicializado com os valores da imagem -->
+<div id="ui" class="fixed top-6 right-6 z-10 glass p-6 rounded-2xl w-72 pointer-events-auto select-none overflow-y-auto max-h-[90vh] pt-16">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-lg font-bold tracking-tight text-red-500">Red & Blue Lab</h1>
+        <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+    </div>
+
+    <div class="space-y-5">
+        <div>
+            <label class="label-text">Qtd de Camadas: <span id="val-layers">30</span></label>
+            <input type="range" id="layers" min="2" max="30" value="30" class="w-full">
+        </div>
+
+        <div>
+            <label class="label-text">Tipo de Padrão</label>
+            <select id="patternType" class="w-full bg-zinc-800 border border-zinc-700 rounded p-1 text-sm outline-none">
+                <option value="0">Raios Radiais</option>
+                <option value="1">Círculos Concêntricos</option>
+                <option value="2">Espiral Logarítmica</option>
+                <option value="3" selected>Grade Cartesiana</option>
+                <option value="4">Ondas de Plasma</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="label-text">Frequência Base: <span id="val-freq">118.0</span></label>
+            <input type="range" id="freq" min="5" max="150" step="1" value="118" class="w-full">
+        </div>
+
+        <div>
+            <label class="label-text">Espalhamento: <span id="val-spread">0.0</span></label>
+            <input type="range" id="spread" min="0" max="10" step="0.1" value="0" class="w-full">
+        </div>
+
+        <div>
+            <label class="label-text">Velocidade: <span id="val-speed">1.1</span></label>
+            <input type="range" id="speed" min="0" max="5" step="0.1" value="1.1" class="w-full">
+        </div>
+
+        <div>
+            <label class="label-text">Intensidade do Ruído: <span id="val-breath">0.16</span></label>
+            <input type="range" id="breath" min="0" max="0.5" step="0.01" value="0.16" class="w-full">
+        </div>
+
+        <div class="pt-2 border-t border-white/10 flex flex-col gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="chromatic" checked class="w-4 h-4 rounded accent-red-600">
+                <span class="text-xs">Red / Blue Noise</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="invert" class="w-4 h-4 rounded accent-blue-600">
+                <span class="text-xs">Inverter Padrão</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// Shaders para renderização das camadas
+const vertexShader = `
+    varying vec2 vUv;
+    varying float vInstanceID;
+    void main() {
+        vUv = uv;
+        vInstanceID = float(gl_InstanceID);
+        gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+    }
+`;
+
+const fragmentShader = `
+    varying vec2 vUv;
+    varying float vInstanceID;
+    
+    uniform float uTime;
+    uniform float uFreqBase;
+    uniform float uFreqSpread;
+    uniform int uPatternType;
+    uniform float uSpeed;
+    uniform float uBreath;
+    uniform bool uChromatic;
+    uniform bool uInvert;
+
+    #define PI 3.14159265359
+
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    void main() {
+        vec2 p = vUv * 2.0 - 1.0;
+        float r = length(p);
+        float a = atan(p.y, p.x);
+        
+        float freq = uFreqBase + (vInstanceID * uFreqSpread);
+        float pattern = 0.0;
+
+        if (uPatternType == 0) {
+            pattern = sin(a * freq);
+        } else if (uPatternType == 1) {
+            pattern = sin(r * freq - uTime * 0.2);
+        } else if (uPatternType == 2) {
+            pattern = sin(r * freq + a * 10.0 - uTime * 0.5);
+        } else if (uPatternType == 3) {
+            pattern = sin(p.x * freq) * sin(p.y * freq);
+        } else if (uPatternType == 4) {
+            pattern = sin(p.x * freq + uTime) + sin(p.y * freq + uTime) + sin((p.x+p.y) * freq + uTime);
+        }
+
+        float mask = smoothstep(-0.1, 0.1, pattern);
+        if (uInvert) mask = 1.0 - mask;
+
+        float edgeMask = 1.0 - smoothstep(0.8, 1.0, r);
+        
+        // Grão de ruído analógico
+        float grain = hash(vUv * (vInstanceID + 1.0) + uTime * 0.1);
+        
+        vec3 color = vec3(1.0);
+        if (uChromatic) {
+            // Lógica de mistura Vermelho e Azul baseada na instância e tempo
+            float mixVal = sin(vInstanceID * 0.8 + uTime * 2.0) * 0.5 + 0.5;
+            vec3 red = vec3(0.9, 0.1, 0.1);
+            vec3 blue = vec3(0.1, 0.2, 0.9);
+            color = mix(red, blue, mixVal);
+            
+            // Adiciona cintilação de ruído extra
+            color += (grain - 0.5) * 0.4;
+        }
+
+        float breathing = 0.5 + 0.5 * sin(uTime * 0.5 + vInstanceID * 0.2);
+        float alpha = mask * edgeMask * (0.2 + uBreath * breathing);
+        
+        // Multiplica pelo grão para dar um aspeto texturizado
+        alpha *= (0.8 + grain * 0.4);
+
+        if (alpha < 0.005) discard;
+
+        gl_FragColor = vec4(color, alpha);
+    }
+`;
+
+class PoemotionApp {
+    constructor() {
+        this.initScene();
+        this.initMesh();
+        this.initUI();
+        this.animate();
+    }
+
+    initScene() {
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        this.camera.position.set(0, 0, 15);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(this.renderer.domElement);
+
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        
+        window.addEventListener('resize', () => {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+
+    initMesh() {
+        // Inicializar com os valores exatos da imagem
+        const layerCount = parseInt(document.getElementById('layers').value);
+        const geometry = new THREE.PlaneBufferGeometry(12, 12);
+        
+        this.material = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uFreqBase: { value: 118.0 },
+                uFreqSpread: { value: 0.0 },
+                uPatternType: { value: 3 }, // Grade Cartesiana
+                uSpeed: { value: 1.1 },
+                uBreath: { value: 0.16 },
+                uChromatic: { value: true },
+                uInvert: { value: false }
+            },
+            vertexShader,
+            fragmentShader,
+            transparent: true,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        if (this.instancedMesh) {
+            this.scene.remove(this.instancedMesh);
+        }
+
+        this.instancedMesh = new THREE.InstancedMesh(geometry, this.material, 30);
+        this.instancedMesh.count = layerCount;
+        this.scene.add(this.instancedMesh);
+
+        this.updateInstanceMatrices();
+    }
+
+    updateInstanceMatrices() {
+        const dummy = new THREE.Object3D();
+        const count = this.instancedMesh.count;
+        for (let i = 0; i < count; i++) {
+            // Separação em Z para profundidade 3D
+            dummy.position.set(0, 0, (i - count/2) * 0.15);
+            dummy.updateMatrix();
+            this.instancedMesh.setMatrixAt(i, dummy.matrix);
+        }
+        this.instancedMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    initUI() {
+        const toggleBtn = document.getElementById('ui-toggle');
+        const uiPanel = document.getElementById('ui');
+        
+        toggleBtn.addEventListener('click', () => {
+            uiPanel.classList.toggle('hidden-panel');
+        });
+
+        const inputs = ['layers', 'freq', 'spread', 'speed', 'breath', 'patternType', 'chromatic', 'invert'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', () => {
+                const val = el.type === 'checkbox' ? el.checked : el.value;
+                const label = document.getElementById(`val-${id}`);
+                if (label) label.innerText = val;
+
+                if (id === 'layers') {
+                    this.instancedMesh.count = parseInt(val);
+                    this.updateInstanceMatrices();
+                } else if (id === 'patternType') {
+                    this.material.uniforms.uPatternType.value = parseInt(val);
+                } else if (id === 'chromatic' || id === 'invert') {
+                    this.material.uniforms[`u${id.charAt(0).toUpperCase() + id.slice(1)}`].value = val;
+                } else {
+                    if(id === 'freq') this.material.uniforms.uFreqBase.value = parseFloat(val);
+                    else if(id === 'spread') this.material.uniforms.uFreqSpread.value = parseFloat(val);
+                    else this.material.uniforms[`u${id.charAt(0).toUpperCase() + id.slice(1)}`].value = parseFloat(val);
+                }
+            });
+        });
+    }
+
+    animate() {
+        requestAnimationFrame(this.animate.bind(this));
+        const time = performance.now() * 0.001;
+        this.material.uniforms.uTime.value = time;
+
+        const speed = parseFloat(document.getElementById('speed').value);
+        const dummy = new THREE.Object3D();
+        const count = this.instancedMesh.count;
+
+        for (let i = 0; i < count; i++) {
+            this.instancedMesh.getMatrixAt(i, dummy.matrix);
+            dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+            
+            // Rotação diferencial entre camadas para gerar o efeito Moiré
+            const direction = (i % 2 === 0) ? 1 : -1;
+            dummy.rotation.z += (0.002 * speed * direction * (1 + i * 0.1));
+            
+            // Pulsação suave (respiração)
+            const s = 1.0 + Math.sin(time * 0.8 + i) * 0.05;
+            dummy.scale.set(s, s, s);
+
+            dummy.updateMatrix();
+            this.instancedMesh.setMatrixAt(i, dummy.matrix);
+        }
+        this.instancedMesh.instanceMatrix.needsUpdate = true;
+
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+
+// Iniciar aplicação após o carregamento da janela
+window.onload = () => new PoemotionApp();
+
+</script>
+</body>
+</html>
+
