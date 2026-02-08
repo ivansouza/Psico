@@ -221,7 +221,7 @@
         <div class="switch-container">
             <label style="font-size: 0.75rem; color: #fff;">Use Accelerometer</label>
             <label class="switch">
-                <input type="checkbox" id="sensor-toggle" checked>
+                <input type="checkbox" id="sensor-toggle">
                 <span class="slider"></span>
             </label>
         </div>
@@ -274,7 +274,7 @@
             currentAccel: new THREE.Vector2(0, 0),
             friction: 0.975,
             boundary: 40,
-            useSensor: true,
+            useSensor: false, // Started with accelerometer off
             isSensorActive: false,
             autoTime: 0
         };
@@ -443,10 +443,13 @@
                 sensorStateLabel.style.color = "#666";
                 statusHint.innerText = "Auto Mode";
                 state.vel.set(0, 0); 
-            } else if (state.isSensorActive) {
-                sensorStateLabel.innerText = "ON";
-                sensorStateLabel.style.color = "#00ff88";
-                statusHint.innerText = "Accelerometer Mode Active";
+            } else {
+                // Check if we actually have data, otherwise it's just 'ON' but pending movement
+                sensorStateLabel.innerText = state.isSensorActive ? "ON" : "WAITING";
+                if (state.isSensorActive) {
+                    sensorStateLabel.style.color = "#00ff88";
+                    statusHint.innerText = "Accelerometer Mode Active";
+                }
             }
         };
 
