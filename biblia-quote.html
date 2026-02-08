@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia Digital - Versículos Aleatórios</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Lora:italic,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Lora', serif; }
+        [lucide] { width: 20px; height: 20px; }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-2xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-100 text-white">
+                    <i data-lucide="book-open"></i>
+                </div>
+                <h1 class="font-bold text-lg tracking-tight">Bíblia Digital</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="statusBadge" class="hidden flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                    <i data-lucide="shield-check" class="w-3 h-3"></i> Online
+                </div>
+                <button id="toggleSettings" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all">
+                    <i data-lucide="settings"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        
+        <!-- Painel de Configurações -->
+        <section id="settingsPanel" class="hidden bg-white p-6 rounded-3xl border border-slate-200 shadow-2xl space-y-6 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2">Configurações da Conta</h2>
+                <button id="closeSettings" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1.5 rounded-lg">Fechar</button>
+            </div>
+            
+            <div class="space-y-3">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tradução Preferida</label>
+                <select id="versionSelect" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold">
+                    <option value="nvi">NVI (Nova Versão Internacional)</option>
+                    <option value="acf">ACF (Almeida Corrigida Fiel)</option>
+                    <option value="ra">RA (Almeida Revista e Atualizada)</option>
+                    <option value="kjv">KJV (King James Version)</option>
+                </select>
+            </div>
+
+            <!-- Seção de Auth -->
+            <div class="space-y-4 pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Acesso à API</label>
+                    <button id="logoutBtn" class="hidden flex items-center gap-1 text-[10px] text-rose-500 font-bold uppercase hover:underline">
+                        <i data-lucide="log-out" class="w-3 h-3"></i> Sair
+                    </button>
+                </div>
+
+                <div id="authNone" class="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-center space-y-4">
+                    <p class="text-xs text-slate-500 leading-relaxed font-medium">A API requer um token para acesso ilimitado. Registe-se ou faça login.</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="setAuthMode('register')" class="flex items-center justify-center gap-2 p-3 text-[11px] font-black bg-white border border-slate-200 rounded-xl hover:border-indigo-300 transition-all uppercase shadow-sm">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Registar
+                        </button>
+                        <button onclick="setAuthMode('login')" class="flex items-center justify-center gap-2 p-3 text-[11px] font-black bg-white border border-slate-200 rounded-xl hover:border-indigo-300 transition-all uppercase shadow-sm">
+                            <i data-lucide="log-in" class="w-4 h-4"></i> Login
+                        </button>
+                    </div>
+                </div>
+
+                <form id="authForm" class="hidden bg-white p-5 rounded-2xl space-y-4 border border-slate-100 shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <h3 id="authTitle" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Título</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <input id="authName" type="text" placeholder="Nome" class="hidden w-full p-3.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <input id="authEmail" type="email" placeholder="E-mail" required class="w-full p-3.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <div class="relative">
+                            <input id="authPass" type="password" placeholder="Senha" required class="w-full p-3.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none pr-12">
+                            <button type="button" id="togglePass" class="absolute right-4 top-3.5 text-slate-300 hover:text-indigo-500">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="authError" class="hidden p-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i> <span id="authErrorText">Erro</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" id="authSubmit" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all">Processar</button>
+                        <button type="button" onclick="setAuthMode('none')" class="px-4 py-4 text-slate-400 text-[10px] font-black uppercase">Voltar</button>
+                    </div>
+                </form>
+
+                <div id="authSuccess" class="hidden bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-black text-indigo-400 uppercase mb-1 tracking-widest">Sessão Ativa</p>
+                        <p id="connectedEmail" class="text-sm font-bold text-indigo-900 truncate max-w-[200px]"></p>
+                    </div>
+                    <div class="bg-emerald-500 p-1.5 rounded-full shadow-lg shadow-emerald-100 text-white">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Versículo Card -->
+        <section id="verseCard" class="min-h-[340px] flex flex-col justify-center">
+            <!-- Estado Inicial -->
+            <div id="verseEmpty" class="text-center p-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                <div class="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-100/30 text-indigo-400">
+                    <i data-lucide="quote" class="w-12 h-12"></i>
+                </div>
+                <h3 class="font-black text-2xl text-slate-800 tracking-tight">Palavra Viva</h3>
+                <p class="text-slate-400 text-sm mt-3 max-w-[240px] mx-auto leading-relaxed italic">Clique no botão para sortear uma passagem bíblica.</p>
+            </div>
+
+            <!-- Loading -->
+            <div id="verseLoading" class="hidden bg-white p-12 rounded-[2.5rem] border border-slate-200 flex flex-col items-center justify-center space-y-5 animate-pulse">
+                <div class="text-indigo-500 animate-spin">
+                    <i data-lucide="refresh-cw" class="w-12 h-12"></i>
+                </div>
+                <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.4em]">Buscando...</p>
+            </div>
+
+            <!-- Resultado -->
+            <div id="verseContent" class="hidden bg-white p-8 md:p-14 rounded-[3rem] shadow-2xl shadow-slate-200/40 border border-slate-100 space-y-10 relative overflow-hidden animate-fade-in">
+                <div class="text-indigo-50 absolute -top-10 -left-10 opacity-40 rotate-12">
+                    <i data-lucide="quote" style="width: 100px; height: 100px;"></i>
+                </div>
+                <div class="space-y-8 relative z-10">
+                    <p id="verseText" class="text-2xl md:text-3xl font-serif text-slate-800 leading-relaxed italic font-medium"></p>
+                    <div class="pt-10 border-t border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                        <div class="space-y-5">
+                            <h4 class="font-black text-3xl md:text-4xl text-slate-900 tracking-tighter flex items-baseline gap-3">
+                                <span id="verseBook">Génesis</span> 
+                                <span id="verseRef" class="text-indigo-600 font-bold text-xl md:text-2xl">1:1</span>
+                            </h4>
+                            <div id="verseMeta" class="flex flex-wrap gap-2.5"></div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="favBtn" class="p-4 rounded-2xl transition-all shadow-md active:scale-90 bg-slate-50 text-slate-300 border border-transparent">
+                                <i data-lucide="heart" class="w-7 h-7"></i>
+                            </button>
+                            <button id="copyBtn" class="p-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100 active:scale-90 transition-all hover:bg-indigo-700">
+                                <i data-lucide="copy" class="w-7 h-7"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Erro -->
+            <div id="verseError" class="hidden bg-rose-50 p-10 rounded-[2.5rem] border border-rose-100 text-center space-y-5">
+                <div class="bg-rose-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-rose-500">
+                    <i data-lucide="alert-circle" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <p class="text-rose-900 font-bold text-lg tracking-tight">Ops! Algo deu errado</p>
+                    <p id="verseErrorMsg" class="text-rose-600 text-xs px-6 leading-relaxed font-medium"></p>
+                </div>
+                <button onclick="fetchRandomVerse()" class="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] underline decoration-2 underline-offset-4">Tentar de Novo</button>
+            </div>
+        </section>
+
+        <!-- Botão Principal -->
+        <button id="mainActionBtn" class="group relative w-full h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] font-black text-2xl shadow-2xl shadow-indigo-200 flex items-center justify-center gap-6 transition-all active:scale-95 overflow-hidden">
+            <i data-lucide="refresh-cw" class="w-8 h-8 transition-transform duration-700 group-hover:rotate-180" id="refreshIcon"></i>
+            <span class="tracking-[0.2em] uppercase text-xs font-black">Sortear Versículo</span>
+        </button>
+
+        <!-- Favoritos -->
+        <section id="favoritesSection" class="hidden pt-14 space-y-8">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-5">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-2">
+                    <i data-lucide="heart" class="w-4 h-4 text-rose-500 fill-current"></i> Guardados (<span id="favCount">0</span>)
+                </h3>
+                <button onclick="clearAllFavorites()" class="text-[9px] font-black text-slate-300 hover:text-rose-500 uppercase tracking-widest">Limpar Tudo</button>
+            </div>
+            <div id="favoritesList" class="grid gap-5"></div>
+        </section>
+    </main>
+
+    <footer class="text-center py-12 opacity-40">
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">abibliadigital • HTML Estático v5.0</p>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl z-50 flex items-center gap-4 animate-fade-in">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i> <span id="toastMsg">Copiado</span>
+    </div>
+
+    <script>
+        // --- ESTADO ---
+        let state = {
+            appId: 'bible-app-static',
+            version: 'nvi',
+            token: '',
+            email: '',
+            favorites: [],
+            currentPassage: null,
+            authMode: 'none' // none, register, login
+        };
+
+        // --- DOM ELEMENTS ---
+        const elements = {
+            settingsPanel: document.getElementById('settingsPanel'),
+            verseEmpty: document.getElementById('verseEmpty'),
+            verseLoading: document.getElementById('verseLoading'),
+            verseContent: document.getElementById('verseContent'),
+            verseError: document.getElementById('verseError'),
+            verseText: document.getElementById('verseText'),
+            verseBook: document.getElementById('verseBook'),
+            verseRef: document.getElementById('verseRef'),
+            verseMeta: document.getElementById('verseMeta'),
+            versionSelect: document.getElementById('versionSelect'),
+            authNone: document.getElementById('authNone'),
+            authForm: document.getElementById('authForm'),
+            authSuccess: document.getElementById('authSuccess'),
+            authTitle: document.getElementById('authTitle'),
+            authName: document.getElementById('authName'),
+            authEmail: document.getElementById('authEmail'),
+            authPass: document.getElementById('authPass'),
+            authSubmit: document.getElementById('authSubmit'),
+            authError: document.getElementById('authError'),
+            connectedEmail: document.getElementById('connectedEmail'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            statusBadge: document.getElementById('statusBadge'),
+            favoritesSection: document.getElementById('favoritesSection'),
+            favoritesList: document.getElementById('favoritesList'),
+            favCount: document.getElementById('favCount'),
+            favBtn: document.getElementById('favBtn'),
+            mainActionBtn: document.getElementById('mainActionBtn')
+        };
+
+        // --- INICIALIZAÇÃO ---
+        function init() {
+            lucide.createIcons();
+            
+            // Carregar do Storage
+            state.version = localStorage.getItem(`${state.appId}_version`) || 'nvi';
+            state.token = localStorage.getItem(`${state.appId}_token`) || '';
+            state.email = localStorage.getItem(`${state.appId}_email`) || '';
+            state.favorites = JSON.parse(localStorage.getItem(`${state.appId}_favs`) || '[]');
+
+            elements.versionSelect.value = state.version;
+            updateAuthUI();
+            updateFavoritesUI();
+
+            // Listeners
+            document.getElementById('toggleSettings').onclick = () => {
+                elements.settingsPanel.classList.toggle('hidden');
+            };
+            document.getElementById('closeSettings').onclick = () => {
+                elements.settingsPanel.classList.add('hidden');
+            };
+            elements.versionSelect.onchange = (e) => {
+                state.version = e.target.value;
+                localStorage.setItem(`${state.appId}_version`, state.version);
+            };
+            document.getElementById('togglePass').onclick = () => {
+                elements.authPass.type = elements.authPass.type === 'password' ? 'text' : 'password';
+            };
+            elements.authForm.onsubmit = handleAuth;
+            elements.logoutBtn.onclick = logout;
+            elements.mainActionBtn.onclick = fetchRandomVerse;
+            elements.copyBtn.onclick = copyCurrentVerse;
+            elements.favBtn.onclick = toggleFavorite;
+        }
+
+        // --- LÓGICA DE AUTH ---
+        function setAuthMode(mode) {
+            state.authMode = mode;
+            elements.authError.classList.add('hidden');
+            
+            if (mode === 'none') {
+                elements.authNone.classList.remove('hidden');
+                elements.authForm.classList.add('hidden');
+            } else {
+                elements.authNone.classList.add('hidden');
+                elements.authForm.classList.remove('hidden');
+                elements.authTitle.innerText = mode === 'register' ? 'Criar Novo Registro' : 'Gerar Token (Login)';
+                elements.authSubmit.innerText = mode === 'register' ? 'Cadastrar' : 'Obter Token';
+                elements.authName.classList.toggle('hidden', mode === 'login');
+                elements.authName.required = mode === 'register';
+            }
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            elements.authSubmit.disabled = true;
+            elements.authError.classList.add('hidden');
+
+            const isRegister = state.authMode === 'register';
+            const method = isRegister ? 'POST' : 'PUT';
+            const endpoint = isRegister ? 'users' : 'users/token';
+            
+            const body = isRegister ? {
+                name: elements.authName.value,
+                email: elements.authEmail.value,
+                password: elements.authPass.value,
+                notifications: true
+            } : {
+                email: elements.authEmail.value,
+                password: elements.authPass.value
+            };
+
+            try {
+                const response = await fetch(`https://www.abibliadigital.com.br/api/${endpoint}`, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Erro de Servidor (${response.status}). Tente mais tarde.`);
+                }
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Dados inválidos.');
+
+                if (data.token) {
+                    state.token = data.token;
+                    state.email = elements.authEmail.value;
+                    localStorage.setItem(`${state.appId}_token`, state.token);
+                    localStorage.setItem(`${state.appId}_email`, state.email);
+                    showToast('Token Ativado!');
+                    updateAuthUI();
+                } else if (isRegister) {
+                    showToast('Conta Criada!');
+                    setAuthMode('login');
+                }
+            } catch (err) {
+                document.getElementById('authErrorText').innerText = err.message;
+                elements.authError.classList.remove('hidden');
+            } finally {
+                elements.authSubmit.disabled = false;
+            }
+        }
+
+        function updateAuthUI() {
+            if (state.token) {
+                elements.authNone.classList.add('hidden');
+                elements.authForm.classList.add('hidden');
+                elements.authSuccess.classList.remove('hidden');
+                elements.logoutBtn.classList.remove('hidden');
+                elements.statusBadge.classList.remove('hidden');
+                elements.connectedEmail.innerText = state.email || 'Token Ativo';
+            } else {
+                elements.authNone.classList.remove('hidden');
+                elements.authForm.classList.add('hidden');
+                elements.authSuccess.classList.add('hidden');
+                elements.logoutBtn.classList.add('hidden');
+                elements.statusBadge.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            state.token = '';
+            state.email = '';
+            localStorage.removeItem(`${state.appId}_token`);
+            localStorage.removeItem(`${state.appId}_email`);
+            updateAuthUI();
+            showToast('Desconectado');
+        }
+
+        // --- BUSCA DE VERSÍCULO ---
+        async function fetchRandomVerse() {
+            showView('loading');
+            try {
+                const headers = { 'Accept': 'application/json' };
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+
+                const response = await fetch(`https://www.abibliadigital.com.br/api/verses/${state.version}/random`, { headers });
+                
+                if (!response.ok) {
+                    if (response.status === 401) { logout(); throw new Error('Token Expirado.'); }
+                    throw new Error('Falha ao obter dados.');
+                }
+
+                state.currentPassage = await response.json();
+                renderVerse();
+                showView('content');
+            } catch (err) {
+                document.getElementById('verseErrorMsg').innerText = err.message;
+                showView('error');
+            }
+        }
+
+        function renderVerse() {
+            const p = state.currentPassage;
+            elements.verseText.innerText = p.text;
+            elements.verseBook.innerText = p.book.name;
+            elements.verseRef.innerText = `${p.chapter}:${p.number}`;
+            
+            elements.verseMeta.innerHTML = `
+                <span class="text-[9px] font-black bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full uppercase tracking-widest border border-indigo-100">${p.book.author}</span>
+                <span class="text-[9px] font-black bg-slate-50 text-slate-500 px-4 py-2 rounded-full uppercase tracking-widest border border-slate-100">${p.book.group}</span>
+            `;
+
+            const isFav = state.favorites.some(f => f.text === p.text);
+            elements.favBtn.className = `p-4 rounded-2xl transition-all shadow-md active:scale-90 ${isFav ? 'bg-rose-500 text-white' : 'bg-slate-50 text-slate-300'}`;
+            lucide.createIcons();
+        }
+
+        function showView(view) {
+            elements.verseEmpty.classList.toggle('hidden', view !== 'empty');
+            elements.verseLoading.classList.toggle('hidden', view !== 'loading');
+            elements.verseContent.classList.toggle('hidden', view !== 'content');
+            elements.verseError.classList.toggle('hidden', view !== 'error');
+        }
+
+        // --- FAVORITOS E UTILITÁRIOS ---
+        function toggleFavorite() {
+            if (!state.currentPassage) return;
+            const p = state.currentPassage;
+            const index = state.favorites.findIndex(f => f.text === p.text);
+            
+            if (index > -1) {
+                state.favorites.splice(index, 1);
+            } else {
+                state.favorites.push({ ...p, ver: state.version });
+            }
+            
+            localStorage.setItem(`${state.appId}_favs`, JSON.stringify(state.favorites));
+            renderVerse();
+            updateFavoritesUI();
+        }
+
+        function updateFavoritesUI() {
+            elements.favCount.innerText = state.favorites.length;
+            elements.favoritesSection.classList.toggle('hidden', state.favorites.length === 0);
+            
+            elements.favoritesList.innerHTML = state.favorites.slice().reverse().map((f, i) => `
+                <div class="bg-white p-7 rounded-[2rem] border border-slate-100 flex justify-between items-center group shadow-sm hover:shadow-xl transition-all">
+                    <div class="flex-1 pr-6">
+                        <p class="text-base text-slate-600 font-serif italic line-clamp-2 leading-relaxed mb-1">"${f.text}"</p>
+                        <span class="text-[11px] font-black text-indigo-600 uppercase tracking-tighter">${f.book.name} ${f.chapter}:${f.number} <span class="ml-1 opacity-50">${f.ver || ''}</span></span>
+                    </div>
+                    <button onclick="removeFavorite('${f.text.replace(/'/g, "\\'")}')" class="text-rose-500 p-3">
+                        <i data-lucide="heart" class="w-6 h-6 fill-current"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        window.removeFavorite = (text) => {
+            state.favorites = state.favorites.filter(f => f.text !== text);
+            localStorage.setItem(`${state.appId}_favs`, JSON.stringify(state.favorites));
+            updateFavoritesUI();
+            if (state.currentPassage && state.currentPassage.text === text) renderVerse();
+        };
+
+        window.clearAllFavorites = () => {
+            if (confirm('Limpar tudo?')) {
+                state.favorites = [];
+                localStorage.removeItem(`${state.appId}_favs`);
+                updateFavoritesUI();
+                if (state.currentPassage) renderVerse();
+            }
+        };
+
+        function copyCurrentVerse() {
+            if (!state.currentPassage) return;
+            const p = state.currentPassage;
+            const text = `"${p.text}" — ${p.book.name} ${p.chapter}:${p.number} (${state.version.toUpperCase()})`;
+            
+            const area = document.createElement('textarea');
+            area.value = text;
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand('copy');
+            document.body.removeChild(area);
+            showToast('Copiado para partilhar');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
