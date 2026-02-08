@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Accelerometer Gravity Simulation</title>
+    <style>
+        :root {
+            --primary: #ff3333;
+            --bg: #050505;
+            --panel: rgba(18, 18, 18, 0.92);
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: var(--bg);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: white;
+            user-select: none;
+            touch-action: none;
+        }
+
+        canvas { display: block; }
+
+        /* UI Panel */
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 250px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #ui-panel.minimized {
+            transform: translateX(-285px);
+        }
+
+        #toggle-ui {
+            position: absolute;
+            left: 280px;
+            top: 0;
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        h1 {
+            font-size: 0.6rem;
+            margin: 0 0 16px 0;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #sensor-state {
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* Activation Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, rgba(30,30,30,0.9), rgba(0,0,0,1));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-start {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 22px 50px;
+            font-size: 1.1rem;
+            border-radius: 60px;
+            cursor: pointer;
+            font-weight: 900;
+            letter-spacing: 1px;
+            box-shadow: 0 15px 30px rgba(255, 51, 51, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .btn-start:active { transform: scale(0.95); }
+
+        .control-group { margin-bottom: 14px; }
+        label { display: block; font-size: 0.7rem; margin-bottom: 6px; color: rgba(255,255,255,0.7); font-weight: 500; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+
+        /* Toggle Switch Styling */
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+        }
+        .switch-container label { margin-bottom: 0; }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #bbb;
+            font-size: 0.65rem;
+            padding: 8px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        #msg-box {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 240, 150, 0.9);
+            color: black;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            z-index: 300;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.3);
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <button class="btn-start" id="start-btn">START SIMULATION</button>
+        <p style="margin-top:25px; font-size: 0.8rem; font-weight: 300; opacity: 0.7;">GRAVITY SYSTEM ACTIVE</p>
+    </div>
+
+    <div id="msg-box">CONFIGURATION COPIED AND SAVED!</div>
+
+    <div id="ui-panel">
+        <button id="toggle-ui">☰</button>
+        <h1>
+            <span>accelerometer</span>
+            <span id="sensor-state" style="color:#666">OFF</span>
+        </h1>
+
+        <div class="switch-container">
+            <label style="font-size: 0.75rem; color: #fff;">Use Accelerometer</label>
+            <label class="switch">
+                <input type="checkbox" id="sensor-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        
+        <div class="control-group">
+            <label id="label-mass">Gravity: 30</label>
+            <input type="range" id="input-mass" min="5" max="100" step="1" value="30">
+        </div>
+
+        <div class="control-group">
+            <label id="label-size">Ball Size: 5.0</label>
+            <input type="range" id="input-size" min="0.5" max="10.0" step="0.1" value="5.0">
+        </div>
+
+        <div class="control-group">
+            <label id="label-inertia">Inertia / Smoothness: 0.04</label>
+            <input type="range" id="input-inertia" min="0.01" max="0.50" step="0.01" value="0.04">
+        </div>
+
+        <div class="control-group">
+            <label id="label-sens">Sensitivity: 0.12</label>
+            <input type="range" id="input-sens" min="0.01" max="0.30" step="0.01" value="0.12">
+        </div>
+
+        <button id="btn-save-cam" class="btn-action">SAVE & COPY CAMERA</button>
+        <button id="btn-reset-cam" class="btn-action">RESET TO DEFAULT CAMERA</button>
+    </div>
+
+    <div id="status-hint" class="hint">Auto Mode</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Camera references provided by user environment
+        const DEFAULT_CAM_CONFIG = {
+            pos: { x: 2.261678622139328, y: 73.35743171746462, z: 74.39280287037121 },
+            target: { x: 2.261678622139328, y: -5.517685576453469, z: -4.482314423546547 }
+        };
+
+        // State initialized with user requested values
+        const state = {
+            mass: 30.0,
+            ballRadius: 5.0,
+            sensitivity: 0.12,
+            inertia: 0.04,
+            pos: new THREE.Vector2(0, 0),
+            vel: new THREE.Vector2(0, 0),
+            targetAccel: new THREE.Vector2(0, 0),
+            currentAccel: new THREE.Vector2(0, 0),
+            friction: 0.975,
+            boundary: 40,
+            useSensor: true,
+            isSensorActive: false,
+            autoTime: 0
+        };
+
+        const STORAGE_KEY = 'gravity_cam_config';
+
+        // Three.js Scene Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x010101);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const applyDefaultCamera = () => {
+            camera.position.set(DEFAULT_CAM_CONFIG.pos.x, DEFAULT_CAM_CONFIG.pos.y, DEFAULT_CAM_CONFIG.pos.z);
+            if (controls) {
+                controls.target.set(DEFAULT_CAM_CONFIG.target.x, DEFAULT_CAM_CONFIG.target.y, DEFAULT_CAM_CONFIG.target.z);
+                controls.update();
+            } else {
+                camera.lookAt(DEFAULT_CAM_CONFIG.target.x, DEFAULT_CAM_CONFIG.target.y, DEFAULT_CAM_CONFIG.target.z);
+            }
+        };
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.1;
+
+        // Load from storage or default
+        const loadCameraSettings = () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    camera.position.set(data.pos.x, data.pos.y, data.pos.z);
+                    controls.target.set(data.target.x, data.target.y, data.target.z);
+                    controls.update();
+                } catch (e) { applyDefaultCamera(); }
+            } else {
+                applyDefaultCamera();
+            }
+        };
+
+        loadCameraSettings();
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        dirLight.position.set(30, 60, 30);
+        scene.add(dirLight);
+
+        // Space-Time Grid
+        const gridGeo = new THREE.PlaneBufferGeometry(110, 110, 90, 90);
+        gridGeo.rotateX(-Math.PI / 2);
+        const gridMat = new THREE.ShaderMaterial({
+            uniforms: {
+                uMass: { value: state.mass },
+                uHoleSize: { value: state.ballRadius },
+                uBallPos: { value: new THREE.Vector3(0, 0, 0) }
+            },
+            vertexShader: `
+                uniform float uMass;
+                uniform float uHoleSize;
+                uniform vec3 uBallPos;
+                varying vec3 vPos;
+                void main() {
+                    vec3 pos = position;
+                    float d = distance(pos.xz, uBallPos.xz);
+                    float curvature = uMass / (max(d, uHoleSize * 1.6));
+                    pos.y -= curvature;
+                    vPos = pos;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vPos;
+                void main() {
+                    vec2 grid = abs(fract(vPos.xz * 0.4 - 0.5) - 0.5) / fwidth(vPos.xz * 0.4);
+                    float line = min(grid.x, grid.y);
+                    float mask = 1.0 - min(line, 1.0);
+                    vec3 color = vec3(0.0, 0.55, 0.7);
+                    float edgeFade = smoothstep(50.0, 25.0, length(vPos.xz));
+                    gl_FragColor = vec4(color, mask * 0.45 * edgeFade);
+                }
+            `,
+            transparent: true, side: THREE.DoubleSide
+        });
+        scene.add(new THREE.Mesh(gridGeo, gridMat));
+
+        const ball = new THREE.Mesh(
+            new THREE.SphereBufferGeometry(1, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2, metalness: 0.3, emissive: 0x220000 })
+        );
+        ball.scale.setScalar(state.ballRadius);
+        scene.add(ball);
+
+        const showMessage = (text) => {
+            const msgBox = document.getElementById('msg-box');
+            msgBox.innerText = text;
+            msgBox.style.display = 'block';
+            setTimeout(() => { msgBox.style.display = 'none'; }, 2500);
+        };
+
+        const copyToClipboard = (text) => {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); } catch (err) {}
+            document.body.removeChild(textArea);
+        };
+
+        document.getElementById('btn-save-cam').onclick = () => {
+            const config = {
+                pos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                target: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+            };
+            const jsonStr = JSON.stringify(config, null, 2);
+            localStorage.setItem(STORAGE_KEY, jsonStr);
+            copyToClipboard(jsonStr);
+            showMessage("CAMERA SAVED AND JSON COPIED!");
+        };
+
+        document.getElementById('btn-reset-cam').onclick = () => {
+            applyDefaultCamera();
+            controls.update();
+            localStorage.removeItem(STORAGE_KEY);
+            showMessage("DEFAULT CAMERA RESTORED");
+        };
+
+        const sensorStateLabel = document.getElementById('sensor-state');
+        const statusHint = document.getElementById('status-hint');
+
+        function onMotion(event) {
+            if (event.beta === null || event.gamma === null) return;
+            state.isSensorActive = true;
+            
+            if (state.useSensor) {
+                sensorStateLabel.innerText = "ON";
+                sensorStateLabel.style.color = "#00ff88";
+                statusHint.innerText = "Accelerometer Mode Active";
+                
+                state.targetAccel.x = THREE.MathUtils.clamp(event.gamma, -40, 40) * state.sensitivity;
+                state.targetAccel.y = THREE.MathUtils.clamp(event.beta - 30, -40, 40) * state.sensitivity;
+            }
+        }
+
+        document.getElementById('start-btn').onclick = async () => {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission === 'granted') window.addEventListener('deviceorientation', onMotion);
+                } catch (e) {}
+            } else {
+                window.addEventListener('deviceorientation', onMotion);
+            }
+            document.getElementById('overlay').style.display = 'none';
+        };
+
+        document.getElementById('sensor-toggle').onchange = (e) => {
+            state.useSensor = e.target.checked;
+            if (!state.useSensor) {
+                sensorStateLabel.innerText = "OFF";
+                sensorStateLabel.style.color = "#666";
+                statusHint.innerText = "Auto Mode";
+                state.vel.set(0, 0); 
+            } else if (state.isSensorActive) {
+                sensorStateLabel.innerText = "ON";
+                sensorStateLabel.style.color = "#00ff88";
+                statusHint.innerText = "Accelerometer Mode Active";
+            }
+        };
+
+        document.getElementById('input-mass').oninput = (e) => {
+            state.mass = parseFloat(e.target.value);
+            document.getElementById('label-mass').innerText = `Gravity: ${state.mass}`;
+            gridMat.uniforms.uMass.value = state.mass;
+        };
+        document.getElementById('input-size').oninput = (e) => {
+            state.ballRadius = parseFloat(e.target.value);
+            document.getElementById('label-size').innerText = `Ball Size: ${state.ballRadius.toFixed(1)}`;
+            ball.scale.setScalar(state.ballRadius);
+            gridMat.uniforms.uHoleSize.value = state.ballRadius;
+        };
+        document.getElementById('input-inertia').oninput = (e) => {
+            state.inertia = parseFloat(e.target.value);
+            document.getElementById('label-inertia').innerText = `Inertia / Smoothness: ${state.inertia.toFixed(2)}`;
+        };
+        document.getElementById('input-sens').oninput = (e) => {
+            state.sensitivity = parseFloat(e.target.value);
+            document.getElementById('label-sens').innerText = `Sensitivity: ${state.sensitivity.toFixed(2)}`;
+        };
+        document.getElementById('toggle-ui').onclick = () => document.getElementById('ui-panel').classList.toggle('minimized');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (state.useSensor && state.isSensorActive) {
+                state.currentAccel.x += (state.targetAccel.x - state.currentAccel.x) * state.inertia;
+                state.currentAccel.y += (state.targetAccel.y - state.currentAccel.y) * state.inertia;
+                state.vel.add(state.currentAccel);
+                state.vel.multiplyScalar(state.friction);
+                state.pos.add(state.vel);
+
+                if (Math.abs(state.pos.x) > state.boundary) {
+                    state.pos.x = Math.sign(state.pos.x) * state.boundary;
+                    state.vel.x *= -0.5;
+                }
+                if (Math.abs(state.pos.y) > state.boundary) {
+                    state.pos.y = Math.sign(state.pos.y) * state.boundary;
+                    state.vel.y *= -0.5;
+                }
+            } else {
+                state.autoTime += 0.015;
+                const orbitR = Math.sin(state.autoTime * 0.4) * (state.boundary * 0.75);
+                const orbitAngle = state.autoTime * 0.8;
+                state.pos.x = Math.cos(orbitAngle) * orbitR;
+                state.pos.y = Math.sin(orbitAngle) * orbitR;
+                ball.rotation.z -= 0.05;
+                ball.rotation.x += 0.03;
+            }
+
+            const depth = -(state.mass / (state.ballRadius * 1.6));
+            ball.position.set(state.pos.x, depth + state.ballRadius, state.pos.y);
+            
+            if (state.useSensor && state.isSensorActive) {
+                ball.rotation.z -= state.vel.x * 0.3;
+                ball.rotation.x += state.vel.y * 0.3;
+            }
+
+            gridMat.uniforms.uBallPos.value.set(state.pos.x, 0, state.pos.y);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+
