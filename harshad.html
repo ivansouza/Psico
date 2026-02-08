@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Números de Harshad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX para renderização de LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMath()"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Modal Histórico -->
+    <div id="historyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm hidden">
+        <div class="glass-modal max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-emerald-900">O que são Números de Harshad?</h3>
+                    <button onclick="toggleModal()" class="text-slate-500 hover:text-slate-700 transition-colors p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="modalContent" class="space-y-4 text-slate-700 leading-relaxed text-sm overflow-y-auto max-h-[65vh] pr-2">
+                    <p>
+                        O conceito de <strong>Número de Harshad</strong> foi definido por, ninguém menos que, <strong>D. R. Kaprekar</strong> em $1955$. 
+                    </p>
+                    <p>
+                        A palavra "Harshad" vem do Sânscrito $har\text{\c{s}}a$ (alegria) + $da$ (dar), significando literalmente <strong>"Portador de Alegria"</strong>. Eles também são conhecidos na literatura matemática como números de Niven.
+                    </p>
+                    <div class="bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500 italic text-emerald-800">
+                        Um número é de Harshad se for divisível pela soma dos seus próprios dígitos na base em que é escrito.
+                    </div>
+                    <p>
+                        Por exemplo: O número $18$. A soma dos seus dígitos é $1 + 8 = 9$. Como $18$ é divisível por $9$ ($18 \div 9 = 2$), ele é um número de Harshad.
+                    </p>
+                    <p>
+                        Kaprekar fascinava-se com as propriedades intrínsecas dos números. Ele provou que todos os números de $1$ a $10$ são números de Harshad, mas que, à medida que os números crescem, tornam-se mais raros.
+                    </p>
+                </div>
+                <button onclick="toggleModal()" class="mt-6 w-full py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors shadow-md">
+                    Entendi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface Principal -->
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden relative">
+        <div class="bg-emerald-600 p-6 text-white text-center relative shadow-inner">
+            <button onclick="toggleModal()" class="absolute right-4 top-4 p-2 hover:bg-emerald-500 rounded-full transition-colors group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+            <h1 class="text-2xl font-bold italic tracking-tighter">Harshad</h1>
+            <h2 class="text-lg font-semibold opacity-90">Portador de Alegria</h2>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Navegação de Tabs -->
+            <div class="flex border-b border-slate-100">
+                <button onclick="switchTab('check')" id="tabCheck" class="flex-1 pb-2 text-sm font-bold text-emerald-600 border-b-2 border-emerald-600">Verificador</button>
+                <button onclick="switchTab('list')" id="tabList" class="flex-1 pb-2 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-emerald-500">Gerador de Lista</button>
+            </div>
+
+            <!-- Tab: Verificador -->
+            <div id="paneCheck" class="space-y-6">
+                <div id="guide" class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                        A Lógica Harshad
+                    </h3>
+                    <ol class="text-[11px] text-slate-600 space-y-2 list-decimal list-inside">
+                        <li>Escolhe um número inteiro (ex: $156$)</li>
+                        <li>Soma os seus dígitos ($1 + 5 + 6 = 12$)</li>
+                        <li>Verifica se o número original é divisível pela soma</li>
+                        <li>Se $156 \div 12$ for exato, ele é Harshad!</li>
+                    </ol>
+                </div>
+
+                <div class="space-y-4">
+                    <input type="number" id="numero" 
+                           class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-center text-xl font-mono shadow-sm"
+                           placeholder="Ex: 42">
+                    <div class="flex gap-2">
+                        <button onclick="verificar()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 transition-all">Verificar</button>
+                        <button onclick="gerarAleatorio()" class="px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border border-slate-200 group transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:rotate-180 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="resultArea" class="hidden animate-fade-in">
+                    <hr class="border-slate-100 mb-4">
+                    <div id="statusBadge" class="mb-4 text-center py-2 px-4 rounded-full text-xs font-bold uppercase tracking-widest"></div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">Soma dos dígitos:</span>
+                            <span id="resSoma" class="font-mono font-bold text-slate-700"></span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">Cálculo:</span>
+                            <span id="resDivisao" class="font-mono font-bold text-slate-700"></span>
+                        </div>
+                        <div id="extraInfo" class="pt-2 text-center text-xs text-slate-400 italic border-t border-slate-200"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Lista -->
+            <div id="paneList" class="hidden space-y-4">
+                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-xs text-emerald-800">
+                    Gera uma lista de números de Harshad até um limite máximo ($M$). 
+                    $$M = \{ n \in \mathbb{N} \mid n \leq \text{Limite} \text{ e } n \text{ é Harshad} \}$$
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="limiteMax" 
+                           class="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-center font-mono"
+                           placeholder="Limite (ex: 500)" value="100">
+                    <button onclick="listarHarshad()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-md">Gerar</button>
+                </div>
+                <div id="listaResultArea" class="hidden space-y-3">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-tighter flex justify-between">
+                        <span>Resultados encontrados:</span>
+                        <span id="countResult" class="text-emerald-600">0</span>
+                    </div>
+                    <div id="listaContainer" class="max-h-60 overflow-y-auto bg-slate-50 rounded-lg p-2 flex flex-wrap gap-2 content-start border border-slate-100">
+                        <!-- Números aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensagem de Erro -->
+            <div id="errorMessage" class="hidden p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center font-medium"></div>
+        </div>
+    </div>
+
+    <script>
+        function renderMath() {
+            if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        function switchTab(tab) {
+            const isCheck = tab === 'check';
+            document.getElementById('paneCheck').classList.toggle('hidden', !isCheck);
+            document.getElementById('paneList').classList.toggle('hidden', isCheck);
+            
+            document.getElementById('tabCheck').className = isCheck ? 'flex-1 pb-2 text-sm font-bold text-emerald-600 border-b-2 border-emerald-600' : 'flex-1 pb-2 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-emerald-500';
+            document.getElementById('tabList').className = !isCheck ? 'flex-1 pb-2 text-sm font-bold text-emerald-600 border-b-2 border-emerald-600' : 'flex-1 pb-2 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-emerald-500';
+            
+            renderMath();
+        }
+
+        function toggleModal() {
+            const modal = document.getElementById('historyModal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) renderMath();
+        }
+
+        function isHarshad(n) {
+            const soma = String(n).split('').reduce((acc, curr) => acc + parseInt(curr), 0);
+            return n % soma === 0;
+        }
+
+        function listarHarshad() {
+            const limite = parseInt(document.getElementById('limiteMax').value);
+            const container = document.getElementById('listaContainer');
+            const countSpan = document.getElementById('countResult');
+            const area = document.getElementById('listaResultArea');
+            const error = document.getElementById('errorMessage');
+
+            error.classList.add('hidden');
+            if (isNaN(limite) || limite <= 0) {
+                error.textContent = "Introduz um limite válido superior a zero.";
+                error.classList.remove('hidden');
+                return;
+            }
+
+            if (limite > 5000) {
+                error.textContent = "Limite máximo de 5000 para evitar bloqueios do navegador.";
+                error.classList.remove('hidden');
+                return;
+            }
+
+            container.innerHTML = '';
+            let count = 0;
+            area.classList.remove('hidden');
+
+            for (let i = 1; i <= limite; i++) {
+                if (isHarshad(i)) {
+                    count++;
+                    const el = document.createElement('span');
+                    el.className = "px-2 py-1 bg-white border border-emerald-100 rounded text-xs font-mono text-emerald-700 shadow-sm";
+                    el.textContent = i;
+                    container.appendChild(el);
+                }
+            }
+            countSpan.textContent = count;
+        }
+
+        function gerarAleatorio() {
+            const num = Math.floor(Math.random() * 999) + 1;
+            document.getElementById('numero').value = num;
+            verificar();
+        }
+
+        function verificar() {
+            const val = document.getElementById('numero').value.trim();
+            const resultArea = document.getElementById('resultArea');
+            const errorMessage = document.getElementById('errorMessage');
+
+            errorMessage.classList.add('hidden');
+            if (!val || isNaN(val) || parseInt(val) <= 0) {
+                errorMessage.textContent = "Por favor, introduz um número inteiro positivo.";
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            const n = parseInt(val);
+            const digitos = val.split('').map(Number);
+            const soma = digitos.reduce((acc, curr) => acc + curr, 0);
+            const resto = n % soma;
+            const harshad = resto === 0;
+
+            resultArea.classList.remove('hidden');
+            document.getElementById('resSoma').innerHTML = `$${digitos.join(' + ')} = ${soma}$`;
+            document.getElementById('resDivisao').innerHTML = `$${n} \\div ${soma} = ${(n/soma).toFixed(2)}$`;
+            
+            const badge = document.getElementById('statusBadge');
+            if (harshad) {
+                badge.className = "mb-4 text-center py-2 px-4 rounded-full text-xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200";
+                badge.textContent = "✓ É um Número de Harshad";
+                document.getElementById('extraInfo').innerHTML = `Porque $${n}$ é divisível por $${soma}$ sem resto!`;
+            } else {
+                badge.className = "mb-4 text-center py-2 px-4 rounded-full text-xs font-bold uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200";
+                badge.textContent = "✗ Não é Harshad";
+                document.getElementById('extraInfo').innerHTML = `Porque resta $${resto}$ na divisão por $${soma}$.`;
+            }
+
+            renderMath();
+        }
+
+        window.onload = renderMath;
+    </script>
+</body>
+</html>
+
