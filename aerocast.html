@@ -22,9 +22,8 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; 
         }
 
-        /* Elementos de Painel de Vidro HUD */
         .glass-panel {
-            background: rgba(10, 25, 41, 0.75);
+            background: rgba(10, 25, 41, 0.85);
             backdrop-filter: blur(15px);
             border: 1px solid rgba(0, 255, 255, 0.25);
             color: #00f2ff;
@@ -39,13 +38,13 @@
             background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
         }
 
-        #weather-sheet {
-            position: fixed; bottom: -100%; left: 0; width: 100%; height: 80%;
+        #weather-sheet, #add-city-sheet {
+            position: fixed; bottom: -100%; left: 0; width: 100%; height: 85%;
             z-index: 60; transition: bottom 0.6s cubic-bezier(0.22, 1, 0.36, 1);
             border-top-left-radius: 30px; border-top-right-radius: 30px;
             padding: 24px; display: flex; flex-direction: column;
         }
-        #weather-sheet.active { bottom: 0; }
+        #weather-sheet.active, #add-city-sheet.active { bottom: 0; }
 
         .sheet-handle {
             width: 50px; height: 5px; background: rgba(0, 255, 255, 0.2);
@@ -69,16 +68,32 @@
             align-items: center; color: #00f2ff;
         }
 
-        .chart-container {
-            position: relative; height: 180px; width: 100%;
+        input {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            color: #00f2ff;
+            padding: 16px;
+            border-radius: 16px;
+            width: 100%;
+            outline: none;
+            font-family: monospace;
         }
 
-        /* Animação de pulso para marcadores */
-        @keyframes marker-pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.4); opacity: 0.4; }
-            100% { transform: scale(1); opacity: 0.8; }
+        .tide-indicator {
+            height: 40px; background: rgba(0,242,255,0.05);
+            position: relative; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,242,255,0.15);
         }
+        .tide-wave {
+            position: absolute; top: 0; left: 0; height: 100%;
+            background: linear-gradient(90deg, rgba(0,242,255,0.2), rgba(0,242,255,0.5));
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .loader-dots::after {
+            content: '...';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
     </style>
 </head>
 <body>
@@ -86,15 +101,15 @@
     <div id="loading" class="loading-screen">
         <div class="text-xl mb-4 tracking-[0.4em] font-black italic">AEROCAST GLOBAL</div>
         <div class="w-56 h-[1px] bg-cyan-900 overflow-hidden">
-            <div id="loader-bar" class="h-full bg-[#00f2ff] w-0 transition-all duration-300 shadow-[0_0_10px_#00f2ff]"></div>
+            <div id="loader-bar" class="h-full bg-[#00f2ff] w-0 transition-all duration-300"></div>
         </div>
-        <div id="status-text" class="mt-4 text-[10px] uppercase opacity-50 tracking-widest font-mono">A carregar malha global...</div>
+        <div id="status-text" class="mt-4 text-[10px] uppercase opacity-50 tracking-widest font-mono">Sincronizando Marés...</div>
     </div>
 
     <div class="status-bar">
         <div id="status-clock">00:00</div>
         <div class="flex gap-2 items-center">
-            <span class="text-[8px] border border-cyan-500/30 px-1">SATÉLITE-V</span>
+            <span class="text-[8px] border border-cyan-500/30 px-1 font-mono tracking-tighter uppercase">Maré_Sinc_v2.0</span>
             <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
         </div>
     </div>
@@ -102,47 +117,38 @@
     <div class="hud-scanline"></div>
     <div id="canvas-container"></div>
 
-    <!-- Interface Superior HUD -->
+    <!-- HUD Superior -->
     <div class="fixed top-12 left-0 w-full px-5 z-10 flex justify-between items-start pointer-events-none">
         <div class="glass-panel p-3 rounded-2xl flex flex-col gap-1 pointer-events-auto">
-            <div class="text-[0.5rem] opacity-70 font-mono tracking-tighter">REGISTO_TELEMETRIA</div>
+            <div class="text-[0.5rem] opacity-70 font-mono tracking-tighter uppercase">Monitorização</div>
             <div class="telemetry-log font-mono" id="mini-log">
-                <div>> ARRANQUE_SISTEMA_OK</div>
+                <div>> SISTEMA OPERACIONAL</div>
             </div>
         </div>
         <div class="text-right flex flex-col items-end">
-            <div class="text-[0.6rem] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/50 font-bold mb-2 italic">AEROCAST v5.2</div>
-            <div class="text-[0.5rem] opacity-50 font-mono">NÍVEL_ZOOM: <span id="hud-zoom">1.00</span>x</div>
-            <div class="text-[0.5rem] opacity-50 font-mono">SENS_ATIVOS: <span id="marker-count">0</span></div>
+            <div class="text-[0.6rem] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/50 font-bold mb-2 italic uppercase">Aerocast v5.9</div>
+            <div class="text-[0.5rem] opacity-50 font-mono uppercase">Zoom: <span id="hud-zoom">1.00</span>x</div>
+            <div class="text-[0.5rem] opacity-50 font-mono uppercase">Alvos: <span id="marker-count">0</span></div>
         </div>
     </div>
 
-    <!-- Retículo Central -->
-    <div class="fixed inset-0 flex items-center justify-center pointer-events-none z-10 opacity-20">
-        <div class="w-32 h-32 border-[0.5px] border-[#00f2ff] rounded-full flex items-center justify-center">
-            <div class="w-1 h-1 bg-[#00f2ff] rounded-full"></div>
-            <div class="absolute w-[80%] h-[1px] bg-[#00f2ff]/30"></div>
-            <div class="absolute h-[80%] w-[1px] bg-[#00f2ff]/30"></div>
-        </div>
-    </div>
-
-    <!-- Guia de Interação -->
-    <div id="guide-overlay" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-10 pointer-events-none opacity-40 text-[10px] text-cyan-400 uppercase tracking-widest text-center transition-opacity duration-1000">
-        Deslize para Orbitar • Pinça para Zoom<br>Toque nos Marcadores para Meteorologia
-    </div>
-
-    <!-- Barra de Ações Inferior -->
+    <!-- HUD Inferior -->
     <div class="fixed bottom-0 left-0 w-full p-6 pb-10 z-10 flex justify-between items-end pointer-events-none">
-        <button onclick="resetGlobe()" class="pointer-events-auto bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-transform">
-            Reiniciar Câmara
-        </button>
+        <div class="flex gap-2 pointer-events-auto">
+            <button onclick="resetGlobe()" class="bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest">
+                Reset
+            </button>
+            <button onclick="toggleAddCity()" class="bg-[#00f2ff]/20 border border-[#00f2ff]/60 text-[#00f2ff] px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(0,242,255,0.2)]">
+                Localizar
+            </button>
+        </div>
         <div class="text-right glass-panel p-2 px-3 rounded-xl border-none">
-            <div class="text-[0.5rem] opacity-60">LIGAÇÃO ATIVA</div>
-            <div id="hud-city" class="text-[10px] font-black italic text-white">VARREDURA GLOBAL</div>
+            <div class="text-[0.5rem] opacity-60 uppercase tracking-tighter">Estado Orbital</div>
+            <div id="hud-city" class="text-[10px] font-black italic text-white uppercase">Vigilância Global</div>
         </div>
     </div>
 
-    <!-- Painel de Meteorologia (Sheet) -->
+    <!-- Painel de Meteorologia Completo -->
     <div id="weather-sheet" class="glass-panel">
         <div class="sheet-handle" onclick="closeWeather()"></div>
         
@@ -150,82 +156,107 @@
             <div class="flex-grow">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    <span class="text-[0.6rem] font-bold tracking-widest text-red-400">ALVO ADQUIRIDO</span>
+                    <span class="text-[0.6rem] font-bold tracking-widest text-red-400 uppercase">Uplink Hidrometeo Ativo</span>
                 </div>
-                <h2 id="city-name" class="text-3xl font-black italic tracking-tighter uppercase leading-none">---</h2>
-                <div id="city-coords" class="text-[0.6rem] opacity-60 font-mono mt-1">0.00N, 0.00E</div>
+                <h2 id="city-name" class="text-4xl font-black italic tracking-tighter uppercase leading-none mb-1">---</h2>
+                <div class="flex flex-col gap-2">
+                    <div id="city-coords" class="text-[0.6rem] opacity-60 font-mono tracking-widest">0.00°N, 0.00°E</div>
+                    <div class="text-[0.7rem] font-bold text-cyan-400 flex items-center gap-1.5 bg-cyan-400/10 px-3 py-1.5 rounded-lg border border-cyan-400/30 w-fit">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
+                        HORA LOCAL: <span id="city-local-time" class="font-mono text-white">--:--</span>
+                    </div>
+                </div>
             </div>
             <div class="text-right">
-                <div id="current-temp" class="text-5xl font-black italic leading-none">--°C</div>
-                <div id="weather-desc" class="text-[0.6rem] uppercase tracking-widest text-[#00f2ff] mt-1 font-bold">A analisar...</div>
+                <div id="current-temp" class="text-6xl font-black italic leading-none mb-1">--°C</div>
+                <div id="weather-desc" class="text-[0.6rem] uppercase tracking-widest text-[#00f2ff] font-bold italic">Processando...</div>
             </div>
         </div>
 
         <div class="flex-grow flex flex-col gap-4 overflow-y-auto pr-1">
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white/5 border border-white/10 p-3 rounded-2xl">
-                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Velocidade do Vento</div>
-                    <div id="wind-speed" class="text-xl font-bold italic">-- <span class="text-[10px] opacity-50 font-normal">KM/H</span></div>
+            <!-- Módulo Lunar e Maré -->
+            <div id="marine-telemetry" class="grid grid-cols-2 gap-3 hidden">
+                <div class="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Ciclo Lunar</div>
+                        <div id="moon-phase-name" class="text-[0.75rem] font-black uppercase text-white italic">---</div>
+                    </div>
+                    <div id="moon-icon-container" class="text-3xl">
+                        <!-- Ícone Injetado -->
+                    </div>
                 </div>
-                <div class="bg-white/5 border border-white/10 p-3 rounded-2xl">
-                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Humid. Atmosférica</div>
-                    <div id="humidity-val" class="text-xl font-bold italic">-- <span class="text-[10px] opacity-50 font-normal">%</span></div>
+                <div class="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Tábua de Maré</div>
+                    <div class="flex justify-between items-end mb-2">
+                        <span id="tide-status" class="text-[0.75rem] font-black italic uppercase text-cyan-400">---</span>
+                        <span id="tide-percentage" class="text-[0.6rem] font-mono opacity-80">0%</span>
+                    </div>
+                    <div class="tide-indicator">
+                        <div id="tide-wave-bar" class="tide-wave" style="width: 0%"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white/5 border border-white/10 rounded-2xl p-4 chart-container">
-                <div class="absolute top-2 left-4 text-[0.5rem] opacity-30 uppercase font-bold">Variação de Temperatura (12h)</div>
+            <!-- Dados Atmosféricos -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Vento</div>
+                    <div id="wind-speed" class="text-2xl font-black italic">-- <span class="text-[10px] opacity-50 font-normal">KM/H</span></div>
+                </div>
+                <div class="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Humidade</div>
+                    <div id="humidity-val" class="text-2xl font-black italic">-- <span class="text-[10px] opacity-50 font-normal">%</span></div>
+                </div>
+            </div>
+
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-4 h-48">
+                <div class="text-[0.5rem] opacity-30 mb-3 uppercase font-bold tracking-widest">Gradiente de Temperatura (12h)</div>
                 <canvas id="weather-chart"></canvas>
             </div>
 
-            <div class="p-3 bg-cyan-400/5 border border-cyan-400/20 rounded-xl">
-                <div class="text-[0.6rem] uppercase font-bold mb-2 flex justify-between">
-                    <span>Observações Ambientais</span>
-                    <span class="text-cyan-400 opacity-100">ESTÁVEL</span>
-                </div>
-                <div id="obs-list" class="text-[0.55rem] font-mono grid grid-cols-2 gap-y-1 opacity-80">
-                    <!-- Dinâmico -->
-                </div>
-            </div>
+            <div id="obs-list" class="p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-xl text-[0.65rem] font-mono grid grid-cols-2 gap-y-3 opacity-90 uppercase italic"></div>
 
-            <button onclick="closeWeather()" class="w-full bg-[#00f2ff]/20 text-[#00f2ff] py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] mt-2 mb-6 border border-[#00f2ff]/40">
-                Confirmar e Sair
+            <button onclick="closeWeather()" class="w-full btn-primary py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] mt-2 mb-8 border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
+                Encerrar Telemetria
             </button>
         </div>
     </div>
 
+    <!-- Painel Adicionar -->
+    <div id="add-city-sheet" class="glass-panel">
+        <div class="sheet-handle" onclick="toggleAddCity()"></div>
+        <div class="mb-8">
+            <h2 class="text-3xl font-black italic tracking-tighter uppercase">Novo Alvo</h2>
+            <p class="text-[0.6rem] opacity-50 font-mono uppercase tracking-widest">Introduza o nome da cidade para varredura satelital</p>
+        </div>
+        <div class="flex flex-col gap-6">
+            <input type="text" id="in-name" placeholder="Ex: Brasília, Lisboa, Maceió..." autocomplete="off">
+            <div id="search-status" class="text-[0.6rem] font-mono text-cyan-400 hidden italic">Sincronizando coordenadas via uplink<span class="loader-dots"></span></div>
+            <button id="btn-submit" onclick="submitNewCity()" class="w-full bg-[#00f2ff] text-black py-5 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-[0_0_20px_rgba(0,242,255,0.4)]">
+                Iniciar Varredura
+            </button>
+            <button onclick="toggleAddCity()" class="w-full py-4 text-[10px] uppercase font-bold opacity-50 tracking-widest">Cancelar Missão</button>
+        </div>
+    </div>
+
     <script>
-        // --- BASE DE DADOS GLOBAL DE CIDADES ---
+        // --- BASE DE DADOS AMPLIADA DE CIDADES COSTEIRAS ---
+        const COASTAL_KEYWORDS = [
+            "LISBOA", "RIO DE JANEIRO", "RECIFE", "PORTO", "SYDNEY", "NEW YORK", "MIAMI", 
+            "SALVADOR", "FORTALEZA", "FLORIANÓPOLIS", "MACEIÓ", "SANTOS", "VITÓRIA", 
+            "NATAL", "JOÃO PESSOA", "ARACAJU", "SÃO LUÍS", "MANGARATIBA", "ANGRA DOS REIS",
+            "CABO FRIO", "BÚZIOS", "FLORIPA", "BARCELONA", "VALENCIA", "MARSEILLE", "NAPOLI",
+            "DUBAI", "DOHA", "MUMBAI", "SHANGHAI", "SINGAPORE", "VANCOUVER", "LOS ANGELES",
+            "SAN FRANCISCO", "SEATTLE", "CAPE TOWN", "LAGOS", "LUANDA", "MAPUTO"
+        ];
+
         const CITIES = [
-            { n: "Brasília", c: "BR", lat: -15.78, lng: -47.93 }, // Brasília Adicionada
-            { n: "Londres", c: "UK", lat: 51.5, lng: -0.1 }, { n: "Nova Iorque", c: "USA", lat: 40.7, lng: -74 },
-            { n: "Tóquio", c: "JP", lat: 35.6, lng: 139.6 }, { n: "Sydney", c: "AU", lat: -33.8, lng: 151.2 },
-            { n: "Rio de Janeiro", c: "BR", lat: -22.9, lng: -43.1 }, { n: "Paris", c: "FR", lat: 48.8, lng: 2.3 },
-            { n: "Dubai", c: "UAE", lat: 25.2, lng: 55.2 }, { n: "Moscovo", c: "RU", lat: 55.7, lng: 37.6 },
-            { n: "Cidade do Cabo", c: "ZA", lat: -33.9, lng: 18.4 }, { n: "Mumbai", c: "IN", lat: 19, lng: 72.8 },
-            { n: "Cairo", c: "EG", lat: 30, lng: 31.2 }, { n: "Pequim", c: "CN", lat: 39.9, lng: 116.4 },
-            { n: "Berlim", c: "DE", lat: 52.5, lng: 13.4 }, { n: "Cidade do México", c: "MX", lat: 19.4, lng: -99.1 },
-            { n: "Singapura", c: "SG", lat: 1.3, lng: 103.8 }, { n: "Seul", c: "KR", lat: 37.5, lng: 126.9 },
-            { n: "Madrid", c: "ES", lat: 40.4, lng: -3.7 }, { n: "Roma", c: "IT", lat: 41.9, lng: 12.4 },
-            { n: "Toronto", c: "CA", lat: 43.6, lng: -79.3 }, { n: "Buenos Aires", c: "AR", lat: -34.6, lng: -58.3 },
-            { n: "Banguecoque", c: "TH", lat: 13.7, lng: 100.5 }, { n: "Jacarta", c: "ID", lat: -6.2, lng: 106.8 },
-            { n: "Lagos", c: "NG", lat: 6.5, lng: 3.4 }, { n: "Nairobi", c: "KE", lat: -1.2, lng: 36.8 },
-            { n: "Istambul", c: "TR", lat: 41, lng: 28.9 }, { n: "Teerão", c: "IR", lat: 35.6, lng: 51.3 },
-            { n: "Los Angeles", c: "USA", lat: 34, lng: -118.2 }, { n: "Chicago", c: "USA", lat: 41.8, lng: -87.6 },
-            { n: "Vancouver", c: "CA", lat: 49.2, lng: -123.1 }, { n: "Lima", c: "PE", lat: -12, lng: -77 },
-            { n: "Lisboa", c: "PT", lat: 38.7, lng: -9.1 }, { n: "Estocolmo", c: "SE", lat: 59.3, lng: 18 },
-            { n: "Oslo", c: "NO", lat: 59.9, lng: 10.7 }, { n: "Reiquiavique", c: "IS", lat: 64.1, lng: -21.9 },
-            { n: "Auckland", c: "NZ", lat: -36.8, lng: 174.7 }, { n: "Perth", c: "AU", lat: -31.9, lng: 115.8 },
-            { n: "Manila", c: "PH", lat: 14.5, lng: 120.9 }, { n: "Hong Kong", c: "HK", lat: 22.3, lng: 114.1 },
-            { n: "Riade", c: "SA", lat: 24.7, lng: 46.6 }, { n: "Tel Aviv", c: "IL", lat: 32, lng: 34.7 },
-            { n: "Atenas", c: "GR", lat: 37.9, lng: 23.7 }, { n: "Porto", c: "PT", lat: 41.1, lng: -8.6 },
-            { n: "Varsóvia", c: "PL", lat: 52.2, lng: 21 }, { n: "Praga", c: "CZ", lat: 50, lng: 14.4 },
-            { n: "Amesterdão", c: "NL", lat: 52.3, lng: 4.8 }, { n: "Bruxelas", c: "BE", lat: 50.8, lng: 4.3 },
-            { n: "Viena", c: "AT", lat: 48.2, lng: 16.3 }, { n: "Zurique", c: "CH", lat: 47.3, lng: 8.5 },
-            { n: "Casablanca", c: "MA", lat: 33.5, lng: -7.5 }, { n: "Bogotá", c: "CO", lat: 4.7, lng: -74 },
-            { n: "Caracas", c: "VE", lat: 10.4, lng: -66.9 }, { n: "São Paulo", c: "BR", lat: -23.5, lng: -46.6 },
-            { n: "Deli", c: "IN", lat: 28.6, lng: 77.2 }, { n: "Karachi", c: "PK", lat: 24.8, lng: 67 },
-            { n: "Dhaka", c: "BD", lat: 23.8, lng: 90.4 }, { n: "Calcutá", c: "IN", lat: 22.5, lng: 88.3 }
+            { n: "Brasília", lat: -15.78, lng: -47.93, isCoastal: false },
+            { n: "Rio de Janeiro", lat: -22.9, lng: -43.1, isCoastal: true }, 
+            { n: "Lisboa", lat: 38.7, lng: -9.1, isCoastal: true },
+            { n: "Maceió", lat: -9.66, lng: -35.73, isCoastal: true },
+            { n: "Recife", lat: -8.05, lng: -34.88, isCoastal: true },
+            { n: "São Paulo", lat: -23.55, lng: -46.63, isCoastal: false }
         ];
 
         let scene, camera, renderer, globe, clouds, controls;
@@ -234,58 +265,79 @@
         let mouse = new THREE.Vector2();
         let isZoomingToCity = false;
         let weatherChart = null;
+        let timeUpdateInterval = null;
 
-        // --- INICIALIZAÇÃO ---
+        // --- UTILITÁRIOS ---
+
+        function getMoonPhase(date) {
+            const cycle = 29.530588853;
+            const baseDate = new Date(2000, 0, 6, 18, 14);
+            const diff = (date.getTime() - baseDate.getTime()) / 1000 / 60 / 60 / 24;
+            const phase = (diff % cycle) / cycle;
+            if (phase < 0.06) return { name: "Lua Nova", icon: "🌑" };
+            if (phase < 0.25) return { name: "Crescente", icon: "🌒" };
+            if (phase < 0.31) return { name: "Quarto Crescente", icon: "🌓" };
+            if (phase < 0.50) return { name: "Gibosa Crescente", icon: "🌔" };
+            if (phase < 0.56) return { name: "Lua Cheia", icon: "🌕" };
+            if (phase < 0.75) return { name: "Gibosa Minguante", icon: "🌖" };
+            if (phase < 0.81) return { name: "Quarto Minguante", icon: "🌗" };
+            return { name: "Minguante", icon: "🌘" };
+        }
+
+        function getSimulatedTide(lng) {
+            const now = new Date();
+            const hour = now.getUTCHours() + (lng / 15);
+            const wave = (Math.sin(hour * Math.PI / 6.2) + 1) / 2; 
+            return {
+                percentage: Math.round(wave * 100),
+                status: (Math.cos(hour * Math.PI / 6.2) > 0) ? "Enchendo" : "Vazando"
+            };
+        }
+
+        function checkIfCoastal(name) {
+            const cleanName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            return COASTAL_KEYWORDS.some(kw => cleanName.includes(kw));
+        }
+
+        // --- ENGINE 3D ---
 
         function init() {
-            updateStatus("Mapeando Geometria...", 30);
-            
+            updateStatus("Mapping Earth...", 30);
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.z = 300;
+            camera.position.z = 320;
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Controlos Orbitais
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.minDistance = 140;
-            controls.maxDistance = 500;
             controls.autoRotate = true;
-            controls.autoRotateSpeed = 0.5;
+            controls.autoRotateSpeed = 0.4;
 
-            // Luzes
-            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambient);
             const sun = new THREE.DirectionalLight(0xffffff, 1.2);
             sun.position.set(5, 3, 5);
             scene.add(sun);
 
             createGlobe();
-            createMarkers();
+            CITIES.forEach(city => createMarker(city));
 
-            updateStatus("A ligar API de Satélite...", 100);
+            updateStatus("Systems Online", 100);
             setTimeout(() => {
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('marker-count').innerText = CITIES.length;
+                updateMarkerCounter();
                 animate();
-                startTelemetry();
                 startClock();
-                
-                // Esconder guia após alguns segundos
-                setTimeout(() => {
-                    document.getElementById('guide-overlay').style.opacity = '0';
-                }, 5000);
             }, 1000);
 
-            // Eventos
             window.addEventListener('resize', onResize);
-            renderer.domElement.addEventListener('touchstart', handleTouch, {passive: false});
-            renderer.domElement.addEventListener('mousedown', handleMouseDown);
+            renderer.domElement.addEventListener('mousedown', (e) => processClick(e.clientX, e.clientY));
+            renderer.domElement.addEventListener('touchstart', (e) => processClick(e.touches[0].clientX, e.touches[0].clientY));
         }
 
         function updateStatus(text, progress) {
@@ -295,97 +347,86 @@
 
         function createGlobe() {
             const loader = new THREE.TextureLoader();
-            
-            // Esfera Terrestre
             const geo = new THREE.SphereGeometry(100, 64, 64);
             const mat = new THREE.MeshPhongMaterial({
                 map: loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
                 bumpMap: loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
-                bumpScale: 1.5,
-                shininess: 5
+                bumpScale: 1.5, shininess: 5
             });
             globe = new THREE.Mesh(geo, mat);
             scene.add(globe);
 
-            // Nuvens
             const cloudMat = new THREE.MeshPhongMaterial({
                 map: loader.load('https://unpkg.com/three-globe/example/img/earth-clouds.png'),
-                transparent: true,
-                opacity: 0.3
+                transparent: true, opacity: 0.3
             });
             clouds = new THREE.Mesh(new THREE.SphereGeometry(102, 64, 64), cloudMat);
             scene.add(clouds);
 
-            // Atmosfera
-            const atmosMat = new THREE.MeshBasicMaterial({
-                color: 0x00f2ff,
-                transparent: true,
-                opacity: 0.08,
-                side: THREE.BackSide
-            });
-            const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(115, 64, 64), atmosMat);
-            scene.add(atmosphere);
+            const atmos = new THREE.Mesh(
+                new THREE.SphereGeometry(118, 64, 64),
+                new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.08, side: THREE.BackSide })
+            );
+            scene.add(atmos);
         }
 
-        function createMarkers() {
-            CITIES.forEach(city => {
-                const phi = (90 - city.lat) * (Math.PI / 180);
-                const theta = (city.lng + 180) * (Math.PI / 180);
-                
-                const x = -(101 * Math.sin(phi) * Math.cos(theta));
-                const z = (101 * Math.sin(phi) * Math.sin(theta));
-                const y = (101 * Math.cos(phi));
-                
-                const markerGroup = new THREE.Group();
-                markerGroup.position.set(x, y, z);
-
-                // Ponto Central
-                const dot = new THREE.Mesh(
-                    new THREE.SphereGeometry(1.2, 8, 8),
-                    new THREE.MeshBasicMaterial({ color: 0x00f2ff })
-                );
-                markerGroup.add(dot);
-
-                // Halo de Pulso
-                const halo = new THREE.Mesh(
-                    new THREE.RingGeometry(1.5, 2.5, 16),
-                    new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
-                );
-                halo.lookAt(0,0,0);
-                markerGroup.add(halo);
-
-                markerGroup.userData = city;
-                scene.add(markerGroup);
-                markers.push(markerGroup);
-            });
+        function createMarker(city) {
+            const phi = (90 - city.lat) * (Math.PI / 180);
+            const theta = (city.lng + 180) * (Math.PI / 180);
+            const x = -(101 * Math.sin(phi) * Math.cos(theta));
+            const z = (101 * Math.sin(phi) * Math.sin(theta));
+            const y = (101 * Math.cos(phi));
+            
+            const group = new THREE.Group();
+            group.position.set(x, y, z);
+            group.add(new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00f2ff })));
+            const halo = new THREE.Mesh(new THREE.RingGeometry(1.8, 3.2, 16), new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.4, side: THREE.DoubleSide }));
+            halo.lookAt(0,0,0);
+            group.add(halo);
+            group.userData = city;
+            scene.add(group);
+            markers.push(group);
         }
 
-        // --- INTERAÇÃO ---
+        function toggleAddCity() { document.getElementById('add-city-sheet').classList.toggle('active'); }
 
-        function handleTouch(e) {
-            if (e.touches.length > 1) return; 
-            const touch = e.touches[0];
-            processClick(touch.clientX, touch.clientY);
+        async function submitNewCity() {
+            const nameInput = document.getElementById('in-name');
+            const searchStatus = document.getElementById('search-status');
+            const cityName = nameInput.value.trim();
+            if (!cityName) return;
+            searchStatus.classList.remove('hidden');
+
+            try {
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=pt&format=json`);
+                const geoData = await geoRes.json();
+                if (geoData.results && geoData.results.length > 0) {
+                    const res = geoData.results[0];
+                    const isCoastal = checkIfCoastal(res.name);
+                    const newCity = { n: res.name, lat: res.latitude, lng: res.longitude, isCoastal: isCoastal };
+                    createMarker(newCity);
+                    updateMarkerCounter();
+                    toggleAddCity();
+                    zoomToCity(newCity, markers[markers.length-1].position);
+                    logTelemetry(`LOCALIZADO: ${res.name.toUpperCase()}`);
+                } else {
+                    logTelemetry(`ALVO NÃO ENCONTRADO`);
+                }
+            } catch (err) { logTelemetry("ERRO_UPLINK"); }
+            finally { searchStatus.classList.add('hidden'); nameInput.value = ""; }
         }
 
-        function handleMouseDown(e) {
-            processClick(e.clientX, e.clientY);
-        }
+        function updateMarkerCounter() { document.getElementById('marker-count').innerText = markers.length; }
 
         function processClick(x, y) {
             mouse.x = (x / window.innerWidth) * 2 - 1;
             mouse.y = -(y / window.innerHeight) * 2 + 1;
-
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(markers, true);
-
-            if (intersects.length > 0) {
-                let obj = intersects[0].object;
+            const hits = raycaster.intersectObjects(markers, true);
+            if (hits.length > 0) {
+                let obj = hits[0].object;
                 while(obj.parent && !obj.userData.n) obj = obj.parent;
-                
-                if (obj.userData.n) {
-                    zoomToCity(obj.userData, obj.position);
-                }
+                if (obj.userData.n) zoomToCity(obj.userData, obj.position);
             }
         }
 
@@ -393,74 +434,67 @@
             if (isZoomingToCity) return;
             isZoomingToCity = true;
             controls.autoRotate = false;
-            
-            const targetPos = pos.clone().normalize().multiplyScalar(170);
-            
-            logTelemetry(`INTERCEPTAÇÃO: ${city.n.toUpperCase()}`);
-            document.getElementById('hud-city').innerText = city.n.toUpperCase();
-
+            const targetPos = pos.clone().normalize().multiplyScalar(175);
             gsap.to(camera.position, {
                 x: targetPos.x, y: targetPos.y, z: targetPos.z,
-                duration: 1.5,
-                ease: "power3.inOut",
+                duration: 1.5, ease: "power3.inOut",
                 onUpdate: () => camera.lookAt(0,0,0),
-                onComplete: () => {
-                    isZoomingToCity = false;
-                    openWeather(city);
-                }
+                onComplete: () => { isZoomingToCity = false; openWeather(city); }
             });
         }
-
-        function resetGlobe() {
-            closeWeather();
-            document.getElementById('hud-city').innerText = "VARREDURA GLOBAL";
-            gsap.to(camera.position, {
-                x: 0, y: 0, z: 300,
-                duration: 2,
-                ease: "power2.inOut",
-                onUpdate: () => camera.lookAt(0,0,0),
-                onComplete: () => { controls.autoRotate = true; }
-            });
-        }
-
-        // --- LÓGICA METEOROLÓGICA ---
 
         async function openWeather(city) {
             document.getElementById('weather-sheet').classList.add('active');
             document.getElementById('city-name').innerText = city.n;
-            document.getElementById('city-coords').innerText = `${city.lat.toFixed(2)}N, ${city.lng.toFixed(2)}E | CÓD: ${city.c}`;
+            document.getElementById('city-coords').innerText = `${city.lat.toFixed(2)}°N, ${city.lng.toFixed(2)}°E`;
+            document.getElementById('hud-city').innerText = city.n.toUpperCase();
+            
+            if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+
+            // Módulo Maré/Lua
+            const marineBox = document.getElementById('marine-telemetry');
+            if (city.isCoastal) {
+                marineBox.classList.remove('hidden');
+                const phase = getMoonPhase(new Date());
+                document.getElementById('moon-phase-name').innerText = phase.name;
+                document.getElementById('moon-icon-container').innerText = phase.icon;
+                
+                const tide = getSimulatedTide(city.lng);
+                document.getElementById('tide-status').innerText = tide.status;
+                document.getElementById('tide-percentage').innerText = tide.percentage + "%";
+                gsap.to("#tide-wave-bar", { width: tide.percentage + "%", duration: 1.5 });
+            } else {
+                marineBox.classList.add('hidden');
+            }
 
             try {
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&current_weather=true&hourly=temperature_2m`);
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&current_weather=true&hourly=temperature_2m&timezone=auto`);
                 const data = await res.json();
                 
                 document.getElementById('current-temp').innerText = `${Math.round(data.current_weather.temperature)}°C`;
                 document.getElementById('wind-speed').innerText = data.current_weather.windspeed;
-                document.getElementById('humidity-val').innerText = Math.floor(Math.random()*40 + 40);
-                document.getElementById('weather-desc').innerText = getWeatherLabel(data.current_weather.weathercode);
-
-                updateObs(city);
+                document.getElementById('humidity-val').innerText = Math.floor(Math.random()*20 + 60);
+                document.getElementById('weather-desc').innerText = data.current_weather.weathercode === 0 ? "CÉU LIMPO" : "SINAL ATMOSFÉRICO";
+                
+                const updateLocalTime = () => {
+                    const localTimeStr = new Date().toLocaleTimeString('pt-BR', {
+                        timeZone: data.timezone, hour: '2-digit', minute: '2-digit', hour12: false
+                    });
+                    document.getElementById('city-local-time').innerText = localTimeStr;
+                };
+                updateLocalTime();
+                timeUpdateInterval = setInterval(updateLocalTime, 20000);
                 renderChart(data.hourly.temperature_2m.slice(0, 12));
-                logTelemetry(`LIGAÇÃO_SUCESSO: ${city.n.toUpperCase()}`);
-            } catch (err) {
-                logTelemetry("ERRO: INTERFERÊNCIA_SINAL");
-            }
+                updateObs();
+            } catch (err) { logTelemetry("ERR_UPLINK"); }
         }
 
-        function getWeatherLabel(c) {
-            if (c === 0) return "CÉU_LIMPO";
-            if (c < 3) return "COBERTURA_PARCIAL";
-            if (c < 50) return "NEVOEIRO_DETETADO";
-            return "ALERTA_PRECIPITAÇÃO";
-        }
-
-        function updateObs(city) {
-            const list = document.getElementById('obs-list');
-            list.innerHTML = `
-                <div>VISIBILIDADE</div><div class="text-white">12.4KM</div>
-                <div>PRESSÃO</div><div class="text-white">1012hPa</div>
-                <div>ÍNDICE_UV</div><div class="text-white">${Math.floor(Math.random()*7)}</div>
-                <div>PONTO_ORVALHO</div><div class="text-white">${Math.floor(Math.random()*5+5)}°C</div>
+        function updateObs() {
+            document.getElementById('obs-list').innerHTML = `
+                <div>Visibilidade</div><div class="text-white">12.4 KM</div>
+                <div>Pressão</div><div class="text-white">1012 HPA</div>
+                <div>Índice UV</div><div class="text-white">${Math.floor(Math.random()*7)}</div>
+                <div>Orvalho</div><div class="text-white">${Math.floor(Math.random()*5+5)}°C</div>
             `;
         }
 
@@ -470,79 +504,22 @@
             weatherChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['T-12', 'T-10', 'T-8', 'T-6', 'T-4', 'T-2', 'AGORA', 'T+2', 'T+4', 'T+6', 'T+8', 'T+10'],
-                    datasets: [{
-                        data: tempData,
-                        borderColor: '#00f2ff',
-                        backgroundColor: 'rgba(0, 242, 255, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointRadius: 0
-                    }]
+                    labels: ['-12h', '-10h', '-8h', '-6h', '-4h', '-2h', 'AGORA', '+2h', '+4h', '+6h', '+8h', '+10h'],
+                    datasets: [{ data: tempData, borderColor: '#00f2ff', backgroundColor: 'rgba(0, 242, 255, 0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { grid: { display: false }, ticks: { color: 'rgba(0, 242, 255, 0.4)', font: { size: 7 } } },
-                        y: { display: false }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: 'rgba(0,242,255,0.4)', font: { size: 7 } } }, y: { display: false } } }
             });
         }
 
-        function closeWeather() {
-            document.getElementById('weather-sheet').classList.remove('active');
+        function closeWeather() { 
+            document.getElementById('weather-sheet').classList.remove('active'); 
+            document.getElementById('hud-city').innerText = "VIGILÂNCIA GLOBAL";
         }
-
-        // --- LOOPS DO SISTEMA ---
-
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            clouds.rotation.y += 0.001;
-            
-            // Garantir que marcadores olhem sempre para a câmara
-            markers.forEach(m => m.lookAt(camera.position));
-            
-            // Atualizações HUD
-            const zoom = (300 / camera.position.length()).toFixed(2);
-            document.getElementById('hud-zoom').innerText = zoom;
-            
-            renderer.render(scene, camera);
-        }
-
-        function logTelemetry(msg) {
-            const log = document.getElementById('mini-log');
-            const entry = document.createElement('div');
-            entry.innerText = `> ${msg}`;
-            log.prepend(entry);
-            if(log.childNodes.length > 5) log.removeChild(log.lastChild);
-        }
-
-        function startTelemetry() {
-            const msgs = ["VARREDURA_ISOBÁRICA", "SISTEMA_SÍNCRONO", "SINAL_SATÉLITE_OK", "VERIFICAÇÃO_TÉRMICA"];
-            setInterval(() => {
-                if(!isZoomingToCity) logTelemetry(msgs[Math.floor(Math.random()*msgs.length)]);
-            }, 5000);
-        }
-
-        function startClock() {
-            setInterval(() => {
-                const now = new Date();
-                document.getElementById('status-clock').innerText = 
-                    now.getHours().toString().padStart(2, '0') + ":" + 
-                    now.getMinutes().toString().padStart(2, '0');
-            }, 1000);
-        }
-
-        function onResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        function resetGlobe() { closeWeather(); gsap.to(camera.position, { x: 0, y: 0, z: 320, duration: 2, ease: "power2.inOut", onUpdate: () => camera.lookAt(0,0,0), onComplete: () => controls.autoRotate = true }); }
+        function animate() { requestAnimationFrame(animate); controls.update(); clouds.rotation.y += 0.001; markers.forEach(m => m.lookAt(camera.position)); renderer.render(scene, camera); }
+        function logTelemetry(msg) { const log = document.getElementById('mini-log'); const d = document.createElement('div'); d.innerText = `> ${msg}`; log.prepend(d); if(log.childNodes.length > 5) log.removeChild(log.lastChild); }
+        function startClock() { setInterval(() => { const n = new Date(); document.getElementById('status-clock').innerText = n.getHours().toString().padStart(2,'0') + ":" + n.getMinutes().toString().padStart(2,'0'); }, 1000); }
+        function onResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
 
         init();
     </script>
