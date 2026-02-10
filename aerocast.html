@@ -101,15 +101,15 @@
     <div id="loading" class="loading-screen">
         <div class="text-xl mb-4 tracking-[0.4em] font-black italic">AEROCAST GLOBAL</div>
         <div class="w-56 h-[1px] bg-cyan-900 overflow-hidden">
-            <div id="loader-bar" class="h-full bg-[#00f2ff] w-0 transition-all duration-300"></div>
+            <div id="loader-bar" class="h-full bg-[#00f2ff] w-0 transition-all duration-300 shadow-[0_0_10px_#00f2ff]"></div>
         </div>
-        <div id="status-text" class="mt-4 text-[10px] uppercase opacity-50 tracking-widest font-mono">Sincronizando Marés...</div>
+        <div id="status-text" class="mt-4 text-[10px] uppercase opacity-50 tracking-widest font-mono">Calibrando Uplink Hidrometeo...</div>
     </div>
 
     <div class="status-bar">
         <div id="status-clock">00:00</div>
         <div class="flex gap-2 items-center">
-            <span class="text-[8px] border border-cyan-500/30 px-1 font-mono tracking-tighter uppercase">Maré_Sinc_v2.0</span>
+            <span class="text-[8px] border border-cyan-500/30 px-1 font-mono tracking-tighter uppercase">Protocolo_Costa_v3.0</span>
             <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
         </div>
     </div>
@@ -117,34 +117,34 @@
     <div class="hud-scanline"></div>
     <div id="canvas-container"></div>
 
-    <!-- HUD Superior -->
+    <!-- Interface Superior HUD -->
     <div class="fixed top-12 left-0 w-full px-5 z-10 flex justify-between items-start pointer-events-none">
         <div class="glass-panel p-3 rounded-2xl flex flex-col gap-1 pointer-events-auto">
-            <div class="text-[0.5rem] opacity-70 font-mono tracking-tighter uppercase">Monitorização</div>
+            <div class="text-[0.5rem] opacity-70 font-mono tracking-tighter uppercase">Status do Satélite</div>
             <div class="telemetry-log font-mono" id="mini-log">
                 <div>> SISTEMA OPERACIONAL</div>
             </div>
         </div>
         <div class="text-right flex flex-col items-end">
-            <div class="text-[0.6rem] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/50 font-bold mb-2 italic uppercase">Aerocast v5.9</div>
+            <div class="text-[0.6rem] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/50 font-bold mb-2 italic uppercase tracking-widest">Aerocast v6.0</div>
             <div class="text-[0.5rem] opacity-50 font-mono uppercase">Zoom: <span id="hud-zoom">1.00</span>x</div>
-            <div class="text-[0.5rem] opacity-50 font-mono uppercase">Alvos: <span id="marker-count">0</span></div>
+            <div class="text-[0.5rem] opacity-50 font-mono uppercase">Marcadores: <span id="marker-count">0</span></div>
         </div>
     </div>
 
-    <!-- HUD Inferior -->
+    <!-- Barra de Ações Inferior -->
     <div class="fixed bottom-0 left-0 w-full p-6 pb-10 z-10 flex justify-between items-end pointer-events-none">
         <div class="flex gap-2 pointer-events-auto">
-            <button onclick="resetGlobe()" class="bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest">
-                Reset
+            <button onclick="resetGlobe()" class="bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-transform">
+                Recalibrar
             </button>
-            <button onclick="toggleAddCity()" class="bg-[#00f2ff]/20 border border-[#00f2ff]/60 text-[#00f2ff] px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(0,242,255,0.2)]">
-                Localizar
+            <button onclick="toggleAddCity()" class="bg-[#00f2ff]/20 border border-[#00f2ff]/60 text-[#00f2ff] px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(0,242,255,0.2)] transition-all">
+                + Localizar Alvo
             </button>
         </div>
         <div class="text-right glass-panel p-2 px-3 rounded-xl border-none">
-            <div class="text-[0.5rem] opacity-60 uppercase tracking-tighter">Estado Orbital</div>
-            <div id="hud-city" class="text-[10px] font-black italic text-white uppercase">Vigilância Global</div>
+            <div class="text-[0.5rem] opacity-60 uppercase">Estado da Conexão</div>
+            <div id="hud-city" class="text-[10px] font-black italic text-white uppercase">Varredura Livre</div>
         </div>
     </div>
 
@@ -156,14 +156,14 @@
             <div class="flex-grow">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    <span class="text-[0.6rem] font-bold tracking-widest text-red-400 uppercase">Uplink Hidrometeo Ativo</span>
+                    <span class="text-[0.6rem] font-bold tracking-widest text-red-400 uppercase">Dados Hidrometeo Sincronizados</span>
                 </div>
                 <h2 id="city-name" class="text-4xl font-black italic tracking-tighter uppercase leading-none mb-1">---</h2>
                 <div class="flex flex-col gap-2">
                     <div id="city-coords" class="text-[0.6rem] opacity-60 font-mono tracking-widest">0.00°N, 0.00°E</div>
                     <div class="text-[0.7rem] font-bold text-cyan-400 flex items-center gap-1.5 bg-cyan-400/10 px-3 py-1.5 rounded-lg border border-cyan-400/30 w-fit">
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
-                        HORA LOCAL: <span id="city-local-time" class="font-mono text-white">--:--</span>
+                        HORA LOCAL: <span id="city-local-time" class="font-mono text-white tracking-widest uppercase">--:--</span>
                     </div>
                 </div>
             </div>
@@ -176,16 +176,16 @@
         <div class="flex-grow flex flex-col gap-4 overflow-y-auto pr-1">
             <!-- Módulo Lunar e Maré -->
             <div id="marine-telemetry" class="grid grid-cols-2 gap-3 hidden">
-                <div class="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+                <div class="bg-white/5 border border-white/10 p-5 rounded-3xl flex items-center justify-between">
                     <div>
                         <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Ciclo Lunar</div>
                         <div id="moon-phase-name" class="text-[0.75rem] font-black uppercase text-white italic">---</div>
                     </div>
-                    <div id="moon-icon-container" class="text-3xl">
+                    <div id="moon-icon-container" class="text-4xl">
                         <!-- Ícone Injetado -->
                     </div>
                 </div>
-                <div class="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
                     <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Tábua de Maré</div>
                     <div class="flex justify-between items-end mb-2">
                         <span id="tide-status" class="text-[0.75rem] font-black italic uppercase text-cyan-400">---</span>
@@ -199,62 +199,61 @@
 
             <!-- Dados Atmosféricos -->
             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white/5 border border-white/10 p-5 rounded-2xl">
-                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Vento</div>
+                <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
+                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Vento Médio</div>
                     <div id="wind-speed" class="text-2xl font-black italic">-- <span class="text-[10px] opacity-50 font-normal">KM/H</span></div>
                 </div>
-                <div class="bg-white/5 border border-white/10 p-5 rounded-2xl">
-                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Humidade</div>
+                <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
+                    <div class="text-[0.5rem] opacity-50 mb-1 uppercase tracking-wider">Humidade Rel.</div>
                     <div id="humidity-val" class="text-2xl font-black italic">-- <span class="text-[10px] opacity-50 font-normal">%</span></div>
                 </div>
             </div>
 
-            <div class="bg-white/5 border border-white/10 rounded-2xl p-4 h-48">
-                <div class="text-[0.5rem] opacity-30 mb-3 uppercase font-bold tracking-widest">Gradiente de Temperatura (12h)</div>
+            <div class="bg-white/5 border border-white/10 rounded-3xl p-5 h-48">
+                <div class="text-[0.5rem] opacity-30 mb-3 uppercase font-bold tracking-widest">Variação Térmica Satelital (12h)</div>
                 <canvas id="weather-chart"></canvas>
             </div>
 
-            <div id="obs-list" class="p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-xl text-[0.65rem] font-mono grid grid-cols-2 gap-y-3 opacity-90 uppercase italic"></div>
+            <div id="obs-list" class="p-5 bg-cyan-400/5 border border-cyan-400/20 rounded-2xl text-[0.65rem] font-mono grid grid-cols-2 gap-y-3 opacity-90 uppercase italic"></div>
 
             <button onclick="closeWeather()" class="w-full btn-primary py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] mt-2 mb-8 border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
-                Encerrar Telemetria
+                Encerrar Monitorização
             </button>
         </div>
     </div>
 
-    <!-- Painel Adicionar -->
+    <!-- Painel de Busca -->
     <div id="add-city-sheet" class="glass-panel">
         <div class="sheet-handle" onclick="toggleAddCity()"></div>
         <div class="mb-8">
-            <h2 class="text-3xl font-black italic tracking-tighter uppercase">Novo Alvo</h2>
+            <h2 class="text-3xl font-black italic tracking-tighter uppercase leading-tight">Alvo de Geocodificação</h2>
             <p class="text-[0.6rem] opacity-50 font-mono uppercase tracking-widest">Introduza o nome da cidade para varredura satelital</p>
         </div>
         <div class="flex flex-col gap-6">
-            <input type="text" id="in-name" placeholder="Ex: Brasília, Lisboa, Maceió..." autocomplete="off">
+            <input type="text" id="in-name" placeholder="Ex: Maceió, Lisboa, Brasília..." autocomplete="off">
             <div id="search-status" class="text-[0.6rem] font-mono text-cyan-400 hidden italic">Sincronizando coordenadas via uplink<span class="loader-dots"></span></div>
             <button id="btn-submit" onclick="submitNewCity()" class="w-full bg-[#00f2ff] text-black py-5 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-[0_0_20px_rgba(0,242,255,0.4)]">
-                Iniciar Varredura
+                Confirmar Localização
             </button>
-            <button onclick="toggleAddCity()" class="w-full py-4 text-[10px] uppercase font-bold opacity-50 tracking-widest">Cancelar Missão</button>
+            <button onclick="toggleAddCity()" class="w-full py-4 text-[10px] uppercase font-bold opacity-50 tracking-widest">Abortar Busca</button>
         </div>
     </div>
 
     <script>
-        // --- BASE DE DADOS AMPLIADA DE CIDADES COSTEIRAS ---
+        // --- BASE DE DADOS AMPLIADA E NORMALIZADA ---
         const COASTAL_KEYWORDS = [
             "LISBOA", "RIO DE JANEIRO", "RECIFE", "PORTO", "SYDNEY", "NEW YORK", "MIAMI", 
-            "SALVADOR", "FORTALEZA", "FLORIANÓPOLIS", "MACEIÓ", "SANTOS", "VITÓRIA", 
-            "NATAL", "JOÃO PESSOA", "ARACAJU", "SÃO LUÍS", "MANGARATIBA", "ANGRA DOS REIS",
-            "CABO FRIO", "BÚZIOS", "FLORIPA", "BARCELONA", "VALENCIA", "MARSEILLE", "NAPOLI",
-            "DUBAI", "DOHA", "MUMBAI", "SHANGHAI", "SINGAPORE", "VANCOUVER", "LOS ANGELES",
-            "SAN FRANCISCO", "SEATTLE", "CAPE TOWN", "LAGOS", "LUANDA", "MAPUTO"
+            "SALVADOR", "FORTALEZA", "FLORIANOPOLIS", "MACEIO", "SANTOS", "VITORIA", 
+            "NATAL", "JOAO PESSOA", "ARACAJU", "SAO LUIS", "MANGARATIBA", "ANGRA DOS REIS",
+            "CABO FRIO", "BUZIOS", "BARCELONA", "VALENCIA", "MARSEILLE", "NAPOLI", "DUBAI",
+            "MUMBAI", "SHANGHAI", "SINGAPORE", "VANCOUVER", "LOS ANGELES", "LUANDA", "MAPUTO"
         ];
 
         const CITIES = [
             { n: "Brasília", lat: -15.78, lng: -47.93, isCoastal: false },
+            { n: "Maceió", lat: -9.66, lng: -35.73, isCoastal: true },
             { n: "Rio de Janeiro", lat: -22.9, lng: -43.1, isCoastal: true }, 
             { n: "Lisboa", lat: 38.7, lng: -9.1, isCoastal: true },
-            { n: "Maceió", lat: -9.66, lng: -35.73, isCoastal: true },
             { n: "Recife", lat: -8.05, lng: -34.88, isCoastal: true },
             { n: "São Paulo", lat: -23.55, lng: -46.63, isCoastal: false }
         ];
@@ -268,6 +267,19 @@
         let timeUpdateInterval = null;
 
         // --- UTILITÁRIOS ---
+
+        function normalizeStr(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        }
+
+        function checkIfCoastal(name) {
+            const cleanName = normalizeStr(name);
+            // Verifica se alguma palavra-chave está contida no nome ou vice-versa
+            return COASTAL_KEYWORDS.some(kw => {
+                const normKw = normalizeStr(kw);
+                return cleanName.includes(normKw) || normKw.includes(cleanName);
+            });
+        }
 
         function getMoonPhase(date) {
             const cycle = 29.530588853;
@@ -294,15 +306,10 @@
             };
         }
 
-        function checkIfCoastal(name) {
-            const cleanName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-            return COASTAL_KEYWORDS.some(kw => cleanName.includes(kw));
-        }
-
-        // --- ENGINE 3D ---
+        // --- MOTOR 3D ---
 
         function init() {
-            updateStatus("Mapping Earth...", 30);
+            updateStatus("Mapping Geometry...", 30);
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
             camera.position.z = 320;
@@ -318,7 +325,7 @@
             controls.autoRotate = true;
             controls.autoRotateSpeed = 0.4;
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambient);
             const sun = new THREE.DirectionalLight(0xffffff, 1.2);
             sun.position.set(5, 3, 5);
@@ -327,7 +334,7 @@
             createGlobe();
             CITIES.forEach(city => createMarker(city));
 
-            updateStatus("Systems Online", 100);
+            updateStatus("Uplink Established", 100);
             setTimeout(() => {
                 document.getElementById('loading').style.display = 'none';
                 updateMarkerCounter();
@@ -402,17 +409,17 @@
                 const geoData = await geoRes.json();
                 if (geoData.results && geoData.results.length > 0) {
                     const res = geoData.results[0];
-                    const isCoastal = checkIfCoastal(res.name);
-                    const newCity = { n: res.name, lat: res.latitude, lng: res.longitude, isCoastal: isCoastal };
+                    const coastalStatus = checkIfCoastal(res.name);
+                    const newCity = { n: res.name, lat: res.latitude, lng: res.longitude, isCoastal: coastalStatus };
                     createMarker(newCity);
                     updateMarkerCounter();
                     toggleAddCity();
                     zoomToCity(newCity, markers[markers.length-1].position);
                     logTelemetry(`LOCALIZADO: ${res.name.toUpperCase()}`);
                 } else {
-                    logTelemetry(`ALVO NÃO ENCONTRADO`);
+                    logTelemetry(`ALVO NÃO IDENTIFICADO`);
                 }
-            } catch (err) { logTelemetry("ERRO_UPLINK"); }
+            } catch (err) { logTelemetry("ERRO_GEOLOC_FAIL"); }
             finally { searchStatus.classList.add('hidden'); nameInput.value = ""; }
         }
 
@@ -451,7 +458,7 @@
             
             if (timeUpdateInterval) clearInterval(timeUpdateInterval);
 
-            // Módulo Maré/Lua
+            // Módulo Maré/Lua - Correção para Maceió e cidades com acento
             const marineBox = document.getElementById('marine-telemetry');
             if (city.isCoastal) {
                 marineBox.classList.remove('hidden');
@@ -462,7 +469,7 @@
                 const tide = getSimulatedTide(city.lng);
                 document.getElementById('tide-status').innerText = tide.status;
                 document.getElementById('tide-percentage').innerText = tide.percentage + "%";
-                gsap.to("#tide-wave-bar", { width: tide.percentage + "%", duration: 1.5 });
+                gsap.to("#tide-wave-bar", { width: tide.percentage + "%", duration: 1.5, ease: "power2.out" });
             } else {
                 marineBox.classList.add('hidden');
             }
@@ -486,7 +493,7 @@
                 timeUpdateInterval = setInterval(updateLocalTime, 20000);
                 renderChart(data.hourly.temperature_2m.slice(0, 12));
                 updateObs();
-            } catch (err) { logTelemetry("ERR_UPLINK"); }
+            } catch (err) { logTelemetry("ERR_UPLINK_FAIL"); }
         }
 
         function updateObs() {
