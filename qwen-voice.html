@@ -1,0 +1,285 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Mic, Play, Pause, Download, Settings, Trash2, 
+  Sparkles, X, Volume2, Database, Menu, Globe, Cpu, AlertTriangle
+} from 'lucide-react';
+
+// --- Configurações ---
+const QWEN_MODELS = [
+  { id: 'qwen-tts-v1', name: 'Qwen-TTS Standard', desc: 'Narrativo e estável' },
+  { id: 'cosyvoice-v1', name: 'CosyVoice Qwen', desc: 'Expressividade alta' },
+];
+
+const VOICES = [
+  { id: 'Zephyr', name: 'Qwen Male', style: 'Narrative', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zephyr' },
+  { id: 'Kore', name: 'Qwen Female', style: 'Warm', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kore' },
+  { id: 'Puck', name: 'Qwen Youth', style: 'Energetic', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Puck' },
+];
+
+const STYLES = ["Neutro", "Sussurro", "Animado", "Sério"];
+
+const apiKey = ""; // Chave injetada automaticamente
+
+// --- Utilitários de Áudio ---
+const pcmToWav = (pcmBase64, sampleRate = 24000) => {
+  const binaryString = window.atob(pcmBase64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+  
+  const wavHeader = new ArrayBuffer(44);
+  const view = new DataView(wavHeader);
+  const dataSize = bytes.length;
+
+  view.setUint32(0, 0x52494646, false); // "RIFF"
+  view.setUint32(4, 36 + dataSize, true);
+  view.setUint32(8, 0x57415645, false); // "WAVE"
+  view.setUint32(12, 0x666d7420, false); // "fmt "
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  view.setUint32(36, 0x64617461, false); // "data"
+  view.setUint32(40, dataSize, true);
+
+  const blob = new Blob([wavHeader, bytes], { type: 'audio/wav' });
+  return URL.createObjectURL(blob);
+};
+
+// --- Função de API com Backoff ---
+async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (retries <= 0) throw err;
+    await new Promise(r => setTimeout(r, backoff));
+    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+  }
+}
+
+// --- Componente Principal ---
+export default function App() {
+  const [inputText, setInputText] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(VOICES[0]);
+  const [selectedStyle, setSelectedStyle] = useState(STYLES[0]);
+  const [selectedModel, setSelectedModel] = useState(QWEN_MODELS[0]);
+  const [isRealMode, setIsRealMode] = useState(false);
+  const [qwenKey, setQwenKey] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleGenerate = async () => {
+    if (!inputText.trim()) return;
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      let audioUrl;
+      if (isRealMode) {
+        // Implementação para API Qwen Real (Requer Proxy CORS em prod)
+        const response = await fetchWithRetry('https://dashscope.aliyuncs.com/api/v1/services/audio/tts/generation', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${qwenKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: selectedModel.id,
+            input: { text: inputText },
+            parameters: { voice: selectedVoice.id.toLowerCase(), format: 'pcm', sample_rate: 24000 }
+          })
+        });
+        audioUrl = response.output?.audio_url;
+        if (!audioUrl) throw new Error("API Real não retornou URL");
+      } else {
+        // Modo Bridge (Gemini TTS)
+        const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${selectedVoice.id}: ${inputText}` }] }],
+            generationConfig: { 
+              responseModalities: ["AUDIO"],
+              speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice.id } } }
+            }
+          })
+        });
+        
+        const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        if (!audioPart) throw new Error("Falha na síntese de áudio");
+        
+        audioUrl = pcmToWav(audioPart.inlineData.data);
+      }
+
+      const newEntry = {
+        id: Date.now(),
+        text: inputText,
+        url: audioUrl,
+        voice: selectedVoice.name,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setHistory(prev => [newEntry, ...prev]);
+      setInputText("");
+      new Audio(audioUrl).play().catch(() => {});
+
+    } catch (err) {
+      console.error(err);
+      setError("Erro na geração. Verifique a ligação ou chave de API.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-black text-zinc-200 overflow-hidden font-sans">
+      
+      {/* Sidebar Mobile Overlay */}
+      <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity lg:hidden ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setSidebarOpen(false)}>
+        <div className={`w-72 h-full bg-zinc-950 p-6 transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={e => e.stopPropagation()}>
+          <SidebarContent 
+            selectedModel={selectedModel} setSelectedModel={setSelectedModel} 
+            selectedVoice={selectedVoice} setSelectedVoice={setSelectedVoice}
+            isRealMode={isRealMode} setIsRealMode={setIsRealMode}
+            qwenKey={qwenKey} setQwenKey={setQwenKey}
+          />
+        </div>
+      </div>
+
+      {/* Sidebar Desktop */}
+      <aside className="hidden lg:flex w-72 border-r border-zinc-900 bg-zinc-950 flex-col p-6 shrink-0">
+        <SidebarContent 
+          selectedModel={selectedModel} setSelectedModel={setSelectedModel} 
+          selectedVoice={selectedVoice} setSelectedVoice={setSelectedVoice}
+          isRealMode={isRealMode} setIsRealMode={setIsRealMode}
+          qwenKey={qwenKey} setQwenKey={setQwenKey}
+        />
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col relative min-w-0">
+        <header className="h-16 border-b border-zinc-900 flex items-center justify-between px-6 bg-zinc-950/50">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 -ml-2 text-zinc-500"><Menu size={20} /></button>
+          <div className="flex gap-4">
+            {STYLES.map(s => (
+              <button key={s} onClick={() => setSelectedStyle(s)} className={`text-[10px] font-bold uppercase tracking-wider ${selectedStyle === s ? 'text-blue-500' : 'text-zinc-600 hover:text-zinc-400'}`}>{s}</button>
+            ))}
+          </div>
+          <div className={`px-2 py-0.5 rounded border text-[9px] font-bold ${isRealMode ? 'border-blue-500 text-blue-500' : 'border-zinc-800 text-zinc-600'}`}>
+            {isRealMode ? "QWEN_REAL" : "BRIDGE_EMU"}
+          </div>
+        </header>
+
+        {error && (
+          <div className="m-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-xs text-red-400">
+            <AlertTriangle size={14} /> {error}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4">
+          {history.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-zinc-800 opacity-20">
+              <Mic size={48} className="mb-4" />
+              <p className="text-sm font-bold uppercase tracking-widest">Estúdio Vazio</p>
+            </div>
+          ) : (
+            history.map(item => (
+              <div key={item.id} className="bg-zinc-900/50 border border-zinc-800/50 p-4 rounded-2xl flex items-center gap-4 hover:border-zinc-700 group transition-all">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all"><Volume2 size={20} /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 text-[10px] font-bold opacity-50 uppercase tracking-tighter">
+                    <span className="text-blue-500">{item.voice}</span>
+                    <span>•</span>
+                    <span>{item.time}</span>
+                  </div>
+                  <p className="text-sm text-zinc-300 truncate">"{item.text}"</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => new Audio(item.url).play()} className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors"><Play size={16} fill="currentColor" /></button>
+                  <a href={item.url} download={`voice-${item.id}.wav`} className="p-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-colors"><Download size={16} /></a>
+                  <button onClick={() => setHistory(history.filter(h => h.id !== item.id))} className="p-2 bg-zinc-900 text-zinc-600 hover:text-red-500"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Input Bar */}
+        <div className="p-4 lg:p-8 border-t border-zinc-900 bg-black">
+          <div className="max-w-3xl mx-auto relative group">
+            <textarea 
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder="Digite o texto para sintetizar..."
+              className="w-full h-20 lg:h-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none transition-all pr-24"
+            />
+            <button 
+              onClick={handleGenerate}
+              disabled={isGenerating || !inputText.trim()}
+              className={`absolute right-3 bottom-3 h-14 lg:h-20 px-4 rounded-xl flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-all ${isGenerating ? 'bg-zinc-800 text-zinc-600' : 'bg-white text-black hover:scale-105 active:scale-95 shadow-xl shadow-white/5'}`}
+            >
+              {isGenerating ? <div className="w-4 h-4 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" /> : <><Sparkles size={18} /> SÍNTESE</>}
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function SidebarContent({ selectedModel, setSelectedModel, selectedVoice, setSelectedVoice, isRealMode, setIsRealMode, qwenKey, setQwenKey }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="bg-blue-600 p-2 rounded-lg"><Database size={18} className="text-white" /></div>
+        <h1 className="font-black text-sm uppercase tracking-widest italic">Qwen Studio</h1>
+      </div>
+
+      <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <div>
+          <label className="text-[9px] font-bold text-zinc-600 uppercase mb-3 block tracking-widest">Motor de Áudio</label>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <button onClick={() => setIsRealMode(false)} className={`py-2 rounded-lg text-[9px] font-bold border ${!isRealMode ? 'bg-zinc-800 border-zinc-700 text-white' : 'border-zinc-900 text-zinc-600 hover:text-zinc-400'}`}>BRIDGE</button>
+            <button onClick={() => setIsRealMode(true)} className={`py-2 rounded-lg text-[9px] font-bold border ${isRealMode ? 'bg-blue-600 border-blue-500 text-white' : 'border-zinc-900 text-zinc-600 hover:text-zinc-400'}`}>REAL API</button>
+          </div>
+          {isRealMode && (
+            <input 
+              type="password" value={qwenKey} onChange={e => setQwenKey(e.target.value)}
+              placeholder="DashScope API Key (sk-...)"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-[10px] outline-none mb-4 focus:border-blue-500"
+            />
+          )}
+          <div className="space-y-2">
+            {QWEN_MODELS.map(m => (
+              <button key={m.id} onClick={() => setSelectedModel(m)} className={`w-full p-3 rounded-xl border text-left transition-all ${selectedModel.id === m.id ? 'bg-zinc-800 border-zinc-600 text-white' : 'border-zinc-900 text-zinc-600'}`}>
+                <p className="text-[10px] font-bold uppercase tracking-tight">{m.name}</p>
+                <p className="text-[8px] opacity-60 truncate">{m.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[9px] font-bold text-zinc-600 uppercase mb-3 block tracking-widest">Modelos de Voz</label>
+          <div className="space-y-2">
+            {VOICES.map(v => (
+              <button key={v.id} onClick={() => setSelectedVoice(v)} className={`w-full flex items-center gap-3 p-2 rounded-xl border transition-all ${selectedVoice.id === v.id ? 'bg-blue-600/10 border-blue-500 text-white' : 'border-zinc-900 text-zinc-600'}`}>
+                <img src={v.avatar} className="w-8 h-8 rounded-lg bg-zinc-800" />
+                <div className="text-left flex-1 min-w-0">
+                  <p className="text-[10px] font-bold truncate">{v.name}</p>
+                  <p className="text-[8px] uppercase opacity-60 tracking-tighter">{v.style}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="pt-6 border-t border-zinc-900 text-[8px] text-zinc-700 uppercase font-black tracking-widest text-center">v3.1.4 stable build</div>
+    </div>
+  );
+}
+
