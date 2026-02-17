@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voicebox Qwen3 Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: black;
+            color: #e4e4e7;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 10px;
+        }
+        
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .generating-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden lg:hidden opacity-0 transition-opacity duration-300">
+        <aside id="mobileSidebar" class="w-72 h-full bg-zinc-950 p-6 sidebar-transition -translate-x-full overflow-y-auto">
+            <!-- Conteúdo da Sidebar inserido via JS -->
+        </aside>
+    </div>
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden lg:flex w-72 border-r border-zinc-900 bg-zinc-950 flex-col p-6 shrink-0 overflow-y-auto custom-scrollbar">
+        <div id="desktopSidebarContent"></div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative min-w-0 h-full">
+        <!-- Header -->
+        <header class="h-16 border-b border-zinc-900 flex items-center justify-between px-6 bg-zinc-950/50 shrink-0">
+            <div class="flex items-center gap-4">
+                <button id="menuBtn" class="lg:hidden p-2 -ml-2 text-zinc-500 hover:text-white">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div id="styleSelectors" class="flex gap-4">
+                    <!-- Estilos inseridos via JS -->
+                </div>
+            </div>
+            <div id="modeBadge" class="px-2 py-0.5 rounded border text-[9px] font-bold border-zinc-800 text-zinc-600 transition-colors">
+                BRIDGE_EMU
+            </div>
+        </header>
+
+        <!-- Mensagens de Erro -->
+        <div id="errorBanner" class="hidden m-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-xs text-red-400">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            <span id="errorText"></span>
+            <button onclick="hideError()" class="ml-auto"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+
+        <!-- History Area -->
+        <div id="historyList" class="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 custom-scrollbar">
+            <!-- Empty State inicial -->
+            <div id="emptyState" class="h-full flex flex-col items-center justify-center text-zinc-800 opacity-20">
+                <i data-lucide="mic" class="w-12 h-12 mb-4"></i>
+                <p class="text-sm font-bold uppercase tracking-widest">Estúdio Vazio</p>
+            </div>
+        </div>
+
+        <!-- Input Bar -->
+        <footer class="p-4 lg:p-8 border-t border-zinc-900 bg-black shrink-0">
+            <div class="max-w-3xl mx-auto relative group">
+                <textarea id="inputText" 
+                    placeholder="Escreva o texto para sintetizar..."
+                    class="w-full h-24 lg:h-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none transition-all pr-24 text-zinc-200 placeholder:text-zinc-600"></textarea>
+                <button id="generateBtn" 
+                    class="absolute right-3 bottom-3 h-14 lg:h-20 px-4 rounded-xl flex flex-col items-center justify-center gap-1 font-bold text-[10px] transition-all bg-white text-black hover:scale-105 active:scale-95 shadow-xl shadow-white/5">
+                    <i data-lucide="sparkles" class="w-5 h-5" id="btnIcon"></i>
+                    <span id="btnLabel">SÍNTESE</span>
+                </button>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        const apiKey = ""; // Ambiente fornece a chave
+
+        // Configurações
+        const VOICES = [
+            { id: 'Zephyr', name: 'Qwen Male', style: 'Narrative', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zephyr' },
+            { id: 'Kore', name: 'Qwen Female', style: 'Warm', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kore' },
+            { id: 'Puck', name: 'Qwen Youth', style: 'Energetic', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Puck' },
+        ];
+        const QWEN_MODELS = [
+            { id: 'qwen-tts-v1', name: 'Qwen-TTS Standard', desc: 'Narrativo e estável' },
+            { id: 'cosyvoice-v1', name: 'CosyVoice Qwen', desc: 'Expressividade alta' },
+        ];
+        const STYLES = ["Neutro", "Sussurro", "Animado", "Sério"];
+
+        // Estado Global
+        let state = {
+            selectedVoice: VOICES[0],
+            selectedStyle: STYLES[0],
+            selectedModel: QWEN_MODELS[0],
+            isRealMode: false,
+            qwenKey: '',
+            history: [],
+            isGenerating: false
+        };
+
+        // --- Utilitários de Áudio ---
+        function pcmToWav(pcmBase64, sampleRate = 24000) {
+            const binaryString = window.atob(pcmBase64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+            
+            const wavHeader = new ArrayBuffer(44);
+            const view = new DataView(wavHeader);
+            const dataSize = bytes.length;
+
+            view.setUint32(0, 0x52494646, false); // RIFF
+            view.setUint32(4, 36 + dataSize, true);
+            view.setUint32(8, 0x57415645, false); // WAVE
+            view.setUint32(12, 0x666d7420, false); // fmt
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // Mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            view.setUint32(36, 0x64617461, false); // data
+            view.setUint32(40, dataSize, true);
+
+            const blob = new Blob([wavHeader, bytes], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+        }
+
+        async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
+                return await res.json();
+            } catch (err) {
+                if (retries <= 0) throw err;
+                await new Promise(r => setTimeout(r, backoff));
+                return fetchWithRetry(url, options, retries - 1, backoff * 2);
+            }
+        }
+
+        // --- Funções de UI ---
+        function hideError() {
+            document.getElementById('errorBanner').classList.add('hidden');
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('errorBanner');
+            const text = document.getElementById('errorText');
+            text.innerText = msg;
+            banner.classList.remove('hidden');
+            setTimeout(hideError, 5000);
+        }
+
+        function toggleSidebar(open) {
+            const overlay = document.getElementById('sidebarOverlay');
+            const sidebar = document.getElementById('mobileSidebar');
+            if (open) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    sidebar.classList.remove('-translate-x-full');
+                }, 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                sidebar.classList.add('-translate-x-full');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function renderSidebar() {
+            const content = `
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="bg-blue-600 p-2 rounded-lg text-white"><i data-lucide="database" class="w-5 h-5"></i></div>
+                    <h1 class="font-black text-sm uppercase tracking-widest italic">Qwen Studio</h1>
+                </div>
+
+                <div class="space-y-6 flex-1 pr-1">
+                    <div>
+                        <label class="text-[9px] font-bold text-zinc-600 uppercase mb-3 block tracking-widest">Motor de Áudio</label>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button onclick="updateMode(false)" class="py-2 rounded-lg text-[9px] font-bold border ${!state.isRealMode ? 'bg-zinc-800 border-zinc-700 text-white' : 'border-zinc-900 text-zinc-600 hover:text-zinc-400'}">BRIDGE</button>
+                            <button onclick="updateMode(true)" class="py-2 rounded-lg text-[9px] font-bold border ${state.isRealMode ? 'bg-blue-600 border-blue-500 text-white' : 'border-zinc-900 text-zinc-600 hover:text-zinc-400'}">REAL API</button>
+                        </div>
+                        ${state.isRealMode ? `
+                            <input type="password" oninput="state.qwenKey = this.value" value="${state.qwenKey}" 
+                            placeholder="DashScope API Key (sk-...)"
+                            class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-[10px] outline-none mb-4 focus:border-blue-500 text-zinc-200">
+                        ` : ''}
+                        <div class="space-y-2">
+                            ${QWEN_MODELS.map(m => `
+                                <button onclick="updateModel('${m.id}')" class="w-full p-3 rounded-xl border text-left transition-all ${state.selectedModel.id === m.id ? 'bg-zinc-800 border-zinc-600 text-white' : 'border-zinc-900 text-zinc-600'}">
+                                    <p class="text-[10px] font-bold uppercase tracking-tight">${m.name}</p>
+                                    <p class="text-[8px] opacity-60 truncate">${m.desc}</p>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-bold text-zinc-600 uppercase mb-3 block tracking-widest">Modelos de Voz</label>
+                        <div class="space-y-2">
+                            ${VOICES.map(v => `
+                                <button onclick="updateVoice('${v.id}')" class="w-full flex items-center gap-3 p-2 rounded-xl border transition-all ${state.selectedVoice.id === v.id ? 'bg-blue-600/10 border-blue-500 text-white' : 'border-zinc-900 text-zinc-600'}">
+                                    <img src="${v.avatar}" class="w-8 h-8 rounded-lg bg-zinc-800">
+                                    <div class="text-left flex-1 min-w-0">
+                                        <p class="text-[10px] font-bold truncate">${v.name}</p>
+                                        <p class="text-[8px] uppercase opacity-60 tracking-tighter">${v.style}</p>
+                                    </div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-6 border-t border-zinc-900 text-[8px] text-zinc-700 uppercase font-black tracking-widest text-center mt-auto">v3.1.5 build stable</div>
+            `;
+            document.getElementById('desktopSidebarContent').innerHTML = content;
+            document.getElementById('mobileSidebar').innerHTML = content;
+            lucide.createIcons();
+        }
+
+        function renderStyles() {
+            const container = document.getElementById('styleSelectors');
+            container.innerHTML = STYLES.map(s => `
+                <button onclick="updateStyle('${s}')" class="text-[10px] font-bold uppercase tracking-wider transition-colors ${state.selectedStyle === s ? 'text-blue-500' : 'text-zinc-600 hover:text-zinc-400'}">${s}</button>
+            `).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (state.history.length === 0) {
+                emptyState.classList.remove('hidden');
+                container.innerHTML = '';
+                container.appendChild(emptyState);
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            container.innerHTML = state.history.map(item => `
+                <div class="bg-zinc-900/50 border border-zinc-800/50 p-4 rounded-2xl flex items-center gap-4 hover:border-zinc-700 group transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                        <i data-lucide="volume-2" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1 text-[10px] font-bold opacity-50 uppercase tracking-tighter">
+                            <span class="text-blue-500">${item.voice}</span>
+                            <span>•</span>
+                            <span>${item.time}</span>
+                        </div>
+                        <p class="text-sm text-zinc-300 truncate">"${item.text}"</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="playAudio('${item.url}')" class="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors">
+                            <i data-lucide="play" class="w-4 h-4" fill="currentColor"></i>
+                        </button>
+                        <a href="${item.url}" download="voice-${item.id}.wav" class="p-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-colors">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </a>
+                        <button onclick="deleteEntry(${item.id})" class="p-2 bg-zinc-900 text-zinc-600 hover:text-red-500">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- Atualizações de Estado ---
+        function updateMode(isReal) { state.isRealMode = isReal; refreshUI(); }
+        function updateVoice(id) { state.selectedVoice = VOICES.find(v => v.id === id); refreshUI(); }
+        function updateModel(id) { state.selectedModel = QWEN_MODELS.find(m => m.id === id); refreshUI(); }
+        function updateStyle(s) { state.selectedStyle = s; refreshUI(); }
+        function deleteEntry(id) { state.history = state.history.filter(h => h.id !== id); renderHistory(); }
+        function playAudio(url) { new Audio(url).play(); }
+
+        function refreshUI() {
+            renderSidebar();
+            renderStyles();
+            renderHistory();
+            const badge = document.getElementById('modeBadge');
+            badge.innerText = state.isRealMode ? 'QWEN_REAL' : 'BRIDGE_EMU';
+            badge.className = `px-2 py-0.5 rounded border text-[9px] font-bold ${state.isRealMode ? 'border-blue-500 text-blue-500' : 'border-zinc-800 text-zinc-600'}`;
+        }
+
+        // --- Lógica de Geração ---
+        async function handleGenerate() {
+            const input = document.getElementById('inputText');
+            const btn = document.getElementById('generateBtn');
+            const btnIcon = document.getElementById('btnIcon');
+            const btnLabel = document.getElementById('btnLabel');
+            const text = input.value.trim();
+
+            if (!text || state.isGenerating) return;
+
+            state.isGenerating = true;
+            btn.disabled = true;
+            btnLabel.innerText = 'GERANDO...';
+            btnIcon.setAttribute('data-lucide', 'refresh-ccw');
+            btnIcon.classList.add('animate-spin');
+            lucide.createIcons();
+
+            try {
+                let audioUrl;
+                if (state.isRealMode) {
+                    if (!state.qwenKey) throw new Error("Chave de API necessária para modo Real.");
+                    
+                    const response = await fetchWithRetry('https://dashscope.aliyuncs.com/api/v1/services/audio/tts/generation', {
+                        method: 'POST',
+                        headers: { 
+                            'Authorization': `Bearer ${state.qwenKey}`, 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify({
+                            model: state.selectedModel.id,
+                            input: { text: text },
+                            parameters: { 
+                                voice: state.selectedVoice.id.toLowerCase(), 
+                                format: 'pcm', 
+                                sample_rate: 24000 
+                            }
+                        })
+                    });
+                    audioUrl = response.output?.audio_url;
+                    if (!audioUrl) throw new Error("A API Real não retornou um áudio válido.");
+                } else {
+                    const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `${state.selectedVoice.id}: ${text}` }] }],
+                            generationConfig: { 
+                                responseModalities: ["AUDIO"],
+                                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: state.selectedVoice.id } } }
+                            }
+                        })
+                    });
+                    
+                    const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                    if (!audioPart) throw new Error("Falha na síntese de áudio via Bridge.");
+                    
+                    audioUrl = pcmToWav(audioPart.inlineData.data);
+                }
+
+                const newEntry = {
+                    id: Date.now(),
+                    text: text,
+                    url: audioUrl,
+                    voice: state.selectedVoice.name,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+
+                state.history = [newEntry, ...state.history];
+                input.value = '';
+                renderHistory();
+                playAudio(audioUrl);
+
+            } catch (err) {
+                showError(err.message);
+                console.error(err);
+            } finally {
+                state.isGenerating = false;
+                btn.disabled = false;
+                btnLabel.innerText = 'SÍNTESE';
+                btnIcon.setAttribute('data-lucide', 'sparkles');
+                btnIcon.classList.remove('animate-spin');
+                lucide.createIcons();
+            }
+        }
+
+        // Inicialização
+        window.onload = () => {
+            lucide.createIcons();
+            refreshUI();
+            
+            document.getElementById('generateBtn').addEventListener('click', handleGenerate);
+            document.getElementById('menuBtn').addEventListener('click', () => toggleSidebar(true));
+            document.getElementById('sidebarOverlay').addEventListener('click', () => toggleSidebar(false));
+            
+            // Suporte para Cmd/Ctrl + Enter
+            document.getElementById('inputText').addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    handleGenerate();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
+
