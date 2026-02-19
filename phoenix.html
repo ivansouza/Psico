@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Educativo: Número Fénix (142857)</title>
+    <!-- Tailwind para layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX para fórmulas matemáticas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        body { margin: 0; background: #050505; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        canvas { display: block; }
+        .glass-panel {
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 100, 0, 0.25);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        select {
+            background: #1a1a1a;
+            color: #ffaa00;
+            border: 1px solid #ff6600;
+            padding: 5px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        .info-text { font-size: 0.95rem; line-height: 1.6; color: #ddd; }
+        .highlight { color: #ff8800; font-weight: bold; }
+        /* Garante que o KaTeX tenha bom aspeto */
+        .katex { font-size: 1.05em; color: #ffaa00; }
+    </style>
+</head>
+<body>
+    <div id="ui" class="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between z-10">
+        <!-- Cabeçalho -->
+        <div class="glass-panel p-5 pointer-events-auto w-fit">
+            <h1 class="text-2xl font-bold text-orange-500 mb-3">Número Fénix: 142857</h1>
+            <div class="flex items-center gap-4">
+                <label for="multiplier" class="text-sm font-medium">Multiplicador:</label>
+                <select id="multiplier">
+                    <option value="1">142857 × 1</option>
+                    <option value="2">142857 × 2</option>
+                    <option value="3">142857 × 3</option>
+                    <option value="4">142857 × 4</option>
+                    <option value="5">142857 × 5</option>
+                    <option value="6">142857 × 6</option>
+                    <option value="7">142857 × 7</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Resultado Central -->
+        <div id="result-box" class="glass-panel p-6 pointer-events-auto self-center text-center transition-all duration-700 transform border-orange-500/40">
+            <div class="text-xs uppercase tracking-[0.3em] text-orange-300/60 mb-2 font-semibold">Resultado</div>
+            <div id="current-result" class="text-5xl md:text-7xl font-mono font-bold text-orange-500 drop-shadow-[0_0_15px_rgba(255,100,0,0.5)]">142857</div>
+        </div>
+
+        <!-- Painel Educativo -->
+        <div id="info" class="glass-panel p-6 pointer-events-auto w-full max-w-lg mb-4">
+            <h2 id="info-title" class="text-xl font-semibold text-orange-400 mb-2">A Origem em $1/7$</h2>
+            <div id="info-content" class="info-text">
+                O número <span class="highlight">142857</span> nasce da dízima periódica da fração <span class="highlight">$1/7$</span> ($0,142857\dots$). É o número cíclico mais famoso da matemática.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- Funções de Renderização Matemática ---
+        function refreshMath(element) {
+            if (window.renderMathInElement) {
+                renderMathInElement(element || document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Pequeno delay para garantir que o script defer do KaTeX carregou
+            setTimeout(() => refreshMath(document.body), 500);
+        });
+
+        // --- Configuração Three.js ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.set(0, 0, 9);
+
+        // --- Shaders ---
+        const vertexShader = `
+            varying vec2 vUv;
+            varying float vNoise;
+            uniform float time;
+            float hash(float n) { return fract(sin(n) * 43758.5453123); }
+            float noise(vec3 x) {
+                vec3 p = floor(x);
+                vec3 f = fract(x);
+                f = f*f*(3.0-2.0*f);
+                float n = p.x + p.y*57.0 + 113.0*p.z;
+                return mix(mix(mix(hash(n+0.0), hash(n+1.0), f.x), mix(hash(n+57.0), hash(n+58.0), f.x), f.y),
+                           mix(mix(hash(n+113.0), hash(n+114.0), f.x), mix(hash(n+170.0), hash(n+171.0), f.x), f.y), f.z);
+            }
+            void main() {
+                vUv = uv;
+                vNoise = noise(position * 0.8 + time * 0.5);
+                vec3 newPos = position + normal * vNoise * 0.12;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            uniform float time;
+            uniform vec3 baseColor;
+            uniform sampler2D uTex;
+            varying vec2 vUv;
+            varying float vNoise;
+            void main() {
+                vec4 texColor = texture2D(uTex, vUv);
+                if(texColor.a < 0.3) discard;
+                float intensity = vNoise * 1.8 + 0.4;
+                vec3 fire = baseColor * intensity;
+                fire += vec3(1.0, 0.7, 0.3) * pow(vNoise, 3.0);
+                gl_FragColor = vec4(fire, texColor.a);
+            }
+        `;
+
+        const digits = ['1', '4', '2', '8', '5', '7'];
+        const group = new THREE.Group();
+        scene.add(group);
+
+        let meshes = [];
+        const radius = 3.2;
+
+        function createDigitSprite(char) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 512; canvas.height = 512;
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 400px monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(char, 256, 256);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    baseColor: { value: new THREE.Color(0xff7700) },
+                    uTex: { value: texture }
+                },
+                vertexShader, fragmentShader, transparent: true, side: THREE.DoubleSide
+            });
+
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), material);
+            return mesh;
+        }
+
+        digits.forEach((d, i) => {
+            const mesh = createDigitSprite(d);
+            const angle = (i / digits.length) * Math.PI * 2;
+            mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
+            mesh.userData = { originalAngle: angle };
+            meshes.push(mesh);
+            group.add(mesh);
+        });
+
+        // Partículas
+        const partGeo = new THREE.BufferGeometry();
+        const posArr = new Float32Array(1000 * 3);
+        for(let i=0; i<3000; i++) posArr[i] = (Math.random() - 0.5) * 20;
+        partGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({ color: 0xff6600, size: 0.04, transparent: true, opacity: 0.5 }));
+        scene.add(particles);
+
+        // --- Eventos ---
+        const multiplierSelect = document.getElementById('multiplier');
+        const resultDisplay = document.getElementById('current-result');
+        const infoTitle = document.getElementById('info-title');
+        const infoContent = document.getElementById('info-content');
+
+        const explanations = {
+            1: "Como $1/7 = 0,142857\\dots$, multiplicar por $1$ mantém a sequência original.",
+            2: "Multiplicar por $2$ equivale a $2/7$, resultando em <span class='highlight'>285714</span>.",
+            3: "Multiplicar por $3$ equivale a $3/7$ ($0,428571\\dots$). A sequência rotaciona.",
+            4: "Multiplicar por $4$ equivale a $4/7$ ($0,571428\\dots$). Padrão cíclico mantido.",
+            5: "Multiplicar por $5$ equivale a $5/7$ ($0,714285\\dots$). Os mesmos dígitos!",
+            6: "Multiplicar por $6$ equivale a $6/7$ ($0,857142\\dots$). Última fase do ciclo.",
+            7: "O RENASCIMENTO! $142857 \\times 7 = 999.999$, ou seja, $7/7 = 1$."
+        };
+
+        multiplierSelect.addEventListener('change', (e) => {
+            const val = parseInt(e.target.value);
+            const result = 142857 * val;
+            
+            resultDisplay.innerText = result.toLocaleString('pt-PT').replace(/,/g, '');
+            infoContent.innerHTML = explanations[val];
+            
+            if(val === 7) {
+                infoTitle.innerHTML = "$7/7$: O Encerramento";
+                meshes.forEach(m => m.material.uniforms.baseColor.value.set(0xff2200));
+            } else {
+                infoTitle.innerHTML = `A Fração $${val}/7$`;
+                meshes.forEach(m => m.material.uniforms.baseColor.value.set(0xff7700));
+                const firstDigit = result.toString()[0];
+                const digitIndex = digits.indexOf(firstDigit);
+                targetRotation = -(digitIndex / digits.length) * Math.PI * 2;
+            }
+            
+            // Força a renderização do KaTeX no novo conteúdo
+            refreshMath(document.getElementById('info'));
+        });
+
+        let targetRotation = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now() * 0.001;
+            group.rotation.z += (targetRotation - group.rotation.z) * 0.08;
+            meshes.forEach(m => {
+                m.material.uniforms.time.value = time;
+                m.rotation.z = -group.rotation.z;
+            });
+            particles.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+
