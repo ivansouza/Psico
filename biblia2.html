@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia Digital - Premium v24</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Lora:italic,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background-color: #f8fafc; }
+        .font-serif { font-family: 'Lora', serif; }
+        [lucide] { width: 18px; height: 18px; }
+        .animate-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .active-psalm { background: #4f46e5 !important; color: white !important; border-color: #4f46e5 !important; transform: scale(1.05); shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4); }
+        .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        .welcome-overlay {
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+        }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen pb-24">
+
+    <!-- Ecrã de Boas-vindas / Login Obrigatório -->
+    <div id="welcomeOverlay" class="hidden fixed inset-0 z-[200] welcome-overlay flex items-center justify-center p-6 text-white animate-in">
+        <div class="max-w-md w-full space-y-10 text-center">
+            <div class="bg-white/20 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto backdrop-blur-md shadow-2xl">
+                <i data-lucide="book-open" class="w-12 h-12 text-white"></i>
+            </div>
+            <div class="space-y-4">
+                <h2 class="text-4xl font-black tracking-tight leading-tight">Palavra Viva & Estabilidade</h2>
+                <p class="text-indigo-100 text-sm leading-relaxed font-medium px-4">
+                    Para garantir que possa navegar por todos os Salmos e Livros sem limites técnicos, é necessário ativar a sua conta.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-4 pt-4">
+                <button onclick="openAuthFlow('login')" class="w-full bg-white text-indigo-700 py-5 rounded-[1.5rem] font-black text-xs uppercase shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
+                    <i data-lucide="key" class="w-4 h-4 text-indigo-400"></i> Recuperar Token (PUT)
+                </button>
+                <button onclick="openAuthFlow('register')" class="w-full bg-indigo-500/30 border border-white/20 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase backdrop-blur-sm active:scale-95 transition-all flex items-center justify-center gap-3">
+                    <i data-lucide="user-plus" class="w-4 h-4 opacity-50"></i> Criar Nova Conta
+                </button>
+            </div>
+            <p class="text-[9px] text-white/40 uppercase tracking-[0.4em] font-black pt-4">API Brasileira Oficial • v24.0</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-2xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg text-white">
+                    <i data-lucide="book-check"></i>
+                </div>
+                <h1 class="font-bold text-lg tracking-tight">Bíblia Digital</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="tokenIndicator" class="hidden flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                    <i data-lucide="shield-check" class="w-3 h-3"></i> Token Ativo
+                </div>
+                <button id="userBtn" onclick="toggleSettings()" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all">
+                    <i data-lucide="settings"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        
+        <!-- Salmos Penitenciais -->
+        <section class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2 text-xs uppercase tracking-widest">
+                    <i data-lucide="heart" class="text-rose-500 w-4 h-4"></i> Salmos Penitenciais
+                </h2>
+                <div class="flex gap-1">
+                    <button onclick="navPenitential(-1)" class="p-1 text-slate-400 hover:text-indigo-600"><i data-lucide="chevron-left"></i></button>
+                    <button onclick="navPenitential(1)" class="p-1 text-slate-400 hover:text-indigo-600"><i data-lucide="chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="penitentialBar"></div>
+        </section>
+
+        <!-- Pesquisa -->
+        <section class="bg-white p-2 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-2 pr-4 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+            <div class="flex-1 relative">
+                <input type="text" id="searchInput" placeholder="Pesquisar por palavra..." class="w-full bg-transparent p-4 pl-12 text-sm font-medium outline-none" onkeypress="if(event.key === 'Enter') runSearch()">
+                <i data-lucide="search" class="absolute left-4 top-4 text-slate-300 w-5 h-5"></i>
+            </div>
+            <button onclick="runSearch()" class="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl transition-all shadow-md active:scale-95">
+                <i data-lucide="arrow-right"></i>
+            </button>
+        </section>
+
+        <!-- Biblioteca -->
+        <section id="librarySection" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-4 overflow-hidden">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2 text-xs uppercase tracking-widest">
+                    <i data-lucide="library" class="text-indigo-500 w-4 h-4"></i> Biblioteca
+                </h2>
+                <button id="libToggleBtn" onclick="toggleLib()" class="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-lg">Abrir</button>
+            </div>
+            <div id="libContent" class="hidden space-y-6 pt-4 border-t border-slate-50 animate-in">
+                <div id="booksGrid" class="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-2 no-scrollbar"></div>
+                <div id="chapterArea" class="hidden border-t pt-4 space-y-4">
+                    <div class="flex items-center justify-between">
+                         <p id="libBookTitle" class="text-xs font-black text-indigo-600 uppercase"></p>
+                         <button onclick="backToBooks()" class="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1"><i data-lucide="arrow-left" class="w-3 h-3"></i> Voltar</button>
+                    </div>
+                    <div id="chaptersGrid" class="grid grid-cols-6 sm:grid-cols-10 gap-2"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISUALIZAÇÃO PRINCIPAL -->
+        <section id="mainCard" class="min-h-[440px] flex flex-col justify-center relative">
+            <div id="viewEmpty" class="text-center p-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                <div class="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+                    <i data-lucide="quote" class="w-12 h-12"></i>
+                </div>
+                <h3 class="font-black text-2xl text-slate-800 tracking-tight">Pronto para Ler</h3>
+                <p class="text-slate-400 text-sm mt-3 leading-relaxed italic">Ative o seu token para ler qualquer versículo.</p>
+                <button onclick="toggleSettings()" class="mt-8 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase shadow-xl active:scale-95 transition-all">Ativar Acesso</button>
+            </div>
+
+            <div id="viewLoading" class="hidden bg-white p-12 rounded-[2.5rem] border border-slate-200 flex flex-col items-center justify-center space-y-5 animate-pulse">
+                <div class="text-indigo-500 animate-spin"><i data-lucide="refresh-cw" class="w-12 h-12"></i></div>
+                <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.4em]">Sincronizando...</p>
+            </div>
+
+            <div id="viewContent" class="hidden bg-white p-8 md:p-14 rounded-[3rem] shadow-2xl shadow-slate-200/40 border border-slate-100 space-y-10 relative overflow-hidden animate-in">
+                <div class="text-indigo-50 absolute -top-10 -left-10 opacity-30 rotate-12 -z-0"><i data-lucide="quote" style="width: 120px; height: 120px;"></i></div>
+                <div class="space-y-8 relative z-10">
+                    <div class="flex items-center justify-between">
+                        <button onclick="navigateV(-1)" class="btn-nav flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase transition-all py-2.5 px-5 bg-indigo-50/50 rounded-2xl border border-indigo-100 active:scale-95">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                        </button>
+                        <button onclick="navigateV(1)" class="btn-nav flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase transition-all py-2.5 px-5 bg-indigo-50/50 rounded-2xl border border-indigo-100 active:scale-95">
+                            Próximo <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <p id="mainText" class="text-2xl md:text-3xl font-serif text-slate-800 leading-relaxed italic font-medium tracking-tight"></p>
+                    
+                    <div class="pt-8 border-t border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                        <div class="space-y-4">
+                            <h4 class="font-black text-3xl md:text-4xl text-slate-900 tracking-tighter">
+                                <span id="mainBook">...</span> <span id="mainRef" class="text-indigo-600 ml-1">...</span>
+                            </h4>
+                            <div id="mainMeta" class="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400"></div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="favBtn" onclick="toggleFavorite()" class="p-5 rounded-2xl shadow-md transition-all active:scale-90 border-2 border-transparent hover:bg-white"><i data-lucide="heart" class="w-7 h-7"></i></button>
+                            <button onclick="doCopy()" class="p-5 bg-indigo-600 text-white rounded-2xl shadow-xl active:scale-90 transition-all hover:bg-indigo-700"><i data-lucide="copy" class="w-7 h-7"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="viewError" class="hidden bg-rose-50 p-10 rounded-[3rem] border border-rose-100 text-center space-y-6 animate-in">
+                <i data-lucide="alert-triangle" class="w-12 h-12 text-rose-500 mx-auto"></i>
+                <p id="errorMessage" class="text-rose-600 text-sm font-medium leading-relaxed px-4"></p>
+                <button onclick="location.reload()" class="bg-rose-600 text-white px-8 py-3 rounded-2xl font-bold text-[10px] uppercase shadow-lg shadow-rose-200">Recarregar</button>
+            </div>
+        </section>
+
+        <!-- Sorteio Central -->
+        <button onclick="fetchRandom()" class="group w-full h-24 bg-indigo-600 text-white rounded-[2rem] font-black text-2xl shadow-2xl flex items-center justify-center gap-6 active:scale-95 transition-all">
+            <i data-lucide="refresh-cw" class="w-8 h-8"></i>
+            <span>Sorteio Aleatório</span>
+        </button>
+
+        <!-- Favoritos -->
+        <section id="favSection" class="hidden pt-10 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4 px-2">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-2">
+                    <i data-lucide="heart" class="w-4 h-4 text-rose-500 fill-current"></i> Meus Favoritos (<span id="favCount">0</span>)
+                </h3>
+                <button onclick="clearAllFavs()" class="text-[9px] font-black text-rose-400 hover:text-rose-600 uppercase transition-colors">Limpar Tudo</button>
+            </div>
+            <div id="favList" class="grid gap-6"></div>
+        </section>
+    </main>
+
+    <!-- Modal de Configurações -->
+    <section id="settingsPanel" class="hidden fixed inset-0 bg-white/95 backdrop-blur-xl z-[100] p-8 overflow-y-auto animate-in">
+        <div class="max-w-2xl mx-auto space-y-10 pt-10">
+            <div class="flex justify-between items-center">
+                <!-- Alterado conforme pedido: Controle em vez de Controlo -->
+                <h2 class="font-black text-slate-800 uppercase tracking-[0.2em] text-sm text-left">Painel de Controle</h2>
+                <button onclick="toggleSettings()" class="bg-slate-100 p-3 rounded-full hover:bg-slate-200 transition-colors"><i data-lucide="x"></i></button>
+            </div>
+
+            <div class="space-y-6 text-center">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Tradução da Bíblia</label>
+                    <select id="versionSelect" class="w-full p-5 bg-slate-50 border border-slate-200 rounded-[2rem] font-bold text-base outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                        <option value="acf">Almeida Corrigida Fiel (ACF)</option>
+                        <option value="nvi">Nova Versão Internacional (NVI)</option>
+                        <option value="ra">Almeida Revista e Atualizada (RA)</option>
+                    </select>
+                </div>
+
+                <div class="border-t border-slate-100 pt-8 space-y-4">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Gestão de Acesso</h3>
+                    
+                    <div id="authBoxNone" class="bg-slate-50 p-8 rounded-[2.5rem] border text-center space-y-5 shadow-inner">
+                        <p class="text-xs text-slate-500 font-medium px-4 leading-relaxed italic">Insira os seus dados para ativar o acesso total.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="setAuth('register')" class="p-4 text-[10px] font-black bg-white border border-slate-200 rounded-2xl uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm">Criar Conta</button>
+                            <button onclick="setAuth('login')" class="p-4 text-[10px] font-black bg-white border border-slate-200 rounded-2xl uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm">Login (PUT)</button>
+                        </div>
+                    </div>
+
+                    <form id="authForm" class="hidden space-y-4 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl text-left animate-in">
+                        <h4 id="authTitle" class="text-center text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-4">AUTENTICAÇÃO</h4>
+                        <div class="space-y-4">
+                            <div id="authNameGroup" class="hidden">
+                                <label class="text-[9px] font-black text-slate-300 uppercase ml-2">Nome Completo</label>
+                                <input id="authName" type="text" placeholder="Nome" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-400">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-black text-slate-300 uppercase ml-2">Endereço de E-mail</label>
+                                <input id="authEmail" type="email" placeholder="email@gmail.com" required class="w-full p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-400">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-black text-slate-300 uppercase ml-2">Senha</label>
+                                <input id="authPass" type="password" placeholder="Mínimo 6 caracteres" required class="w-full p-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-400">
+                            </div>
+                        </div>
+                        <div id="authError" class="hidden p-4 bg-rose-50 text-rose-700 text-[10px] font-bold rounded-2xl text-center border border-rose-100 leading-relaxed"></div>
+                        <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase shadow-xl active:scale-95 transition-all">Confirmar e Ativar</button>
+                        <button type="button" onclick="setAuth('none')" class="w-full text-[10px] font-bold text-slate-400 uppercase py-2">Voltar</button>
+                    </form>
+
+                    <div id="authBoxActive" class="hidden bg-indigo-50/50 p-8 rounded-[2.5rem] border border-indigo-100 flex flex-col items-center gap-4 text-center">
+                        <div class="bg-indigo-600 p-2 rounded-full text-white shadow-lg"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Conta Ativa</p>
+                            <p id="userEmailLabel" class="text-sm font-black text-indigo-900 break-all"></p>
+                        </div>
+                        <button onclick="doLogout()" class="text-rose-500 font-bold text-[10px] uppercase bg-white px-8 py-2 rounded-xl shadow-sm border border-rose-100 active:scale-95 transition-all">Desconectar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Overlay Pesquisa -->
+    <div id="searchOverlay" class="hidden fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-sm pt-24 px-4 overflow-y-auto">
+        <div class="max-w-2xl mx-auto space-y-4 animate-in">
+            <div class="bg-white p-4 rounded-3xl border shadow-2xl flex justify-between items-center">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Resultados encontrados</h3>
+                <button onclick="closeSearch()" class="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div id="searchList" class="grid gap-3 pb-20"></div>
+        </div>
+    </div>
+
+    <footer class="text-center py-20 opacity-20">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">abibliadigital.com.br • API Brasileira • v24.0</p>
+    </footer>
+
+    <!-- Notificações Toast -->
+    <div id="toast" class="hidden fixed bottom-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-3xl text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl z-[200] flex items-center gap-4 border border-slate-700 animate-fade">
+        <i data-lucide="info" class="w-5 h-5 text-indigo-400" id="toastIcon"></i> <span id="toastText">...</span>
+    </div>
+
+    <script>
+        const PENITENTIAL_PSALMS = [6, 32, 38, 51, 102, 130, 143];
+        const STORAGE_KEY = 'bible_v23_mandatory';
+        const API_URL = 'https://www.abibliadigital.com.br/api';
+
+        let state = {
+            token: localStorage.getItem(`${STORAGE_KEY}_token`) || '',
+            email: localStorage.getItem(`${STORAGE_KEY}_email`) || '',
+            version: localStorage.getItem(`${STORAGE_KEY}_version`) || 'acf',
+            favorites: JSON.parse(localStorage.getItem(`${STORAGE_KEY}_favs`) || '[]'),
+            books: [],
+            current: null,
+            psalmIdx: -1,
+            authMode: 'none',
+            isBusy: false
+        };
+
+        window.onload = () => {
+            lucide.createIcons();
+            document.getElementById('versionSelect').value = state.version;
+            
+            // Verificação Obrigatória: Se não houver token, bloqueia a UI com o overlay
+            if (!state.token) {
+                document.getElementById('welcomeOverlay').classList.remove('hidden');
+            }
+
+            renderPenitentials();
+            updateAuthUI();
+            updateFavUI();
+            fetchBooksList();
+            
+            document.getElementById('versionSelect').onchange = (e) => {
+                state.version = e.target.value;
+                localStorage.setItem(`${STORAGE_KEY}_version`, state.version);
+            };
+            document.getElementById('authForm').onsubmit = handleAuth;
+        };
+
+        // --- NAVEGAÇÃO DE AUTH ---
+        function openAuthFlow(mode) {
+            document.getElementById('welcomeOverlay').classList.add('hidden');
+            setAuth(mode);
+            toggleSettings();
+        }
+
+        // --- FETCH ENGINE ---
+        async function apiFetch(endpoint, options = {}) {
+            const url = endpoint.startsWith('http') ? endpoint : `${API_URL}/${endpoint}`;
+            const headers = { 
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...(options.headers || {}) 
+            };
+            if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+            
+            try {
+                const res = await fetch(url, { ...options, headers });
+                const contentType = res.headers.get("content-type");
+                
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Servidor instável. Aguarde ou use um Token.`);
+                }
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Erro na operação.");
+                return data;
+            } catch (e) { throw e; }
+        }
+
+        // --- SALMOS ---
+        function renderPenitentials() {
+            document.getElementById('penitentialBar').innerHTML = PENITENTIAL_PSALMS.map((n, i) => `
+                <button onclick="loadPsalm(${n}, ${i})" class="shrink-0 w-12 h-12 rounded-2xl bg-white border border-slate-200 font-black text-[11px] shadow-sm transition-all ${state.psalmIdx === i ? 'active-psalm' : ''}">${n}</button>
+            `).join('');
+        }
+
+        async function loadPsalm(num, idx) {
+            state.psalmIdx = idx; renderPenitentials();
+            showView('loading');
+            try {
+                const data = await apiFetch(`verses/${state.version}/sl/${num}/1`);
+                state.current = data;
+                renderMain(); showView('content');
+                window.scrollTo({top:0, behavior:'smooth'});
+            } catch (e) { document.getElementById('errorMessage').innerText = e.message; showView('error'); }
+        }
+
+        function navPenitential(dir) {
+            let next = state.psalmIdx + dir;
+            if (next < 0) next = PENITENTIAL_PSALMS.length - 1;
+            if (next >= PENITENTIAL_PSALMS.length) next = 0;
+            loadPsalm(PENITENTIAL_PSALMS[next], next);
+        }
+
+        // --- ALEATÓRIO ---
+        async function fetchRandom() {
+            showView('loading');
+            try {
+                const data = await apiFetch(`verses/${state.version}/random`);
+                state.current = data;
+                state.psalmIdx = -1; renderPenitentials();
+                renderMain(); showView('content');
+            } catch (e) { document.getElementById('errorMessage').innerText = e.message; showView('error'); }
+        }
+
+        // --- NAVEGAÇÃO ---
+        function getAbbrev(p) {
+            if (!p || !p.book) return "sl";
+            return (typeof p.book.abbrev === 'string' ? p.book.abbrev : p.book.abbrev.pt).toLowerCase();
+        }
+
+        async function navigateV(dir) {
+            if (!state.current) return;
+            const abbrev = getAbbrev(state.current);
+            const nextV = state.current.number + dir;
+            if (nextV < 1) return showToast("Início do capítulo");
+
+            document.getElementById('mainText').style.opacity = "0.3";
+            try {
+                const data = await apiFetch(`verses/${state.version}/${abbrev}/${state.current.chapter}/${nextV}`);
+                state.current = data;
+                renderMain();
+            } catch (e) { showToast("Fim do capítulo."); }
+            finally { document.getElementById('mainText').style.opacity = "1"; }
+        }
+
+        // --- BIBLIOTECA ---
+        function toggleLib() {
+            const el = document.getElementById('libContent');
+            el.classList.toggle('hidden');
+            document.getElementById('libToggleBtn').innerText = el.classList.contains('hidden') ? 'Abrir' : 'Fechar';
+            if (!el.classList.contains('hidden') && state.books.length === 0) fetchBooksList();
+        }
+
+        async function fetchBooksList() {
+            try {
+                state.books = await apiFetch('books');
+                renderBooksGrid();
+            } catch (e) { showToast("Falha ao carregar Biblioteca."); }
+        }
+
+        function renderBooksGrid() {
+            document.getElementById('booksGrid').innerHTML = state.books.map(b => {
+                const sigla = (typeof b.abbrev === 'object') ? b.abbrev.pt : b.abbrev;
+                return `<button onclick="pickBook('${sigla}', '${b.name}', ${b.chapters})" class="p-3 text-[10px] font-black uppercase bg-slate-50 border border-slate-100 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all truncate animate-in">${b.name}</button>`;
+            }).join('');
+        }
+
+        function pickBook(sigla, name, caps) {
+            document.getElementById('libBookTitle').innerText = name;
+            document.getElementById('chapterArea').classList.remove('hidden');
+            document.getElementById('booksGrid').classList.add('hidden');
+            let html = '';
+            for(let i=1; i<=caps; i++) {
+                html += `<button onclick="loadLibCap('${sigla}', ${i})" class="p-2.5 text-[11px] font-black bg-white border border-slate-200 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">${i}</button>`;
+            }
+            document.getElementById('chaptersGrid').innerHTML = html;
+        }
+
+        function backToBooks() {
+            document.getElementById('chapterArea').classList.add('hidden');
+            document.getElementById('booksGrid').classList.remove('hidden');
+        }
+
+        async function loadLibCap(sigla, num) {
+            showView('loading');
+            try {
+                const data = await apiFetch(`verses/${state.version}/${sigla.toLowerCase()}/${num}/1`);
+                state.current = data;
+                state.psalmIdx = -1; renderPenitentials();
+                renderMain(); showView('content');
+                toggleLib(); backToBooks();
+                window.scrollTo({top:0, behavior:'smooth'});
+            } catch (e) { document.getElementById('errorMessage').innerText = "Este capítulo exige Token de ativação."; showView('error'); }
+        }
+
+        // --- PESQUISA ---
+        async function runSearch() {
+            const q = document.getElementById('searchInput').value.trim();
+            if (!q) return;
+            showView('loading');
+            try {
+                const data = await apiFetch('verses/search', {
+                    method: 'POST',
+                    body: JSON.stringify({ version: state.version, search: q })
+                });
+                if (!data.verses || data.verses.length === 0) { showToast("Nada encontrado."); showView('empty'); return; }
+                
+                document.getElementById('searchList').innerHTML = data.verses.map((v, i) => `
+                    <div class="bg-white p-7 rounded-[2.5rem] border border-slate-100 hover:shadow-2xl transition-all cursor-pointer group" onclick="setManual(${i}, 'search')">
+                        <p class="text-sm text-slate-600 font-serif italic mb-3 group-hover:text-indigo-900 transition-colors">"${v.text}"</p>
+                        <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">${v.book.name} ${v.chapter}:${v.number}</span>
+                    </div>
+                `).join('');
+                document.getElementById('searchOverlay').classList.remove('hidden');
+                state.lastSearch = data.verses;
+                showView('empty');
+            } catch (e) { showToast(e.message); showView('empty'); }
+        }
+
+        window.setManual = (idx, type) => {
+            const source = (type === 'search') ? state.lastSearch : state.favorites;
+            state.current = source[idx];
+            state.psalmIdx = -1; renderPenitentials(); renderMain(); showView('content');
+            if (type === 'search') closeSearch();
+            window.scrollTo({top:0, behavior:'smooth'});
+        };
+
+        function closeSearch() { document.getElementById('searchOverlay').classList.add('hidden'); document.getElementById('searchInput').value = ''; }
+
+        // --- UI CORE ---
+        function renderMain() {
+            if (!state.current) return;
+            const p = state.current;
+            document.getElementById('mainText').innerText = p.text;
+            document.getElementById('mainBook').innerText = p.book.name;
+            document.getElementById('mainRef').innerText = `${p.chapter}:${p.number}`;
+            const isFav = state.favorites.some(f => f.text === p.text);
+            document.getElementById('favBtn').className = `p-5 rounded-2xl shadow-md transition-all active:scale-90 ${isFav ? 'bg-rose-500 text-white shadow-rose-200 border-rose-600' : 'bg-slate-50 text-slate-300'}`;
+            lucide.createIcons();
+        }
+
+        function toggleFavorite() {
+            if (!state.current) return;
+            const idx = state.favorites.findIndex(f => f.text === state.current.text);
+            if (idx > -1) state.favorites.splice(idx, 1);
+            else state.favorites.push({ ...state.current, savedVer: state.version });
+            localStorage.setItem(`${STORAGE_KEY}_favs`, JSON.stringify(state.favorites));
+            renderMain(); updateFavUI();
+        }
+
+        function updateFavUI() {
+            document.getElementById('favCount').innerText = state.favorites.length;
+            document.getElementById('favSection').classList.toggle('hidden', state.favorites.length === 0);
+            document.getElementById('favList').innerHTML = state.favorites.slice().reverse().map((f, i) => `
+                <div class="favorite-card bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all cursor-pointer group" onclick="setManual(${state.favorites.length - 1 - i}, 'favs')">
+                    <p class="text-base text-slate-600 font-serif italic mb-4 leading-relaxed group-hover:text-indigo-900 transition-colors">"${f.text}"</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">${f.book.name} ${f.chapter}:${f.number} <span class="opacity-20 ml-2 font-bold">${(f.savedVer || 'ACF').toUpperCase()}</span></span>
+                        <i data-lucide="heart" class="text-rose-400 w-5 h-5 fill-current"></i>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- AUTH ---
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
+        function setAuth(m) {
+            state.authMode = m;
+            document.getElementById('authBoxNone').classList.toggle('hidden', m !== 'none');
+            document.getElementById('authForm').classList.toggle('hidden', m === 'none');
+            document.getElementById('authNameGroup').classList.toggle('hidden', m !== 'register');
+            document.getElementById('authTitle').innerText = m === 'register' ? 'NOVO REGISTRO' : 'RECUPERAR TOKEN';
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const isReg = state.authMode === 'register';
+            const email = document.getElementById('authEmail').value.trim().toLowerCase();
+            const pass = document.getElementById('authPass').value.trim();
+            const btn = document.getElementById('authBtn');
+            const errorBox = document.getElementById('authError');
+            
+            btn.disabled = true; btn.innerText = "Validando...";
+            errorBox.classList.add('hidden');
+
+            try {
+                const endpoint = isReg ? 'users' : 'users/token';
+                const payload = isReg 
+                    ? { name: document.getElementById('authName').value, email, password: pass, notifications: true }
+                    : { email, password: pass };
+
+                const data = await apiFetch(endpoint, { method: isReg ? 'POST' : 'PUT', body: JSON.stringify(payload) });
+                
+                if (data.token) {
+                    state.token = data.token; state.email = email;
+                    localStorage.setItem(`${STORAGE_KEY}_token`, data.token);
+                    localStorage.setItem(`${STORAGE_KEY}_email`, email);
+                    updateAuthUI(); showToast("Acesso Ativado!");
+                    toggleSettings();
+                    document.getElementById('welcomeOverlay').classList.add('hidden');
+                } else if(isReg) {
+                    showToast("Sucesso! Agora realize o Login (PUT).");
+                    setAuth('login');
+                }
+            } catch (err) { 
+                errorBox.innerText = err.message;
+                errorBox.classList.remove('hidden');
+            } finally { btn.disabled = false; btn.innerText = "Confirmar e Ativar"; }
+        }
+
+        function updateAuthUI() {
+            const has = !!state.token;
+            document.getElementById('authBoxNone').classList.toggle('hidden', has);
+            document.getElementById('authBoxActive').classList.toggle('hidden', !has);
+            document.getElementById('tokenIndicator').classList.toggle('hidden', !has);
+            document.getElementById('userEmailLabel').innerText = state.email;
+        }
+
+        function doLogout() { 
+            state.token = ''; state.email = ''; 
+            localStorage.removeItem(`${STORAGE_KEY}_token`); 
+            localStorage.removeItem(`${STORAGE_KEY}_email`); 
+            updateAuthUI(); 
+            showToast("Desconectado");
+            document.getElementById('welcomeOverlay').classList.remove('hidden');
+        }
+
+        function showView(v) { ['Empty','Loading','Content','Error'].forEach(n => document.getElementById(`view${n}`).classList.toggle('hidden', n.toLowerCase() !== v)); }
+        function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toastText').innerText = m; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
+        function doCopy() { if(!state.current) return; const txt = `"${state.current.text}" — ${state.current.book.name} ${state.current.chapter}:${state.current.number}`; const el = document.createElement('textarea'); el.value = txt; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("Copiado!"); }
+        function clearAllFavs() { if(confirm("Apagar todos os favoritos?")) { state.favorites = []; localStorage.removeItem(`${STORAGE_KEY}_favs`); updateFavUI(); renderMain(); } }
+    </script>
+</body>
+</html>
+
