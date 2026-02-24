@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interativo do Brasil - Dados Locais</title>
+    
+    <!-- Tailwind CSS para estilização rápida e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        #map {
+            height: calc(100vh - 80px);
+            width: 100%;
+            z-index: 1;
+            background-color: #f8fafc;
+        }
+        .leaflet-container {
+            background: #f1f5f9 !important;
+        }
+        /* Personalização da barra de rolagem */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 overflow-hidden">
+
+    <!-- Cabeçalho -->
+    <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="bg-emerald-600 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A2 2 0 013 15.488V5.512a2 2 0 011.553-1.954L9 1l6 3 6-3 1.447.724A2 2 0 0121 8.512v9.976a2 2 0 01-1.553 1.954L15 23l-6-3z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Mapa Vetorial do Brasil</h1>
+                <p class="text-xs text-slate-500">Visualização exclusiva de dados do json local do html</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex flex-col md:flex-row h-[calc(100vh-80px)]">
+        <!-- Barra Lateral de Informações -->
+        <aside class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 p-6 overflow-y-auto z-20 order-2 md:order-1">
+            <div id="welcome-msg">
+                <h2 class="text-lg font-semibold mb-4 text-emerald-800">Explore as Regiões</h2>
+                <p class="text-slate-600 leading-relaxed mb-6">
+                    Clique em um estado no mapa para visualizar o nome oficial e um identificador numérico gerado em tempo real.
+                </p>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <p class="text-xs uppercase font-bold text-slate-400 mb-2">Informação</p>
+                    <p class="text-sm text-slate-600 italic">Os dados geográficos são lidos diretamente do arquivo brasil_geojson_hd.json.</p>
+                </div>
+            </div>
+
+            <!-- Painel de Detalhes (Ativado por clique) -->
+            <div id="details-panel" class="hidden">
+                <button onclick="resetSelection()" class="mb-6 text-xs font-semibold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 uppercase tracking-wider">
+                    ← Limpar Seleção
+                </button>
+                <div id="state-content">
+                    <!-- Conteúdo inserido dinamicamente via JavaScript -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Container do Mapa Interativo -->
+        <section class="flex-1 relative order-1 md:order-2">
+            <div id="map"></div>
+            
+            <!-- Indicador de Carregamento -->
+            <div id="loader" class="absolute inset-0 z-[1000] bg-white flex flex-col items-center justify-center transition-opacity duration-500">
+                <div class="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                <p class="mt-4 font-medium text-emerald-800">Renderizando polígonos locais...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let map;
+        let geojsonLayer;
+        let selectedFeature = null;
+
+        /**
+         * Inicializa o mapa sem camadas de tiles externas
+         */
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: true,
+                minZoom: 3
+            }).setView([-15.78, -47.93], 4);
+
+            L.control.zoom({ position: 'topright' }).addTo(map);
+
+            loadGeoData();
+        }
+
+        /**
+         * Carrega e processa o arquivo GeoJSON local
+         */
+        async function loadGeoData() {
+            try {
+                const response = await fetch('brasil_geojson_hd.json');
+                if (!response.ok) throw new Error('Erro ao carregar brasil_geojson_hd.json');
+                
+                const data = await response.json();
+                
+                // Estilo básico dos estados
+                function style(feature) {
+                    return {
+                        fillColor: '#10b981', // Verde Esmeralda
+                        weight: 1.5,
+                        opacity: 1,
+                        color: '#064e3b', // Bordas escuras
+                        fillOpacity: 0.3
+                    };
+                }
+
+                // Destaque visual ao passar o mouse
+                function highlightFeature(e) {
+                    const layer = e.target;
+                    if (selectedFeature !== layer) {
+                        layer.setStyle({
+                            fillOpacity: 0.6,
+                            fillColor: '#34d399',
+                            weight: 2
+                        });
+                        layer.bringToFront();
+                    }
+                }
+
+                // Retorna ao estilo original
+                function resetHighlight(e) {
+                    if (selectedFeature !== e.target) {
+                        geojsonLayer.resetStyle(e.target);
+                    }
+                }
+
+                // Lógica de clique no estado
+                function onFeatureClick(e) {
+                    const layer = e.target;
+                    const props = layer.feature.properties;
+
+                    if (selectedFeature) {
+                        geojsonLayer.resetStyle(selectedFeature);
+                    }
+
+                    selectedFeature = layer;
+                    layer.setStyle({
+                        weight: 3,
+                        color: '#064e3b',
+                        fillOpacity: 0.8,
+                        fillColor: '#059669'
+                    });
+
+                    // Gera número aleatório para o exemplo
+                    const randomNum = Math.floor(Math.random() * 5000) + 1;
+                    showDetails(props, randomNum);
+                    
+                    // Centraliza no estado clicado com um pouco de padding
+                    map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+                }
+
+                geojsonLayer = L.geoJSON(data, {
+                    style: style,
+                    onEachFeature: function(feature, layer) {
+                        layer.on({
+                            mouseover: highlightFeature,
+                            mouseout: resetHighlight,
+                            click: onFeatureClick
+                        });
+                        
+                        // Tooltip com o nome do estado
+                        const name = feature.properties.name || feature.properties.NM_ESTADO || feature.properties.NM_UF || "Região";
+                        layer.bindTooltip(name, { sticky: true });
+                    }
+                }).addTo(map);
+
+                // Enquadra o mapa para caber todo o Brasil
+                map.fitBounds(geojsonLayer.getBounds());
+                
+                // Remove o loader após o processamento
+                document.getElementById('loader').classList.add('opacity-0');
+                setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loader').innerHTML = `
+                    <div class="text-center p-4">
+                        <p class="text-red-500 font-bold">Erro de Carregamento</p>
+                        <p class="text-xs text-slate-500">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Atualiza a UI lateral com os dados do estado e o número aleatório
+         */
+        function showDetails(props, randomNum) {
+            const welcome = document.getElementById('welcome-msg');
+            const panel = document.getElementById('details-panel');
+            const content = document.getElementById('state-content');
+
+            welcome.classList.add('hidden');
+            panel.classList.remove('hidden');
+
+            const nome = props.name || props.NM_ESTADO || props.NM_UF || "Não identificado";
+            const sigla = props.sigla || props.SIGLA || props.UF_05 || "";
+
+            content.innerHTML = `
+                <div class="mb-6">
+                    <h2 class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">Localidade</h2>
+                    <h3 class="text-3xl font-black text-slate-900 leading-tight">
+                        ${nome} ${sigla ? `<span class="text-emerald-400 ml-1">${sigla}</span>` : ''}
+                    </h3>
+                </div>
+
+                <div class="bg-slate-900 p-6 rounded-2xl text-white shadow-xl mb-8 relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl"></div>
+                    <p class="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-2">Indicador Aleatório</p>
+                    <div class="text-5xl font-mono font-bold tracking-tighter">${randomNum}</div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Propriedades do JSON</h4>
+                    <div class="space-y-1">
+                        ${Object.entries(props).map(([key, value]) => `
+                            <div class="flex justify-between items-center py-1.5 text-xs">
+                                <span class="text-slate-400 font-medium">${key}</span>
+                                <span class="text-slate-700 font-bold">${value}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Limpa a seleção atual e volta para a visão geral
+         */
+        function resetSelection() {
+            if (selectedFeature) {
+                geojsonLayer.resetStyle(selectedFeature);
+                selectedFeature = null;
+            }
+            document.getElementById('welcome-msg').classList.remove('hidden');
+            document.getElementById('details-panel').classList.add('hidden');
+            map.fitBounds(geojsonLayer.getBounds());
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
+
