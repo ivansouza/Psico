@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gerador QR Code</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca qrcode-generator para obter a matriz de dados do QR Code -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style>
+        /* Estilos adicionais para os inputs de cor e barra de rolagem suave */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            padding: 0;
+            background: transparent;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 0.375rem; /* rounded-md */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen pb-10">
+
+    <!-- Cabeçalho Compacto -->
+    <header class="bg-white shadow-sm border-b border-slate-200 py-3 px-4 mb-5">
+        <div class="max-w-md mx-auto flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600">
+                <rect width="5" height="5" x="3" y="3" rx="1"/>
+                <rect width="5" height="5" x="16" y="3" rx="1"/>
+                <rect width="5" height="5" x="3" y="16" rx="1"/>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                <path d="M21 21v.01"/>
+                <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+                <path d="M3 12h.01"/>
+                <path d="M12 3h.01"/>
+                <path d="M12 16v.01"/>
+                <path d="M16 12h1"/>
+                <path d="M21 12v.01"/>
+                <path d="M12 21v-1"/>
+            </svg>
+            <h1 class="text-base font-bold text-slate-900">Gerador QR Code</h1>
+        </div>
+    </header>
+
+    <!-- Container Principal focado em Mobile (max-w-md) -->
+    <main class="max-w-md mx-auto px-4 flex flex-col gap-5 items-center w-full">
+        
+        <!-- 1. Painel de Visualização (QR Code no Topo) -->
+        <div class="w-full flex flex-col items-center justify-center">
+            <div class="relative group bg-white p-1.5 rounded-[1.5rem] shadow-lg border border-slate-200 mb-4">
+                <!-- Canvas renderizado em alta resolução, mas exibido em tamanho reduzido no CSS -->
+                <canvas id="qr-canvas" class="w-full max-w-[220px] aspect-square rounded-[1.2rem] block"></canvas>
+            </div>
+
+            <button onclick="downloadQR()" class="flex items-center justify-center gap-2 w-full max-w-[220px] bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-full text-sm font-semibold shadow-md transition-all active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" x2="12" y1="15" y2="3"/>
+                </svg>
+                Baixar Imagem
+            </button>
+        </div>
+
+        <!-- 2. Painel de Controles (Abaixo) -->
+        <div class="w-full bg-white p-4 rounded-xl shadow-md border border-slate-200 flex flex-col gap-4">
+            
+            <!-- Entrada de Texto -->
+            <div>
+                <label for="qr-text" class="block text-xs font-bold text-slate-700 mb-1">Conteúdo (URL ou Texto)</label>
+                <textarea id="qr-text" rows="2" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none text-slate-800" placeholder="Digite aqui..."></textarea>
+                <p id="error-msg" class="text-red-500 text-xs mt-1 hidden">Conteúdo muito longo para as configurações.</p>
+            </div>
+
+            <!-- Grid de Configurações Compacto para Mobile -->
+            <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+                
+                <!-- Cores -->
+                <div class="col-span-2 flex gap-4">
+                    <div class="flex-1 flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-lg">
+                        <label for="fg-color" class="text-xs text-slate-600 font-medium">Cor Info</label>
+                        <div class="relative w-6 h-6 rounded-md overflow-hidden border border-slate-300">
+                            <input type="color" id="fg-color" value="#000000" class="absolute -inset-1 w-8 h-8 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="flex-1 flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-lg">
+                        <label for="bg-color" class="text-xs text-slate-600 font-medium">Cor Fundo</label>
+                        <div class="relative w-6 h-6 rounded-md overflow-hidden border border-slate-300">
+                            <input type="color" id="bg-color" value="#FFFFFF" class="absolute -inset-1 w-8 h-8 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estilos -->
+                <div>
+                    <label for="dot-style" class="block text-xs font-medium text-slate-600 mb-1">Módulos</label>
+                    <select id="dot-style" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-indigo-500 outline-none bg-white">
+                        <option value="squares">Quadrados</option>
+                        <option value="dots">Pontos</option>
+                        <option value="rounded" selected>Suaves</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="eye-style" class="block text-xs font-medium text-slate-600 mb-1">Cantos</label>
+                    <select id="eye-style" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-indigo-500 outline-none bg-white">
+                        <option value="squares">Quadrados</option>
+                        <option value="circles">Círculos</option>
+                        <option value="rounded" selected>Suaves</option>
+                    </select>
+                </div>
+
+                <!-- Avançado -->
+                <div>
+                    <label for="ecl" class="block text-xs font-medium text-slate-600 mb-1">Correção</label>
+                    <select id="ecl" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-indigo-500 outline-none bg-white">
+                        <option value="L">Baixa</option>
+                        <option value="M" selected>Média</option>
+                        <option value="Q">Alta</option>
+                        <option value="H">Máx.</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col justify-center">
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="padding" class="block text-xs font-medium text-slate-600">Margem</label>
+                        <span id="padding-val" class="text-[10px] text-slate-500 font-mono bg-slate-100 px-1 rounded">20px</span>
+                    </div>
+                    <input type="range" id="padding" min="0" max="80" value="20" step="5" class="w-full accent-indigo-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Configuração Inicial de compatibilidade para navegadores antigos sem roundRect
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            }
+        }
+
+        // Variáveis de Elementos
+        const els = {
+            text: document.getElementById('qr-text'),
+            fgColor: document.getElementById('fg-color'),
+            bgColor: document.getElementById('bg-color'),
+            dotStyle: document.getElementById('dot-style'),
+            eyeStyle: document.getElementById('eye-style'),
+            ecl: document.getElementById('ecl'),
+            padding: document.getElementById('padding'),
+            paddingVal: document.getElementById('padding-val'),
+            canvas: document.getElementById('qr-canvas'),
+            errorMsg: document.getElementById('error-msg')
+        };
+
+        const canvasSize = 1000; // Alta resolução para o download ficar nítido
+        const ctx = els.canvas.getContext('2d');
+        els.canvas.width = canvasSize;
+        els.canvas.height = canvasSize;
+
+        // NOVO TEXTO PADRÃO
+        const defaultText = "https://defesacriminal24h.naesquina.com.br/";
+
+        function generateQRCode() {
+            const textContent = els.text.value.trim() || defaultText;
+            const errorCorrectionLevel = els.ecl.value;
+            const padding = parseInt(els.padding.value) * (canvasSize / 400); // Ajusta o padding para a escala do canvas
+            
+            els.paddingVal.innerText = els.padding.value + 'px';
+
+            const qr = qrcode(0, errorCorrectionLevel); // 0 = Tipo Automático
+            qr.addData(textContent);
+            
+            try {
+                qr.make();
+                els.errorMsg.classList.add('hidden');
+            } catch (err) {
+                console.error("Erro ao gerar QR Code:", err);
+                els.errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            const moduleCount = qr.getModuleCount();
+            const sizeWithoutPadding = canvasSize - (padding * 2);
+            const cellSize = sizeWithoutPadding / moduleCount;
+
+            const fgColor = els.fgColor.value;
+            const bgColor = els.bgColor.value;
+            const dotStyle = els.dotStyle.value;
+            const eyeStyle = els.eyeStyle.value;
+
+            // 1. Limpar e desenhar o fundo
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+            // Função auxiliar para checar se a coordenada é área de "Olho"
+            const isEyeArea = (r, c) => {
+                if (r < 7 && c < 7) return true; // Top-Left
+                if (r < 7 && c >= moduleCount - 7) return true; // Top-Right
+                if (r >= moduleCount - 7 && c < 7) return true; // Bottom-Left
+                return false;
+            };
+
+            // 2. Desenhar os módulos normais (Dados)
+            ctx.fillStyle = fgColor;
+            for (let r = 0; r < moduleCount; r++) {
+                for (let c = 0; c < moduleCount; c++) {
+                    if (isEyeArea(r, c)) continue;
+
+                    if (qr.isDark(r, c)) {
+                        const x = padding + c * cellSize;
+                        const y = padding + r * cellSize;
+
+                        if (dotStyle === 'squares') {
+                            ctx.fillRect(x, y, Math.ceil(cellSize), Math.ceil(cellSize));
+                        } else if (dotStyle === 'dots') {
+                            ctx.beginPath();
+                            ctx.arc(x + cellSize / 2, y + cellSize / 2, (cellSize / 2) * 0.85, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (dotStyle === 'rounded') {
+                            ctx.beginPath();
+                            const size = cellSize * 0.95;
+                            const offset = (cellSize - size) / 2;
+                            ctx.roundRect(x + offset, y + offset, size, size, cellSize * 0.35);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            // 3. Função para desenhar os Olhos (Finder Patterns)
+            const drawEye = (r, c) => {
+                const x = padding + c * cellSize;
+                const y = padding + r * cellSize;
+                const outerSize = 7 * cellSize;
+                const innerSize = 3 * cellSize;
+                const innerOffset = 2 * cellSize;
+
+                if (eyeStyle === 'squares') {
+                    ctx.fillStyle = fgColor;
+                    ctx.fillRect(x, y, outerSize, outerSize);
+                    ctx.fillStyle = bgColor;
+                    ctx.fillRect(x + cellSize, y + cellSize, outerSize - 2 * cellSize, outerSize - 2 * cellSize);
+                    ctx.fillStyle = fgColor;
+                    ctx.fillRect(x + innerOffset, y + innerOffset, innerSize, innerSize);
+                } 
+                else if (eyeStyle === 'circles') {
+                    ctx.fillStyle = fgColor;
+                    ctx.beginPath();
+                    ctx.arc(x + outerSize / 2, y + outerSize / 2, outerSize / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = bgColor;
+                    ctx.beginPath();
+                    ctx.arc(x + outerSize / 2, y + outerSize / 2, outerSize / 2 - cellSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = fgColor;
+                    ctx.beginPath();
+                    ctx.arc(x + outerSize / 2, y + outerSize / 2, innerSize / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } 
+                else if (eyeStyle === 'rounded') {
+                    const radius = outerSize * 0.25;
+                    const innerRadius = innerSize * 0.25;
+                    ctx.fillStyle = fgColor;
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, outerSize, outerSize, radius);
+                    ctx.fill();
+                    ctx.fillStyle = bgColor;
+                    ctx.beginPath();
+                    ctx.roundRect(x + cellSize, y + cellSize, outerSize - 2 * cellSize, outerSize - 2 * cellSize, radius * 0.75);
+                    ctx.fill();
+                    ctx.fillStyle = fgColor;
+                    ctx.beginPath();
+                    ctx.roundRect(x + innerOffset, y + innerOffset, innerSize, innerSize, innerRadius);
+                    ctx.fill();
+                }
+            }
+
+            drawEye(0, 0); 
+            drawEye(0, moduleCount - 7); 
+            drawEye(moduleCount - 7, 0); 
+        }
+
+        function downloadQR() {
+            const link = document.createElement('a');
+            link.download = 'qrcode.png';
+            link.href = els.canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        // Adicionar Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('input', generateQRCode);
+            });
+            
+            // Inicia com a URL pedida
+            els.text.value = defaultText;
+
+            // Também mudei a cor default para preto para contrastar melhor com as novas opções
+            els.fgColor.value = "#000000";
+
+            generateQRCode();
+        });
+    </script>
+</body>
+</html>
