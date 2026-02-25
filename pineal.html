@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pineal Pro - Ativação Consciente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Cinzel:wght@400;700&display=swap');
+
+        :root {
+            --primary: #8a2be2;
+            --secondary: #ffd700;
+            --bg-dark: #0a0a0c;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0c 100%);
+        }
+
+        h1, h2, h3, .font-mystic {
+            font-family: 'Cinzel', serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+        }
+
+        .breathing-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            box-shadow: 0 0 50px rgba(138, 43, 226, 0.5);
+            transition: transform 0.1s ease-out, background 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .circle-outer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-mystic {
+            background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .btn-mystic:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
+            border-color: var(--secondary);
+        }
+
+        .phase-inhale { background: radial-gradient(circle, #4ade80 0%, transparent 70%); }
+        .phase-hold { background: radial-gradient(circle, #fbbf24 0%, transparent 70%); }
+        .phase-exhale { background: radial-gradient(circle, #f87171 0%, transparent 70%); }
+
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--secondary);
+            width: 0%;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="w-full max-w-4xl flex justify-between items-center mb-12">
+        <div class="flex items-center gap-2">
+            <svg class="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg>
+            <span class="text-2xl font-bold tracking-widest font-mystic text-white">PINEAL PRO</span>
+        </div>
+        <button onclick="toggleInfo()" class="px-4 py-2 text-sm uppercase tracking-tighter opacity-70 hover:opacity-100 transition glass">Ciência e Técnica</button>
+    </header>
+
+    <!-- Main Container -->
+    <main id="main-view" class="w-full max-w-4xl space-y-8 pb-20">
+        
+        <!-- Safety Alert -->
+        <div class="glass p-6 border-l-4 border-red-500/50">
+            <div class="flex gap-4 items-start">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <h2 class="font-bold text-red-400 mb-1 uppercase tracking-widest text-xs">Aviso Crítico</h2>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        Práticas avançadas alteram a química do sangue. Não pratique se tiver histórico de epilepsia, problemas cardíacos graves ou gravidez. Nunca pratique dentro da água ou dirigindo.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <section class="text-center py-4">
+            <h1 class="text-4xl md:text-5xl mb-4 text-white">O Laboratório Alquímico Interno</h1>
+            <p class="text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Sua glândula pineal é uma antena biológica. Através destas técnicas rítmicas, você altera o pH do sangue, pressuriza o fluido espinhal e silencia o "Modo de Rede Padrão" do cérebro para acessar estados expandidos.
+            </p>
+        </section>
+
+        <!-- Technique Selection Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Box Breath -->
+            <div class="glass p-8 flex flex-col justify-between border-t-2 border-yellow-500/20">
+                <div>
+                    <h3 class="text-xl font-mystic text-yellow-500 mb-4">1. Sama Vritti (Box Breathing)</h3>
+                    <p class="text-sm text-gray-300 mb-4 font-bold italic">Base: Equilíbrio e Foco</p>
+                    <p class="text-xs text-gray-400 mb-6 leading-relaxed">
+                        Utilizada por iogues e forças de elite (Navy SEALs), esta técnica equilibra o sistema nervoso simpático e parassimpático. Ao manter tempos iguais, você remove o estresse e prepara o terreno para a ativação pineal.
+                    </p>
+                </div>
+                <button onclick="prepareSession('box')" class="btn-mystic w-full py-4 rounded-xl font-bold tracking-widest uppercase">Iniciar Base</button>
+            </div>
+
+            <!-- Tummo -->
+            <div class="glass p-8 flex flex-col justify-between border-t-2 border-purple-500/20">
+                <div>
+                    <h3 class="text-xl font-mystic text-purple-400 mb-4">2. Tummo (Fogo Interno)</h3>
+                    <p class="text-sm text-gray-300 mb-4 font-bold italic">Base: Limpeza Química</p>
+                    <p class="text-xs text-gray-400 mb-6 leading-relaxed">
+                        Baseada no método tibetano e popularizada por Wim Hof. 30 respirações profundas expulsam o CO2, alcalinizam o sangue e liberam adrenalina, "limpando" os receptores celulares para a recepção de frequências mais altas.
+                    </p>
+                </div>
+                <button onclick="prepareSession('tummo')" class="btn-mystic w-full py-4 rounded-xl font-bold tracking-widest uppercase">Gerar Fogo</button>
+            </div>
+
+            <!-- Geometric -->
+            <div class="glass p-8 flex flex-col justify-between border-t-2 border-blue-500/20">
+                <div>
+                    <h3 class="text-xl font-mystic text-blue-400 mb-4">3. Proporção Áurea (3-6-9)</h3>
+                    <p class="text-sm text-gray-300 mb-4 font-bold italic">Base: Ressonância Harmônica</p>
+                    <p class="text-xs text-gray-400 mb-6 leading-relaxed">
+                        Inspirada na matemática de Nikola Tesla. A exalação longa (dobro da inalação) ativa o nervo vago intensamente, reduzindo a frequência das ondas cerebrais para o estado Alpha/Theta, onde a intuição floresce.
+                    </p>
+                </div>
+                <button onclick="prepareSession('geometric')" class="btn-mystic w-full py-4 rounded-xl font-bold tracking-widest uppercase">Entrar em Ressonância</button>
+            </div>
+
+            <!-- Advanced -->
+            <div class="glass p-8 flex flex-col justify-between border-t-2 border-red-500/30">
+                <div>
+                    <span class="text-[10px] bg-red-900/50 text-red-300 px-2 py-1 rounded mb-2 inline-block uppercase tracking-widest font-bold">Protocolo Pineal</span>
+                    <h3 class="text-xl font-mystic text-red-400 mb-4">4. Maha Bandha (Locks)</h3>
+                    <p class="text-sm text-gray-300 mb-4 font-bold italic">Base: Compressão Mecânica</p>
+                    <p class="text-xs text-gray-400 mb-6 leading-relaxed">
+                        A técnica suprema. Ao contrair o períneo, o abdômen e o queixo, você cria uma prensa hidráulica que empurra o fluido cerebrospinal contra os cristais de calcita na glândula pineal, gerando o efeito piezoelétrico (visões).
+                    </p>
+                </div>
+                <button onclick="prepareSession('maha')" class="btn-mystic w-full py-4 rounded-xl font-bold tracking-widest uppercase">Ativar Terceiro Olho</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Active Session View -->
+    <div id="session-view" class="hidden fixed inset-0 z-50 bg-[#050507] flex flex-col items-center justify-center p-6 text-center">
+        <button onclick="exitSession()" class="absolute top-6 right-6 p-4 text-gray-500 hover:text-white transition text-xl glass">SAIR ✕</button>
+        
+        <div id="session-info" class="mb-12">
+            <h2 id="current-technique-name" class="text-xl font-mystic text-yellow-500 mb-2 opacity-50 uppercase tracking-[0.2em]">Técnica</h2>
+            <p id="current-phase-text" class="text-3xl font-bold text-white tracking-widest uppercase mb-4">Prepare-se</p>
+            <div id="detailed-tip" class="text-sm text-blue-300/80 italic max-w-sm mx-auto min-h-[3em]">Foque apenas na sua respiração</div>
+        </div>
+
+        <div class="relative flex items-center justify-center scale-110">
+            <div id="visual-guide" class="breathing-circle">
+                <div class="circle-outer"></div>
+                <span id="timer-display" class="text-5xl font-bold text-white z-10">3</span>
+            </div>
+        </div>
+
+        <div class="w-full max-w-md mt-16 space-y-6">
+            <div class="progress-bar">
+                <div id="session-progress" class="progress-fill"></div>
+            </div>
+            <div class="flex justify-between items-center">
+                <div class="text-left">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest">Progresso</p>
+                    <p class="text-white font-bold">Ciclo <span id="cycle-count">1</span> de 10</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest">Postura</p>
+                    <p id="instruction-text" class="text-blue-200 text-xs">Coluna Ereta</p>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="toggleAudio()" id="audio-btn" class="mt-12 p-4 rounded-full glass hover:bg-white/10 transition opacity-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+        </button>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="hidden fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="glass max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto relative">
+            <div class="flex justify-between items-center mb-8 sticky top-0 bg-black/50 py-2 backdrop-blur-lg">
+                <h2 class="text-2xl font-mystic text-yellow-500">Ciência da Ativação</h2>
+                <button onclick="toggleInfo()" class="bg-red-900/40 px-6 py-2 rounded-lg text-white font-bold hover:bg-red-800 transition">FECHAR</button>
+            </div>
+            <div class="space-y-8 text-gray-300 text-sm leading-relaxed">
+                <section>
+                    <h4 class="text-white font-bold mb-2 uppercase text-xs tracking-widest text-blue-400">O que é a Pineal?</h4>
+                    <p>Morfologicamente, a pineal possui células semelhantes aos fotorreceptores da retina. Ela é um "olho interno" que reage à luz e ao magnetismo. Quando estimulada eletromagneticamente, ela pode secretar análogos da melatonina com propriedades psicoativas fortes.</p>
+                </section>
+                
+                <section>
+                    <h4 class="text-white font-bold mb-2 uppercase text-xs tracking-widest text-purple-400">O Efeito Piezoelétrico</h4>
+                    <p>A glândula pineal contém pequenos cristais de calcita. Quando você aplica pressão mecânica (através dos Locks/Bandhas e da respiração), esses cristais geram uma carga elétrica. Isso cria um campo eletromagnético no centro do seu cérebro.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-white font-bold mb-2 uppercase text-xs tracking-widest text-green-400">Instruções de Postura</h4>
+                    <ul class="list-disc ml-5 space-y-2">
+                        <li>Sente-se com a coluna totalmente reta (em uma cadeira ou no chão).</li>
+                        <li>Mantenha as mãos relaxadas sobre os joelhos.</li>
+                        <li>Feche os olhos e foque levemente no ponto entre as sobrancelhas.</li>
+                        <li>Não force a respiração se sentir tontura excessiva ou mal-estar.</li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext;
+        let oscillator;
+        let isAudioPlaying = false;
+        let sessionInterval;
+        let currentCycle = 1;
+        let maxCycles = 10;
+
+        const configs = {
+            box: {
+                name: "Box Breathing",
+                phases: [
+                    { name: "Inale", duration: 4, class: "phase-inhale", scale: 1.8, tip: "Pelo nariz, expandindo o abdômen." },
+                    { name: "Segure", duration: 4, class: "phase-hold", scale: 1.8, tip: "Mantenha a quietude mental." },
+                    { name: "Exale", duration: 4, class: "phase-exhale", scale: 1.0, tip: "Solte o ar suavemente pela boca." },
+                    { name: "Segure", duration: 4, class: "phase-hold", scale: 1.0, tip: "Pulmões vazios. Sinta o silêncio." }
+                ]
+            },
+            tummo: {
+                name: "Técnica Tummo",
+                phases: [
+                    { name: "Carga de Fogo", duration: 2, class: "phase-inhale", scale: 1.6, repeat: 30, tip: "Respire fundo e rápido. Sinta a energia subindo." },
+                    { name: "Retenção no Vazio", duration: 45, class: "phase-hold", scale: 1.0, tip: "Exale tudo e segure. Mergulhe no seu interior." },
+                    { name: "Retenção de Carga", duration: 15, class: "phase-hold", scale: 1.8, tip: "Inale fundo e segure. Aperte levemente a energia para o cérebro." }
+                ]
+            },
+            geometric: {
+                name: "Tesla 3-6-9",
+                phases: [
+                    { name: "Inalar (3s)", duration: 3, class: "phase-inhale", scale: 1.6, tip: "Puxe a luz branca pelo nariz." },
+                    { name: "Pausa (6s)", duration: 6, class: "phase-hold", scale: 1.6, tip: "Retenha a luz no centro do cérebro." },
+                    { name: "Exalar (9s)", duration: 9, class: "phase-exhale", scale: 1.0, tip: "Solte o ar muito lentamente. Relaxe tudo." }
+                ]
+            },
+            maha: {
+                name: "Maha Bandha",
+                phases: [
+                    { name: "Inale Profundo", duration: 5, class: "phase-inhale", scale: 1.8, tip: "Puxe o ar até a base da coluna." },
+                    { name: "Maha Bandha (Locks)", duration: 20, class: "phase-hold", scale: 1.5, tip: "Prenda o ar. Contraia Períneo, Abdômen e Queixo para dentro." },
+                    { name: "Exalação Aliviante", duration: 5, class: "phase-exhale", scale: 1.0, tip: "Solte a pressão e sinta a expansão." }
+                ]
+            }
+        };
+
+        function toggleInfo() {
+            const modal = document.getElementById('info-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function toggleAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (isAudioPlaying) {
+                oscillator.stop();
+                isAudioPlaying = false;
+                document.getElementById('audio-btn').classList.add('opacity-50');
+            } else {
+                oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.frequency.setValueAtTime(432, audioContext.currentTime);
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.03, audioContext.currentTime);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.start();
+                isAudioPlaying = true;
+                document.getElementById('audio-btn').classList.remove('opacity-50');
+            }
+        }
+
+        function prepareSession(type) {
+            const config = configs[type];
+            document.getElementById('main-view').classList.add('hidden');
+            document.getElementById('session-view').classList.remove('hidden');
+            document.getElementById('session-view').classList.add('flex');
+            document.getElementById('current-technique-name').innerText = config.name;
+            startSession(config);
+        }
+
+        function startSession(config) {
+            currentCycle = 1;
+            runCycle(config);
+        }
+
+        async function runCycle(config) {
+            document.getElementById('cycle-count').innerText = currentCycle;
+            for (let i = 0; i < config.phases.length; i++) {
+                const phase = config.phases[i];
+                if (phase.repeat) {
+                    for (let r = 0; r < phase.repeat; r++) {
+                        await executePhase({ 
+                            name: `Carga ${r+1}/${phase.repeat}`, 
+                            duration: phase.duration, 
+                            class: phase.class, 
+                            scale: phase.scale,
+                            tip: phase.tip 
+                        });
+                    }
+                    continue;
+                }
+                await executePhase(phase);
+            }
+            if (currentCycle < maxCycles) {
+                currentCycle++;
+                runCycle(config);
+            } else {
+                finishSession();
+            }
+        }
+
+        function executePhase(phase) {
+            return new Promise(resolve => {
+                const text = document.getElementById('current-phase-text');
+                const timer = document.getElementById('timer-display');
+                const guide = document.getElementById('visual-guide');
+                const progress = document.getElementById('session-progress');
+                const tip = document.getElementById('detailed-tip');
+
+                text.innerText = phase.name;
+                tip.innerText = phase.tip || "";
+                guide.className = `breathing-circle ${phase.class}`;
+                guide.style.transform = `scale(${phase.scale})`;
+
+                let timeLeft = phase.duration;
+                timer.innerText = timeLeft;
+                
+                progress.style.transition = 'none';
+                progress.style.width = '0%';
+                setTimeout(() => {
+                    progress.style.transition = `width ${phase.duration}s linear`;
+                    progress.style.width = '100%';
+                }, 10);
+
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    timer.innerText = timeLeft > 0 ? timeLeft : 0;
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 1000);
+                sessionInterval = interval;
+            });
+        }
+
+        function exitSession() {
+            clearInterval(sessionInterval);
+            if (oscillator && isAudioPlaying) {
+                oscillator.stop();
+                isAudioPlaying = false;
+            }
+            location.reload(); 
+        }
+
+        function finishSession() {
+            document.getElementById('current-phase-text').innerText = "Ativação Completa";
+            document.getElementById('detailed-tip').innerText = "Fique em silêncio por alguns minutos...";
+            document.getElementById('instruction-text').innerText = "Paz Interior";
+            setTimeout(exitSession, 7000);
+        }
+    </script>
+</body>
+</html>
