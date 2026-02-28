@@ -103,6 +103,12 @@
                 minZoom: 3
             }).setView([-15.78, -47.93], 4);
 
+            // Camada base com nomes de cidades, ruas e pontos de interesse
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
             L.control.zoom({ position: 'topright' }).addTo(map);
 
             loadGeoData();
