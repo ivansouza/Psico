@@ -79,7 +79,7 @@
                     </div>
                     <div>
                         <h1 class="text-2xl font-black gradient-text tracking-tighter uppercase leading-none">Psico Portfolio</h1>
-                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-widest mt-1">Ivan Souza • Laboratório de Código</p>
+                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-widest mt-1">Ivan Souza • Laboratório de Código • <span id="cards-total">0</span> cards</p>
                     </div>
                 </div>
                 
@@ -428,6 +428,7 @@
             return diff !== 0 ? diff : a.name.localeCompare(b.name);
         });
 
+        document.getElementById('cards-total').textContent = experiments.length;
         initFilters();
         renderCards();
     </script>
