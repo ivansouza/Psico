@@ -8,10 +8,35 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 canvas { display: block; width: 100%; height: 100%; }
+#ui {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  min-width: 220px;
+  backdrop-filter: blur(6px);
+}
+#ui label { display:block; font-size:12px; margin-top:8px; }
+#ui .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+#ui input[type="range"] { width:100%; }
+#ui .v { font-size:12px; opacity:.85; min-width:36px; text-align:right; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="ui">
+  <div class="row"><strong>Montanhas HD</strong></div>
+  <label>Intensidade do blur</label>
+  <div class="row"><input id="blur" type="range" min="0" max="8" step="0.1" value="1.6"><span id="blurV" class="v">1.6</span></div>
+  <label>Detalhe (nitidez)</label>
+  <div class="row"><input id="sharp" type="range" min="0" max="1" step="0.01" value="0.18"><span id="sharpV" class="v">0.18</span></div>
+</div>
 <script>
 const canvas = document.getElementById('c');
 const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true });
@@ -31,8 +56,8 @@ uniform vec2 u_drag;          // cumulative pixel offset from click-and-drag
 uniform float u_scroll;       // linear scroll from mouse wheel (uncapped); use exp(u_scroll) for zoom
 uniform vec4 u_date;          // year, month, day, seconds since midnight
 uniform float u_refresh_rate; 
-uniform int u_recursion;
-uniform sampler2D u_main;
+uniform float u_blur_strength;
+uniform float u_sharpness;
 // display refresh rate in Hz
 
 //Mountain Texture for demo
@@ -46,21 +71,17 @@ void main()
 
     //Mountain texture
     vec4 tex = texture(u_tex, uv);
-    if (u_recursion < 1)
-		{
-				fragColor = tex;
-		}
-    else
-    {
-        //Blur with the last sample
-        vec2 off = (float(u_recursion * 2) + 0.5) * vec2(-1, 1);
-        vec4 blur = vec4(0);
-        blur += texture(u_main, uv + off.xx * texel);
-        blur += texture(u_main, uv + off.yx * texel);
-        blur += texture(u_main, uv + off.xy * texel);
-        blur += texture(u_main, uv + off.yy * texel);
-        fragColor = blur / 4.0;
-    }
+
+    vec2 off = (u_blur_strength + 0.001) * vec2(-1.0, 1.0);
+    vec4 blur = vec4(0.0);
+    blur += texture(u_tex, uv + off.xx * texel);
+    blur += texture(u_tex, uv + off.yx * texel);
+    blur += texture(u_tex, uv + off.xy * texel);
+    blur += texture(u_tex, uv + off.yy * texel);
+    blur *= 0.25;
+
+    // Mistura entre textura nítida e blur
+    fragColor = mix(blur, tex, clamp(u_sharpness, 0.0, 1.0));
 }`;
 
 function buildFS(src) {
@@ -144,6 +165,8 @@ const loc = {
   scroll: gl.getUniformLocation(prog, 'u_scroll'),
   date:  gl.getUniformLocation(prog, 'u_date'),
   refreshRate: gl.getUniformLocation(prog, 'u_refresh_rate'),
+  blurStrength: gl.getUniformLocation(prog, 'u_blur_strength'),
+  sharpness: gl.getUniformLocation(prog, 'u_sharpness'),
 };
 
 const texNames = ["u_tex"];
@@ -257,6 +280,16 @@ for (let i = 0; i < numCube; i++) {
   texCubeLocs[texCubeNames[i]] = gl.getUniformLocation(prog, texCubeNames[i]);
 }
 
+const blurInput = document.getElementById('blur');
+const blurV = document.getElementById('blurV');
+const sharpInput = document.getElementById('sharp');
+const sharpV = document.getElementById('sharpV');
+
+let blurStrength = parseFloat(blurInput.value);
+let sharpness = parseFloat(sharpInput.value);
+blurInput.addEventListener('input', () => { blurStrength = parseFloat(blurInput.value); blurV.textContent = blurStrength.toFixed(1); });
+sharpInput.addEventListener('input', () => { sharpness = parseFloat(sharpInput.value); sharpV.textContent = sharpness.toFixed(2); });
+
 let mouse = [0, 0, -1, -1];
 let drag = [0, 0];
 let scroll = 0;
@@ -344,6 +377,8 @@ const start = performance.now();
     const d = new Date();
     gl.uniform4f(loc.date, d.getFullYear(), d.getMonth(), d.getDate(), (d.getTime() % 86400000) / 1000);
     if (loc.refreshRate) gl.uniform1f(loc.refreshRate, refreshRate);
+    if (loc.blurStrength) gl.uniform1f(loc.blurStrength, blurStrength);
+    if (loc.sharpness) gl.uniform1f(loc.sharpness, sharpness);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
