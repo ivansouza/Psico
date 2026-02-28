@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fragment Shader</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true });
+if (!gl) { document.body.textContent = 'WebGL not supported'; throw new Error('No WebGL'); }
+
+const VS = `#version 300 es
+in vec2 a_position;
+void main() { gl_Position = vec4(a_position.x, -a_position.y, 0.0, 1.0); }
+`;
+
+const userCode = `uniform vec2 u_resolution;    // viewport size in pixels (width, height)
+uniform float u_time;         // seconds since playback started
+uniform float u_time_delta;   // seconds since previous frame
+uniform int u_frame;          // frame counter
+uniform vec4 u_mouse;         // xy: cursor pos (px), zw: click pos (negative when not pressed)
+uniform vec2 u_drag;          // cumulative pixel offset from click-and-drag
+uniform float u_scroll;       // linear scroll from mouse wheel (uncapped); use exp(u_scroll) for zoom
+uniform vec4 u_date;          // year, month, day, seconds since midnight
+uniform float u_refresh_rate; 
+uniform sampler2D u_main;
+// display refresh rate in Hz
+
+//Mountain Texture for demo
+uniform sampler2D u_tex; //https://picsum.photos/id/29/1024/1024 [flip]
+
+void main()
+{
+    //Normalized screen uvs [0, 1]
+    vec2 texel = 1.0 / u_resolution;
+    vec2 uv = gl_FragCoord.xy * texel;
+
+    //Mountain texture
+    vec4 tex = texture(u_tex, uv);
+    if (u_recursion < 1)
+		{
+				fragColor = tex;
+		}
+    else
+    {
+        //Blur with the last sample
+        vec2 off = (float(u_recursion * 2) + 0.5) * vec2(-1, 1);
+        vec4 blur = vec4(0);
+        blur += texture(u_main, uv + off.xx * texel);
+        blur += texture(u_main, uv + off.yx * texel);
+        blur += texture(u_main, uv + off.xy * texel);
+        blur += texture(u_main, uv + off.yy * texel);
+        fragColor = blur / 4.0;
+    }
+}`;
+
+function buildFS(src) {
+  if (!false && src.trim().startsWith('#version')) return src;
+  const hasAllBuiltins = /uniform\s+vec2\s+u_resolution\b/.test(src) && /uniform\s+float\s+u_scroll\b/.test(src);
+  const stripBuiltins = (s) => s.replace(/^\s*uniform\s+(?:vec2\s+u_resolution|float\s+u_time_delta|float\s+u_time|(?:float|int)\s+u_frame|vec4\s+u_mouse|vec2\s+u_drag|float\s+u_scroll|vec4\s+u_date|float\s+u_refresh_rate)\s*;\s*$/gm, '').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+  const preamble = hasAllBuiltins
+    ? `#version 300 es
+precision highp float;
+precision highp sampler3D;
+
+out vec4 fragColor;
+
+`
+    : `#version 300 es
+precision highp float;
+precision highp sampler3D;
+
+out vec4 fragColor;
+
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform float u_time_delta;
+uniform int u_frame;
+uniform vec4 u_mouse;
+uniform vec2 u_drag;
+uniform float u_scroll;
+uniform vec4 u_date;
+uniform float u_refresh_rate;
+
+`;
+  const effectiveSrc = hasAllBuiltins ? src : stripBuiltins(src);
+  if (effectiveSrc.includes('mainImage')) {
+    return preamble + 'void main() { mainImage(fragColor, gl_FragCoord.xy); }\n\n' + effectiveSrc;
+  }
+  return preamble + effectiveSrc;
+}
+
+function compile(type, source) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, source);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(s));
+    gl.deleteShader(s);
+    return null;
+  }
+  return s;
+}
+
+const vs = compile(gl.VERTEX_SHADER, VS);
+const fs = compile(gl.FRAGMENT_SHADER, buildFS(userCode));
+if (!vs || !fs) throw new Error('Shader compile failed — check console');
+
+const prog = gl.createProgram();
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+  console.error(gl.getProgramInfoLog(prog));
+  throw new Error('Program link failed');
+}
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+
+const aPos = gl.getAttribLocation(prog, 'a_position');
+gl.useProgram(prog);
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const refreshRate = (typeof window !== 'undefined' && window.screen?.refreshRate > 0) ? window.screen.refreshRate : 60;
+const loc = {
+  res:   gl.getUniformLocation(prog, 'u_resolution'),
+  time:  gl.getUniformLocation(prog, 'u_time'),
+  delta: gl.getUniformLocation(prog, 'u_time_delta'),
+  frame: gl.getUniformLocation(prog, 'u_frame'),
+  mouse: gl.getUniformLocation(prog, 'u_mouse'),
+  drag:  gl.getUniformLocation(prog, 'u_drag'),
+  scroll: gl.getUniformLocation(prog, 'u_scroll'),
+  date:  gl.getUniformLocation(prog, 'u_date'),
+  refreshRate: gl.getUniformLocation(prog, 'u_refresh_rate'),
+};
+
+const texNames = ["u_tex"];
+const texUrls = ["https://picsum.photos/id/29/1024/1024"];
+const texFlipY = [true];
+const texIsVideo = [false];
+const texWrap = ["repeat"];
+const texFilter = ["linear"];
+const texMipmap = [false];
+const tex3DNames = [];
+const texCubeNames = [];
+
+function createPlaceholderTex() {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  const px = new Uint8Array([0, 0, 0, 255]);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return t;
+}
+
+function createPlaceholderTex3D() {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_3D, t);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA, 1, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+  gl.bindTexture(gl.TEXTURE_3D, null);
+  return t;
+}
+
+function createPlaceholderTexCube() {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, t);
+  const px = new Uint8Array([0, 0, 0, 255]);
+  const faces = [gl.TEXTURE_CUBE_MAP_POSITIVE_X, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, gl.TEXTURE_CUBE_MAP_POSITIVE_Y, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z];
+  for (const face of faces) gl.texImage2D(face, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+  return t;
+}
+
+function applyTexParams(wrap, filter, mipmap) {
+  const w = wrap === 'repeat' ? gl.REPEAT : wrap === 'mirror' ? gl.MIRRORED_REPEAT : gl.CLAMP_TO_EDGE;
+  const mag = filter === 'nearest' ? gl.NEAREST : gl.LINEAR;
+  const min = mipmap ? (filter === 'nearest' ? gl.NEAREST_MIPMAP_NEAREST : gl.LINEAR_MIPMAP_LINEAR) : mag;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, w);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, w);
+  if (mipmap) gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, min);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, mag);
+}
+async function loadTexture(url, flipY, isVideo, wrap, filter, mipmap) {
+  if (isVideo) {
+    const v = document.createElement('video');
+    v.crossOrigin = 'anonymous';
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.src = url;
+    await new Promise((ok, err) => { v.onloadeddata = ok; v.onerror = err; });
+    v.play();
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v);
+    applyTexParams(wrap, filter, mipmap);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return { tex: t, video: v };
+  }
+  const r = await fetch(url, { mode: 'cors' });
+  if (!r.ok) return null;
+  const blob = await r.blob();
+  const bmp = await createImageBitmap(blob, { imageOrientation: flipY ? 'flipY' : 'from-image' });
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
+  applyTexParams(wrap, filter, mipmap);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  bmp.close();
+  return { tex: t };
+}
+
+const texTextures = [];
+const texVideos = new Array(texNames.length);
+const texLocs = {};
+const tex3DLocs = {};
+const texCubeLocs = {};
+const num2D = texNames.length;
+const num3D = tex3DNames.length;
+const numCube = texCubeNames.length;
+const placeholder3D = num3D ? createPlaceholderTex3D() : null;
+const placeholderCube = numCube ? createPlaceholderTexCube() : null;
+for (let i = 0; i < num2D; i++) {
+  texTextures[i] = createPlaceholderTex();
+  texLocs[texNames[i]] = gl.getUniformLocation(prog, texNames[i]);
+}
+for (let i = 0; i < num3D; i++) {
+  tex3DLocs[tex3DNames[i]] = gl.getUniformLocation(prog, tex3DNames[i]);
+}
+for (let i = 0; i < numCube; i++) {
+  texCubeLocs[texCubeNames[i]] = gl.getUniformLocation(prog, texCubeNames[i]);
+}
+
+let mouse = [0, 0, -1, -1];
+let drag = [0, 0];
+let scroll = 0;
+let lastX = 0, lastY = 0;
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  scroll -= 0.0012 * e.deltaY;
+}, { passive: false });
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * canvas.width;
+  const y = (e.clientY - r.top) / r.height * canvas.height;
+  if (mouse[2] >= 0) { drag[0] += x - lastX; drag[1] += y - lastY; }
+  lastX = x; lastY = y;
+  mouse[0] = x; mouse[1] = y;
+});
+canvas.addEventListener('mousedown', () => { mouse[2] = mouse[0]; mouse[3] = mouse[1]; lastX = mouse[0]; lastY = mouse[1]; });
+canvas.addEventListener('mouseup', () => { mouse[2] = -1; mouse[3] = -1; });
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(canvas.clientWidth * dpr);
+  canvas.height = Math.round(canvas.clientHeight * dpr);
+}
+window.addEventListener('resize', resize);
+resize();
+
+let frame = 0, last = 0;
+const start = performance.now();
+
+(async function init() {
+  for (let i = 0; i < texNames.length; i++) {
+    try {
+      const loaded = await loadTexture(texUrls[i], texFlipY[i], texIsVideo[i], texWrap[i], texFilter[i], texMipmap[i]);
+      if (loaded) {
+        gl.deleteTexture(texTextures[i]);
+        texTextures[i] = loaded.tex;
+        if (loaded.video) texVideos[i] = loaded.video;
+      }
+    } catch (e) { console.warn('Texture load failed:', texNames[i], e); }
+  }
+
+  function loop(now) {
+    requestAnimationFrame(loop);
+    const t = (now - start) / 1000;
+    const dt = last ? (now - last) / 1000 : 0;
+    last = now;
+
+    for (let i = 0; i < num2D; i++) {
+      if (texLocs[texNames[i]]) {
+        gl.activeTexture(gl.TEXTURE0 + i);
+        gl.bindTexture(gl.TEXTURE_2D, texTextures[i]);
+        if (texIsVideo[i] && texVideos[i] && texVideos[i].readyState >= 2) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texVideos[i]);
+        }
+        gl.uniform1i(texLocs[texNames[i]], i);
+      }
+    }
+    for (let i = 0; i < num3D; i++) {
+      if (tex3DLocs[tex3DNames[i]]) {
+        const unit = num2D + i;
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_3D, placeholder3D);
+        gl.uniform1i(tex3DLocs[tex3DNames[i]], unit);
+      }
+    }
+    for (let i = 0; i < numCube; i++) {
+      if (texCubeLocs[texCubeNames[i]]) {
+        const unit = num2D + num3D + i;
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, placeholderCube);
+        gl.uniform1i(texCubeLocs[texCubeNames[i]], unit);
+      }
+    }
+
+    resize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform2f(loc.res, canvas.width, canvas.height);
+    gl.uniform1f(loc.time, t);
+    gl.uniform1f(loc.delta, dt);
+    gl.uniform1i(loc.frame, frame++);
+    gl.uniform4f(loc.mouse, mouse[0], mouse[1], mouse[2], mouse[3]);
+    if (loc.drag) gl.uniform2f(loc.drag, drag[0], drag[1]);
+    if (loc.scroll) gl.uniform1f(loc.scroll, scroll);
+    const d = new Date();
+    gl.uniform4f(loc.date, d.getFullYear(), d.getMonth(), d.getDate(), (d.getTime() % 86400000) / 1000);
+    if (loc.refreshRate) gl.uniform1f(loc.refreshRate, refreshRate);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+  loop(performance.now());
+})();
+</script>
+</body>
+</html>
