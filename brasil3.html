@@ -16,10 +16,10 @@
             height: calc(100vh - 80px);
             width: 100%;
             z-index: 1;
-            background-color: #f8fafc;
+            background-color: #ffffff;
         }
         .leaflet-container {
-            background: #f1f5f9 !important;
+            background: #ffffff !important;
         }
         /* Personalização da barra de rolagem */
         ::-webkit-scrollbar {
@@ -31,7 +31,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900 overflow-hidden">
+<body class="bg-white font-sans text-slate-900 overflow-hidden">
 
     <!-- Cabeçalho -->
     <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-10">
@@ -121,11 +121,11 @@
                 // Estilo básico dos estados
                 function style(feature) {
                     return {
-                        fillColor: '#10b981', // Verde Esmeralda
-                        weight: 1.5,
+                        fillColor: 'transparent',
+                        weight: 2,
                         opacity: 1,
-                        color: '#064e3b', // Bordas escuras
-                        fillOpacity: 0.3
+                        color: '#111827',
+                        fillOpacity: 0
                     };
                 }
 
@@ -134,9 +134,10 @@
                     const layer = e.target;
                     if (selectedFeature !== layer) {
                         layer.setStyle({
-                            fillOpacity: 0.6,
-                            fillColor: '#34d399',
-                            weight: 2
+                            fillOpacity: 0,
+                            fillColor: 'transparent',
+                            weight: 3,
+                            color: '#000000'
                         });
                         layer.bringToFront();
                     }
@@ -160,10 +161,10 @@
 
                     selectedFeature = layer;
                     layer.setStyle({
-                        weight: 3,
-                        color: '#064e3b',
-                        fillOpacity: 0.8,
-                        fillColor: '#059669'
+                        weight: 4,
+                        color: '#000000',
+                        fillOpacity: 0,
+                        fillColor: 'transparent'
                     });
 
                     // Gera número aleatório para o exemplo
