@@ -225,6 +225,36 @@
     let mouseX = 0, mouseY = 0;
     let currentSlotID = null;
 
+    const STORAGE_KEY = 'glsl_slots_v2';
+    const LEGACY_KEYS = ['glsl_slots_v1', 'glsl_slots', 'glslSlots', 'shader_slots'];
+
+    function safeParseJSON(str) {
+        try { return JSON.parse(str || '{}'); } catch { return {}; }
+    }
+
+    function getSlotsData() {
+        return safeParseJSON(localStorage.getItem(STORAGE_KEY));
+    }
+
+    function setSlotsData(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data || {}));
+    }
+
+    function migrateLegacySlotsIfNeeded() {
+        const current = getSlotsData();
+        if (Object.keys(current).length > 0) return false;
+
+        for (const key of LEGACY_KEYS) {
+            const legacy = safeParseJSON(localStorage.getItem(key));
+            if (legacy && Object.keys(legacy).length > 0) {
+                setSlotsData(legacy);
+                showToast(`Dados recuperados de ${key}`);
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Shader Inicial restaurado para a versão de 1:10pm
     const initialCode = `// Shader inicial
 vec2 p = abs(FC.xy/r - .5);
@@ -317,12 +347,12 @@ o = tanh(o + .1 * length(o));`;
 
     // --- CARROSSEL E MEMÓRIA ---
     function getUsedSlots() {
-        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const data = getSlotsData();
         return Object.keys(data).filter(k => data[k].code && data[k].code.trim() !== "").sort((a, b) => parseInt(a) - parseInt(b));
     }
 
     function updateCarouselLabel() {
-        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const data = getSlotsData();
         if (currentSlotID && data[currentSlotID]) {
             carouselInfo.textContent = data[currentSlotID].name || `Slot #${currentSlotID}`;
         } else {
@@ -347,7 +377,7 @@ o = tanh(o + .1 * length(o));`;
 
     function renderSlots() {
         const list = document.getElementById('slots-list'); list.innerHTML = '';
-        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const data = getSlotsData();
         for(let i=1; i<=100; i++) {
             const s = data[i], div = document.createElement('div');
             div.className = 'slot-item';
@@ -362,11 +392,11 @@ o = tanh(o + .1 * length(o));`;
     }
 
     function saveSlot(id) {
-        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const data = getSlotsData();
         const inputs = document.querySelectorAll('.slot-name-input');
         const name = inputs[id-1].value;
         data[id] = { code: editing.value, date: new Date().toLocaleString(), name: name };
-        localStorage.setItem('glsl_slots_v2', JSON.stringify(data));
+        setSlotsData(data);
         currentSlotID = id;
         updateCarouselLabel();
         showToast(`Slot ${id} salvo!`);
@@ -374,7 +404,7 @@ o = tanh(o + .1 * length(o));`;
     }
 
     function loadSlot(id) {
-        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const data = getSlotsData();
         if(data[id]) {
             editing.value = data[id].code;
             currentSlotID = id;
@@ -385,14 +415,14 @@ o = tanh(o + .1 * length(o));`;
     }
 
     function renameSlot(id, name) {
-        const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
+        const data = getSlotsData();
         if(!data[id]) data[id] = { code: "", date: "", name: name }; else data[id].name = name;
-        localStorage.setItem('glsl_slots_v2', JSON.stringify(data));
+        setSlotsData(data);
         updateCarouselLabel();
     }
 
     function exportBackup() {
-        const data = localStorage.getItem('glsl_slots_v2');
+        const data = localStorage.getItem(STORAGE_KEY);
         const dummy = document.createElement("textarea"); document.body.appendChild(dummy);
         dummy.value = data || "{}"; dummy.select(); document.execCommand("copy");
         document.body.removeChild(dummy); showToast("JSON copiado!");
@@ -404,7 +434,7 @@ o = tanh(o + .1 * length(o));`;
         const json = importInput.value.trim();
         if(!json) return;
         try { 
-            JSON.parse(json); localStorage.setItem('glsl_slots_v2', json); 
+            JSON.parse(json); localStorage.setItem(STORAGE_KEY, json); 
             showToast("Backup Restaurado!"); renderSlots(); updateCarouselLabel(); hideImportUI();
         } catch(e) { showToast("JSON Inválido!"); }
     }
@@ -446,7 +476,18 @@ o = tanh(o + .1 * length(o));`;
     canvas.addEventListener('mousemove', e => { const r = canvas.getBoundingClientRect(); mouseX = e.clientX-r.left; mouseY = r.height-(e.clientY-r.top); });
     canvas.addEventListener('touchmove', e => { const r = canvas.getBoundingClientRect(); mouseX = e.touches[0].clientX-r.left; mouseY = r.height-(e.touches[0].clientY-r.top); e.preventDefault(); }, {passive:false});
 
-    window.onload = () => { editing.value = initialCode; updateEditor(initialCode); render(); updateCarouselLabel(); };
+    window.onload = () => {
+        migrateLegacySlotsIfNeeded();
+        const used = getUsedSlots();
+        if (used.length > 0) {
+            loadSlot(used[0]);
+        } else {
+            editing.value = initialCode;
+            updateEditor(initialCode);
+        }
+        render();
+        updateCarouselLabel();
+    };
 </script>
 
 </body>
