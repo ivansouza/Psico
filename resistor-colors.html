@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Cores de Resistores</title>
+  <style>
+    :root{--bg:#ececec;--panel:#f6f6f6;--ink:#202020;--muted:#666;--wire:#aeb8c6}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:18px auto;padding:14px}
+    .title{font-size:clamp(20px,3vw,30px);font-weight:800;margin:0 0 8px}
+    .sub{margin:0 0 18px;color:var(--muted)}
+
+    .chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    .chip{padding:6px 11px;border-radius:999px;background:#111;color:#fff;font-weight:700;font-size:14px;box-shadow:0 2px 6px #0002}
+    .chip.out{background:#fff;color:#111;border:1px solid #ccc}
+
+    .resistor-zone{display:grid;grid-template-columns:1fr;gap:14px}
+    .resistor-card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 8px 30px #0001}
+
+    .resistor{position:relative;height:120px;display:flex;align-items:center;justify-content:center;margin:4px 0 10px}
+    .lead{position:absolute;height:10px;width:28%;background:linear-gradient(#f7f9fb,#95a0b2,#f7f9fb);border-radius:6px}
+    .lead.left{left:0}.lead.right{right:0}
+    .body{position:relative;width:min(560px,74%);height:78px;border-radius:40px;background:linear-gradient(180deg,#5e9bf0,#2262b2);display:flex;align-items:center;justify-content:center;gap:26px;box-shadow:inset 0 12px 24px #fff3,inset 0 -10px 20px #0002,0 10px 20px #0002}
+    .body.yellow{background:linear-gradient(180deg,#ffd95d,#e5ae16)}
+    .band{width:18px;height:86px;border-radius:7px;box-shadow:inset 0 0 0 1px #0003}
+
+    .board{background:var(--panel);border:1px solid #ddd;border-radius:18px;padding:12px;overflow:auto}
+    .cols{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px;min-width:720px}
+    .col{background:#fff;border:1px solid #e0e0e0;border-radius:14px;padding:10px}
+    .col h4{margin:0 0 8px;font-size:18px}
+    .list{display:flex;flex-direction:column;gap:6px}
+    .opt{display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;border:none;border-radius:999px;padding:6px 8px;color:#fff;font-weight:800;text-shadow:0 1px 2px #0006;box-shadow:0 2px 5px #0002}
+    .opt small{opacity:.9;font-weight:700}
+    .opt.sel{outline:3px solid #111}
+
+    .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    .toggle{padding:8px 12px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;font-weight:700}
+    .toggle.active{background:#111;color:#fff;border-color:#111}
+
+    @media (max-width:750px){.resistor{height:100px}.body{gap:18px;height:64px}.band{height:72px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="title">Calculadora de Cores de Resistores</h1>
+    <p class="sub">Visual estilo tabela de bandas (4 e 5 bandas), com aparência inspirada na referência enviada.</p>
+
+    <div class="chips" id="chips"></div>
+
+    <div class="resistor-zone">
+      <div class="resistor-card">
+        <div class="resistor" id="resistor">
+          <div class="lead left"></div>
+          <div class="body" id="body">
+            <div class="band" id="b1"></div>
+            <div class="band" id="b2"></div>
+            <div class="band" id="b3"></div>
+            <div class="band" id="b4"></div>
+            <div class="band" id="b5"></div>
+          </div>
+          <div class="lead right"></div>
+        </div>
+
+        <div class="bar">
+          <button class="toggle" id="mode4">4 bandas</button>
+          <button class="toggle active" id="mode5">5 bandas</button>
+          <span id="result" class="chip out">--</span>
+        </div>
+      </div>
+
+      <div class="board">
+        <div class="cols" id="cols"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const COLOR = {
+  preto:{hex:'#1a1a1a',digit:0,mult:1},
+  marrom:{hex:'#6f4b2f',digit:1,mult:10,tol:1},
+  vermelho:{hex:'#d82323',digit:2,mult:100,tol:2},
+  laranja:{hex:'#ef7b23',digit:3,mult:1000},
+  amarelo:{hex:'#e9c21f',digit:4,mult:10000,tol:5},
+  verde:{hex:'#3a9a3b',digit:5,mult:100000,tol:0.5},
+  azul:{hex:'#2f76c8',digit:6,mult:1000000,tol:0.25},
+  violeta:{hex:'#5e3ea8',digit:7,mult:10000000,tol:0.1},
+  cinza:{hex:'#8c9299',digit:8,mult:100000000,tol:0.05},
+  branco:{hex:'#eaeaea',digit:9,mult:1000000000},
+  dourado:{hex:'#c9a227',mult:0.1,tol:5},
+  prata:{hex:'#bfc3c9',mult:0.01,tol:10}
+};
+
+const digitColors = ['preto','marrom','vermelho','laranja','amarelo','verde','azul','violeta','cinza','branco'];
+const multColors = ['preto','marrom','vermelho','laranja','amarelo','verde','azul','violeta','cinza','dourado','prata'];
+const tolColors = ['marrom','vermelho','amarelo','verde','azul','violeta','cinza','dourado','prata'];
+
+let mode = 5;
+let state = {d1:'laranja', d2:'verde', d3:'preto', mult:'vermelho', tol:'dourado'};
+
+const colsEl = document.getElementById('cols');
+const resultEl = document.getElementById('result');
+const chips = document.getElementById('chips');
+const body = document.getElementById('body');
+
+function fmtOhm(v){
+  if(v>=1e6) return (v/1e6).toFixed(v%1e6?2:0).replace(/\.00$/,'')+' MΩ';
+  if(v>=1e3) return (v/1e3).toFixed(v%1e3?2:0).replace(/\.00$/,'')+' kΩ';
+  return v+' Ω';
+}
+
+function calc(){
+  const c = COLOR;
+  const n = mode===5
+    ? (c[state.d1].digit*100 + c[state.d2].digit*10 + c[state.d3].digit) * c[state.mult].mult
+    : (c[state.d1].digit*10 + c[state.d2].digit) * c[state.mult].mult;
+  const tol = c[state.tol].tol;
+  return {n, tol};
+}
+
+function renderChips(){
+  const v = calc();
+  const arr = mode===5
+    ? [COLOR[state.d1].digit, COLOR[state.d2].digit, COLOR[state.d3].digit, 'x '+fmtOhm(COLOR[state.mult].mult), v.tol+'%']
+    : [COLOR[state.d1].digit, COLOR[state.d2].digit, 'x '+fmtOhm(COLOR[state.mult].mult), v.tol+'%'];
+  const colors = mode===5 ? [state.d1,state.d2,state.d3,state.mult,state.tol] : [state.d1,state.d2,state.mult,state.tol];
+  chips.innerHTML = arr.map((t,i)=>`<span class="chip" style="background:${COLOR[colors[i]].hex};color:${colors[i]==='branco'?'#111':'#fff'}">${t}</span>`).join('');
+  resultEl.textContent = `${fmtOhm(v.n)}  ${v.tol}%`;
+}
+
+function optionBtn(group,key,label){
+  const c = COLOR[key];
+  const selected = state[group]===key ? 'sel':'';
+  return `<button class="opt ${selected}" style="background:${c.hex};color:${key==='branco'?'#111':'#fff'}" onclick="pick('${group}','${key}')">${label}</button>`;
+}
+
+function renderCols(){
+  const groups = mode===5
+    ? [
+      {k:'d1',t:'1º dígito',list:digitColors,lab:k=>COLOR[k].digit},
+      {k:'d2',t:'2º dígito',list:digitColors,lab:k=>COLOR[k].digit},
+      {k:'d3',t:'3º dígito',list:digitColors,lab:k=>COLOR[k].digit},
+      {k:'mult',t:'multiplicador',list:multColors,lab:k=>COLOR[k].mult},
+      {k:'tol',t:'tolerância',list:tolColors,lab:k=>COLOR[k].tol+'%'}
+    ]
+    : [
+      {k:'d1',t:'1º dígito',list:digitColors,lab:k=>COLOR[k].digit},
+      {k:'d2',t:'2º dígito',list:digitColors,lab:k=>COLOR[k].digit},
+      {k:'mult',t:'multiplicador',list:multColors,lab:k=>COLOR[k].mult},
+      {k:'tol',t:'tolerância',list:tolColors,lab:k=>COLOR[k].tol+'%'}
+    ];
+
+  colsEl.style.gridTemplateColumns = `repeat(${groups.length}, minmax(130px,1fr))`;
+  colsEl.innerHTML = groups.map(g=>`
+    <div class="col">
+      <h4>${g.t}</h4>
+      <div class="list">
+        ${g.list.map(k=>optionBtn(g.k,k,g.lab(k))).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function paint(){
+  document.getElementById('b1').style.background = COLOR[state.d1].hex;
+  document.getElementById('b2').style.background = COLOR[state.d2].hex;
+  if(mode===5){
+    document.getElementById('b3').style.display='block';
+    document.getElementById('b3').style.background = COLOR[state.d3].hex;
+    document.getElementById('b4').style.background = COLOR[state.mult].hex;
+    document.getElementById('b5').style.background = COLOR[state.tol].hex;
+    body.classList.remove('yellow');
+  } else {
+    document.getElementById('b3').style.display='none';
+    document.getElementById('b4').style.background = COLOR[state.mult].hex;
+    document.getElementById('b5').style.background = COLOR[state.tol].hex;
+    body.classList.add('yellow');
+  }
+}
+
+window.pick = (group,key)=>{ state[group]=key; refresh(); };
+function refresh(){ renderCols(); paint(); renderChips(); }
+
+function setMode(m){
+  mode=m;
+  document.getElementById('mode4').classList.toggle('active',m===4);
+  document.getElementById('mode5').classList.toggle('active',m===5);
+  if(m===4 && !state.tol) state.tol='dourado';
+  refresh();
+}
+
+document.getElementById('mode4').onclick=()=>setMode(4);
+document.getElementById('mode5').onclick=()=>setMode(5);
+
+refresh();
+</script>
+</body>
+</html>
