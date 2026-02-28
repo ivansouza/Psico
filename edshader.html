@@ -171,7 +171,7 @@
     <div id="canvas-container" onclick="handleCanvasClick()">
         <canvas id="gl-canvas"></canvas>
         <div class="ui-overlay">
-            <button class="btn border-amber-500/50 text-amber-500" onclick="event.stopPropagation(); toggleSlots()">Slots (50)</button>
+            <button class="btn border-amber-500/50 text-amber-500" onclick="event.stopPropagation(); toggleSlots()">Slots (100)</button>
             <div class="h-px bg-white/10 my-1"></div>
             <button class="btn" onclick="event.stopPropagation(); togglePlay()" id="btn-play">Pausar</button>
             <button class="btn" onclick="event.stopPropagation(); handleFullscreen()" id="btn-fs">Resultado</button>
@@ -348,7 +348,7 @@ o = tanh(o + .1 * length(o));`;
     function renderSlots() {
         const list = document.getElementById('slots-list'); list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('glsl_slots_v2') || '{}');
-        for(let i=1; i<=50; i++) {
+        for(let i=1; i<=100; i++) {
             const s = data[i], div = document.createElement('div');
             div.className = 'slot-item';
             div.innerHTML = `
