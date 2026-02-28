@@ -36,6 +36,8 @@ canvas { display: block; width: 100%; height: 100%; }
   <div class="row"><input id="blur" type="range" min="0" max="8" step="0.1" value="1.6"><span id="blurV" class="v">1.6</span></div>
   <label>Detalhe (nitidez)</label>
   <div class="row"><input id="sharp" type="range" min="0" max="1" step="0.01" value="0.18"><span id="sharpV" class="v">0.18</span></div>
+  <label>Céu (azul → entardecer → noite)</label>
+  <div class="row"><input id="sky" type="range" min="0" max="1" step="0.01" value="0"><span id="skyV" class="v">0.00</span></div>
 </div>
 <script>
 const canvas = document.getElementById('c');
@@ -58,6 +60,7 @@ uniform vec4 u_date;          // year, month, day, seconds since midnight
 uniform float u_refresh_rate; 
 uniform float u_blur_strength;
 uniform float u_sharpness;
+uniform float u_sky_tone;
 // display refresh rate in Hz
 
 //Mountain Texture for demo
@@ -81,7 +84,27 @@ void main()
     blur *= 0.25;
 
     // Mistura entre textura nítida e blur
-    fragColor = mix(blur, tex, clamp(u_sharpness, 0.0, 1.0));
+    vec4 col = mix(blur, tex, clamp(u_sharpness, 0.0, 1.0));
+
+    // Controle do céu: 0=azul, 0.5=entardecer, 1=noite
+    float t = clamp(u_sky_tone, 0.0, 1.0);
+    float skyMask = smoothstep(0.35, 1.0, uv.y);
+
+    vec3 dayColor = vec3(0.32, 0.58, 0.95);
+    vec3 sunsetColor = vec3(0.98, 0.52, 0.28);
+    vec3 nightColor = vec3(0.08, 0.12, 0.24);
+
+    vec3 skyA = mix(dayColor, sunsetColor, smoothstep(0.0, 0.5, t));
+    vec3 skyB = mix(sunsetColor, nightColor, smoothstep(0.5, 1.0, t));
+    vec3 skyColor = mix(skyA, skyB, step(0.5, t));
+
+    float skyStrength = mix(0.18, 0.65, t);
+    col.rgb = mix(col.rgb, skyColor, skyMask * skyStrength);
+
+    // Leve escurecimento geral ao anoitecer
+    col.rgb *= mix(1.0, 0.72, smoothstep(0.55, 1.0, t));
+
+    fragColor = col;
 }`;
 
 function buildFS(src) {
@@ -167,6 +190,7 @@ const loc = {
   refreshRate: gl.getUniformLocation(prog, 'u_refresh_rate'),
   blurStrength: gl.getUniformLocation(prog, 'u_blur_strength'),
   sharpness: gl.getUniformLocation(prog, 'u_sharpness'),
+  skyTone: gl.getUniformLocation(prog, 'u_sky_tone'),
 };
 
 const texNames = ["u_tex"];
@@ -284,11 +308,15 @@ const blurInput = document.getElementById('blur');
 const blurV = document.getElementById('blurV');
 const sharpInput = document.getElementById('sharp');
 const sharpV = document.getElementById('sharpV');
+const skyInput = document.getElementById('sky');
+const skyV = document.getElementById('skyV');
 
 let blurStrength = parseFloat(blurInput.value);
 let sharpness = parseFloat(sharpInput.value);
+let skyTone = parseFloat(skyInput.value);
 blurInput.addEventListener('input', () => { blurStrength = parseFloat(blurInput.value); blurV.textContent = blurStrength.toFixed(1); });
 sharpInput.addEventListener('input', () => { sharpness = parseFloat(sharpInput.value); sharpV.textContent = sharpness.toFixed(2); });
+skyInput.addEventListener('input', () => { skyTone = parseFloat(skyInput.value); skyV.textContent = skyTone.toFixed(2); });
 
 let mouse = [0, 0, -1, -1];
 let drag = [0, 0];
@@ -379,6 +407,7 @@ const start = performance.now();
     if (loc.refreshRate) gl.uniform1f(loc.refreshRate, refreshRate);
     if (loc.blurStrength) gl.uniform1f(loc.blurStrength, blurStrength);
     if (loc.sharpness) gl.uniform1f(loc.sharpness, sharpness);
+    if (loc.skyTone) gl.uniform1f(loc.skyTone, skyTone);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
