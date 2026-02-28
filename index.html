@@ -417,7 +417,17 @@
             `).join('');
         }
 
-        experiments.sort((a, b) => a.name.localeCompare(b.name));
+        function parseDateBR(dateStr) {
+            const [day, month, year] = dateStr.split('/').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        // Ordenação global por data (mais recente primeiro), independente de filtros
+        experiments.sort((a, b) => {
+            const diff = parseDateBR(b.date) - parseDateBR(a.date);
+            return diff !== 0 ? diff : a.name.localeCompare(b.name);
+        });
+
         initFilters();
         renderCards();
     </script>
