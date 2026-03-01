@@ -13,7 +13,7 @@
   <style>
     :root { --accent:#0ea5e9; }
     body { margin:0; }
-    #map { height:100%; width:100%; }
+    #map { height:100%; width:100%; min-height:420px; }
     .leaflet-control-attribution { font-size:10px; }
   </style>
 </head>
@@ -118,6 +118,10 @@
     let tile = L.tileLayer(themes['osm'], { maxZoom: 20, attribution: '&copy; OpenStreetMap' }).addTo(map);
     let marker = L.marker([-23.5505, -46.6333], { draggable: true }).addTo(map);
 
+    // Garante renderização correta em layouts flex/resize
+    setTimeout(() => map.invalidateSize(), 250);
+    window.addEventListener('resize', () => map.invalidateSize());
+
     function syncUI() {
       const c = marker.getLatLng();
       latEl.value = c.lat.toFixed(6);
@@ -139,6 +143,7 @@
     document.getElementById('theme').addEventListener('change', (e) => {
       map.removeLayer(tile);
       tile = L.tileLayer(themes[e.target.value], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+      setTimeout(() => map.invalidateSize(), 50);
     });
 
     zoomEl.addEventListener('input', () => map.setZoom(Number(zoomEl.value)));
