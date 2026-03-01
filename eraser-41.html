@@ -373,14 +373,29 @@
                     }
                     
                     const b64 = c.toDataURL('image/png').split(',')[1];
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${userApiKey}`;
+                    // Modelos suportados mudam com frequência; tenta os mais novos de geração de imagem.
+                    const modelCandidates = [
+                        'gemini-2.0-flash-preview-image-generation',
+                        'gemini-2.0-flash-exp-image-generation',
+                        'gemini-1.5-flash'
+                    ];
                     const body = { contents: [{ parts: [{ text: "Inpainting task. Replace green #00FF00 mask with background." }, { inlineData: { mimeType: "image/png", data: b64 } }] }] };
-                    
-                    const req = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-                    const json = await req.json();
-                    
-                    if(json.error) throw new Error(json.error.message);
-                    
+
+                    let json = null;
+                    let lastErr = null;
+                    for (const model of modelCandidates) {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userApiKey}`;
+                        const req = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+                        const candidateJson = await req.json();
+                        if (!candidateJson?.error) {
+                            json = candidateJson;
+                            break;
+                        }
+                        lastErr = candidateJson.error?.message || 'Erro desconhecido de modelo';
+                    }
+
+                    if(!json) throw new Error(lastErr || 'Nenhum modelo compatível disponível para geração de imagem.');
+
                     const newB64 = json.candidates?.[0]?.content?.parts?.find(p=>p.inlineData)?.inlineData?.data;
                     if(newB64) {
                         const ni = new Image();
