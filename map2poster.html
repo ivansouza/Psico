@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Map2Poster</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    :root { --accent:#0ea5e9; }
+    body { margin:0; }
+    #map { height:100%; width:100%; }
+    .leaflet-control-attribution { font-size:10px; }
+  </style>
+</head>
+<body class="bg-slate-100 h-screen overflow-hidden font-sans text-slate-900">
+  <div class="h-full flex flex-col md:flex-row">
+    <aside class="w-full md:w-[360px] bg-white border-r border-slate-200 p-5 overflow-y-auto space-y-5">
+      <div>
+        <h1 class="text-2xl font-black tracking-tight">Map2Poster</h1>
+        <p class="text-xs text-slate-500">Versão HTML única inspirada no projeto map-to-poster.</p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-bold uppercase text-slate-500">Buscar cidade</label>
+        <input id="search" type="text" placeholder="Ex: São Paulo" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-300" />
+        <button id="searchBtn" class="w-full rounded-xl bg-sky-500 text-white font-bold py-2 hover:bg-sky-600">Buscar</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-bold uppercase text-slate-500">Latitude</label>
+          <input id="lat" class="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="text-xs font-bold uppercase text-slate-500">Longitude</label>
+          <input id="lon" class="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold uppercase text-slate-500">Zoom (<span id="zoomVal">12</span>)</label>
+        <input id="zoom" type="range" min="2" max="18" value="12" class="w-full accent-sky-500" />
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-bold uppercase text-slate-500">Tema do mapa</label>
+        <select id="theme" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="osm">OSM (com rótulos)</option>
+          <option value="carto-light">Carto Light</option>
+          <option value="carto-dark">Carto Dark</option>
+          <option value="stamen-toner">Toner (alto contraste)</option>
+        </select>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-bold uppercase text-slate-500">Texto do pôster</label>
+        <input id="title" type="text" value="São Paulo" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        <input id="subtitle" type="text" value="Brasil" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      </div>
+
+      <div class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2">
+        <span class="text-sm font-semibold">Mostrar marcador</span>
+        <input id="showMarker" type="checkbox" checked class="w-4 h-4 accent-sky-500" />
+      </div>
+
+      <div class="space-y-2">
+        <button id="download" class="w-full rounded-xl bg-emerald-500 text-white font-bold py-2.5 hover:bg-emerald-600">Baixar PNG</button>
+        <button id="fit" class="w-full rounded-xl bg-slate-800 text-white font-bold py-2.5 hover:bg-black">Centralizar no marcador</button>
+      </div>
+
+      <p id="status" class="text-xs text-slate-500"></p>
+    </aside>
+
+    <main class="flex-1 p-4 md:p-6">
+      <div id="poster" class="h-full bg-white rounded-2xl shadow-xl border border-slate-200 p-4 md:p-6 flex flex-col">
+        <div class="text-center pb-3">
+          <h2 id="posterTitle" class="text-3xl md:text-4xl font-black tracking-tight leading-none">São Paulo</h2>
+          <p id="posterSub" class="text-sm md:text-base text-slate-500 mt-1">Brasil</p>
+        </div>
+
+        <div class="flex-1 rounded-xl overflow-hidden border border-slate-300 relative">
+          <div id="map"></div>
+          <div class="absolute bottom-2 right-2 bg-white/90 text-[10px] px-2 py-1 rounded border border-slate-300">map2poster (single HTML)</div>
+        </div>
+
+        <div class="pt-3 text-center text-xs text-slate-500">
+          <span id="coordsText">Lat: -23.5505 | Lon: -46.6333</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const latEl = document.getElementById('lat');
+    const lonEl = document.getElementById('lon');
+    const zoomEl = document.getElementById('zoom');
+    const zoomValEl = document.getElementById('zoomVal');
+    const titleEl = document.getElementById('title');
+    const subtitleEl = document.getElementById('subtitle');
+    const posterTitleEl = document.getElementById('posterTitle');
+    const posterSubEl = document.getElementById('posterSub');
+    const coordsTextEl = document.getElementById('coordsText');
+
+    const themes = {
+      'osm': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      'carto-light': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      'carto-dark': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      'stamen-toner': 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png'
+    };
+
+    let map = L.map('map', { zoomControl: true }).setView([-23.5505, -46.6333], 12);
+    let tile = L.tileLayer(themes['osm'], { maxZoom: 20, attribution: '&copy; OpenStreetMap' }).addTo(map);
+    let marker = L.marker([-23.5505, -46.6333], { draggable: true }).addTo(map);
+
+    function syncUI() {
+      const c = marker.getLatLng();
+      latEl.value = c.lat.toFixed(6);
+      lonEl.value = c.lng.toFixed(6);
+      zoomValEl.textContent = map.getZoom();
+      zoomEl.value = map.getZoom();
+      coordsTextEl.textContent = `Lat: ${c.lat.toFixed(4)} | Lon: ${c.lng.toFixed(4)}`;
+      posterTitleEl.textContent = titleEl.value || 'Cidade';
+      posterSubEl.textContent = subtitleEl.value || '';
+    }
+
+    marker.on('dragend', syncUI);
+    map.on('zoomend moveend', syncUI);
+
+    document.getElementById('showMarker').addEventListener('change', (e) => {
+      if (e.target.checked) marker.addTo(map); else map.removeLayer(marker);
+    });
+
+    document.getElementById('theme').addEventListener('change', (e) => {
+      map.removeLayer(tile);
+      tile = L.tileLayer(themes[e.target.value], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+    });
+
+    zoomEl.addEventListener('input', () => map.setZoom(Number(zoomEl.value)));
+
+    [titleEl, subtitleEl].forEach(el => el.addEventListener('input', syncUI));
+
+    [latEl, lonEl].forEach(el => el.addEventListener('change', () => {
+      const lat = parseFloat(latEl.value), lon = parseFloat(lonEl.value);
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        marker.setLatLng([lat, lon]);
+        map.setView([lat, lon], map.getZoom());
+      }
+      syncUI();
+    }));
+
+    document.getElementById('fit').addEventListener('click', () => {
+      const p = marker.getLatLng();
+      map.setView([p.lat, p.lng], map.getZoom());
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      const q = document.getElementById('search').value.trim();
+      if (!q) return;
+      statusEl.textContent = 'Buscando...';
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language':'pt-BR' } });
+        const arr = await res.json();
+        if (!arr.length) throw new Error('Cidade não encontrada');
+        const r = arr[0];
+        const lat = parseFloat(r.lat), lon = parseFloat(r.lon);
+        marker.setLatLng([lat, lon]);
+        map.setView([lat, lon], 12);
+        titleEl.value = (r.display_name || q).split(',')[0] || q;
+        subtitleEl.value = (r.display_name || '').split(',').slice(-1)[0]?.trim() || '';
+        statusEl.textContent = 'Localização atualizada.';
+      } catch (e) {
+        statusEl.textContent = 'Erro: ' + e.message;
+      }
+      syncUI();
+    });
+
+    document.getElementById('download').addEventListener('click', async () => {
+      statusEl.textContent = 'Gerando PNG...';
+      await new Promise(r => setTimeout(r, 200));
+      const poster = document.getElementById('poster');
+      const canvas = await html2canvas(poster, { useCORS: true, backgroundColor: '#ffffff', scale: 2 });
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `map2poster-${Date.now()}.png`;
+      a.click();
+      statusEl.textContent = 'PNG pronto.';
+    });
+
+    syncUI();
+  </script>
+</body>
+</html>
