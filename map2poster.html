@@ -87,8 +87,18 @@
       </div>
 
       <div class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2">
-        <span class="text-sm font-semibold">Somente mapa (sem textos/labels)</span>
-        <input id="mapOnly" type="checkbox" class="w-4 h-4 accent-sky-500" />
+        <span class="text-sm font-semibold">Ocultar textos do pôster</span>
+        <input id="hideText" type="checkbox" class="w-4 h-4 accent-sky-500" />
+      </div>
+
+      <div class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2">
+        <span class="text-sm font-semibold">Sem rótulos no mapa</span>
+        <input id="hideLabels" type="checkbox" class="w-4 h-4 accent-sky-500" />
+      </div>
+
+      <div class="space-y-1 rounded-xl border border-slate-200 px-3 py-2">
+        <label class="text-sm font-semibold">Grossura das linhas (<span id="lineThicknessVal">0</span>)</label>
+        <input id="lineThickness" type="range" min="0" max="6" step="1" value="0" class="w-full accent-sky-500" />
       </div>
 
       <div class="space-y-2">
@@ -129,7 +139,10 @@
     const posterTitleEl = document.getElementById('posterTitle');
     const posterSubEl = document.getElementById('posterSub');
     const coordsTextEl = document.getElementById('coordsText');
-    const mapOnlyEl = document.getElementById('mapOnly');
+    const hideTextEl = document.getElementById('hideText');
+    const hideLabelsEl = document.getElementById('hideLabels');
+    const lineThicknessEl = document.getElementById('lineThickness');
+    const lineThicknessValEl = document.getElementById('lineThicknessVal');
     const neonOnEl = document.getElementById('neonOn');
     const neonColorEl = document.getElementById('neonColor');
     const neonGlowEl = document.getElementById('neonGlow');
@@ -157,7 +170,7 @@
     window.addEventListener('resize', () => map.invalidateSize());
 
     function resolveThemeUrl(themeKey){
-      if (!mapOnlyEl.checked) return themes[themeKey] || themes['osm'];
+      if (!hideLabelsEl.checked) return themes[themeKey] || themes['osm'];
       if (themeKey === 'carto-light') return themes['carto-light-nolabels'];
       if (themeKey === 'carto-dark' || themeKey === 'carto-dark-boost') return themes['carto-dark-nolabels'];
       if (themeKey === 'stamen-toner') return themes['stamen-toner-nolabels'];
@@ -167,7 +180,7 @@
     }
 
     function applyMapOnlyUI(){
-      const hide = mapOnlyEl.checked;
+      const hide = hideTextEl.checked;
       document.getElementById('posterTextBlock').style.display = hide ? 'none' : '';
       document.getElementById('coordsBlock').style.display = hide ? 'none' : '';
       document.getElementById('watermark').style.display = hide ? 'none' : '';
@@ -218,12 +231,18 @@
       const neonOn = neonOnEl.checked;
       const glow = Number(neonGlowEl.value || 0);
       const hue = hexToHue(neonColorEl.value || '#00e5ff');
+      const thickness = Number(lineThicknessEl.value || 0);
       neonGlowValEl.textContent = String(glow);
+      lineThicknessValEl.textContent = String(thickness);
+
+      const thickFx = thickness > 0
+        ? ` drop-shadow(0 0 ${thickness}px ${neonOn ? neonColorEl.value : '#ffffff'}) drop-shadow(0 0 ${Math.max(1, thickness-1)}px ${neonOn ? neonColorEl.value : '#ffffff'})`
+        : '';
 
       if (neonOn) {
         // Melhor resultado visual em base monocromática
         mapEl.style.background = '#000';
-        pane.style.filter = `grayscale(1) contrast(2.1) brightness(1.25) invert(1) sepia(1) saturate(12) hue-rotate(${hue}deg) drop-shadow(0 0 ${glow}px ${neonColorEl.value})`;
+        pane.style.filter = `grayscale(1) contrast(2.1) brightness(1.25) invert(1) sepia(1) saturate(12) hue-rotate(${hue}deg) drop-shadow(0 0 ${glow}px ${neonColorEl.value})${thickFx}`;
         pane.style.opacity = '0.98';
         return;
       }
@@ -231,13 +250,13 @@
       mapEl.style.background = '#fff';
       pane.style.opacity = '1';
       // Em raster não dá para aumentar a espessura real das linhas,
-      // então reforçamos contraste/nitidez no tema escuro.
+      // então simulamos com contraste + drop-shadow.
       if(themeKey === 'carto-dark-boost') {
-        pane.style.filter = 'contrast(1.35) brightness(1.2) saturate(1.15)';
+        pane.style.filter = `contrast(1.35) brightness(1.2) saturate(1.15)${thickFx}`;
       } else if(themeKey === 'carto-dark') {
-        pane.style.filter = 'contrast(1.1) brightness(1.05)';
+        pane.style.filter = `contrast(1.1) brightness(1.05)${thickFx}`;
       } else {
-        pane.style.filter = 'none';
+        pane.style.filter = `none${thickFx}`;
       }
     }
 
@@ -266,12 +285,18 @@
       applyThemeVisual(document.getElementById('theme').value);
     });
 
-    mapOnlyEl.addEventListener('change', () => {
+    hideLabelsEl.addEventListener('change', () => {
       map.removeLayer(tile);
       tile = L.tileLayer(resolveThemeUrl(currentThemeKey), { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
       applyThemeVisual(currentThemeKey);
+    });
+
+    hideTextEl.addEventListener('change', () => {
       applyMapOnlyUI();
     });
+
+    lineThicknessEl.addEventListener('input', () => applyThemeVisual(currentThemeKey));
+    lineThicknessEl.addEventListener('change', () => applyThemeVisual(currentThemeKey));
 
     zoomEl.addEventListener('input', () => map.setZoom(Number(zoomEl.value)));
 
