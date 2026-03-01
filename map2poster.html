@@ -58,6 +58,23 @@
         </select>
       </div>
 
+      <div class="space-y-2 rounded-xl border border-slate-200 p-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold uppercase text-slate-500">Modo Neon</label>
+          <input id="neonOn" type="checkbox" class="w-4 h-4 accent-fuchsia-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-semibold text-slate-500">Cor</label>
+            <input id="neonColor" type="color" value="#00e5ff" class="w-full h-10 rounded-lg border border-slate-300 bg-white" />
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-slate-500">Brilho (<span id="neonGlowVal">14</span>)</label>
+            <input id="neonGlow" type="range" min="0" max="40" value="14" class="w-full accent-fuchsia-500" />
+          </div>
+        </div>
+      </div>
+
       <div class="space-y-2">
         <label class="text-xs font-bold uppercase text-slate-500">Texto do pôster</label>
         <input id="title" type="text" value="São Paulo" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
@@ -107,6 +124,10 @@
     const posterTitleEl = document.getElementById('posterTitle');
     const posterSubEl = document.getElementById('posterSub');
     const coordsTextEl = document.getElementById('coordsText');
+    const neonOnEl = document.getElementById('neonOn');
+    const neonColorEl = document.getElementById('neonColor');
+    const neonGlowEl = document.getElementById('neonGlow');
+    const neonGlowValEl = document.getElementById('neonGlowVal');
 
     const themes = {
       'osm': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -142,9 +163,44 @@
       if (e.target.checked) marker.addTo(map); else map.removeLayer(marker);
     });
 
+    function hexToHue(hex){
+      const h = hex.replace('#','');
+      const bigint = parseInt(h,16);
+      const r = ((bigint >> 16) & 255) / 255;
+      const g = ((bigint >> 8) & 255) / 255;
+      const b = (bigint & 255) / 255;
+      const max = Math.max(r,g,b), min = Math.min(r,g,b);
+      const d = max - min;
+      if (d === 0) return 0;
+      let hue = 0;
+      if (max === r) hue = ((g - b) / d) % 6;
+      else if (max === g) hue = (b - r) / d + 2;
+      else hue = (r - g) / d + 4;
+      hue *= 60;
+      if (hue < 0) hue += 360;
+      return Math.round(hue);
+    }
+
     function applyThemeVisual(themeKey){
       const pane = map.getPane('tilePane');
-      if(!pane) return;
+      const mapEl = document.getElementById('map');
+      if(!pane || !mapEl) return;
+
+      const neonOn = neonOnEl.checked;
+      const glow = Number(neonGlowEl.value || 0);
+      const hue = hexToHue(neonColorEl.value || '#00e5ff');
+      neonGlowValEl.textContent = String(glow);
+
+      if (neonOn) {
+        // Melhor resultado visual em base monocromática
+        mapEl.style.background = '#000';
+        pane.style.filter = `grayscale(1) contrast(2.1) brightness(1.25) invert(1) sepia(1) saturate(12) hue-rotate(${hue}deg) drop-shadow(0 0 ${glow}px ${neonColorEl.value})`;
+        pane.style.opacity = '0.98';
+        return;
+      }
+
+      mapEl.style.background = '#fff';
+      pane.style.opacity = '1';
       // Em raster não dá para aumentar a espessura real das linhas,
       // então reforçamos contraste/nitidez no tema escuro.
       if(themeKey === 'carto-dark-boost') {
@@ -162,6 +218,21 @@
       tile = L.tileLayer(themes[k], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
       applyThemeVisual(k);
       setTimeout(() => map.invalidateSize(), 50);
+    });
+
+    [neonOnEl, neonColorEl, neonGlowEl].forEach(el => {
+      el.addEventListener('input', () => applyThemeVisual(document.getElementById('theme').value));
+      el.addEventListener('change', () => applyThemeVisual(document.getElementById('theme').value));
+    });
+
+    neonOnEl.addEventListener('change', () => {
+      // Neon fica melhor no tema Toner (linhas bem definidas)
+      if (neonOnEl.checked && document.getElementById('theme').value !== 'stamen-toner') {
+        document.getElementById('theme').value = 'stamen-toner';
+        map.removeLayer(tile);
+        tile = L.tileLayer(themes['stamen-toner'], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+      }
+      applyThemeVisual(document.getElementById('theme').value);
     });
 
     zoomEl.addEventListener('input', () => map.setZoom(Number(zoomEl.value)));
