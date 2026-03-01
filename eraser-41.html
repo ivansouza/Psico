@@ -373,30 +373,61 @@
                     }
                     
                     const b64 = c.toDataURL('image/png').split(',')[1];
-                    // Modelos suportados mudam com frequência; tenta os mais novos de geração de imagem.
-                    const modelCandidates = [
-                        'gemini-2.0-flash-preview-image-generation',
-                        'gemini-2.0-flash-exp-image-generation',
-                        'gemini-1.5-flash'
+                    // Modelos recomendados atuais (docs Google): prioriza variantes de imagem.
+                    const preferred = [
+                        'gemini-2.5-flash-image',
+                        'gemini-3.1-flash-image-preview',
+                        'gemini-3-pro-image-preview',
+                        'gemini-2.5-flash'
                     ];
-                    const body = { contents: [{ parts: [{ text: "Inpainting task. Replace green #00FF00 mask with background." }, { inlineData: { mimeType: "image/png", data: b64 } }] }] };
+
+                    // Descobre modelos disponíveis para esta API key
+                    let available = [];
+                    try {
+                        const lm = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${userApiKey}`);
+                        const lmJson = await lm.json();
+                        const models = lmJson?.models || [];
+                        available = models
+                            .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+                            .map(m => (m.name || '').replace('models/', ''));
+                    } catch (_) {}
+
+                    const modelCandidates = (available.length
+                        ? preferred.filter(m => available.includes(m)).concat(available.filter(m => /image|flash/i.test(m)))
+                        : preferred
+                    ).filter((v, i, a) => v && a.indexOf(v) === i);
+
+                    const body = {
+                        contents: [{
+                            parts: [
+                                { text: 'Inpainting task. Replace green #00FF00 mask area naturally with surrounding background. Preserve perspective and lighting.' },
+                                { inlineData: { mimeType: 'image/png', data: b64 } }
+                            ]
+                        }],
+                        generationConfig: {
+                            responseModalities: ['TEXT', 'IMAGE']
+                        }
+                    };
 
                     let json = null;
                     let lastErr = null;
+                    let usedModel = null;
                     for (const model of modelCandidates) {
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userApiKey}`;
                         const req = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
                         const candidateJson = await req.json();
                         if (!candidateJson?.error) {
                             json = candidateJson;
+                            usedModel = model;
                             break;
                         }
                         lastErr = candidateJson.error?.message || 'Erro desconhecido de modelo';
                     }
 
-                    if(!json) throw new Error(lastErr || 'Nenhum modelo compatível disponível para geração de imagem.');
+                    if(!json) throw new Error(lastErr || 'Nenhum modelo compatível disponível para geração de imagem nesta chave/API.');
 
                     const newB64 = json.candidates?.[0]?.content?.parts?.find(p=>p.inlineData)?.inlineData?.data;
+                    if (usedModel) setMsg(`Modelo: ${usedModel}`);
                     if(newB64) {
                         const ni = new Image();
                         ni.onload = () => {
