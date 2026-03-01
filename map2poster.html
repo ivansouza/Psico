@@ -86,6 +86,11 @@
         <input id="showMarker" type="checkbox" checked class="w-4 h-4 accent-sky-500" />
       </div>
 
+      <div class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2">
+        <span class="text-sm font-semibold">Somente mapa (sem textos/labels)</span>
+        <input id="mapOnly" type="checkbox" class="w-4 h-4 accent-sky-500" />
+      </div>
+
       <div class="space-y-2">
         <button id="download" class="w-full rounded-xl bg-emerald-500 text-white font-bold py-2.5 hover:bg-emerald-600">Baixar PNG</button>
         <button id="fit" class="w-full rounded-xl bg-slate-800 text-white font-bold py-2.5 hover:bg-black">Centralizar no marcador</button>
@@ -96,17 +101,17 @@
 
     <main class="flex-1 p-4 md:p-6">
       <div id="poster" class="h-full bg-white rounded-2xl shadow-xl border border-slate-200 p-4 md:p-6 flex flex-col">
-        <div class="text-center pb-3">
+        <div id="posterTextBlock" class="text-center pb-3">
           <h2 id="posterTitle" class="text-3xl md:text-4xl font-black tracking-tight leading-none">São Paulo</h2>
           <p id="posterSub" class="text-sm md:text-base text-slate-500 mt-1">Brasil</p>
         </div>
 
         <div class="flex-1 rounded-xl overflow-hidden border border-slate-300 relative">
           <div id="map"></div>
-          <div class="absolute bottom-2 right-2 bg-white/90 text-[10px] px-2 py-1 rounded border border-slate-300">map2poster (single HTML)</div>
+          <div id="watermark" class="absolute bottom-2 right-2 bg-white/90 text-[10px] px-2 py-1 rounded border border-slate-300">map2poster (single HTML)</div>
         </div>
 
-        <div class="pt-3 text-center text-xs text-slate-500">
+        <div id="coordsBlock" class="pt-3 text-center text-xs text-slate-500">
           <span id="coordsText">Lat: -23.5505 | Lon: -46.6333</span>
         </div>
       </div>
@@ -124,6 +129,7 @@
     const posterTitleEl = document.getElementById('posterTitle');
     const posterSubEl = document.getElementById('posterSub');
     const coordsTextEl = document.getElementById('coordsText');
+    const mapOnlyEl = document.getElementById('mapOnly');
     const neonOnEl = document.getElementById('neonOn');
     const neonColorEl = document.getElementById('neonColor');
     const neonGlowEl = document.getElementById('neonGlow');
@@ -132,18 +138,40 @@
     const themes = {
       'osm': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       'carto-light': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      'carto-light-nolabels': 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
       'carto-dark': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      'carto-dark-nolabels': 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
       'carto-dark-boost': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      'stamen-toner': 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png'
+      'stamen-toner': 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
+      'stamen-toner-nolabels': 'https://stamen-tiles.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png'
     };
 
+    let currentThemeKey = 'osm';
+
     let map = L.map('map', { zoomControl: true }).setView([-23.5505, -46.6333], 12);
-    let tile = L.tileLayer(themes['osm'], { maxZoom: 20, attribution: '&copy; OpenStreetMap' }).addTo(map);
+    let tile = L.tileLayer(resolveThemeUrl(currentThemeKey), { maxZoom: 20, attribution: '&copy; OpenStreetMap' }).addTo(map);
     let marker = L.marker([-23.5505, -46.6333], { draggable: true }).addTo(map);
 
     // Garante renderização correta em layouts flex/resize
     setTimeout(() => map.invalidateSize(), 250);
     window.addEventListener('resize', () => map.invalidateSize());
+
+    function resolveThemeUrl(themeKey){
+      if (!mapOnlyEl.checked) return themes[themeKey] || themes['osm'];
+      if (themeKey === 'carto-light') return themes['carto-light-nolabels'];
+      if (themeKey === 'carto-dark' || themeKey === 'carto-dark-boost') return themes['carto-dark-nolabels'];
+      if (themeKey === 'stamen-toner') return themes['stamen-toner-nolabels'];
+      // OSM não tem versão sem labels no mesmo provider, fallback para carto light sem labels
+      if (themeKey === 'osm') return themes['carto-light-nolabels'];
+      return themes[themeKey] || themes['osm'];
+    }
+
+    function applyMapOnlyUI(){
+      const hide = mapOnlyEl.checked;
+      document.getElementById('posterTextBlock').style.display = hide ? 'none' : '';
+      document.getElementById('coordsBlock').style.display = hide ? 'none' : '';
+      document.getElementById('watermark').style.display = hide ? 'none' : '';
+    }
 
     function syncUI() {
       const c = marker.getLatLng();
@@ -154,6 +182,7 @@
       coordsTextEl.textContent = `Lat: ${c.lat.toFixed(4)} | Lon: ${c.lng.toFixed(4)}`;
       posterTitleEl.textContent = titleEl.value || 'Cidade';
       posterSubEl.textContent = subtitleEl.value || '';
+      applyMapOnlyUI();
     }
 
     marker.on('dragend', syncUI);
@@ -214,8 +243,9 @@
 
     document.getElementById('theme').addEventListener('change', (e) => {
       const k = e.target.value;
+      currentThemeKey = k;
       map.removeLayer(tile);
-      tile = L.tileLayer(themes[k], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+      tile = L.tileLayer(resolveThemeUrl(k), { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
       applyThemeVisual(k);
       setTimeout(() => map.invalidateSize(), 50);
     });
@@ -229,10 +259,18 @@
       // Neon fica melhor no tema Toner (linhas bem definidas)
       if (neonOnEl.checked && document.getElementById('theme').value !== 'stamen-toner') {
         document.getElementById('theme').value = 'stamen-toner';
+        currentThemeKey = 'stamen-toner';
         map.removeLayer(tile);
-        tile = L.tileLayer(themes['stamen-toner'], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+        tile = L.tileLayer(resolveThemeUrl(currentThemeKey), { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
       }
       applyThemeVisual(document.getElementById('theme').value);
+    });
+
+    mapOnlyEl.addEventListener('change', () => {
+      map.removeLayer(tile);
+      tile = L.tileLayer(resolveThemeUrl(currentThemeKey), { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+      applyThemeVisual(currentThemeKey);
+      applyMapOnlyUI();
     });
 
     zoomEl.addEventListener('input', () => map.setZoom(Number(zoomEl.value)));
