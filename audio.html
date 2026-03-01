@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Visualizer</title>
+  <style>
+    :root { --bg:#070b16; --panel:#0f1628; --ink:#dbe6ff; --muted:#7f91bb; --acc:#6ee7ff; --acc2:#a78bfa; }
+    * { box-sizing:border-box }
+    body {
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 700px at 70% -20%, #1a2b56 0%, transparent 50%),
+                  radial-gradient(900px 600px at -10% 110%, #132544 0%, transparent 60%),
+                  var(--bg);
+      color:var(--ink);
+      padding:16px;
+    }
+    .app {
+      width:min(980px,100%);
+      background:linear-gradient(180deg,#101a31,#0b1224 60%);
+      border:1px solid #22345f;
+      border-radius:20px;
+      overflow:hidden;
+      box-shadow:0 25px 80px #0008, inset 0 1px 0 #ffffff10;
+    }
+    .head { padding:18px 20px; border-bottom:1px solid #20325b; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; }
+    .title { margin:0; font-size:18px; letter-spacing:.3px; }
+    .subtitle { margin:2px 0 0; color:var(--muted); font-size:13px }
+
+    .controls { display:flex; gap:8px; flex-wrap:wrap; }
+    button, .file {
+      border:none; border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer;
+      color:#071126; background:linear-gradient(180deg,#7de8ff,#52c5ff);
+    }
+    button[disabled] { opacity:.45; cursor:not-allowed }
+    .file { position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:8px; }
+    .file input { position:absolute; inset:0; opacity:0; cursor:pointer }
+
+    .main { padding:14px; display:grid; gap:12px; }
+
+    .viz-wrap {
+      background:#060a14; border:1px solid #1b2b50; border-radius:14px; padding:10px;
+      position:relative;
+    }
+    canvas { width:100%; height:min(52vh,420px); display:block; border-radius:10px; background:#05080f; }
+
+    .bottom {
+      display:grid; gap:10px; grid-template-columns:1fr auto; align-items:center;
+      background:var(--panel); border:1px solid #1f3157; border-radius:12px; padding:10px 12px;
+    }
+    .meta { min-width:0; }
+    .meta .name { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .meta .time { color:var(--muted); font-size:13px; }
+    .seek { width:100%; accent-color:#75e6ff; }
+
+    .chips { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { font-size:12px; color:#bbcbef; padding:4px 8px; border:1px solid #2b4478; border-radius:999px; background:#0d1831; }
+
+    @media (max-width:700px){
+      .bottom{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="head">
+      <div>
+        <h1 class="title">Audio Visualizer</h1>
+        <p class="subtitle">Inspirado no estilo "seewav" (onda + espectro em tempo real).</p>
+      </div>
+      <div class="controls">
+        <label class="file">📁 Carregar áudio<input id="file" type="file" accept="audio/*"></label>
+        <button id="play" disabled>▶️ Play</button>
+        <button id="pause" disabled>⏸️ Pause</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="viz-wrap"><canvas id="viz" width="1600" height="760"></canvas></div>
+
+      <div class="bottom">
+        <div class="meta">
+          <div class="name" id="name">Nenhum arquivo carregado</div>
+          <div class="time" id="time">00:00 / 00:00</div>
+          <input id="seek" class="seek" type="range" min="0" max="1000" value="0" disabled>
+        </div>
+        <div class="chips">
+          <span class="chip" id="sr">Sample rate: --</span>
+          <span class="chip" id="fft">FFT: 2048</span>
+          <span class="chip" id="ch">Canais: --</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const fileInput = document.getElementById('file');
+  const playBtn = document.getElementById('play');
+  const pauseBtn = document.getElementById('pause');
+  const nameEl = document.getElementById('name');
+  const timeEl = document.getElementById('time');
+  const seek = document.getElementById('seek');
+  const srEl = document.getElementById('sr');
+  const chEl = document.getElementById('ch');
+
+  const canvas = document.getElementById('viz');
+  const ctx = canvas.getContext('2d');
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.82;
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = 1;
+
+  let source = null;
+  let audio = null;
+  let url = null;
+  let raf = 0;
+
+  const timeData = new Uint8Array(analyser.fftSize);
+  const freqData = new Uint8Array(analyser.frequencyBinCount);
+
+  function fmt(sec){
+    if(!isFinite(sec)) return '00:00';
+    const m = Math.floor(sec/60), s = Math.floor(sec%60);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function bindAudioEvents(){
+    audio.addEventListener('timeupdate', () => {
+      if (!seek.dataset.dragging) seek.value = audio.duration ? Math.round((audio.currentTime / audio.duration) * 1000) : 0;
+      timeEl.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+    });
+    audio.addEventListener('ended', () => cancelAnimationFrame(raf));
+    audio.addEventListener('loadedmetadata', () => {
+      timeEl.textContent = `${fmt(0)} / ${fmt(audio.duration)}`;
+      chEl.textContent = 'Canais: 2';
+    });
+  }
+
+  function connectAudio(){
+    if(source) source.disconnect();
+    source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(gain);
+    gain.connect(audioCtx.destination);
+    srEl.textContent = `Sample rate: ${audioCtx.sampleRate}`;
+    seek.disabled = false;
+    playBtn.disabled = false;
+    pauseBtn.disabled = false;
+  }
+
+  function clearViz(){
+    const {width:w, height:h} = canvas;
+    ctx.fillStyle = '#05080f';
+    ctx.fillRect(0,0,w,h);
+  }
+
+  function draw(){
+    raf = requestAnimationFrame(draw);
+    const w = canvas.width, h = canvas.height;
+
+    analyser.getByteTimeDomainData(timeData);
+    analyser.getByteFrequencyData(freqData);
+
+    // glow background fade
+    ctx.fillStyle = 'rgba(5,8,15,0.22)';
+    ctx.fillRect(0,0,w,h);
+
+    // spectrum bars (top)
+    const barCount = 140;
+    const step = Math.floor(freqData.length / barCount);
+    const bw = w / barCount;
+    for(let i=0;i<barCount;i++){
+      const v = freqData[i*step] / 255;
+      const bh = v * (h*0.45);
+      const x = i*bw;
+      const y = h*0.45 - bh;
+      const g = ctx.createLinearGradient(0,y,0,y+bh);
+      g.addColorStop(0,'rgba(167,139,250,0.95)');
+      g.addColorStop(1,'rgba(110,231,255,0.08)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x+1,y,Math.max(1,bw-2),bh);
+    }
+
+    // waveform line (middle)
+    ctx.beginPath();
+    for(let i=0;i<timeData.length;i++){
+      const x = (i/(timeData.length-1))*w;
+      const y = h*0.70 + ((timeData[i]-128)/128) * (h*0.23);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = '#6ee7ff';
+    ctx.shadowColor = '#6ee7ff';
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // baseline
+    ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h*0.70);
+    ctx.lineTo(w, h*0.70);
+    ctx.stroke();
+  }
+
+  fileInput.addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    if(!f) return;
+
+    if(url) URL.revokeObjectURL(url);
+    if(audio){ audio.pause(); audio.remove(); }
+
+    url = URL.createObjectURL(f);
+    audio = new Audio(url);
+    audio.crossOrigin = 'anonymous';
+    audio.preload = 'metadata';
+
+    nameEl.textContent = f.name;
+    bindAudioEvents();
+    connectAudio();
+    clearViz();
+  });
+
+  playBtn.addEventListener('click', async () => {
+    if(!audio) return;
+    await audioCtx.resume();
+    await audio.play();
+    cancelAnimationFrame(raf);
+    draw();
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    if(!audio) return;
+    audio.pause();
+  });
+
+  seek.addEventListener('input', () => {
+    if(!audio || !audio.duration) return;
+    seek.dataset.dragging = '1';
+    audio.currentTime = (seek.value/1000) * audio.duration;
+    timeEl.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+  });
+  seek.addEventListener('change', () => delete seek.dataset.dragging);
+
+  clearViz();
+})();
+</script>
+</body>
+</html>
