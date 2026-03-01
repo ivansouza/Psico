@@ -53,6 +53,7 @@
           <option value="osm">OSM (com rótulos)</option>
           <option value="carto-light">Carto Light</option>
           <option value="carto-dark">Carto Dark</option>
+          <option value="carto-dark-boost">Carto Dark (linhas reforçadas)</option>
           <option value="stamen-toner">Toner (alto contraste)</option>
         </select>
       </div>
@@ -111,6 +112,7 @@
       'osm': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       'carto-light': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
       'carto-dark': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      'carto-dark-boost': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
       'stamen-toner': 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png'
     };
 
@@ -140,9 +142,25 @@
       if (e.target.checked) marker.addTo(map); else map.removeLayer(marker);
     });
 
+    function applyThemeVisual(themeKey){
+      const pane = map.getPane('tilePane');
+      if(!pane) return;
+      // Em raster não dá para aumentar a espessura real das linhas,
+      // então reforçamos contraste/nitidez no tema escuro.
+      if(themeKey === 'carto-dark-boost') {
+        pane.style.filter = 'contrast(1.35) brightness(1.2) saturate(1.15)';
+      } else if(themeKey === 'carto-dark') {
+        pane.style.filter = 'contrast(1.1) brightness(1.05)';
+      } else {
+        pane.style.filter = 'none';
+      }
+    }
+
     document.getElementById('theme').addEventListener('change', (e) => {
+      const k = e.target.value;
       map.removeLayer(tile);
-      tile = L.tileLayer(themes[e.target.value], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+      tile = L.tileLayer(themes[k], { maxZoom: 20, attribution: '&copy; OpenStreetMap/CARTO/Stamen' }).addTo(map);
+      applyThemeVisual(k);
       setTimeout(() => map.invalidateSize(), 50);
     });
 
@@ -198,6 +216,7 @@
       statusEl.textContent = 'PNG pronto.';
     });
 
+    applyThemeVisual('osm');
     syncUI();
   </script>
 </body>
