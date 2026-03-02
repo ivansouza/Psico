@@ -118,6 +118,13 @@
 
   function ll2v(lat,lon,r=104){const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180; return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));}
 
+  // Camada de apresentação bonita estilo aerocast
+  const atmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(103.5, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0x2ecbff, transparent: true, opacity: 0.08 })
+  );
+  scene.add(atmosphere);
+
   // Bordas dos países (linhas) sobre o globo
   const countryLines = new THREE.Group();
   scene.add(countryLines);
@@ -176,7 +183,15 @@
     if(hits.length) selectCity(hits[0].object);
   });
 
-  function animate(){requestAnimationFrame(animate); countryLines.rotation.y += .0012; controls.update(); renderer.render(scene,camera);} animate();
+  function animate(){
+    requestAnimationFrame(animate);
+    // Mantém as bordas sincronizadas com o globo (sem efeito "descolado")
+    countryLines.rotation.copy(globe.rotation);
+    atmosphere.rotation.copy(globe.rotation);
+    controls.update();
+    renderer.render(scene,camera);
+  }
+  animate();
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight)});
 
   function toggleData(){document.getElementById('data-sheet').classList.toggle('active');}
