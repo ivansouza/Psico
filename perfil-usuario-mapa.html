@@ -56,11 +56,11 @@
 
     <div class="grid md:grid-cols-2 gap-3 text-sm h-[calc(100%-145px)] overflow-auto pr-1">
       <div class="kpi">
-        <div class="text-cyan-300 font-bold mb-2">País (Top)</div>
-        <div>Brazil — 124.103.874</div>
-        <div>United States — 10.506.113</div>
-        <div>Argentina — 475.532</div>
-        <div>Portugal — 190.518</div>
+        <div class="text-cyan-300 font-bold mb-2">País (Top) + Temp</div>
+        <div>Brazil — 124.103.874 — 42°C</div>
+        <div>United States — 10.506.113 — 26°C</div>
+        <div>Argentina — 475.532 — 18°C</div>
+        <div>Portugal — 190.518 — 20°C</div>
       </div>
       <div class="kpi">
         <div class="text-cyan-300 font-bold mb-2">Cidade (Top)</div>
@@ -125,23 +125,84 @@
   );
   scene.add(atmosphere);
 
-  // Bordas dos países (linhas) sobre o globo
+  // Bordas + preenchimento térmico por país (com base nos dados)
   const countryLines = new THREE.Group();
+  const countryFills = new THREE.Group();
+  scene.add(countryFills);
   scene.add(countryLines);
+
+  const countryTemp = {
+    'Brazil': 42,
+    'United States of America': 26,
+    'Argentina': 18,
+    'Portugal': 20
+  };
+
+  function tempToColor(t){
+    const min=10, max=45;
+    const n=Math.max(0, Math.min(1, (t-min)/(max-min)));
+    const c = new THREE.Color();
+    c.setHSL((1-n)*0.66, 0.9, 0.52); // azul -> vermelho
+    return c;
+  }
+
+  function lonLatToSphere(lon,lat,r=100.8){
+    const phi=(90-lat)*Math.PI/180;
+    const theta=(lon+180)*Math.PI/180;
+    return new THREE.Vector3(
+      -r*Math.sin(phi)*Math.cos(theta),
+       r*Math.cos(phi),
+       r*Math.sin(phi)*Math.sin(theta)
+    );
+  }
+
+  function addCountryFillFromRing(ring, temp){
+    // triangulação em plano lon/lat e projeção para esfera
+    const pts2 = ring.map(([lon,lat]) => new THREE.Vector2(lon, lat));
+    if (pts2.length < 3) return;
+    const tris = THREE.ShapeUtils.triangulateShape(pts2, []);
+    const pos = [];
+    tris.forEach(tri => {
+      tri.forEach(idx => {
+        const ll = ring[idx];
+        const v = lonLatToSphere(ll[0], ll[1], 100.9);
+        pos.push(v.x, v.y, v.z);
+      });
+    });
+    if (!pos.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshBasicMaterial({ color: tempToColor(temp), transparent:true, opacity:0.35, side:THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geo, mat);
+    countryFills.add(mesh);
+  }
+
   fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
     .then(r=>r.json())
     .then(gj=>{
-      const mat = new THREE.LineBasicMaterial({ color: 0x7fd6ff, transparent:true, opacity:0.45 });
-      const addRing = (ring) => {
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x7fd6ff, transparent:true, opacity:0.55 });
+      const addRingLine = (ring) => {
         const pts = ring.map(([lon,lat]) => ll2v(lat, lon, 101.2));
         const geo = new THREE.BufferGeometry().setFromPoints(pts);
-        countryLines.add(new THREE.Line(geo, mat));
+        countryLines.add(new THREE.Line(geo, lineMat));
       };
+
       gj.features.forEach(f=>{
         const g = f.geometry;
+        const name = f.properties?.name;
         if(!g) return;
-        if(g.type==='Polygon') g.coordinates.forEach(addRing);
-        if(g.type==='MultiPolygon') g.coordinates.forEach(poly=>poly.forEach(addRing));
+
+        if(g.type==='Polygon') {
+          g.coordinates.forEach(ring => addRingLine(ring));
+          if (countryTemp[name] !== undefined && g.coordinates[0]) addCountryFillFromRing(g.coordinates[0], countryTemp[name]);
+        }
+        if(g.type==='MultiPolygon') {
+          g.coordinates.forEach(poly => {
+            poly.forEach(ring => addRingLine(ring));
+            if (countryTemp[name] !== undefined && poly[0]) addCountryFillFromRing(poly[0], countryTemp[name]);
+          });
+        }
       });
     }).catch(()=>{});
 
