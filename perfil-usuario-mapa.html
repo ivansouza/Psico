@@ -96,9 +96,23 @@
   scene.add(new THREE.AmbientLight(0x4ed9ff,.45));
   const dl=new THREE.DirectionalLight(0xffffff,.9); dl.position.set(1,1,1); scene.add(dl);
 
-  const globe=new THREE.Mesh(new THREE.SphereGeometry(100,64,64),new THREE.MeshPhongMaterial({color:0x0f2a45,emissive:0x08131f,shininess:16,specular:0x57c5ff}));
+  // Globo com textura de mapa (estilo aerocast real)
+  const texLoader = new THREE.TextureLoader();
+  const earthTex = texLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+  const globe=new THREE.Mesh(
+    new THREE.SphereGeometry(100,64,64),
+    new THREE.MeshPhongMaterial({
+      map: earthTex,
+      color: 0xffffff,
+      emissive: 0x06101a,
+      shininess: 14,
+      specular: 0x3fb8ff
+    })
+  );
   scene.add(globe);
-  const wire=new THREE.Mesh(new THREE.SphereGeometry(101,32,32),new THREE.MeshBasicMaterial({color:0x46d9ff,wireframe:true,transparent:true,opacity:.16})); scene.add(wire);
+
+  const wire=new THREE.Mesh(new THREE.SphereGeometry(101,32,32),new THREE.MeshBasicMaterial({color:0x46d9ff,wireframe:true,transparent:true,opacity:.14}));
+  scene.add(wire);
 
   function ll2v(lat,lon,r=104){const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180; return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));}
   cities.forEach(c=>{const m=new THREE.Mesh(new THREE.SphereGeometry(2.5,10,10),new THREE.MeshBasicMaterial({color:0x9bd8ff})); m.position.copy(ll2v(c.lat,c.lon)); scene.add(m);});
