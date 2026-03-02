@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
   <style>
     html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:Segoe UI,Roboto,Arial}
     #canvas-container{position:fixed;inset:0;z-index:1}
@@ -69,6 +70,10 @@
         <div>Belo Horizonte — 4.102.625</div>
         <div>Curitiba — 4.061.416</div>
       </div>
+      <div class="kpi md:col-span-2" id="cityDetail">
+        <div class="text-cyan-300 font-bold mb-2">Cidade selecionada</div>
+        <div class="opacity-70">Clique em um ponto no globo para ver os dados.</div>
+      </div>
     </div>
   </div>
 
@@ -111,17 +116,71 @@
   );
   scene.add(globe);
 
-  const wire=new THREE.Mesh(new THREE.SphereGeometry(101,32,32),new THREE.MeshBasicMaterial({color:0x46d9ff,wireframe:true,transparent:true,opacity:.14}));
-  scene.add(wire);
-
   function ll2v(lat,lon,r=104){const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180; return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));}
-  cities.forEach(c=>{const m=new THREE.Mesh(new THREE.SphereGeometry(2.5,10,10),new THREE.MeshBasicMaterial({color:0x9bd8ff})); m.position.copy(ll2v(c.lat,c.lon)); scene.add(m);});
 
-  function animate(){requestAnimationFrame(animate); wire.rotation.y+=.0012; controls.update(); renderer.render(scene,camera);} animate();
+  // Bordas dos países (linhas) sobre o globo
+  const countryLines = new THREE.Group();
+  scene.add(countryLines);
+  fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+    .then(r=>r.json())
+    .then(gj=>{
+      const mat = new THREE.LineBasicMaterial({ color: 0x7fd6ff, transparent:true, opacity:0.45 });
+      const addRing = (ring) => {
+        const pts = ring.map(([lon,lat]) => ll2v(lat, lon, 101.2));
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        countryLines.add(new THREE.Line(geo, mat));
+      };
+      gj.features.forEach(f=>{
+        const g = f.geometry;
+        if(!g) return;
+        if(g.type==='Polygon') g.coordinates.forEach(addRing);
+        if(g.type==='MultiPolygon') g.coordinates.forEach(poly=>poly.forEach(addRing));
+      });
+    }).catch(()=>{});
+
+  // Pontos de cidade clicáveis
+  const cityMeshes = [];
+  const markerMat = new THREE.MeshBasicMaterial({color:0x9bd8ff});
+  cities.forEach(c=>{
+    const m=new THREE.Mesh(new THREE.SphereGeometry(2.6,12,12), markerMat.clone());
+    m.position.copy(ll2v(c.lat,c.lon));
+    m.userData = c;
+    scene.add(m);
+    cityMeshes.push(m);
+  });
+
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let selected = null;
+
+  function selectCity(mesh){
+    if(selected) selected.material.color.set(0x9bd8ff);
+    selected = mesh;
+    mesh.material.color.set(0xffd166);
+    const c = mesh.userData;
+    document.getElementById('cityDetail').innerHTML = `
+      <div class="text-cyan-300 font-bold mb-2">Cidade selecionada</div>
+      <div><b>${c.n}</b></div>
+      <div>Usuários: ${c.u}</div>
+      <div>Lat/Lon: ${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}</div>`;
+    document.getElementById('data-sheet').classList.add('active');
+    controls.autoRotate = false;
+  }
+
+  renderer.domElement.addEventListener('click', (ev)=>{
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(cityMeshes, false);
+    if(hits.length) selectCity(hits[0].object);
+  });
+
+  function animate(){requestAnimationFrame(animate); countryLines.rotation.y += .0012; controls.update(); renderer.render(scene,camera);} animate();
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight)});
 
   function toggleData(){document.getElementById('data-sheet').classList.toggle('active');}
-  function resetGlobe(){document.getElementById('data-sheet').classList.remove('active'); gsap.to(camera.position,{x:0,y:0,z:320,duration:1.6,ease:'power2.inOut',onUpdate:()=>camera.lookAt(0,0,0)}); controls.autoRotate=true;}
+  function resetGlobe(){document.getElementById('data-sheet').classList.remove('active'); gsap.to(camera.position,{x:0,y:0,z:320,duration:1.6,ease:'power2.inOut',onUpdate:()=>camera.lookAt(0,0,0)}); controls.autoRotate=true; if(selected){selected.material.color.set(0x9bd8ff); selected=null;}}
 </script>
 </body>
 </html>
