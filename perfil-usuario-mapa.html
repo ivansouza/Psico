@@ -2,153 +2,78 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Perfil do Usuário - Dashboard com Mapa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Perfil Usuário | AeroCast Style</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <style>
-    body{background:#e9edf3}
-    .card{background:#0f2235;color:#e9f0fa;border-radius:22px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    .muted{color:#9eb4ca}
-    #globe{height:340px;border-radius:16px;background:#020617}
-    .table-wrap::-webkit-scrollbar{height:8px;width:8px}
-    .table-wrap::-webkit-scrollbar-thumb{background:#2c4561;border-radius:8px}
+    html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:Segoe UI,Roboto,Arial}
+    #canvas-container{position:fixed;inset:0;z-index:1}
+    .glass-panel{background:rgba(10,25,41,.84);backdrop-filter:blur(15px);border:1px solid rgba(0,255,255,.25);color:#00f2ff}
+    .status-bar{position:fixed;top:0;left:0;right:0;height:30px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;color:#77f7ff;z-index:50;font-size:10px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent)}
+    .hud{position:fixed;z-index:40}
+    #data-sheet{position:fixed;left:0;right:0;bottom:-100%;height:78%;z-index:60;border-top-left-radius:28px;border-top-right-radius:28px;padding:20px;transition:bottom .55s cubic-bezier(.22,1,.36,1)}
+    #data-sheet.active{bottom:0}
+    .sheet-handle{width:54px;height:5px;background:rgba(0,255,255,.3);border-radius:9px;margin:0 auto 14px}
+    .kpi{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px}
   </style>
 </head>
-<body class="p-4 md:p-6 font-sans">
-  <div class="max-w-[1400px] mx-auto grid gap-4">
-    <div class="grid md:grid-cols-5 gap-4">
-      <div class="card p-4 md:col-span-1">
-        <h1 class="text-3xl font-black leading-tight">PERFIL DO<br>USUÁRIO</h1>
-        <p class="muted text-xs mt-3">Dashboard baseado nos dados da imagem enviada.</p>
-      </div>
-      <div class="card p-4"><p class="muted text-xs">Usuários</p><p class="text-3xl font-bold">241.576.496</p></div>
-      <div class="card p-4"><p class="muted text-xs">Novos Usuários</p><p class="text-3xl font-bold">94.240.569</p></div>
-      <div class="card p-4"><p class="muted text-xs">Sessões</p><p class="text-3xl font-bold">297.203.536</p></div>
-      <div class="card p-4"><p class="muted text-xs">Visualizações de Página</p><p class="text-3xl font-bold">642.627.748</p></div>
+<body>
+  <div class="status-bar">
+    <div id="clock">--:--</div>
+    <div>PROTOCOLO_DASH_v1</div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <div class="hud top-12 left-4 glass-panel rounded-2xl p-3 text-xs">
+    <div class="opacity-70">MODO</div>
+    <div class="font-black italic">PERFIL USUÁRIO</div>
+    <div class="mt-2 opacity-70">Marcadores: <span id="markerCount">0</span></div>
+  </div>
+
+  <div class="hud bottom-8 left-4 flex gap-2">
+    <button onclick="resetGlobe()" class="glass-panel rounded-xl px-4 py-2 text-[10px] font-bold uppercase">Recalibrar</button>
+    <button onclick="toggleData()" class="glass-panel rounded-xl px-4 py-2 text-[10px] font-bold uppercase">Ver dados</button>
+  </div>
+
+  <div id="data-sheet" class="glass-panel">
+    <div class="sheet-handle" onclick="toggleData()"></div>
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-black italic">DADOS DO PERFIL</h2>
+      <button onclick="toggleData()" class="text-xs opacity-70">fechar</button>
     </div>
 
-    <div class="grid lg:grid-cols-4 gap-4">
-      <div class="card p-4 lg:col-span-3">
-        <p class="text-sm font-semibold mb-2">Usuários x Novos Usuários (série sintética visual)</p>
-        <canvas id="lineChart" height="120"></canvas>
-      </div>
-      <div class="card p-4">
-        <p class="text-sm font-semibold mb-3">Tipo de Usuário</p>
-        <div class="h-56 bg-slate-100 rounded mx-auto w-20 overflow-hidden border border-slate-300">
-          <div class="h-[40%] bg-[#93bfe8] flex items-center justify-center text-slate-800 font-bold">40%</div>
-          <div class="h-[60%] bg-white flex items-center justify-center text-slate-800 font-bold">60%</div>
-        </div>
-        <div class="mt-3 text-xs"><span class="inline-block w-2 h-2 rounded-full bg-[#93bfe8]"></span> New Visitor &nbsp; <span class="inline-block w-2 h-2 rounded-full bg-white border"></span> Returning Visitor</div>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-white">
+      <div class="kpi"><div class="text-[10px] opacity-70">Usuários</div><div class="text-xl font-black">241.576.496</div></div>
+      <div class="kpi"><div class="text-[10px] opacity-70">Novos Usuários</div><div class="text-xl font-black">94.240.569</div></div>
+      <div class="kpi"><div class="text-[10px] opacity-70">Sessões</div><div class="text-xl font-black">297.203.536</div></div>
+      <div class="kpi"><div class="text-[10px] opacity-70">Page Views</div><div class="text-xl font-black">642.627.748</div></div>
     </div>
 
-    <div class="grid lg:grid-cols-3 gap-4">
-      <div class="card p-4">
-        <p class="text-sm font-semibold mb-2">Usuários por Categoria do Dispositivo</p>
-        <canvas id="deviceChart" height="210"></canvas>
+    <div class="grid md:grid-cols-2 gap-3 text-sm h-[calc(100%-145px)] overflow-auto pr-1">
+      <div class="kpi">
+        <div class="text-cyan-300 font-bold mb-2">País (Top)</div>
+        <div>Brazil — 124.103.874</div>
+        <div>United States — 10.506.113</div>
+        <div>Argentina — 475.532</div>
+        <div>Portugal — 190.518</div>
       </div>
-
-      <div class="card p-4">
-        <p class="text-sm font-semibold mb-2">País</p>
-        <div class="table-wrap overflow-auto text-xs">
-          <table class="w-full">
-            <thead class="text-left text-slate-300"><tr><th>País</th><th>Usuários</th><th>Sessões</th><th>Visualizações</th></tr></thead>
-            <tbody class="text-slate-100">
-              <tr><td>Brazil</td><td>124.103.874</td><td>156.766.908</td><td>402.949.246</td></tr>
-              <tr><td>United States</td><td>10.506.113</td><td>11.058.612</td><td>19.633.169</td></tr>
-              <tr><td>Argentina</td><td>475.532</td><td>520.916</td><td>861.620</td></tr>
-              <tr><td>(not set)</td><td>392.675</td><td>448.710</td><td>1.863.245</td></tr>
-              <tr><td>Netherlands</td><td>338.690</td><td>350.685</td><td>561.888</td></tr>
-              <tr><td>Portugal</td><td>190.518</td><td>227.952</td><td>504.760</td></tr>
-              <tr><td>United Kingdom</td><td>170.187</td><td>191.025</td><td>934.191</td></tr>
-              <tr class="font-bold border-t border-slate-600"><td>Total</td><td>137.037.788</td><td>170.512.905</td><td>429.282.625</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card p-4">
-        <p class="text-sm font-semibold mb-2">Cidade</p>
-        <div class="table-wrap overflow-auto text-xs mb-3">
-          <table class="w-full">
-            <thead class="text-left text-slate-300"><tr><th>Cidade</th><th>Usuários</th><th>Sessões</th><th>Visualizações</th></tr></thead>
-            <tbody class="text-slate-100">
-              <tr><td>(not set)</td><td>19.609.845</td><td>21.750.006</td><td>39.021.575</td></tr>
-              <tr><td>São Paulo</td><td>15.389.363</td><td>19.551.108</td><td>53.931.399</td></tr>
-              <tr><td>Brasília</td><td>8.525.373</td><td>12.720.711</td><td>47.493.154</td></tr>
-              <tr><td>Rio de Janeiro</td><td>8.515.824</td><td>10.796.225</td><td>29.883.621</td></tr>
-              <tr><td>Belo Horizonte</td><td>4.102.625</td><td>5.298.450</td><td>13.690.378</td></tr>
-              <tr><td>Curitiba</td><td>4.061.416</td><td>5.216.906</td><td>12.999.516</td></tr>
-              <tr><td>Porto Alegre</td><td>3.366.382</td><td>4.382.167</td><td>12.034.940</td></tr>
-              <tr class="font-bold border-t border-slate-600"><td>Total</td><td>115.623.375</td><td>141.194.006</td><td>308.577.160</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="globe"></div>
+      <div class="kpi">
+        <div class="text-cyan-300 font-bold mb-2">Cidade (Top)</div>
+        <div>São Paulo — 15.389.363</div>
+        <div>Brasília — 8.525.373</div>
+        <div>Rio de Janeiro — 8.515.824</div>
+        <div>Belo Horizonte — 4.102.625</div>
+        <div>Curitiba — 4.061.416</div>
       </div>
     </div>
   </div>
 
 <script>
-  const axis = {ticks:{color:'#b7c8db'}, grid:{color:'rgba(255,255,255,.08)'}};
-
-  new Chart(document.getElementById('deviceChart'),{
-    type:'bar',
-    data:{labels:['desktop','mobile','tablet'],datasets:[{label:'Usuários',data:[98127789,32316820,395637],backgroundColor:'#9dc4ea'}]},
-    options:{plugins:{legend:{display:false}},scales:{x:axis,y:axis}}
-  });
-
-  const labels = Array.from({length:40},(_,i)=>`P${i+1}`);
-  const users = labels.map((_,i)=>Math.round(90000 + i*7000 + Math.sin(i*1.3)*30000 + (i>28?70000:0)));
-  const newUsers = users.map(v=>Math.round(v*0.38 + Math.sin(v)*3000));
-  new Chart(document.getElementById('lineChart'),{
-    type:'line',
-    data:{labels,datasets:[
-      {label:'Usuários',data:users,borderColor:'#ffffff',pointRadius:0,borderWidth:2,tension:.3},
-      {label:'Novos Usuários',data:newUsers,borderColor:'#9dc4ea',pointRadius:0,borderWidth:2,tension:.3}
-    ]},
-    options:{plugins:{legend:{labels:{color:'#dbe7f5'}}},scales:{x:axis,y:axis}}
-  });
-
-  // Globo 3D girando (estilo aerocast)
-  const globeEl = document.getElementById('globe');
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, globeEl.clientWidth / globeEl.clientHeight, 0.1, 1000);
-  camera.position.set(0, 0, 3.2);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(globeEl.clientWidth, globeEl.clientHeight);
-  globeEl.appendChild(renderer.domElement);
-
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enablePan = false;
-  controls.enableZoom = false;
-  controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.6;
-
-  const light1 = new THREE.DirectionalLight(0xffffff, 1.1);
-  light1.position.set(3, 2, 4);
-  scene.add(light1);
-  scene.add(new THREE.AmbientLight(0x6ea8ff, 0.5));
-
-  const globe = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 64, 64),
-    new THREE.MeshPhongMaterial({ color: 0x16324f, shininess: 18, specular: 0x6ea8ff })
-  );
-  scene.add(globe);
-
-  const wire = new THREE.Mesh(
-    new THREE.SphereGeometry(1.002, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0x93bfe8, wireframe: true, transparent: true, opacity: 0.25 })
-  );
-  scene.add(wire);
-
-  const cities = [
+  const cities=[
     {n:'São Paulo',lat:-23.5505,lon:-46.6333,u:'15.389.363'},
     {n:'Brasília',lat:-15.7939,lon:-47.8828,u:'8.525.373'},
     {n:'Rio de Janeiro',lat:-22.9068,lon:-43.1729,u:'8.515.824'},
@@ -157,38 +82,32 @@
     {n:'Porto Alegre',lat:-30.0346,lon:-51.2177,u:'3.366.382'}
   ];
 
-  function latLonToVec3(lat, lon, r = 1.03) {
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lon + 180) * (Math.PI / 180);
-    return new THREE.Vector3(
-      -r * Math.sin(phi) * Math.cos(theta),
-       r * Math.cos(phi),
-       r * Math.sin(phi) * Math.sin(theta)
-    );
-  }
+  document.getElementById('markerCount').textContent=cities.length;
+  setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})},1000);
 
-  cities.forEach(c => {
-    const m = new THREE.Mesh(
-      new THREE.SphereGeometry(0.02, 12, 12),
-      new THREE.MeshBasicMaterial({ color: 0x9dc4ea })
-    );
-    m.position.copy(latLonToVec3(c.lat, c.lon));
-    scene.add(m);
-  });
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,2000);
+  camera.position.set(0,0,320);
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setSize(innerWidth,innerHeight);
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  const controls=new THREE.OrbitControls(camera,renderer.domElement); controls.enablePan=false; controls.enableZoom=false; controls.autoRotate=true; controls.autoRotateSpeed=.6;
 
-  function animate(){
-    requestAnimationFrame(animate);
-    wire.rotation.y += 0.0015;
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
+  scene.add(new THREE.AmbientLight(0x4ed9ff,.45));
+  const dl=new THREE.DirectionalLight(0xffffff,.9); dl.position.set(1,1,1); scene.add(dl);
 
-  window.addEventListener('resize', () => {
-    camera.aspect = globeEl.clientWidth / globeEl.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(globeEl.clientWidth, globeEl.clientHeight);
-  });
+  const globe=new THREE.Mesh(new THREE.SphereGeometry(100,64,64),new THREE.MeshPhongMaterial({color:0x0f2a45,emissive:0x08131f,shininess:16,specular:0x57c5ff}));
+  scene.add(globe);
+  const wire=new THREE.Mesh(new THREE.SphereGeometry(101,32,32),new THREE.MeshBasicMaterial({color:0x46d9ff,wireframe:true,transparent:true,opacity:.16})); scene.add(wire);
+
+  function ll2v(lat,lon,r=104){const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180; return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));}
+  cities.forEach(c=>{const m=new THREE.Mesh(new THREE.SphereGeometry(2.5,10,10),new THREE.MeshBasicMaterial({color:0x9bd8ff})); m.position.copy(ll2v(c.lat,c.lon)); scene.add(m);});
+
+  function animate(){requestAnimationFrame(animate); wire.rotation.y+=.0012; controls.update(); renderer.render(scene,camera);} animate();
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight)});
+
+  function toggleData(){document.getElementById('data-sheet').classList.toggle('active');}
+  function resetGlobe(){document.getElementById('data-sheet').classList.remove('active'); gsap.to(camera.position,{x:0,y:0,z:320,duration:1.6,ease:'power2.inOut',onUpdate:()=>camera.lookAt(0,0,0)}); controls.autoRotate=true;}
 </script>
 </body>
 </html>
