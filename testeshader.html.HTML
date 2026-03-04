@@ -1,216 +1,246 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Círculos Concêntricos Three.js</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vórtice de Partículas Three.js</title>
   <style>
     body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
-      background-color: #050505;
+      background-color: #000;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    canvas {
-      display: block;
+    #ui-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: rgba(255, 255, 255, 0.7);
+      pointer-events: none;
+      z-index: 10;
     }
+    .instruction {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+    canvas { display: block; }
   </style>
 </head>
 <body>
-  <!-- Importando Three.js via CDN -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
+  <div id="ui-overlay">
+    <div style="font-size: 18px; font-weight: bold; color: #00d2ff;">Vortex Concêntrico</div>
+    <div class="instruction">Arraste para girar • Scroll para zoom • Toque para interagir</div>
+  </div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-    // --- Configuração da Cena ---
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 30;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.body.appendChild(renderer.domElement);
-
-    // Orbit + Zoom
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enablePan = true;
-    controls.enableZoom = true;
-    controls.zoomSpeed = 0.9;
-    controls.minDistance = 8;
-    controls.maxDistance = 120;
-
-    // --- Variáveis Globais para o Shader ---
-    let uniforms;
-    let geometry;
-    let material;
-    let mesh;
-
-    // --- Função para criar os círculos concêntricos ---
-    function createConcentricCircles() {
-      const particleCount = 15000; // Quantidade total de partículas
-
-      // Criamos geometria plana (XZ plane)
-      geometry = new THREE.BufferGeometry();
-      const positions = [];
-      const colors = [];
-
-      // Definimos quantos anéis queremos e a cor de cada um
-      const numRings = 8;
-      const maxRadius = 15;
-
-      for (let i = 0; i < particleCount; i++) {
-        let ringIndex = Math.floor(i / (particleCount / numRings));
-
-        // Calcula o raio baseado no anel atual
-        // Usamos uma função de distribuição para espalhar as partículas dentro do anel
-        const ringRadiusBase = (ringIndex + 1) * (maxRadius / numRings);
-
-        // Distribuição gaussiana simples para não ficar vazio no centro do anel
-        let r = Math.random() * ringRadiusBase;
-        if (r > ringRadiusBase * 0.8) {
-          r = ringRadiusBase - (Math.random() * (ringRadiusBase * 0.2));
-        }
-
-        // Ângulo aleatório
-        const theta = Math.random() * Math.PI * 2;
-
-        // Posição X e Z
-        positions.push(r * Math.cos(theta));
-        positions.push(0); // Y é zero (plano)
-        positions.push(r * Math.sin(theta));
-
-        // Cor baseada no anel
-        const hue = ringIndex / numRings;
-        colors.push(hue, 1 - hue / 2, 0.5 + Math.random() * 0.5); // RGB
-      }
-
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-      return { geometry, particleCount };
-    }
-
-    const circleData = createConcentricCircles();
-
-    // --- Configuração do Shader (Vertex) ---
-    // Define como cada partícula se move e gira
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
     const vertexShader = `
       uniform float uTime;
       uniform float uSpeed;
-      attribute vec3 color;
+      attribute float aSize;
+      attribute vec3 aColor;
       varying vec3 vColor;
-      varying float vDistanceFromCenter;
-      varying float vRingRadius;
+      varying float vDistance;
 
-      // Função auxiliar de rotação em GLSL
-      vec2 rotate(float x, float z, float angle) {
+      void main() {
+        vColor = aColor;
+
+        vec3 newPos = position;
+
+        // Vórtice: anéis internos giram mais rápido
+        float dist = length(position.xz);
+        float angle = uTime * (uSpeed / (dist * 0.2 + 0.5));
         float s = sin(angle);
         float c = cos(angle);
-        return vec2(x * c - z * s, x * s + z * c);
-      }
 
-      void main() {
-        // Distância radial (usada para desenhar anéis)
-        vRingRadius = length(position.xz);
-        vDistanceFromCenter = vRingRadius;
+        float x = newPos.x * c - newPos.z * s;
+        float z = newPos.x * s + newPos.z * c;
+        newPos.x = x;
+        newPos.z = z;
 
-        // Gira a partícula ao redor do eixo Y
-        float angle = uTime * uSpeed + (position.x * 0.5);
-        vec2 rotatedPos = rotate(position.x, position.z, angle);
+        // Ondulação vertical
+        newPos.y += sin(dist * 0.5 - uTime * 1.5) * 0.8;
 
-        vec4 mvPosition = modelViewMatrix * vec4(rotatedPos.x, position.y, rotatedPos.y, 1.0);
+        vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
+        gl_PointSize = aSize * (100.0 / -mvPosition.z);
         gl_Position = projectionMatrix * mvPosition;
 
-        // IMPORTANTE: sem gl_PointSize os pontos ficam quase invisíveis
-        gl_PointSize = 3.0 * (30.0 / -mvPosition.z);
-
-        // Passa a cor e a distância para o fragment shader
-        vColor = color;
+        vDistance = dist;
       }
     `;
 
-    // --- Configuração do Shader (Fragment) ---
-    // Define a aparência visual da partícula
     const fragmentShader = `
-      uniform float uTime;
       varying vec3 vColor;
-      varying float vDistanceFromCenter;
-      varying float vRingRadius;
+      varying float vDistance;
+      uniform float uTime;
 
       void main() {
-        // Deixa cada ponto circular (sprite circular)
-        vec2 uv = gl_PointCoord - vec2(0.5);
-        float d = length(uv);
-        if (d > 0.5) discard;
+        float dist = distance(gl_PointCoord, vec2(0.5));
+        if (dist > 0.5) discard;
 
-        // Onda por anel + tempo
-        float wave = sin(vDistanceFromCenter * 4.5 - uTime * 2.2) * 0.5 + 0.5;
+        float strength = 1.0 - (dist * 2.0);
+        strength = pow(strength, 3.0);
 
-        // Mistura a cor original com branco para brilho
-        vec3 finalColor = mix(vColor, vec3(1.0), wave * 0.75);
+        float pulse = sin(vDistance * 0.5 - uTime * 2.0) * 0.5 + 0.5;
+        vec3 finalColor = mix(vColor, vec3(1.0), pulse * 0.3);
 
-        // Fade na borda do ponto para ficar suave
-        float alpha = smoothstep(0.5, 0.15, d);
-        gl_FragColor = vec4(finalColor, alpha);
+        gl_FragColor = vec4(finalColor, strength);
       }
     `;
 
-    // --- Inicialização do ShaderMaterial ---
-    uniforms = {
-      uTime: { value: 0 },
-      uSpeed: { value: 0.5 } // Velocidade de rotação global
-    };
+    let scene, camera, renderer, points, clock;
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+    let targetRotationX = 0.35;
+    let targetRotationY = 0.15;
 
-    material = new THREE.ShaderMaterial({
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader,
-      uniforms: uniforms,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending // Faz as cores se somarem (brilhante)
-    });
+    function init() {
+      scene = new THREE.Scene();
+      clock = new THREE.Clock();
 
-    mesh = new THREE.Points(circleData.geometry, material);
-    scene.add(mesh);
+      const aspect = window.innerWidth / window.innerHeight;
+      camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+      camera.position.set(0, 15, 30);
+      camera.lookAt(0, 0, 0);
 
-    // --- Loop de Animação ---
-    const clock = new THREE.Clock();
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
 
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const elapsedTime = clock.getElapsedTime();
-
-      // Atualiza o tempo no shader
-      uniforms.uTime.value = elapsedTime;
-
-      // Efeito suave de "respiração" (escala)
-      mesh.scale.setScalar(1 + Math.sin(elapsedTime * 0.5) * 0.05);
-
-      controls.update();
-      renderer.render(scene, camera);
+      createVortex();
+      bindEvents();
+      animate();
     }
 
-    // --- Responsividade ---
-    window.addEventListener('resize', () => {
+    function createVortex() {
+      const particleCount = 28000;
+      const numRings = 11;
+      const maxRadius = 28;
+
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      const sizes = new Float32Array(particleCount);
+
+      for (let i = 0; i < particleCount; i++) {
+        const idx = i * 3;
+
+        const ringIndex = Math.floor((i / particleCount) * numRings);
+        const inner = (ringIndex / numRings) * maxRadius;
+        const outer = ((ringIndex + 1) / numRings) * maxRadius;
+        const radius = inner + Math.pow(Math.random(), 0.65) * (outer - inner);
+
+        const theta = Math.random() * Math.PI * 2;
+        positions[idx] = Math.cos(theta) * radius;
+        positions[idx + 1] = (Math.random() - 0.5) * 0.2;
+        positions[idx + 2] = Math.sin(theta) * radius;
+
+        const hue = 0.55 + (ringIndex / numRings) * 0.25; // azul/ciano -> violeta
+        const col = new THREE.Color().setHSL(hue, 0.95, 0.55);
+        colors[idx] = col.r;
+        colors[idx + 1] = col.g;
+        colors[idx + 2] = col.b;
+
+        sizes[i] = 2.0 + Math.random() * 2.8;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms: {
+          uTime: { value: 0 },
+          uSpeed: { value: 1.25 }
+        },
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+
+      points = new THREE.Points(geometry, material);
+      points.rotation.x = targetRotationX;
+      points.rotation.y = targetRotationY;
+      scene.add(points);
+    }
+
+    function bindEvents() {
+      window.addEventListener('resize', onResize);
+
+      renderer.domElement.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      });
+
+      window.addEventListener('mouseup', () => { isDragging = false; });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        targetRotationY += dx * 0.005;
+        targetRotationX += dy * 0.005;
+      });
+
+      renderer.domElement.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.position.z += e.deltaY * 0.012;
+        camera.position.z = Math.max(8, Math.min(110, camera.position.z));
+      }, { passive: false });
+
+      renderer.domElement.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        isDragging = true;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+      }, { passive: true });
+
+      renderer.domElement.addEventListener('touchmove', (e) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - lastX;
+        const dy = e.touches[0].clientY - lastY;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+        targetRotationY += dx * 0.005;
+        targetRotationX += dy * 0.005;
+      }, { passive: true });
+
+      renderer.domElement.addEventListener('touchend', () => { isDragging = false; });
+    }
+
+    function onResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    });
+    }
 
-    animate();
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const t = clock.getElapsedTime();
+      if (points && points.material && points.material.uniforms) {
+        points.material.uniforms.uTime.value = t;
+      }
+
+      if (points) {
+        points.rotation.x += (targetRotationX - points.rotation.x) * 0.08;
+        points.rotation.y += (targetRotationY - points.rotation.y) * 0.08;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    init();
   </script>
 </body>
 </html>
