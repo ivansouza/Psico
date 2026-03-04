@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Círculos Concêntricos Three.js</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #050505;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Importando Three.js via CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // --- Configuração da Cena ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 30;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Variáveis Globais para o Shader ---
+    let uniforms;
+    let geometry;
+    let material;
+    let mesh;
+
+    // --- Função para criar os círculos concêntricos ---
+    function createConcentricCircles() {
+      const particleCount = 15000; // Quantidade total de partículas
+
+      // Criamos geometria plana (XZ plane)
+      geometry = new THREE.BufferGeometry();
+      const positions = [];
+      const colors = [];
+
+      // Definimos quantos anéis queremos e a cor de cada um
+      const numRings = 8;
+      const maxRadius = 15;
+
+      for (let i = 0; i < particleCount; i++) {
+        let ringIndex = Math.floor(i / (particleCount / numRings));
+
+        // Calcula o raio baseado no anel atual
+        // Usamos uma função de distribuição para espalhar as partículas dentro do anel
+        const ringRadiusBase = (ringIndex + 1) * (maxRadius / numRings);
+
+        // Distribuição gaussiana simples para não ficar vazio no centro do anel
+        let r = Math.random() * ringRadiusBase;
+        if (r > ringRadiusBase * 0.8) {
+          r = ringRadiusBase - (Math.random() * (ringRadiusBase * 0.2));
+        }
+
+        // Ângulo aleatório
+        const theta = Math.random() * Math.PI * 2;
+
+        // Posição X e Z
+        positions.push(r * Math.cos(theta));
+        positions.push(0); // Y é zero (plano)
+        positions.push(r * Math.sin(theta));
+
+        // Cor baseada no anel
+        const hue = ringIndex / numRings;
+        colors.push(hue, 1 - hue / 2, 0.5 + Math.random() * 0.5); // RGB
+      }
+
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      return { geometry, particleCount };
+    }
+
+    const circleData = createConcentricCircles();
+
+    // --- Configuração do Shader (Vertex) ---
+    // Define como cada partícula se move e gira
+    const vertexShader = `
+      uniform float uTime;
+      uniform float uSpeed;
+      attribute vec3 color;
+      varying vec3 vColor;
+      varying float vDistanceFromCenter;
+
+      // Função auxiliar de rotação em GLSL
+      vec2 rotate(float x, float z, float angle) {
+        float s = sin(angle);
+        float c = cos(angle);
+        return vec2(x * c - z * s, x * s + z * c);
+      }
+
+      void main() {
+        // Calcula a distância do centro para usar no efeito de onda
+        vDistanceFromCenter = position.z;
+
+        // Gira a partícula ao redor do eixo Y
+        float angle = uTime * uSpeed + (position.x * 0.5);
+        vec2 rotatedPos = rotate(position.x, position.z, angle);
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(rotatedPos.x, position.y, rotatedPos.y, 1.0);
+
+        // Passa a cor e a distância para o fragment shader
+        vColor = color;
+      }
+    `;
+
+    // --- Configuração do Shader (Fragment) ---
+    // Define a aparência visual da partícula
+    const fragmentShader = `
+      uniform float uTime;
+      varying vec3 vColor;
+      varying float vDistanceFromCenter;
+
+      void main() {
+        // Cria um efeito de brilho/onda baseado na distância do centro e no tempo
+        float wave = sin(vDistanceFromCenter * 5.0 + uTime * 2.0) * 0.5 + 0.5;
+
+        // Mistura a cor original com o branco para criar o efeito de luz
+        vec3 finalColor = mix(vColor, vec3(1.0), wave);
+        gl_FragColor = vec4(finalColor, 1.0);
+      }
+    `;
+
+    // --- Inicialização do ShaderMaterial ---
+    uniforms = {
+      uTime: { value: 0 },
+      uSpeed: { value: 0.5 } // Velocidade de rotação global
+    };
+
+    material = new THREE.ShaderMaterial({
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      uniforms: uniforms,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending // Faz as cores se somarem (brilhante)
+    });
+
+    mesh = new THREE.Points(circleData.geometry, material);
+    scene.add(mesh);
+
+    // --- Loop de Animação ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // Atualiza o tempo no shader
+      uniforms.uTime.value = elapsedTime;
+
+      // Efeito suave de "respiração" (escala)
+      mesh.scale.setScalar(1 + Math.sin(elapsedTime * 0.5) * 0.05);
+
+      renderer.render(scene, camera);
+    }
+
+    // --- Responsividade ---
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
