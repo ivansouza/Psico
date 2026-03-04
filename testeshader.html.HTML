@@ -20,13 +20,15 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
       }
     }
   </script>
 
   <script type="module">
     import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     // --- Configuração da Cena ---
     const scene = new THREE.Scene();
@@ -35,7 +37,18 @@
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
+
+    // Orbit + Zoom
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enablePan = true;
+    controls.enableZoom = true;
+    controls.zoomSpeed = 0.9;
+    controls.minDistance = 8;
+    controls.maxDistance = 120;
 
     // --- Variáveis Globais para o Shader ---
     let uniforms;
@@ -185,6 +198,7 @@
       // Efeito suave de "respiração" (escala)
       mesh.scale.setScalar(1 + Math.sin(elapsedTime * 0.5) * 0.05);
 
+      controls.update();
       renderer.render(scene, camera);
     }
 
@@ -193,6 +207,7 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
     animate();
