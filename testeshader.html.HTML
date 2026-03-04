@@ -1,37 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vórtice de Partículas Three.js</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #000;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    #ui-overlay {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      color: rgba(255, 255, 255, 0.7);
-      pointer-events: none;
-      z-index: 10;
-    }
-    .instruction {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-top: 5px;
-    }
-    canvas { display: block; }
+    body { margin:0; padding:0; overflow:hidden; background:#000; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+    #ui-overlay { position:absolute; bottom:20px; left:20px; color:rgba(255,255,255,.72); pointer-events:none; z-index:10; }
+    .instruction { font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-top:5px; }
+    canvas { display:block; }
   </style>
 </head>
 <body>
   <div id="ui-overlay">
-    <div style="font-size: 18px; font-weight: bold; color: #00d2ff;">Vortex Concêntrico</div>
+    <div style="font-size:18px;font-weight:bold;color:#00d2ff;">Vortex Concêntrico</div>
     <div class="instruction">Arraste para girar • Scroll para zoom • Toque para interagir</div>
   </div>
 
@@ -50,7 +32,6 @@
 
         vec3 newPos = position;
 
-        // Vórtice: anéis internos giram mais rápido
         float dist = length(position.xz);
         float angle = uTime * (uSpeed / (dist * 0.2 + 0.5));
         float s = sin(angle);
@@ -61,7 +42,6 @@
         newPos.x = x;
         newPos.z = z;
 
-        // Ondulação vertical
         newPos.y += sin(dist * 0.5 - uTime * 1.5) * 0.8;
 
         vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
@@ -92,10 +72,8 @@
     `;
 
     let scene, camera, renderer, points, clock;
-    let isDragging = false;
-    let lastX = 0, lastY = 0;
-    let targetRotationX = 0.35;
-    let targetRotationY = 0.15;
+    let mouseX = 0, mouseY = 0;
+    let targetRotationX = 0, targetRotationY = 0;
 
     function init() {
       scene = new THREE.Scene();
@@ -107,47 +85,50 @@
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       document.body.appendChild(renderer.domElement);
 
-      createVortex();
-      bindEvents();
+      createParticles();
+      setupEvents();
       animate();
     }
 
-    function createVortex() {
-      const particleCount = 28000;
-      const numRings = 11;
-      const maxRadius = 28;
+    function createParticles() {
+      const count = 40000;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      const sizes = new Float32Array(count);
 
-      const geometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(particleCount * 3);
-      const colors = new Float32Array(particleCount * 3);
-      const sizes = new Float32Array(particleCount);
+      const numRings = 10;
+      const colorPalette = [
+        new THREE.Color(0x00d2ff),
+        new THREE.Color(0x3a7bd5),
+        new THREE.Color(0x00ffcc),
+        new THREE.Color(0x7a5fff),
+        new THREE.Color(0xff0080)
+      ];
 
-      for (let i = 0; i < particleCount; i++) {
-        const idx = i * 3;
+      for (let i = 0; i < count; i++) {
+        const ringIndex = Math.floor(Math.random() * numRings);
+        const radiusBase = (ringIndex + 1) * 2.5;
+        const radius = radiusBase + (Math.random() - 0.5) * 1.5;
+        const angle = Math.random() * Math.PI * 2;
 
-        const ringIndex = Math.floor((i / particleCount) * numRings);
-        const inner = (ringIndex / numRings) * maxRadius;
-        const outer = ((ringIndex + 1) / numRings) * maxRadius;
-        const radius = inner + Math.pow(Math.random(), 0.65) * (outer - inner);
+        positions[i * 3] = Math.cos(angle) * radius;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
+        positions[i * 3 + 2] = Math.sin(angle) * radius;
 
-        const theta = Math.random() * Math.PI * 2;
-        positions[idx] = Math.cos(theta) * radius;
-        positions[idx + 1] = (Math.random() - 0.5) * 0.2;
-        positions[idx + 2] = Math.sin(theta) * radius;
+        const colorIdx = ringIndex % colorPalette.length;
+        const baseColor = colorPalette[colorIdx];
+        colors[i * 3] = baseColor.r;
+        colors[i * 3 + 1] = baseColor.g;
+        colors[i * 3 + 2] = baseColor.b;
 
-        const hue = 0.55 + (ringIndex / numRings) * 0.25; // azul/ciano -> violeta
-        const col = new THREE.Color().setHSL(hue, 0.95, 0.55);
-        colors[idx] = col.r;
-        colors[idx + 1] = col.g;
-        colors[idx + 2] = col.b;
-
-        sizes[i] = 2.0 + Math.random() * 2.8;
+        sizes[i] = Math.random() * 2.0 + 0.5;
       }
 
+      const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
       geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
@@ -157,67 +138,39 @@
         fragmentShader,
         uniforms: {
           uTime: { value: 0 },
-          uSpeed: { value: 1.25 }
+          uSpeed: { value: 0.8 }
         },
         transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
       });
 
       points = new THREE.Points(geometry, material);
-      points.rotation.x = targetRotationX;
-      points.rotation.y = targetRotationY;
       scene.add(points);
     }
 
-    function bindEvents() {
-      window.addEventListener('resize', onResize);
+    function setupEvents() {
+      window.addEventListener('resize', onWindowResize);
 
-      renderer.domElement.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
+      document.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX - window.innerWidth / 2) / 100;
+        mouseY = (e.clientY - window.innerHeight / 2) / 100;
       });
 
-      window.addEventListener('mouseup', () => { isDragging = false; });
+      document.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+          mouseX = (e.touches[0].clientX - window.innerWidth / 2) / 100;
+          mouseY = (e.touches[0].clientY - window.innerHeight / 2) / 100;
+        }
+      }, { passive: true });
 
-      window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        targetRotationY += dx * 0.005;
-        targetRotationX += dy * 0.005;
+      window.addEventListener('wheel', (e) => {
+        camera.position.z += e.deltaY * 0.02;
+        camera.position.z = Math.max(5, Math.min(camera.position.z, 100));
       });
-
-      renderer.domElement.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        camera.position.z += e.deltaY * 0.012;
-        camera.position.z = Math.max(8, Math.min(110, camera.position.z));
-      }, { passive: false });
-
-      renderer.domElement.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) return;
-        isDragging = true;
-        lastX = e.touches[0].clientX;
-        lastY = e.touches[0].clientY;
-      }, { passive: true });
-
-      renderer.domElement.addEventListener('touchmove', (e) => {
-        if (!isDragging || e.touches.length !== 1) return;
-        const dx = e.touches[0].clientX - lastX;
-        const dy = e.touches[0].clientY - lastY;
-        lastX = e.touches[0].clientX;
-        lastY = e.touches[0].clientY;
-        targetRotationY += dx * 0.005;
-        targetRotationX += dy * 0.005;
-      }, { passive: true });
-
-      renderer.domElement.addEventListener('touchend', () => { isDragging = false; });
     }
 
-    function onResize() {
+    function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -227,20 +180,19 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      const t = clock.getElapsedTime();
-      if (points && points.material && points.material.uniforms) {
-        points.material.uniforms.uTime.value = t;
-      }
+      const elapsedTime = clock.getElapsedTime();
+      points.material.uniforms.uTime.value = elapsedTime;
 
-      if (points) {
-        points.rotation.x += (targetRotationX - points.rotation.x) * 0.08;
-        points.rotation.y += (targetRotationY - points.rotation.y) * 0.08;
-      }
+      targetRotationX += (mouseY * 0.5 - targetRotationX) * 0.05;
+      targetRotationY += (mouseX * 0.5 - targetRotationY) * 0.05;
+
+      points.rotation.y = elapsedTime * 0.05 + targetRotationY;
+      points.rotation.x = targetRotationX;
 
       renderer.render(scene, camera);
     }
 
-    init();
+    window.onload = init;
   </script>
 </body>
 </html>
