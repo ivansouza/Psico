@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mágica do 1089</title>
+<style>
+body {
+margin: 0;
+font-family: Inter, system-ui, Arial, sans-serif;
+background: #0b1020;
+color: #e9eefc;
+display: grid;
+place-items: center;
+min-height: 100vh;
+}
+.card {
+width: min(720px, 92vw);
+background: #141a33;
+border: 1px solid #2a3363;
+border-radius: 16px;
+padding: 24px;
+box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+h1 { margin: 0 0 8px; color: #8ec5ff; }
+p { opacity: .9; line-height: 1.45; }
+.row { display: flex; gap: 10px; margin: 14px 0; flex-wrap: wrap; }
+input, button {
+border-radius: 10px;
+border: 1px solid #31407a;
+background: #0f1530;
+color: #fff;
+padding: 10px 12px;
+font-size: 16px;
+}
+button {
+cursor: pointer;
+background: #2a6cff;
+border: none;
+font-weight: 600;
+}
+.result {
+background: #0e1430;
+border: 1px solid #2c3a70;
+border-radius: 12px;
+padding: 14px;
+margin-top: 12px;
+white-space: pre-line;
+font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.ok { color: #7af7b1; font-weight: 700; }
+.warn { color: #ffd27a; }
+</style>
+</head>
+<body>
+<div class="card">
+<h1>A mágica do número 1089 ✨</h1>
+<p>
+Escolha um número de 3 dígitos em que o primeiro e o último sejam diferentes.
+Inverta os dígitos, subtraia o menor do maior, inverta o resultado e some.
+O resultado final sempre será <strong>1089</strong>.
+</p>
+
+<div class="row">
+<input id="n" type="number" placeholder="Ex: 421" min="100" max="999" />
+<button onclick="demo()">Demonstrar</button>
+<button onclick="randomValid()">Aleatório válido</button>
+</div>
+
+<div id="out" class="result">Digite um número e clique em “Demonstrar”.</div>
+</div>
+
+<script>
+const pad3 = n => String(n).padStart(3, '0');
+const rev = n => Number(pad3(n).split('').reverse().join(''));
+
+function randomValid() {
+let a, c, b;
+do {
+a = Math.floor(Math.random() * 9) + 1;
+c = Math.floor(Math.random() * 10);
+} while (a === c);
+b = Math.floor(Math.random() * 10);
+document.getElementById('n').value = Number(`${a}${b}${c}`);
+demo();
+}
+
+function demo() {
+const out = document.getElementById('out');
+const n = Number(document.getElementById('n').value);
+
+if (!Number.isInteger(n) || n < 100 || n > 999) {
+out.innerHTML = '<span class="warn">Use um número inteiro de 3 dígitos (100 a 999).</span>';
+return;
+}
+
+const s = String(n);
+if (s[0] === s[2]) {
+out.innerHTML = '<span class="warn">O 1º e o último dígito precisam ser diferentes.</span>';
+return;
+}
+
+const r1 = rev(n);
+const maior = Math.max(n, r1);
+const menor = Math.min(n, r1);
+const sub = maior - menor;
+const r2 = rev(sub);
+const soma = sub + r2;
+
+out.innerHTML =
+`n = ${pad3(n)}
+invertido = ${pad3(r1)}
+maior - menor = ${pad3(maior)} - ${pad3(menor)} = ${pad3(sub)}
+invertido do resultado = ${pad3(r2)}
+soma final = ${pad3(sub)} + ${pad3(r2)} = ${soma}
+
+${soma === 1089 ? '<span class="ok">✅ Mágica confirmada: 1089</span>' : '<span class="warn">⚠️ Algo saiu do padrão</span>'}`;
+}
+</script>
+</body>
+</html>
