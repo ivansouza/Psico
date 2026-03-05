@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dígitos repetidos, multiplicador e divisores</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #121a33;
+      --text: #e8edff;
+      --muted: #9fb0e6;
+      --acc: #6ea8ff;
+      --ok: #7ee787;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at 10% 10%, #15204a 0%, var(--bg) 50%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { max-width: 1050px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 1.7rem; }
+    p { color: var(--muted); line-height: 1.45; }
+    .card {
+      background: linear-gradient(180deg, #182347 0%, var(--card) 100%);
+      border: 1px solid #2a3a74;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border-bottom: 1px solid #2a3a74; padding: 10px; text-align: left; vertical-align: top; }
+    th { color: #c9d6ff; font-size: 0.95rem; }
+    code { background: #0e1530; padding: 2px 6px; border-radius: 8px; color: #c8d8ff; }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    input, button {
+      width: 100%;
+      background: #0e1530;
+      color: var(--text);
+      border: 1px solid #2a3a74;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+    button { background: #1f3a87; border-color: #3d63c2; cursor: pointer; font-weight: 700; }
+    .out { margin-top: 10px; color: var(--ok); word-break: break-all; }
+    .small { font-size: 0.9rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>App educativo: bloco repetido, multiplicador e divisores</h1>
+    <p>
+      Se um bloco de <strong>k dígitos</strong> é repetido duas vezes (ex.: <code>1234 → 12341234</code>),
+      então o número é sempre: <code>N = X · (10<sup>k</sup> + 1)</code>, onde <code>X</code> é o bloco original.
+      Isso explica por que certos divisores aparecem com frequência.
+    </p>
+
+    <div class="card">
+      <h3>Exemplos pedidos</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Dígitos (k)</th>
+            <th>Número repetido (exemplo)</th>
+            <th>Multiplicador (10<sup>k</sup> + 1)</th>
+            <th>Divisor único ou fatores principais</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2</td>
+            <td>4242</td>
+            <td>101</td>
+            <td>101 (primo)</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>839839</td>
+            <td>1001</td>
+            <td>7 × 11 × 13</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>12341234</td>
+            <td>10001</td>
+            <td>73 × 137</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>56813195681319</td>
+            <td>10.000.001</td>
+            <td>11 × 909091 (ou outros fatores)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Teste interativo</h3>
+      <div class="grid">
+        <div>
+          <label class="small">Bloco X (somente dígitos)</label>
+          <input id="bloco" value="1234" />
+        </div>
+        <div>
+          <label class="small">k (tamanho do bloco)</label>
+          <input id="k" type="number" min="1" max="15" value="4" />
+        </div>
+        <div style="display:flex;align-items:end;">
+          <button id="btn">Calcular</button>
+        </div>
+      </div>
+      <div id="saida" class="out"></div>
+    </div>
+
+    <div class="card small">
+      Dica: para repetição em dobro, basta concatenar o bloco com ele mesmo. Matemática: <code>XX = X × 10<sup>k</sup> + X = X(10<sup>k</sup>+1)</code>.
+    </div>
+  </div>
+
+  <script>
+    function calc() {
+      const bloco = document.getElementById('bloco').value.replace(/\D/g, '');
+      const k = Number(document.getElementById('k').value);
+      const out = document.getElementById('saida');
+
+      if (!bloco || k < 1) {
+        out.textContent = 'Informe um bloco numérico e um k válido.';
+        return;
+      }
+      if (bloco.length !== k) {
+        out.textContent = `Atenção: o bloco tem ${bloco.length} dígitos, mas k = ${k}.`;
+        return;
+      }
+
+      const repetido = bloco + bloco;
+      const mult = BigInt(10) ** BigInt(k) + BigInt(1);
+      const x = BigInt(bloco);
+      const n = x * mult;
+
+      out.innerHTML = `
+        Repetido: <code>${repetido}</code><br>
+        Multiplicador: <code>10^${k}+1 = ${mult.toString()}</code><br>
+        Verificação: <code>${bloco} × ${mult.toString()} = ${n.toString()}</code>
+      `;
+    }
+    document.getElementById('btn').addEventListener('click', calc);
+    calc();
+  </script>
+</body>
+</html>
