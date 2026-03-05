@@ -128,7 +128,7 @@
         // Mapeamento de meses
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-        const experiments = [
+        let experiments = [
             { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
             { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
             { name: "Sacred Dodecahedron", file: "Sacred-Dodecahedron.html", cat: "Geometria", date: "19/12/2025", desc: "Geometria sagrada baseada no dodecaedro." },
@@ -430,15 +430,68 @@
             return new Date(year, month - 1, day);
         }
 
-        // Ordenação global por data (mais recente primeiro), independente de filtros
-        experiments.sort((a, b) => {
-            const diff = parseDateBR(b.date) - parseDateBR(a.date);
-            return diff !== 0 ? diff : a.name.localeCompare(b.name);
-        });
+        function sortExperiments() {
+            // Ordenação global por data (mais recente primeiro), independente de filtros
+            experiments.sort((a, b) => {
+                const diff = parseDateBR(b.date) - parseDateBR(a.date);
+                return diff !== 0 ? diff : a.name.localeCompare(b.name);
+            });
+        }
 
+        function formatDateBR(date = new Date()) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function prettyNameFromFile(file) {
+            return file
+                .replace(/\.html$/i, '')
+                .replace(/[-_]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        async function syncMissingCardsFromGitHub() {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
+                if (!res.ok) return;
+
+                const items = await res.json();
+                const remoteHtml = items
+                    .filter(item => item.type === 'file' && /\.html$/i.test(item.name) && item.name.toLowerCase() !== 'index.html')
+                    .map(item => item.name);
+
+                const known = new Set(experiments.map(e => e.file.toLowerCase()));
+                const missing = remoteHtml.filter(file => !known.has(file.toLowerCase()));
+                if (!missing.length) return;
+
+                const today = formatDateBR();
+                const generated = missing.map(file => ({
+                    name: prettyNameFromFile(file),
+                    file,
+                    cat: 'Novo',
+                    date: today,
+                    desc: 'Card gerado automaticamente a partir dos arquivos do repositório.'
+                }));
+
+                experiments = [...generated, ...experiments];
+                sortExperiments();
+                document.getElementById('cards-total').textContent = experiments.length;
+                initFilters();
+                renderCards();
+            } catch (err) {
+                console.warn('Não foi possível sincronizar cards automaticamente:', err);
+            }
+        }
+
+        sortExperiments();
         document.getElementById('cards-total').textContent = experiments.length;
         initFilters();
         renderCards();
+        syncMissingCardsFromGitHub();
     </script>
 </body>
 </html>
