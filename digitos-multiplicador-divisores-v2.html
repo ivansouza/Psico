@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dígitos repetidos — versão 2 animada</title>
+  <style>
+    :root {
+      --bg: #060b1a;
+      --card: #0f1730;
+      --text: #e6ecff;
+      --muted: #97a8df;
+      --acc: #66a3ff;
+      --ok: #79e8a6;
+      --warn: #ffd27a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at 10% 10%, #121f4a 0%, var(--bg) 45%);
+      padding: 24px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 1.65rem; }
+    p { color: var(--muted); }
+
+    .card {
+      background: linear-gradient(180deg, #18264f 0%, var(--card) 100%);
+      border: 1px solid #2a3d7a;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 14px 0;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+    label { font-size: 0.82rem; color: var(--muted); display:block; margin-bottom: 6px; }
+    input, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #33498f;
+      background: #0d1633;
+      color: var(--text);
+      padding: 10px;
+      font-size: 0.95rem;
+    }
+    button {
+      cursor: pointer;
+      background: #1d3f96;
+      font-weight: 700;
+    }
+
+    .math { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
+    .badge { background:#10204a; border:1px solid #3557aa; color:#b9ceff; padding:4px 8px; border-radius:999px; font-size:.8rem; }
+
+    .board {
+      border: 1px dashed #3a57a5;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+      overflow-x: auto;
+      background: #0a1229;
+    }
+
+    .line {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: .35s ease;
+      margin: 6px 0;
+      white-space: nowrap;
+    }
+    .line.show { opacity: 1; transform: translateY(0); }
+
+    .hilite { color: var(--warn); font-weight: 700; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .small { font-size:.9rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Versão 2 — Explicação visual animada da fórmula</h1>
+    <p>Visualize passo a passo por que repetir um bloco de <span class="math">k</span> dígitos gera: <span class="math">N = X(10<sup>k</sup> + 1)</span>.</p>
+
+    <div class="card">
+      <div class="controls">
+        <div>
+          <label>Bloco X (somente dígitos)</label>
+          <input id="bloco" value="1234" />
+        </div>
+        <div>
+          <label>k (tamanho do bloco)</label>
+          <input id="k" type="number" min="1" max="15" value="4" />
+        </div>
+        <div>
+          <button id="btnAnimar">Animar explicação</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <span class="badge">Repetição em dobro: <span id="repBadge" class="math"></span></span>
+        <span class="badge">Multiplicador: <span id="multBadge" class="math"></span></span>
+      </div>
+
+      <div class="board" id="board">
+        <div id="l1" class="line math"></div>
+        <div id="l2" class="line math"></div>
+        <div id="l3" class="line math"></div>
+        <div id="l4" class="line math"></div>
+        <div id="l5" class="line math"></div>
+      </div>
+
+      <div id="resumo" class="small" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="small">
+        Exemplo clássico: para <span class="math">k = 3</span>, <span class="math">10^3 + 1 = 1001 = 7×11×13</span>.
+        Então qualquer número do tipo <span class="math">XYZXYZ</span> é múltiplo de 7, 11 e 13.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function clearLines() {
+      ['l1','l2','l3','l4','l5'].forEach(id => {
+        $(id).classList.remove('show');
+        $(id).innerHTML = '';
+      });
+    }
+
+    function showLine(id, html, delay) {
+      setTimeout(() => {
+        $(id).innerHTML = html;
+        $(id).classList.add('show');
+      }, delay);
+    }
+
+    function run() {
+      const bloco = $('bloco').value.replace(/\D/g, '');
+      const k = Number($('k').value);
+
+      if (!bloco || bloco.length !== k || k < 1) {
+        $('resumo').innerHTML = '⚠️ Ajuste os dados: o bloco precisa ter exatamente k dígitos.';
+        clearLines();
+        return;
+      }
+
+      const rep = bloco + bloco;
+      const x = BigInt(bloco);
+      const pow = BigInt(10) ** BigInt(k);
+      const mult = pow + 1n;
+      const n = x * mult;
+
+      $('repBadge').textContent = rep;
+      $('multBadge').textContent = `10^${k}+1 = ${mult.toString()}`;
+      clearLines();
+
+      showLine('l1', `1) Número repetido: <span class="hilite">${rep}</span>`, 100);
+      showLine('l2', `2) Separando: ${rep} = ${bloco}×10^${k} + ${bloco}`, 600);
+      showLine('l3', `3) Fatorando ${bloco}: ${bloco}(10^${k} + 1)`, 1100);
+      showLine('l4', `4) Multiplicador: 10^${k}+1 = <span class="hilite">${mult.toString()}</span>`, 1600);
+      showLine('l5', `5) Verificação: ${bloco} × ${mult.toString()} = <span class="ok">${n.toString()}</span>`, 2100);
+
+      $('resumo').innerHTML = `Conclusão: todo número no formato <span class="math">XX</span> (bloco de ${k} dígitos repetido) é múltiplo de <span class="math">10^${k}+1</span>.`;
+    }
+
+    $('btnAnimar').addEventListener('click', run);
+    run();
+  </script>
+</body>
+</html>
