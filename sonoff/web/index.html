@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel Sonoff</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div>
+        <h1>Painel Sonoff</h1>
+        <p>Controle rápido dos dispositivos</p>
+      </div>
+      <button id="refreshBtn" class="btn ghost">Atualizar</button>
+    </header>
+
+    <section id="stats" class="stats"></section>
+
+    <section class="controls">
+      <input id="searchInput" class="input" type="search" placeholder="Buscar por nome ou ID..." />
+      <select id="filterSelect" class="select" aria-label="Filtrar dispositivos">
+        <option value="all">Todos</option>
+        <option value="online">Online</option>
+        <option value="offline">Offline</option>
+      </select>
+    </section>
+
+    <section>
+      <div id="grid" class="grid"></div>
+      <div id="emptyState" class="empty" hidden>Nenhum dispositivo encontrado com esse filtro.</div>
+    </section>
+
+    <footer class="foot">
+      <span id="statusText">Carregando...</span>
+    </footer>
+  </main>
+
+  <template id="cardTpl">
+    <article class="card">
+      <div class="card-head">
+        <h3 class="name"></h3>
+        <span class="pill"></span>
+      </div>
+      <p class="id"></p>
+      <p class="state"></p>
+      <div class="actions">
+        <button class="btn on">Ligar</button>
+        <button class="btn off">Desligar</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
