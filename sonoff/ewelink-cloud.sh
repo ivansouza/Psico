@@ -126,7 +126,10 @@ case "$cmd" in
   const out = list.map(t => ({
     name: t?.name || t?.itemData?.name || null,
     id: t?.itemData?.deviceid || t?.deviceid || t?.id || null,
-    online: t?.itemData?.online ?? t?.online ?? null
+    online: t?.itemData?.online ?? t?.online ?? null,
+    params: {
+      switch: t?.itemData?.params?.switch ?? t?.params?.switch ?? null
+    }
   }));
   console.log(JSON.stringify({ total: out.length, devices: out }, null, 2));
 })();
