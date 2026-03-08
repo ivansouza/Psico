@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Desafio de Geometria</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .safe-top { padding-top: env(safe-area-inset-top); }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+  <div class="min-h-[100dvh] flex flex-col items-center p-4 safe-top">
+    <!-- Header -->
+    <header class="w-full max-w-sm flex justify-between items-center mb-4 pt-2">
+      <div class="flex items-center gap-2">
+        <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-100">
+          <i data-lucide="trophy" class="w-[18px] h-[18px]"></i>
+        </div>
+        <span class="font-bold text-lg tracking-tight">Pontos: <span id="score">0</span></span>
+      </div>
+      <button onclick="generateProblem()" class="p-2.5 hover:bg-white bg-white/80 rounded-full transition-all border border-slate-200 shadow-sm active:scale-90 active:bg-slate-100">
+        <i data-lucide="refresh-cw" class="w-[22px] h-[22px] text-slate-600"></i>
+      </button>
+    </header>
+
+    <!-- Main Card -->
+    <main class="w-full max-w-sm bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100 flex flex-col">
+      <div class="p-6 text-center bg-white border-b border-slate-50">
+        <h2 class="text-[9px] font-black text-indigo-500 mb-1 uppercase tracking-[0.2em]">Geometria Interativa</h2>
+        <p class="text-slate-400 text-xs font-medium italic">"Use o cérebro em vez da caneta"</p>
+      </div>
+
+      <!-- SVG Container -->
+      <div id="svg-container" class="relative bg-slate-50/40 flex justify-center py-6 px-4 overflow-hidden">
+        <!-- SVG será inserido aqui pelo JS -->
+      </div>
+
+      <!-- Interação -->
+      <div class="p-5 space-y-5">
+        <div id="input-zone" class="flex gap-2 items-stretch">
+          <input
+            id="user-input"
+            type="number"
+            pattern="\d*"
+            inputmode="numeric"
+            step="10"
+            placeholder="Valor de x..."
+            class="flex-1 min-w-0 bg-slate-100 border-2 border-transparent rounded-2xl px-4 py-4 focus:border-indigo-500 focus:bg-white outline-none text-base font-bold transition-all placeholder:text-slate-400 appearance-none shadow-inner"
+          />
+          <button
+            onclick="checkAnswer()"
+            class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-6 rounded-2xl font-black transition-all active:scale-95 shadow-md shadow-indigo-100 uppercase text-sm tracking-widest shrink-0"
+          >
+            OK
+          </button>
+        </div>
+
+        <div id="feedback-zone" class="hidden p-5 rounded-[1.5rem] flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div class="p-2 bg-white rounded-full shadow-sm shrink-0">
+            <i id="feedback-icon" class="w-6 h-6"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="feedback-title" class="font-black text-base leading-tight uppercase tracking-tight truncate"></p>
+            <p id="feedback-msg" class="text-[11px] font-semibold opacity-70"></p>
+          </div>
+          <button onclick="generateProblem()" class="bg-white p-2 rounded-xl shadow-sm active:bg-slate-50 transition-colors">
+            <i data-lucide="refresh-cw" class="w-[18px] h-[18px]"></i>
+          </button>
+        </div>
+
+        <!-- Dica -->
+        <div class="pt-1">
+          <button onclick="toggleHint()" class="text-slate-400 flex items-center justify-center gap-1.5 text-[10px] font-black hover:text-indigo-600 transition-colors uppercase tracking-[0.15em] w-full py-2">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+            <span id="hint-btn-text">Como resolver?</span>
+          </button>
+
+          <div id="hint-box" class="hidden mt-3 p-4 bg-indigo-50/50 rounded-2xl text-slate-600 text-xs border border-indigo-100/50">
+            <p class="mb-2 leading-relaxed text-center font-medium italic">Soma dos ângulos - 180° = Intersecção (x)</p>
+            <div class="bg-white p-3 rounded-xl font-mono text-center border border-indigo-100 shadow-sm text-indigo-900">
+              <div id="hint-calc-1" class="font-bold mb-1"></div>
+              <div class="border-t border-indigo-50 my-1"></div>
+              <div id="hint-calc-2" class="font-black text-red-500 text-sm"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Histórico -->
+    <footer class="mt-auto w-full max-w-sm px-2 pt-6 pb-2">
+      <h3 class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-2 text-center">Últimos Desafios</h3>
+      <div id="history-container" class="flex gap-2 overflow-x-auto pb-2 justify-start scrollbar-hide px-2">
+        <div class="w-full flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl py-3 text-[10px] text-slate-300 font-bold uppercase italic">
+          Ainda não jogou
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Estado Global
+    let angles = { aLeft: 150, aRight: 140, x: 110, r1: 140, r2: 30 };
+    let score = 0;
+    let history = [];
+    let showHint = false;
+
+    // Inicialização
+    window.onload = () => {
+      render();
+      lucide.createIcons();
+    };
+
+    function getPoint(angle, radius) {
+      const rad = (angle * Math.PI) / 180;
+      return {
+        x: 200 + radius * Math.cos(rad),
+        y: 200 - radius * Math.sin(rad)
+      };
+    }
+
+    function generateProblem() {
+      // Regra de múltiplos de 10
+      const r1 = (Math.floor(Math.random() * 5) + 11) * 10;
+      const r2 = (Math.floor(Math.random() * 5) + 2) * 10;
+
+      angles.r1 = r1;
+      angles.r2 = r2;
+      angles.x = r1 - r2;
+      angles.aLeft = 180 - r2;
+      angles.aRight = r1;
+
+      document.getElementById('user-input').value = '';
+      document.getElementById('input-zone').classList.remove('hidden');
+      document.getElementById('feedback-zone').classList.add('hidden');
+
+      showHint = false;
+      updateHintUI();
+      render();
+    }
+
+    function checkAnswer() {
+      const val = parseInt(document.getElementById('user-input').value);
+      const isCorrect = (val === angles.x);
+      if (isCorrect) {
+        score += 10;
+      } else {
+        score = Math.max(0, score - 5);
+      }
+
+      history.unshift({ result: isCorrect ? 'correct' : 'wrong', val: angles.x });
+      if (history.length > 5) history.pop();
+
+      showFeedback(isCorrect);
+      updateHistoryUI();
+      document.getElementById('score').innerText = score;
+    }
+
+    function showFeedback(correct) {
+      document.getElementById('input-zone').classList.add('hidden');
+      const fZone = document.getElementById('feedback-zone');
+      fZone.classList.remove('hidden');
+
+      const fIcon = document.getElementById('feedback-icon');
+      const fTitle = document.getElementById('feedback-title');
+      const fMsg = document.getElementById('feedback-msg');
+
+      if (correct) {
+        fZone.className = 'p-5 rounded-[1.5rem] flex items-center gap-3 bg-green-50 text-green-700 border border-green-100';
+        fTitle.innerText = 'Perfeito!';
+        fMsg.innerText = `Você acertou: ${angles.x}°`;
+        fIcon.setAttribute('data-lucide', 'check-circle-2');
+      } else {
+        fZone.className = 'p-5 rounded-[1.5rem] flex items-center gap-3 bg-red-50 text-red-700 border border-red-100';
+        fTitle.innerText = 'Incorreto';
+        fMsg.innerText = `A resposta era ${angles.x}°`;
+        fIcon.setAttribute('data-lucide', 'x-circle');
+      }
+      lucide.createIcons();
+    }
+
+    function toggleHint() {
+      showHint = !showHint;
+      updateHintUI();
+    }
+
+    function updateHintUI() {
+      const hBox = document.getElementById('hint-box');
+      const btnText = document.getElementById('hint-btn-text');
+      if (showHint) {
+        hBox.classList.remove('hidden');
+        btnText.innerText = 'Ocultar Dica';
+        document.getElementById('hint-calc-1').innerText = `${angles.aLeft} + ${angles.aRight} = ${angles.aLeft + angles.aRight}`;
+        document.getElementById('hint-calc-2').innerText = `${angles.aLeft + angles.aRight} - 180 = ${angles.x}°`;
+      } else {
+        hBox.classList.add('hidden');
+        btnText.innerText = 'Como resolver?';
+      }
+    }
+
+    function updateHistoryUI() {
+      const container = document.getElementById('history-container');
+      container.innerHTML = '';
+      history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-black text-[11px] border shadow-sm ${item.result === 'correct' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-red-50 border-red-200 text-red-600'}`;
+        div.innerText = `${item.val}°`;
+        container.appendChild(div);
+      });
+    }
+
+    function render() {
+      const p1 = getPoint(angles.r1, 140);
+      const p2 = getPoint(angles.r2, 125);
+      const arcL = getPoint(angles.r2, 80);
+      const arcR = getPoint(angles.r1, 65);
+      const x1 = getPoint(angles.r1, 50);
+      const x2 = getPoint(angles.r2, 50);
+
+      const svgHTML = `
+      <svg viewBox="0 0 400 240" class="w-full h-auto max-h-[220px] drop-shadow-sm" preserveAspectRatio="xMidYMid meet">
+        <line x1="40" y1="200" x2="360" y2="200" stroke="#1e293b" stroke-width="3" stroke-linecap="round" />
+        <path d="M40 195 L30 200 L40 205" fill="none" stroke="#1e293b" stroke-width="2" />
+        <path d="M360 195 L370 200 L360 205" fill="none" stroke="#1e293b" stroke-width="2" />
+
+        <line x1="200" y1="200" x2="${p1.x}" y2="${p1.y}" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" />
+        <line x1="200" y1="200" x2="${p2.x}" y2="${p2.y}" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" />
+
+        <path d="M 120 200 A 80 80 0 0 1 ${arcL.x} ${arcL.y}" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="2 2" />
+        <text x="65" y="175" class="text-[12px] font-bold" fill="#64748b">${angles.aLeft}°</text>
+
+        <path d="M 265 200 A 65 65 0 0 0 ${arcR.x} ${arcR.y}" fill="none" stroke="#2563eb" stroke-width="2.5" />
+        <text x="280" y="175" class="text-[12px] font-bold" fill="#2563eb">${angles.aRight}°</text>
+
+        <path d="M ${x1.x} ${x1.y} A 50 50 0 0 1 ${x2.x} ${x2.y}" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round" />
+        <text x="188" y="125" class="text-xl font-black italic" fill="#ef4444">x</text>
+      </svg>
+      `;
+      document.getElementById('svg-container').innerHTML = svgHTML;
+    }
+  </script>
+</body>
+</html>
