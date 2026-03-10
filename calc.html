@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Calculadora Científica</title>
+<style>
+  body {font-family: Arial, sans-serif; background:#f0f4f8; display:flex; justify-content:center; padding:20px;}
+  #calc {background:#fff; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.1); width:340px;}
+  #display {background:#e9ecef; color:#212529; font-size:2rem; text-align:right; padding:10px; border-radius:8px; margin-bottom:15px; height:50px; line-height:50px;}
+  .keys {display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  button {padding:15px; font-size:1.1rem; border:none; border-radius:6px; cursor:pointer; background:#28a745; color:#fff;}
+  button.operator {background:#007bff;}
+  button.scientific {background:#6c757d;}
+  button.memory {background:#fd7e14;}
+  button.Clear {background:#dc3545;}
+  button.Func {font-size:.9rem;}
+</style>
+</head>
+<body>
+<div id="calc">
+  <div id="display">0</div>
+  <div class="keys">
+    <button class="Clear">C</button>
+    <button class="Clear">←</button>
+    <button class="operator" data-op="/">÷</button>
+    <button class="operator" data-op="*">×</button>
+
+    <button data-func="sin">sin</button>
+    <button data-func="cos">cos</button>
+    <button data-func="tan">tan</button>
+    <button data-func="log">log</button>
+
+    <button data-func="sqrt">√</button>
+    <button data-func="pi">π</button>
+    <button data-func="e">e</button>
+    <button data-func="^">xʸ</button>
+
+    <button class="memory">M+</button>
+    <button class="memory">M-</button>
+    <button class="memory">MR</button>
+    <button class="memory">MC</button>
+
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+    <button class="operator" data-op="-">‑</button>
+
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button class="operator" data-op="+">+</button>
+
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button data-func="%">%</button>
+
+    <button data-num="0" style="grid-column: span 2;">0</button>
+    <button data-dot=".">.</button>
+    <button class="operator" data-eq="=">=</button>
+  </div>
+</div>
+
+<script>
+  // Exemplo de expressão matemática: $ \pi \approx 3.14159 $ 
+  const display = document.getElementById('display');
+  let current = '';          // O que está sendo digitado
+  let previous = '';         // Valor anterior (para operaçães)
+  let operator = null;       // Operador escolhido
+  let resetDisplay = false;  // Controla se devemos limpar o display
+  const memory = { value: 0 };
+
+  // Atualiza o texto do display
+  const updateDisplay = () => {
+    display.textContent = current || '0';
+  };
+
+  // Funções matemáticas (usam Math)
+  const functions = {
+    sin: x => Math.sin(degToRad(x)),
+    cos: x => Math.cos(degToRad(x)),
+    tan: x => Math.tan(degToRad(x)),
+    sqrt: x => Math.sqrt(x),
+    log: x => Math.log10(x),
+    ln: x => Math.log(x),
+    pi: () => Math.PI,
+    e: () => Math.E,
+    '^': (base, exp) => Math.pow(base, exp)
+  };
+
+  // Converte graus para radianos
+  const degToRad = deg => deg * Math.PI / 180;
+
+  // Manipula cliques ou teclas
+  document.querySelector('.keys').addEventListener('click', e => {
+    const btn = e.target;
+    if (!btn) return;
+
+    const tag = btn.dataset;
+
+    // Números e ponto
+    if (tag.num !== undefined) {
+      if (resetDisplay) { current = ''; resetDisplay = false; }
+      current = current === '0' ? tag.num : current + tag.num;
+    } else if (tag.dot !== undefined) {
+      if (resetDisplay) { current = ''; resetDisplay = false; }
+      if (!current.includes('.')) current += '.';
+    }
+
+    // Operações
+    else if (tag.op) {
+      if (operator && !resetDisplay) evaluate();
+      else previous = current;
+      operator = tag.op;
+      resetDisplay = true;
+    }
+
+    // Funções científicas
+    else if (tag.func) {
+      if (tag.func === 'sin' || tag.func === 'cos' || tag.func === 'tan') {
+        current = functions[tag.func](parseFloat(current)).toString();
+      } else if (tag.func === 'sqrt') {
+        current = functions.sqrt(parseFloat(current)).toString();
+      } else if (tag.func === 'log' || tag.func === 'ln') {
+        current = functions[tag.func](parseFloat(current)).toString();
+      } else {
+        current = functions[tag.func]().toString();
+      }
+      updateDisplay();
+      resetDisplay = true;
+    }
+
+    // Memória
+    else if (tag.memory) {
+      switch (tag.memory) {
+        case 'M+': memory.value += parseFloat(current); break;
+        case 'M-': memory.value -= parseFloat(current); break;
+        case 'MR': current = memory.value.toString(); updateDisplay(); resetDisplay = true; break;
+        case 'MC': memory.value = 0; break;
+      }
+      updateDisplay();
+    }
+
+    // Igualdade
+    else if (tag.eq) {
+      if (operator) evaluate();
+      updateDisplay();
+    }
+
+    // Limpeza
+    else if (btn.textContent === 'C') { current = ''; operator = null; resetDisplay = false; updateDisplay(); }
+    else if (btn.textContent === '←') { current = current.slice(0, -1) || '0'; updateDisplay(); }
+
+    // Atualiza display a qualquer mudança
+    updateDisplay();
+  });
+
+  // Avalia expressões matemáticas simples
+  const evaluate = () => {
+    const curr = parseFloat(current);
+    const prev = parseFloat(previous);
+    let result;
+
+    switch (operator) {
+      case '+': result = prev + curr; break;
+      case '-': result = prev - curr; break;
+      case '×': result = prev * curr; break;
+      case '÷': result = curr !== 0 ? prev / curr : NaN; break;
+      case '^': result = Math.pow(prev, curr); break;
+      default: return;
+    }
+    current = result.toString();
+    operator = null;
+    previous = '';
+    resetDisplay = true;
+  };
+
+  // Suporte ao teclado físico
+  document.addEventListener('keydown', e => {
+    const key = e.key;
+    const btn = document.querySelector(`button[data-num="${key}"],
+                                          button[data-op="${key}"],
+                                          button[data-func="${key}"],
+                                          button[data-dot="${key}"],
+                                          button[data-eq="${key}"]`);
+    if (btn) btn.click();
+  });
+</script>
+</body>
+</html>
