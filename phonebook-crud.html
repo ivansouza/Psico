@@ -1,233 +1,187 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agenda Telefônica CRUD</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
-    body { background-color: #05070a; color: #e2e8f0; font-family: 'Inter', sans-serif; background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%); }
-    .card { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.03); transition: all 0.3s; }
-    .card:hover { transform: translateY(-8px); border-color: #38bdf8; box-shadow: 0 20px 40px -20px rgba(56,189,248,0.4); background: rgba(30,41,59,0.6); }
-    .gradient-text { background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .filter-btn { transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
-    .filter-btn.active { background-color: #38bdf8; color: #0b0f1a; border-color: #38bdf8; box-shadow: 0 0 15px rgba(56,189,248,0.4); }
-    .badge-cat { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; }
-    .file-date { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: #64748b; }
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #05070a; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agenda Telefônica CRUD</title>
+<style>
+:root { --bg: #0b1020; --card: #111827; --muted: #6b7280; --accent: #3b82f6; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background: var(--bg); color: #e5e7eb; }
+.container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.card { background: rgba(2,6,23,.8); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+h1 { font-size: 1.25rem; margin: 0 0 8px; }
+label { font-size: 12px; color: var(--muted); display: block; margin-top: 8px; }
+input[type="text"], input[type="tel"] { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e5e7eb; }
+button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+.btn { background: var(--accent); color: white; font-weight: 700; }
+.btn.secondary { background: #374151; color: white; }
+table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+th, td { padding: 8px; border-bottom: 1px solid #1f2937; font-size: 14px; }
+.actions { display: flex; gap: 8px; justify-content: center; }
+.empty { text-align: center; color: var(--muted); padding: 16px 0; }
+</style>
 </head>
-<body class="min-h-screen selection:bg-sky-500/30">
-  <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-4 mb-8">
-    <div class="max-w-[1600px] mx-auto flex flex-col gap-4">
-      <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-4">
-          <div class="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
-            <i class="fas fa-brain text-white text-xl"></i>
-          </div>
-          <div>
-            <h1 class="text-2xl font-black gradient-text tracking-tighter uppercase leading-none">Psico Portfolio</h1>
-            <p class="text-slate-500 text-[10px] font-medium uppercase tracking-widest mt-1">Ivan Souza • Laboratório de Código • <span id="cards-total">0</span> cards</p>
-          </div>
-        </div>
-        <div class="flex flex-wrap justify-center gap-1.5" id="filters-cat"></div>
-      </div>
-      <div class="flex flex-col lg:flex-row gap-4 py-2 border-t border-white/5">
-        <div class="flex items-center gap-3">
-          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ano:</span>
-          <div class="flex gap-1.5" id="filters-year"></div>
-        </div>
-        <div class="flex items-center gap-3 lg:border-l lg:border-white/5 lg:pl-4">
-          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mês:</span>
-          <div class="flex flex-wrap gap-1.5" id="filters-month"></div>
-        </div>
-      </div>
-    </div>
-  </header>
+<body>
+<div class="container">
+<div class="card">
+<h1>Agenda Telefônica</h1>
+<form id="contactForm" autocomplete="off">
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+<div>
+<label for="name">Nome</label>
+<input id="name" type="text" placeholder="Digite o nome" required />
+</div>
+<div>
+<label for="phone">Telefone</label>
+<input id="phone" type="tel" placeholder="(99) 99999-9999" required />
+</div>
+</div>
+<input type="hidden" id="idx" value="">
+<div style="margin-top:12px; display:flex; gap:8px;">
+<button type="submit" class="btn" id="saveBtn">Salvar Contato</button>
+<button type="button" class="btn secondary" id="clearBtn">Limpar</button>
+</div>
+</form>
+</div>
 
-  <main class="max-w-[1600px] mx-auto px-6 pb-32">
-    <div id="stats" class="mb-6 text-slate-500 text-[10px] font-bold uppercase tracking-widest"></div>
-    <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
-  </main>
+<div class="card">
+<h2 style="margin:0 0 8px;">Contatos</h2>
+<table id="table">
+<thead>
+<tr><th>Nome</th><th>Telefone</th><th>Ações</th></tr>
+</thead>
+<tbody id="tbody">
+<!-- linhas geradas dinamicamente -->
+</tbody>
+</table>
+<div id="empty" class="empty" style="display:none;">Nenhum contato cadastrado.</div>
+</div>
+</div>
 
-  <footer class="border-t border-white/5 bg-slate-950/50 py-12 text-center">
-    <div class="max-w-7xl mx-auto px-6">
-      <p class="text-slate-500 text-sm mb-4 font-medium">Repositório de exploração visual e física computacional.</p>
-      <div class="flex justify-center gap-6 text-slate-400">
-        <a href="https://github.com/ivansouza/Psico" target="_blank" class="hover:text-sky-400 transition-colors"><i class="fab fa-github text-xl"></i></a>
-      </div>
-      <p class="text-slate-700 text-[10px] mt-8 uppercase tracking-widest font-bold">&copy; 2026 ivansouza - Creative Coding Lab</p>
-    </div>
-  </footer>
+<script>
+// Chave de storage
+const STORAGE_KEY = "phonebookContacts";
 
-  <script>
-    const username = "ivansouza";
-    const repo = "Psico";
-    const baseUrl = `https://${username}.github.io/${repo}`;
-    const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
+// Estado
+let contacts = [];
+let editingIndex = -1;
 
-    let activeCategory = "Todos";
-    let activeMonth = "Todos";
-    let activeYear = "Todos";
+// DOM
+const form = document.getElementById("contactForm");
+const nameInput = document.getElementById("name");
+const phoneInput = document.getElementById("phone");
+const idxInput = document.getElementById("idx");
+const saveBtn = document.getElementById("saveBtn");
+const clearBtn = document.getElementById("clearBtn");
+const tbody = document.getElementById("tbody");
+const emptyMsg = document.getElementById("empty");
 
-    const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+// Init
+function load() {
+try {
+const raw = localStorage.getItem(STORAGE_KEY);
+contacts = raw ? JSON.parse(raw) : [];
+} catch (e) {
+contacts = [];
+}
+render();
+}
 
-    let experiments = [
-      { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
-      // ... existing items will be preserved when you refresh the actual file; this is a static placeholder for the patch
-      { name: "Palheta Vibrante", file: "palheta-site.html", cat: "Util", date: "09/03/2026", desc: "Escolha paletas criativas para site com preview ao vivo, presets e cópia de variáveis CSS." }
-    ];
+function save() {
+localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+}
 
-    function getYearFromDate(dateStr) { return dateStr.split('/')[2]; }
-    function getMonthFromDate(dateStr) { return monthNames[parseInt(dateStr.split('/')[1]) - 1]; }
+// CRUD
+function addContact(name, phone) {
+contacts.push({ name, phone });
+save();
+render();
+}
 
-    function initFilters() {
-      const cats = ["Todos", ...new Set(experiments.map(e => e.cat))];
-      const filtersCat = document.getElementById('filters-cat');
-      filtersCat.innerHTML = cats.map(cat => `
-        <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}
-        ">${cat}
-        </button>
-      `).join('');
+function updateContact(index, name, phone) {
+contacts[index] = { name, phone };
+save();
+render();
+}
 
-      const years = ["Todos", ...new Set(experiments.map(e => getYearFromDate(e.date)))].sort();
-      const filtersYear = document.getElementById('filters-year');
-      filtersYear.innerHTML = years.map(y => `
-        <button onclick="applyFilter('year', '${y}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}
-        ">${y}
-        </button>
-      `).join('');
+function deleteContact(index) {
+contacts.splice(index, 1);
+save();
+render();
+}
 
-      const availableMonths = [...new Set(experiments.map(e => getMonthFromDate(e.date)))];
-      availableMonths.sort((a,b)=> monthNames.indexOf(a)-monthNames.indexOf(b));
-      const filtersMonth = document.getElementById('filters-month');
-      const monthList = ["Todos", ...availableMonths];
-      filtersMonth.innerHTML = monthList.map(m => `
-        <button onclick="applyFilter('month', '${m}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}
-        ">${m}
-        </button>
-      `).join('');
-    }
+// UI
+function render() {
+tbody.innerHTML = "";
+if (contacts.length === 0) {
+emptyMsg.style.display = "block";
+} else {
+emptyMsg.style.display = "none";
+contacts.forEach((c, i) => {
+const tr = document.createElement("tr");
+tr.innerHTML = `
+<td>${escapeHTML(c.name)}</td>
+<td>${escapeHTML(c.phone)}</td>
+<td class="actions">
+<button aria-label="Editar" data-i="${i}">✏️</button>
+<button aria-label="Excluir" data-i="${i}">🗑️</button>
+</td>
+`;
+// Ações
+tr.querySelectorAll("button").forEach(btn => {
+btn.addEventListener("click", (e) => {
+const idx = Number(btn.dataset.i);
+if (btn.textContent.includes("✏️") || btn.getAttribute("aria-label") === "Editar") {
+// Editar
+editingIndex = idx;
+nameInput.value = contacts[idx].name;
+phoneInput.value = contacts[idx].phone;
+idxInput.value = idx;
+saveBtn.textContent = "Atualizar Contato";
+} else {
+// Excluir
+if (confirm("Excluir contato?")) deleteContact(idx);
+}
+});
+});
+tbody.appendChild(tr);
+});
+}
+}
 
-    function applyFilter(type, value, btn) {
-      if (type === 'cat') activeCategory = value;
-      else if (type === 'month') activeMonth = value;
-      else if (type === 'year') activeYear = value;
-      btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderCards();
-    }
+function escapeHTML(s) {
+const div = document.createElement("div");
+div.appendChild(document.createTextNode(s));
+return div.innerHTML;
+}
 
-    function renderCards() {
-      const gallery = document.getElementById('gallery');
-      const stats = document.getElementById('stats');
-      const filtered = experiments.filter(exp => {
-        const matchCat = activeCategory === "Todos" || exp.cat === activeCategory;
-        const matchMonth = activeMonth === "Todos" || getMonthFromDate(exp.date) === activeMonth;
-        const matchYear = activeYear === "Todos" || getYearFromDate(exp.date) === activeYear;
-        return matchCat && matchMonth && matchYear;
-      });
-      stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length} experiências`;
-      gallery.innerHTML = filtered.map(exp => `
-        <div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">
-          <div>
-            <div class="flex justify-between items-start mb-4">
-              <div class="flex flex-col">
-                <span class="badge-cat text-sky-400 opacity-60">${exp.cat}</span>
-                <span class="file-date mt-1">${exp.date}</span>
-              </div>
-              <div class="flex gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
-              </div>
-            </div>
-            <h3 class="text-lg font-extrabold text-white mb-2 leading-tight group-hover:text-sky-400 transition-colors">${exp.name}</h3>
-            <p class="text-[11px] text-slate-500 leading-relaxed mb-6 font-medium">${exp.desc}</p>
-          </div>
-          <div class="flex flex-col gap-2 mt-auto">
-            <a href="${baseUrl}/${exp.file}" target="_blank" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black py-3 rounded-2xl text-center transition-all uppercase tracking-widest flex items-center justify-center gap-2">
-              <i class="fas fa-play"></i> Ver Demo
-            </a>
-            <a href="${sourceUrl}/${exp.file}" target="_blank" class="w-full bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white text-[9px] font-bold py-2 rounded-xl text-center transition-all flex items-center justify-center gap-2 border border-white/5">
-              <i class="fas fa-code"></i> Source Code
-            </a>
-          </div>
-        </div>
-      `).join('');
-    }
+// Form submit (criar/atualizar)
+form.addEventListener("submit", (e) => {
+e.preventDefault();
+const nome = nameInput.value.trim();
+const telefone = phoneInput.value.trim();
+if (!nome || !telefone) return;
+const idx = Number(idxInput.value);
+if (Number.isFinite(idx) && idx >= 0) {
+updateContact(idx, nome, telefone);
+} else {
+addContact(nome, telefone);
+}
+form.reset();
+idxInput.value = "";
+editingIndex = -1;
+saveBtn.textContent = "Salvar Contato";
+});
 
-    function parseDateBR(dateStr) { const [day, month, year] = dateStr.split('/').map(Number); return new Date(year, month - 1, day); }
+clearBtn.addEventListener("click", () => {
+form.reset();
+idxInput.value = "";
+editingIndex = -1;
+saveBtn.textContent = "Salvar Contato";
+});
 
-    function sortExperiments() { experiments.sort((a,b)=> { const diff = parseDateBR(b.date) - parseDateBR(a.date); return diff !== 0 ? diff : a.name.localeCompare(b.name); }); }
-
-    function formatDateBR(date = new Date()) {
-      const day = String(date.getDate()).padStart(2,'0');
-      const month = String(date.getMonth()+1).padStart(2,'0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    }
-
-    function prettyNameFromFile(file) {
-      return file.replace(/\.html$/i,'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim().replace(/\b\w/g, c => c.toUpperCase());
-    }
-
-    function classifyByFileName(file) {
-      // Simplified classification for demo; could be extended
-      const f = file.toLowerCase();
-      if (/shader|glsl|sdf/.test(f)) return 'Shaders';
-      if (/fractal|mandelbrot|julia|nebulabrot|samambaia/.test(f)) return 'Fractal';
-      if (/audio|binaur|tts|player|stereo/.test(f)) return 'Áudio';
-      if (/lorenz|gravity|faraday|water|pendulum|orbiter|resson|molas|roldanas|pulley|blackhole|vortex|sp|springs/.test(f)) return 'Física';
-      if (/(n1089|prime|kaprekar|fibonacci|lissajous|riemann|harshad|collatz)/.test(f)) return 'Matemática';
-      if (/(geo|torus|mobius|sphere|icosa|dode|tesseract|viviani|escher|spiral|spiro|solidos|cubo|cube)/.test(f)) return 'Geometria';
-      if (/(chat|grok|neural|brain|qwen)/.test(f)) return 'IA';
-      if (/(logo|qrcode|timer|map|perfil|color|biblia|fatos|player)/.test(f)) return 'Util';
-      return 'Util';
-    }
-
-    async function syncMissingCardsFromGitHub() {
-      try {
-        const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
-        if (!res.ok) return;
-
-        const items = await res.json();
-        const remoteHtml = items
-          .filter(item => item.type === 'file' && /\.html$/i.test(item.name) && item.name.toLowerCase() !== 'index.html')
-          .map(item => item.name);
-
-        const known = new Set(experiments.map(e => e.file.toLowerCase()));
-        const missing = remoteHtml.filter(file => !known.has(file.toLowerCase()));
-        if (!missing.length) return;
-
-        const today = formatDateBR();
-        const generated = missing.map(file => ({
-          name: prettyNameFromFile(file),
-          file,
-          cat: classifyByFileName(file),
-          date: today,
-          desc: 'Card gerado automaticamente a partir dos arquivos do repositório.'
-        }));
-
-        experiments = [...generated, ...experiments];
-        sortExperiments();
-        document.getElementById('cards-total').textContent = experiments.length;
-        initFilters();
-        renderCards();
-      } catch (err) {
-        console.warn('Não foi possível sincronizar cards automaticamente:', err);
-      }
-    }
-
-    sortExperiments();
-    document.getElementById('cards-total').textContent = experiments.length;
-    initFilters();
-    renderCards();
-    syncMissingCardsFromGitHub();
-  </script>
+// Inicialização
+load();
+</script>
 </body>
 </html>
