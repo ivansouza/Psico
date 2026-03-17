@@ -474,6 +474,19 @@
             return 'Util';
         }
 
+        async function fetchLastCommitDate(file) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/commits?path=${file}&per_page=1`);
+                if (!res.ok) return null;
+                const commits = await res.json();
+                if (!Array.isArray(commits) || !commits.length) return null;
+                return new Date(commits[0].commit.author.date);
+            } catch (err) {
+                console.warn('Não foi possível obter data do commit para', file, err);
+                return null;
+            }
+        }
+
         async function syncMissingCardsFromGitHub() {
             try {
                 const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
@@ -488,13 +501,15 @@
                 const missing = remoteHtml.filter(file => !known.has(file.toLowerCase()));
                 if (!missing.length) return;
 
-                const today = formatDateBR();
-                const generated = missing.map(file => ({
-                    name: prettyNameFromFile(file),
-                    file,
-                    cat: classifyByFileName(file),
-                    date: today,
-                    desc: 'Card gerado automaticamente a partir dos arquivos do repositório.'
+                const generated = await Promise.all(missing.map(async (file) => {
+                    const commitDate = await fetchLastCommitDate(file);
+                    return {
+                        name: prettyNameFromFile(file),
+                        file,
+                        cat: classifyByFileName(file),
+                        date: formatDateBR(commitDate || new Date()),
+                        desc: 'Card gerado automaticamente a partir dos arquivos do repositório.'
+                    };
                 }));
 
                 experiments = [...generated, ...experiments];
