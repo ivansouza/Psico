@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Telefônica</title>
+    <style>
+        body { font-family: Arial; background-color: #f4f4f4; padding: 20px; }
+        
+        .container { max-width: 800px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        h1 { color: #333; text-align: center; margin-bottom: 30px; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], input[type="tel"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        
+        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background-color: #45a049; }
+        
+        .delete-btn { background-color: #f44336; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px; float: right; }
+        .delete-btn:hover { background-color: #d32f2f; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .empty-msg { color: #666; text-align: center; margin-top: 40px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📞 Agenda Telefônica</h1>
+    
+    <!-- Formulário de Cadastro -->
+    <form id="agenda-form">
+        <div class="form-group">
+            <label for="nome">Nome:</label>
+            <input type="text" id="nome" name="nome" placeholder="Digite o nome da pessoa" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="endereco">Endereço:</label>
+            <input type="text" id="endereco" name="endereco" placeholder="Digite o endereço completo" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="telefone">Telefone:</label>
+            <input type="tel" id="telefone" name="telefone" placeholder="(DDD) 9XXXX-XXXX" required>
+        </div>
+        
+        <button type="submit" onclick="salvarAgenda()">Salvar Contato</button>
+    </form>
+    
+    <!-- Tabela de Listagem -->
+    <table id="agenda-tabela">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Endereço</th>
+                <th>Telefone</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="tabela-body">
+        </tbody>
+    </table>
+    
+    <div class="empty-msg" id="empty-msg"></div>
+</div>
+
+<script>
+    // Variáveis globais para manipular a lista
+    let listaAgenda = [];
+    
+    // Função para carregar dados do LocalStorage ao iniciar
+    function carregarDados() {
+        const dadosSalvos = localStorage.getItem('agendaTelefonica');
+        
+        if (dadosSalvos) {
+            try {
+                listaAgenda = JSON.parse(dadosSalvos);
+                
+                // Se a página estiver vazia, exibe mensagem
+                document.getElementById('empty-msg').innerHTML = '';
+                document.getElementById('tabela-body').innerHTML = '';
+                
+                renderizarTabela();
+            } catch (e) {
+                console.error('Erro ao carregar dados:', e);
+            }
+        } else {
+            // Se não existem dados, mostra mensagem inicial
+            document.getElementById('empty-msg').innerHTML = 'Nenhum contato salvo. Adicione um novo.';
+            renderizarTabela();
+        }
+    }
+    
+    // Função para salvar contato (CRUD - CREATE)
+    function salvarAgenda() {
+        const nome = document.getElementById('nome').value.trim();
+        const endereco = document.getElementById('endereco').value.trim();
+        const telefone = document.getElementById('telefone').value.trim();
+        
+        if (!nome || !endereco || !telefone) {
+            alert('Preencha todos os campos!');
+            return;
+        }
+        
+        // Verifica se o contato já existe para atualizar (CRUD - UPDATE)
+        const index = listaAgenda.findIndex(item => item.nome === nome);
+        
+        if (index !== -1) {
+            listaAgenda[index] = {
+                id: Date.now(),
+                nome,
+                endereco,
+                telefone
+            };
+            alert('Contato atualizado com sucesso!');
+        } else {
+            // Adiciona novo contato
+            listaAgenda.push({
+                id: Date.now(),
+                nome,
+                endereco,
+                telefone
+            });
+            alert('Novo contato salvo com sucesso!');
+        }
+        
+        // Limpa formulário
+        document.getElementById('nome').value = '';
+        document.getElementById('endereco').value = '';
+        document.getElementById('telefone').value = '';
+        
+        // Salva no LocalStorage (CRUD - UPDATE)
+        localStorage.setItem('agendaTelefonica', JSON.stringify(listaAgenda));
+        
+        // Atualiza a tabela
+        renderizarTabela();
+    }
+    
+    // Função para excluir contato (CRUD - DELETE)
+    function excluirContato(id) {
+        if (!confirm('Tem certeza que deseja excluir este contato?')) return;
+        
+        listaAgenda = listaAgenda.filter(item => item.id !== id);
+        
+        // Salva no LocalStorage após exclusão
+        localStorage.setItem('agendaTelefonica', JSON.stringify(listaAgenda));
+        
+        renderizarTabela();
+    }
+    
+    // Função para atualizar contato (CRUD - UPDATE)
+    function atualizarContato(id, nome, endereco, telefone) {
+        const index = listaAgenda.findIndex(item => item.id === id);
+        
+        if (index !== -1) {
+            listaAgenda[index] = {
+                id: Date.now(),
+                nome,
+                endereco,
+                telefone
+            };
+            
+            localStorage.setItem('agendaTelefonica', JSON.stringify(listaAgenda));
+            
+            renderizarTabela();
+        }
+    }
+    
+    // Função para renderizar a tabela (CRUD - READ)
+    function renderizarTabela() {
+        const tbody = document.getElementById('tabela-body');
+        
+        // Limpa conteúdo atual da tabela
+        tbody.innerHTML = '';
+        
+        if (listaAgenda.length === 0) {
+            document.getElementById('empty-msg').innerHTML = 'Nenhum contato salvo. Adicione um novo.';
+            return;
+        }
+        
+        listaAgenda.forEach(contato => {
+            const tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td>${contato.nome}</td>
+                <td>${contato.endereco}</td>
+                <td>${contato.telefone}</td>
+                <td class="actions">
+                    <button class="delete-btn" onclick="excluirContato(${contato.id})">Excluir</button>
+                    <!-- Botão de Atualização -->
+                    <button style="background-color: #2196F3; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer;" onclick="mostrarFormularioAtualizacao(${contato.id})">Editar</button>
+                </td>
+            `;
+            
+            tbody.appendChild(tr);
+        });
+    }
+    
+    // Função para mostrar formulário de atualização
+    function mostrarFormularioAtualizacao(id) {
+        const contato = listaAgenda.find(item => item.id === id);
+        
+        if (!contato) return;
+        
+        document.getElementById('nome').value = contato.nome;
+        document.getElementById('endereco').value = contato.endereco;
+        document.getElementById('telefone').value = contato.telefone;
+    }
+    
+    // Função para salvar dados atualizados
+    function salvarDadosAtualizados() {
+        const id = prompt('Digite o ID do contato que deseja salvar:', listaAgenda.length ? 0 : null);
+        
+        if (id === null) return;
+        
+        const contatoId = parseInt(id);
+        const contatoIndex = listaAgenda.findIndex(item => item.id === contatoId);
+        
+        if (contatoIndex !== -1) {
+            atualizarContato(contatoId, 
+                document.getElementById('nome').value.trim(), 
+                document.getElementById('endereco').value.trim(), 
+                document.getElementById('telefone').value.trim()
+            );
+            
+            // Limpa formulário após salvar
+            document.getElementById('nome').value = '';
+            document.getElementById('endereco').value = '';
+            document.getElementById('telefone').value = '';
+        } else {
+            alert('ID não encontrado!');
+        }
+    }
+
+    // Inicializa a aplicação
+    carregarDados();
+</script>
+
+</body>
+</html>
