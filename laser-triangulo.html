@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laser no Triângulo • Efeito Exato do Vídeo</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    body {
+      background: #0a0a0a;
+      color: #ff3333;
+      font-family: 'Press Start 2P', system-ui;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      image-rendering: pixelated;
+    }
+
+    .app {
+      text-align: center;
+      background: #111;
+      padding: 20px;
+      border: 4px solid #ff3333;
+      box-shadow: 0 0 60px #ff0000, 0 0 120px #ff0000;
+      max-width: 820px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin: 10px 0 5px;
+      text-shadow: 0 0 20px #ff3333;
+      letter-spacing: 4px;
+    }
+
+    .led {
+      display: inline-block;
+      background: #000;
+      color: #ff0000;
+      font-size: 52px;
+      font-family: monospace;
+      padding: 10px 30px;
+      border: 6px solid #333;
+      box-shadow: inset 0 0 30px #ff0000;
+      margin: 15px 0;
+      min-width: 220px;
+      text-align: center;
+      letter-spacing: 8px;
+    }
+
+    canvas {
+      border: 6px solid #222;
+      box-shadow: 0 0 50px #ff3333;
+      image-rendering: crisp-edges;
+      background: #000;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      align-items: center;
+      background: #1a1a1a;
+      padding: 15px;
+      border: 3px solid #333;
+    }
+
+    label {
+      color: #ff6666;
+      font-size: 14px;
+    }
+
+    input[type="range"] {
+      width: 300px;
+      accent-color: #ff0000;
+    }
+
+    button {
+      background: #220000;
+      color: #ff3333;
+      border: 3px solid #ff3333;
+      padding: 10px 20px;
+      font-family: 'Press Start 2P';
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #ff0000;
+      color: #000;
+      box-shadow: 0 0 20px #ff0000;
+    }
+
+    .info {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>LASER NO TRIÂNGULO</h1>
+    <div class="led" id="led">15.0°</div>
+
+    <canvas id="canvas" width="800" height="620"></canvas>
+
+    <div class="controls">
+      <div>
+        <label>ÂNGULO DO LASER: <span id="angleVal">15.0</span>°</label><br>
+        <input type="range" id="slider" min="0.1" max="45" step="0.1" value="15">
+      </div>
+
+      <div>
+        <label><input type="checkbox" id="auto" checked> ANIMAÇÃO AUTOMÁTICA</label>
+      </div>
+
+      <button id="random">ALEATÓRIO</button>
+      <button id="reset">RESET 15°</button>
+    </div>
+
+    <div class="info">
+      Reprodução 100% fiel ao vídeo viral (laser + triângulo de espelhos).<br>
+      Arraste o mouse no canvas para controlar o ângulo manualmente.
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const led = document.getElementById('led');
+    const slider = document.getElementById('slider');
+    const angleVal = document.getElementById('angleVal');
+    const autoChk = document.getElementById('auto');
+    const randomBtn = document.getElementById('random');
+    const resetBtn = document.getElementById('reset');
+
+    const tri = {
+      top: { x: 400, y: 80 },
+      left: { x: 120, y: 520 },
+      right: { x: 680, y: 520 }
+    };
+
+    const laserPos = { x: 400, y: 490 };
+
+    let angle = 15;
+    let animFrame = 0;
+    let isDragging = false;
+
+    const walls = [
+      { p1: tri.top, p2: tri.left, nx: 0.866, ny: 0.5 },
+      { p1: tri.left, p2: tri.right, nx: 0, ny: -1 },
+      { p1: tri.right, p2: tri.top, nx: -0.866, ny: 0.5 }
+    ];
+
+    function getIntersection(rx, ry, dx, dy, x1, y1, x2, y2) {
+      const ex = x2 - x1;
+      const ey = y2 - y1;
+      const denom = dx * ey - dy * ex;
+      if (Math.abs(denom) < 1e-9) return null;
+
+      const t = ((x1 - rx) * ey - (y1 - ry) * ex) / denom;
+      const u = ((x1 - rx) * dy - (y1 - ry) * dx) / denom;
+
+      if (t > 0.001 && u >= 0 && u <= 1) {
+        return { t, ux: u };
+      }
+      return null;
+    }
+
+    function drawTriangle() {
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 12;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.moveTo(tri.top.x, tri.top.y);
+      ctx.lineTo(tri.left.x, tri.left.y);
+      ctx.lineTo(tri.right.x, tri.right.y);
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = '#ff6666';
+      ctx.stroke();
+    }
+
+    function traceLaser(startAngle) {
+      let x = laserPos.x;
+      let y = laserPos.y;
+      let dx = Math.sin(startAngle * Math.PI / 180);
+      let dy = -Math.cos(startAngle * Math.PI / 180);
+
+      ctx.strokeStyle = '#ff2222';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 35;
+      ctx.shadowColor = '#ff0000';
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+
+      const MAX_BOUNCES = 420;
+
+      for (let i = 0; i < MAX_BOUNCES; i++) {
+        let minT = Infinity;
+        let hitWall = null;
+
+        for (const wall of walls) {
+          const inter = getIntersection(x, y, dx, dy, wall.p1.x, wall.p1.y, wall.p2.x, wall.p2.y);
+          if (inter && inter.t < minT) {
+            minT = inter.t;
+            hitWall = wall;
+          }
+        }
+
+        if (!hitWall) break;
+
+        const nextX = x + minT * dx;
+        const nextY = y + minT * dy;
+
+        ctx.lineTo(nextX, nextY);
+
+        const dot = dx * hitWall.nx + dy * hitWall.ny;
+        dx = dx - 2 * dot * hitWall.nx;
+        dy = dy - 2 * dot * hitWall.ny;
+
+        x = nextX + dx * 0.5;
+        y = nextY + dy * 0.5;
+      }
+      ctx.stroke();
+    }
+
+    function drawLaserBody() {
+      ctx.save();
+      ctx.translate(laserPos.x, laserPos.y);
+
+      const rot = (angle - 90) * Math.PI / 180;
+      ctx.rotate(rot);
+
+      ctx.fillStyle = '#555';
+      ctx.fillRect(-18, -12, 55, 24);
+
+      ctx.fillStyle = '#888';
+      ctx.fillRect(-18, -12, 20, 24);
+
+      ctx.fillStyle = '#ff4444';
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#ff0000';
+      ctx.fillRect(32, -8, 12, 16);
+
+      ctx.fillStyle = 'white';
+      ctx.fillRect(35, -4, 4, 8);
+
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawTriangle();
+      traceLaser(angle);
+      drawLaserBody();
+      led.textContent = angle.toFixed(1) + '°';
+      angleVal.textContent = angle.toFixed(1);
+    }
+
+    function animate() {
+      if (autoChk.checked) {
+        animFrame += 0.8;
+        angle = 8 + Math.sin(animFrame * 0.018) * 18 + 8;
+        if (angle < 0.5) angle = 0.5;
+      }
+      draw();
+      requestAnimationFrame(animate);
+    }
+
+    slider.addEventListener('input', () => {
+      angle = parseFloat(slider.value);
+      autoChk.checked = false;
+      draw();
+    });
+
+    canvas.addEventListener('mousedown', () => {
+      isDragging = true;
+      autoChk.checked = false;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const dx = mx - laserPos.x;
+      const dy = (e.clientY - rect.top) - laserPos.y;
+      angle = Math.atan2(dx, -dy) * 180 / Math.PI;
+      if (angle < 0) angle = 0;
+      if (angle > 45) angle = 45;
+      slider.value = angle;
+      draw();
+    });
+
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    randomBtn.addEventListener('click', () => {
+      angle = Math.random() * 38 + 2;
+      slider.value = angle;
+      autoChk.checked = false;
+      draw();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      angle = 15;
+      slider.value = 15;
+      autoChk.checked = true;
+      draw();
+    });
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const dx = mx - laserPos.x;
+      const dy = my - laserPos.y;
+      angle = Math.atan2(dx, -dy) * 180 / Math.PI;
+      if (angle < 0) angle += 360;
+      if (angle > 45) angle = 45;
+      slider.value = angle;
+      autoChk.checked = false;
+      draw();
+    });
+
+    animate();
+  </script>
+</body>
+</html>
