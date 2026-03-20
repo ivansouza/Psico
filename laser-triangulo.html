@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Laser no Triângulo • Efeito Exato do Vídeo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Laser no Triângulo • Pro</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -12,126 +12,159 @@
       color: #ff3333;
       font-family: 'Press Start 2P', system-ui;
       margin: 0;
-      padding: 0;
-      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      image-rendering: pixelated;
+      overflow-x: hidden;
     }
 
     .app {
       text-align: center;
       background: #111;
-      padding: 20px;
+      padding: 15px;
       border: 4px solid #ff3333;
-      box-shadow: 0 0 60px #ff0000, 0 0 120px #ff0000;
+      box-shadow: 0 0 30px #ff0000;
+      width: 95%;
       max-width: 820px;
+      box-sizing: border-box;
+      margin: 10px;
     }
 
     h1 {
-      font-size: 28px;
-      margin: 10px 0 5px;
-      text-shadow: 0 0 20px #ff3333;
-      letter-spacing: 4px;
+      font-size: clamp(14px, 4vw, 24px);
+      margin: 10px 0;
+      text-shadow: 0 0 10px #ff3333;
     }
 
     .led {
       display: inline-block;
       background: #000;
       color: #ff0000;
-      font-size: 52px;
+      font-size: clamp(24px, 6vw, 42px);
       font-family: monospace;
-      padding: 10px 30px;
-      border: 6px solid #333;
-      box-shadow: inset 0 0 30px #ff0000;
-      margin: 15px 0;
-      min-width: 220px;
-      text-align: center;
-      letter-spacing: 8px;
+      padding: 10px 20px;
+      border: 4px solid #333;
+      box-shadow: inset 0 0 20px #ff0000;
+      margin-bottom: 10px;
+      min-width: 160px;
+    }
+
+    .canvas-container {
+      width: 100%;
+      position: relative;
+      background: #000;
+      border: 4px solid #222;
+      line-height: 0;
     }
 
     canvas {
-      border: 6px solid #222;
-      box-shadow: 0 0 50px #ff3333;
-      image-rendering: crisp-edges;
-      background: #000;
+      width: 100% !important;
+      height: auto !important;
+      touch-action: none;
     }
 
     .controls {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: 1fr;
       gap: 15px;
-      justify-content: center;
-      align-items: center;
       background: #1a1a1a;
       padding: 15px;
-      border: 3px solid #333;
+      border: 2px solid #333;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
     }
 
     label {
+      font-size: 10px;
       color: #ff6666;
-      font-size: 14px;
     }
 
     input[type="range"] {
-      width: 300px;
+      width: 100%;
+      max-width: 300px;
       accent-color: #ff0000;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     button {
       background: #220000;
       color: #ff3333;
-      border: 3px solid #ff3333;
-      padding: 10px 20px;
+      border: 2px solid #ff3333;
+      padding: 8px 12px;
       font-family: 'Press Start 2P';
-      font-size: 14px;
+      font-size: 10px;
       cursor: pointer;
-      transition: all 0.2s;
     }
 
-    button:hover {
-      background: #ff0000;
-      color: #000;
-      box-shadow: 0 0 20px #ff0000;
+    @media (orientation: landscape) and (max-height: 500px) {
+      .app { display: flex; flex-direction: row; gap: 15px; max-width: 98vw; }
+      .canvas-container { width: 50%; }
+      .controls-wrapper { width: 50%; overflow-y: auto; max-height: 80vh; }
+      h1, .info { display: none; }
+    }
+
+    @media (min-width: 768px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      label { font-size: 12px; }
+      button { font-size: 12px; }
     }
 
     .info {
       margin-top: 10px;
-      font-size: 12px;
+      font-size: 9px;
       color: #666;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>LASER NO TRIÂNGULO</h1>
-    <div class="led" id="led">15.0°</div>
-
-    <canvas id="canvas" width="800" height="620"></canvas>
-
-    <div class="controls">
-      <div>
-        <label>ÂNGULO DO LASER: <span id="angleVal">15.0</span>°</label><br>
-        <input type="range" id="slider" min="0.1" max="45" step="0.1" value="15">
-      </div>
-
-      <div>
-        <label><input type="checkbox" id="auto" checked> ANIMAÇÃO AUTOMÁTICA</label>
-      </div>
-
-      <button id="random">ALEATÓRIO</button>
-      <button id="reset">RESET 15°</button>
+    <div class="controls-wrapper">
+      <h1>LASER NO TRIÂNGULO</h1>
+      <div class="led" id="led">15.0°</div>
     </div>
 
-    <div class="info">
-      Reprodução 100% fiel ao vídeo viral (laser + triângulo de espelhos).<br>
-      Arraste o mouse no canvas para controlar o ângulo manualmente.
+    <div class="canvas-container">
+      <canvas id="canvas" width="800" height="620"></canvas>
+    </div>
+
+    <div class="controls-wrapper">
+      <div class="controls">
+        <div class="control-group">
+          <label>ÂNGULO: <span id="angleVal">15.0</span>°</label>
+          <input type="range" id="slider" min="0.1" max="45" step="0.1" value="15">
+        </div>
+
+        <div class="control-group">
+          <label>VELOCIDADE: <span id="speedVal">1.0</span>x</label>
+          <input type="range" id="speedSlider" min="0" max="5" step="0.1" value="1">
+        </div>
+
+        <div class="control-group">
+          <label><input type="checkbox" id="auto" checked> AUTO ANIMAÇÃO</label>
+          <div class="buttons">
+            <button id="random">ALEATÓRIO</button>
+            <button id="reset">RESET</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info">
+        Use o slider ou arraste no canvas para controlar.
+      </div>
     </div>
   </div>
 
@@ -140,48 +173,41 @@
     const ctx = canvas.getContext('2d');
     const led = document.getElementById('led');
     const slider = document.getElementById('slider');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValDisplay = document.getElementById('speedVal');
     const angleVal = document.getElementById('angleVal');
     const autoChk = document.getElementById('auto');
     const randomBtn = document.getElementById('random');
     const resetBtn = document.getElementById('reset');
 
-    const tri = {
-      top: { x: 400, y: 80 },
-      left: { x: 120, y: 520 },
-      right: { x: 680, y: 520 }
-    };
-
+    const tri = { top: { x: 400, y: 80 }, left: { x: 120, y: 520 }, right: { x: 680, y: 520 } };
     const laserPos = { x: 400, y: 490 };
-
-    let angle = 15;
-    let animFrame = 0;
-    let isDragging = false;
-
     const walls = [
       { p1: tri.top, p2: tri.left, nx: 0.866, ny: 0.5 },
       { p1: tri.left, p2: tri.right, nx: 0, ny: -1 },
       { p1: tri.right, p2: tri.top, nx: -0.866, ny: 0.5 }
     ];
 
+    let angle = 15;
+    let animFrame = 0;
+    let isDragging = false;
+    let speedMult = 1.0;
+
     function getIntersection(rx, ry, dx, dy, x1, y1, x2, y2) {
       const ex = x2 - x1;
       const ey = y2 - y1;
       const denom = dx * ey - dy * ex;
       if (Math.abs(denom) < 1e-9) return null;
-
       const t = ((x1 - rx) * ey - (y1 - ry) * ex) / denom;
       const u = ((x1 - rx) * dy - (y1 - ry) * dx) / denom;
-
-      if (t > 0.001 && u >= 0 && u <= 1) {
-        return { t, ux: u };
-      }
-      return null;
+      return (t > 0.001 && u >= 0 && u <= 1) ? { t, ux: u } : null;
     }
 
-    function drawTriangle() {
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       ctx.strokeStyle = '#444';
       ctx.lineWidth = 12;
-      ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.moveTo(tri.top.x, tri.top.y);
       ctx.lineTo(tri.left.x, tri.left.y);
@@ -189,34 +215,21 @@
       ctx.closePath();
       ctx.stroke();
 
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 4;
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#ff6666';
-      ctx.stroke();
-    }
-
-    function traceLaser(startAngle) {
       let x = laserPos.x;
       let y = laserPos.y;
-      let dx = Math.sin(startAngle * Math.PI / 180);
-      let dy = -Math.cos(startAngle * Math.PI / 180);
+      let dx = Math.sin(angle * Math.PI / 180);
+      let dy = -Math.cos(angle * Math.PI / 180);
 
       ctx.strokeStyle = '#ff2222';
       ctx.lineWidth = 4;
-      ctx.shadowBlur = 35;
+      ctx.shadowBlur = 20;
       ctx.shadowColor = '#ff0000';
-      ctx.lineCap = 'round';
-
       ctx.beginPath();
       ctx.moveTo(x, y);
 
-      const MAX_BOUNCES = 420;
-
-      for (let i = 0; i < MAX_BOUNCES; i++) {
+      for (let i = 0; i < 400; i++) {
         let minT = Infinity;
         let hitWall = null;
-
         for (const wall of walls) {
           const inter = getIntersection(x, y, dx, dy, wall.p1.x, wall.p1.y, wall.p2.x, wall.p2.y);
           if (inter && inter.t < minT) {
@@ -224,62 +237,38 @@
             hitWall = wall;
           }
         }
-
         if (!hitWall) break;
-
-        const nextX = x + minT * dx;
-        const nextY = y + minT * dy;
-
-        ctx.lineTo(nextX, nextY);
-
+        x += minT * dx;
+        y += minT * dy;
+        ctx.lineTo(x, y);
         const dot = dx * hitWall.nx + dy * hitWall.ny;
-        dx = dx - 2 * dot * hitWall.nx;
-        dy = dy - 2 * dot * hitWall.ny;
-
-        x = nextX + dx * 0.5;
-        y = nextY + dy * 0.5;
+        dx -= 2 * dot * hitWall.nx;
+        dy -= 2 * dot * hitWall.ny;
+        x += dx * 0.1;
+        y += dy * 0.1;
       }
       ctx.stroke();
-    }
+      ctx.shadowBlur = 0;
 
-    function drawLaserBody() {
       ctx.save();
       ctx.translate(laserPos.x, laserPos.y);
-
-      const rot = (angle - 90) * Math.PI / 180;
-      ctx.rotate(rot);
-
+      ctx.rotate((angle - 90) * Math.PI / 180);
       ctx.fillStyle = '#555';
-      ctx.fillRect(-18, -12, 55, 24);
-
-      ctx.fillStyle = '#888';
-      ctx.fillRect(-18, -12, 20, 24);
-
+      ctx.fillRect(-18, -12, 50, 24);
       ctx.fillStyle = '#ff4444';
-      ctx.shadowBlur = 30;
-      ctx.shadowColor = '#ff0000';
-      ctx.fillRect(32, -8, 12, 16);
-
-      ctx.fillStyle = 'white';
-      ctx.fillRect(35, -4, 4, 8);
-
+      ctx.fillRect(32, -8, 10, 16);
       ctx.restore();
-    }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawTriangle();
-      traceLaser(angle);
-      drawLaserBody();
       led.textContent = angle.toFixed(1) + '°';
       angleVal.textContent = angle.toFixed(1);
     }
 
     function animate() {
       if (autoChk.checked) {
-        animFrame += 0.8;
+        animFrame += 0.8 * speedMult;
         angle = 8 + Math.sin(animFrame * 0.018) * 18 + 8;
-        if (angle < 0.5) angle = 0.5;
+        if (angle < 0.1) angle = 0.1;
+        slider.value = angle;
       }
       draw();
       requestAnimationFrame(animate);
@@ -288,55 +277,51 @@
     slider.addEventListener('input', () => {
       angle = parseFloat(slider.value);
       autoChk.checked = false;
-      draw();
     });
 
-    canvas.addEventListener('mousedown', () => {
-      isDragging = true;
-      autoChk.checked = false;
+    speedSlider.addEventListener('input', () => {
+      speedMult = parseFloat(speedSlider.value);
+      speedValDisplay.textContent = speedMult.toFixed(1);
     });
 
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
+    const handleInput = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const dx = mx - laserPos.x;
-      const dy = (e.clientY - rect.top) - laserPos.y;
-      angle = Math.atan2(dx, -dy) * 180 / Math.PI;
-      if (angle < 0) angle = 0;
-      if (angle > 45) angle = 45;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mx = (clientX - rect.left) * scaleX;
+      const my = (clientY - rect.top) * scaleY;
+      angle = Math.max(0.1, Math.min(45, Math.atan2(mx - laserPos.x, -(my - laserPos.y)) * 180 / Math.PI));
+      autoChk.checked = false;
       slider.value = angle;
-      draw();
-    });
+    };
 
+    canvas.addEventListener('mousedown', () => isDragging = true);
     window.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mousemove', (e) => isDragging && handleInput(e));
+    canvas.addEventListener('touchstart', (e) => { isDragging = true; handleInput(e); });
+    canvas.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        handleInput(e);
+        e.preventDefault();
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => isDragging = false);
 
     randomBtn.addEventListener('click', () => {
-      angle = Math.random() * 38 + 2;
-      slider.value = angle;
+      angle = Math.random() * 40 + 2;
       autoChk.checked = false;
-      draw();
+      slider.value = angle;
     });
 
     resetBtn.addEventListener('click', () => {
       angle = 15;
-      slider.value = 15;
+      speedMult = 1;
+      speedSlider.value = 1;
+      speedValDisplay.textContent = '1.0';
       autoChk.checked = true;
-      draw();
-    });
-
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const dx = mx - laserPos.x;
-      const dy = my - laserPos.y;
-      angle = Math.atan2(dx, -dy) * 180 / Math.PI;
-      if (angle < 0) angle += 360;
-      if (angle > 45) angle = 45;
       slider.value = angle;
-      autoChk.checked = false;
-      draw();
     });
 
     animate();
