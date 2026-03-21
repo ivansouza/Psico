@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ilusão de Tusi • Minimalista</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #051622;
+      --panel: rgba(10, 25, 41, 0.95);
+      --accent: #ffffff;
+      --text: #f8fafc;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      user-select: none;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #settings-trigger {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 100;
+      transition: transform 0.3s ease, background 0.2s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+    }
+
+    #settings-trigger:hover {
+      background: rgba(20, 40, 60, 0.95);
+      transform: rotate(45deg);
+    }
+
+    #settings-trigger svg {
+      fill: white;
+      width: 24px;
+      height: 24px;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 90;
+    }
+
+    .panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 320px;
+      height: 100%;
+      background: var(--panel);
+      backdrop-filter: blur(15px);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 40px 25px;
+      box-sizing: border-box;
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel.open {
+      transform: translateX(0);
+    }
+
+    @media (max-width: 600px) or (orientation: portrait) {
+      .panel {
+        width: 100%;
+        padding: 60px 30px;
+      }
+      h1 { font-size: 1.4rem; }
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      color: var(--accent);
+      font-weight: 300;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    p {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 0 0 25px 0;
+      opacity: 0.65;
+    }
+
+    .control-group { margin-bottom: 22px; }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 6px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: transparent;
+      color: var(--text);
+      padding: 10px 18px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      flex: 1;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <div id="settings-trigger" aria-label="Abrir ajustes">
+    <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm8.94-2.5a7.85 7.85 0 0 0 .06-1 7.85 7.85 0 0 0-.06-1l2.11-1.65a.5.5 0 0 0 .12-.63l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.14 7.14 0 0 0-1.73-1l-.38-2.65a.5.5 0 0 0-.49-.42h-4a.5.5 0 0 0-.49.42l-.38 2.65a7.14 7.14 0 0 0-1.73 1l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.63L3.06 11.5a7.85 7.85 0 0 0-.06 1 7.85 7.85 0 0 0 .06 1l-2.11 1.65a.5.5 0 0 0-.12.63l2 3.46a.5.5 0 0 0 .6.22l2.49-1a7.14 7.14 0 0 0 1.73 1l.38 2.65a.5.5 0 0 0 .49.42h4a.5.5 0 0 0 .49-.42l.38-2.65a7.14 7.14 0 0 0 1.73-1l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.63z"/></svg>
+  </div>
+
+  <div id="ui-layer">
+    <div class="panel" id="controlPanel">
+      <h1>Ilusão de Tusi</h1>
+      <p>Uma esfera perfeita, um círculo interno e um ponto viajante. Ajuste os parâmetros para ver a linha reta emergir.</p>
+
+      <div class="control-group">
+        <label>Velocidade <span id="speedVal">1.0x</span></label>
+        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1" />
+      </div>
+
+      <div class="control-group">
+        <label>Raio principal <span id="radiusVal">3.0</span></label>
+        <input type="range" id="radius" min="1.6" max="4" step="0.1" value="3" />
+      </div>
+
+      <div class="control-group">
+        <label>Trilha (pontos) <span id="trailVal">240</span></label>
+        <input type="range" id="trail" min="80" max="480" step="20" value="240" />
+      </div>
+
+      <div class="btn-row">
+        <button id="resetBtn">Reset</button>
+        <button id="colorBtn">Neon</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 12);
+
+    const light = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(light);
+
+    const params = {
+      speed: 1,
+      radius: 3,
+      trail: 240,
+      neon: 0xfff3d7
+    };
+
+    const bigCircleMat = new THREE.LineBasicMaterial({ color: 0x103042, transparent: true, opacity: 0.6 });
+    const smallCircleMat = new THREE.LineBasicMaterial({ color: 0x14586c, transparent: true, opacity: 0.9 });
+    const trailMat = new THREE.LineBasicMaterial({ color: params.neon, transparent: true, opacity: 0.9 });
+    const pointMat = new THREE.MeshBasicMaterial({ color: params.neon });
+
+    let bigCircle, smallCircle, pointMesh, trailLine, trailAttr;
+    let theta = 0;
+    let trailBuffer = new Float32Array(params.trail * 3);
+
+    function buildCircles() {
+      if (bigCircle) scene.remove(bigCircle);
+      if (smallCircle) scene.remove(smallCircle);
+
+      const bigGeom = new THREE.BufferGeometry();
+      const bigPts = [];
+      for (let i = 0; i <= 128; i++) {
+        const a = (i / 128) * Math.PI * 2;
+        bigPts.push(new THREE.Vector3(Math.cos(a) * params.radius, Math.sin(a) * params.radius, 0));
+      }
+      bigGeom.setFromPoints(bigPts);
+      bigCircle = new THREE.LineLoop(bigGeom, bigCircleMat);
+      scene.add(bigCircle);
+
+      const smallGeom = new THREE.BufferGeometry();
+      const smallPts = [];
+      for (let i = 0; i <= 96; i++) {
+        const a = (i / 96) * Math.PI * 2;
+        smallPts.push(new THREE.Vector3(Math.cos(a) * (params.radius / 2), Math.sin(a) * (params.radius / 2), 0));
+      }
+      smallGeom.setFromPoints(smallPts);
+      smallCircle = new THREE.LineLoop(smallGeom, smallCircleMat);
+      scene.add(smallCircle);
+    }
+
+    function buildPointAndTrail() {
+      if (pointMesh) scene.remove(pointMesh);
+      const sphereGeom = new THREE.SphereGeometry(0.08, 24, 24);
+      pointMesh = new THREE.Mesh(sphereGeom, pointMat);
+      scene.add(pointMesh);
+
+      if (trailLine) scene.remove(trailLine);
+      trailBuffer = new Float32Array(params.trail * 3);
+      const trailGeom = new THREE.BufferGeometry();
+      trailAttr = new THREE.BufferAttribute(trailBuffer, 3);
+      trailGeom.setAttribute('position', trailAttr);
+      trailLine = new THREE.Line(trailGeom, trailMat);
+      scene.add(trailLine);
+    }
+
+    function updateTrail(x, y) {
+      trailBuffer.copyWithin(0, 3);
+      trailBuffer[trailBuffer.length - 3] = x;
+      trailBuffer[trailBuffer.length - 2] = y;
+      trailBuffer[trailBuffer.length - 1] = 0;
+      trailAttr.needsUpdate = true;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      theta += 0.01 * params.speed;
+
+      const R = params.radius;
+      const r = R / 2;
+      const innerCenterX = (R - r) * Math.cos(theta);
+      const innerCenterY = (R - r) * Math.sin(theta);
+
+      smallCircle.position.set(innerCenterX, innerCenterY, 0);
+
+      const x = innerCenterX + r * Math.cos(-theta);
+      const y = innerCenterY + r * Math.sin(-theta);
+      pointMesh.position.set(x, y, 0.02);
+      updateTrail(x, y);
+
+      renderer.render(scene, camera);
+    }
+
+    function resize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener('resize', resize);
+
+    buildCircles();
+    buildPointAndTrail();
+    animate();
+
+    // UI hookups
+    const panel = document.getElementById('controlPanel');
+    document.getElementById('settings-trigger').addEventListener('click', () => {
+      panel.classList.toggle('open');
+    });
+
+    const speedSliderEl = document.getElementById('speed');
+    const radiusSliderEl = document.getElementById('radius');
+    const trailSliderEl = document.getElementById('trail');
+
+    speedSliderEl.addEventListener('input', () => {
+      params.speed = parseFloat(speedSliderEl.value);
+      document.getElementById('speedVal').textContent = `${params.speed.toFixed(1)}x`;
+    });
+
+    radiusSliderEl.addEventListener('input', () => {
+      params.radius = parseFloat(radiusSliderEl.value);
+      document.getElementById('radiusVal').textContent = params.radius.toFixed(1);
+      buildCircles();
+    });
+
+    trailSliderEl.addEventListener('input', () => {
+      params.trail = parseInt(trailSliderEl.value, 10);
+      document.getElementById('trailVal').textContent = params.trail;
+      buildPointAndTrail();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      params.speed = 1;
+      params.radius = 3;
+      params.trail = 240;
+      speedSliderEl.value = '1';
+      radiusSliderEl.value = '3';
+      trailSliderEl.value = '240';
+      document.getElementById('speedVal').textContent = '1.0x';
+      document.getElementById('radiusVal').textContent = '3.0';
+      document.getElementById('trailVal').textContent = '240';
+      buildCircles();
+      buildPointAndTrail();
+    });
+
+    document.getElementById('colorBtn').addEventListener('click', () => {
+      const hue = Math.floor(Math.random() * 360);
+      const color = new THREE.Color(`hsl(${hue}, 100%, 65%)`);
+      params.neon = color.getHex();
+      trailMat.color.copy(color);
+      pointMat.color.copy(color);
+    });
+  </script>
+</body>
+</html>
