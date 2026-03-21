@@ -272,25 +272,25 @@
       zoom: 28
     };
 
-    let scene, camera, renderer, canvasEl;
+    let scene, camera, renderer;
     let ballGroup, lineGroup, outerCircle;
     let balls = [];
     let targetRotation = { x: 0, y: 0 };
     let currentRotation = { x: 0, y: 0 };
     let pinchDistance = null;
+    let isDragging = false;
+    let lastTouch = null;
+    let sceneScale = 1;
 
     function init() {
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x051622);
 
       camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-      updateCameraPosition();
-
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       document.body.appendChild(renderer.domElement);
-      canvasEl = renderer.domElement;
 
       scene.add(new THREE.AmbientLight(0xffffff, 0.6));
       const pLight = new THREE.PointLight(0xffffff, 0.8);
@@ -308,8 +308,17 @@
       scene.add(outerCircle);
 
       setupObjects();
+      updateCameraPosition();
       setupEventListeners();
       animate();
+    }
+
+    function computeSceneScale() {
+      const minDim = Math.min(window.innerWidth, window.innerHeight);
+      sceneScale = THREE.MathUtils.clamp(minDim / 650, 0.55, 1.6);
+      if (ballGroup) ballGroup.scale.set(sceneScale, sceneScale, sceneScale);
+      if (lineGroup) lineGroup.scale.set(sceneScale, sceneScale, sceneScale);
+      if (outerCircle) outerCircle.scale.set(sceneScale, sceneScale, sceneScale);
     }
 
     function updateCameraPosition() {
@@ -317,12 +326,13 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       document.getElementById('val-zoom').textContent = state.zoom.toFixed(0);
+      document.getElementById('input-zoom').value = state.zoom;
+      computeSceneScale();
     }
 
     function applyZoom(delta) {
       state.zoom = THREE.MathUtils.clamp(state.zoom + delta, 12, 60);
       updateCameraPosition();
-      document.getElementById('input-zoom').value = state.zoom;
     }
 
     function setupObjects() {
@@ -345,7 +355,6 @@
 
         const p1 = new THREE.Vector3(d * normal.x - sLimit * dir.x, d * normal.y - sLimit * dir.y, 0);
         const p2 = new THREE.Vector3(d * normal.x + sLimit * dir.x, d * normal.y + sLimit * dir.y, 0);
-
         const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
         const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: state.showLines ? 0.2 : 0 });
         const line = new THREE.Line(lineGeo, lineMat);
@@ -353,6 +362,8 @@
 
         balls.push({ mesh, line, theta, d, dir, normal, sLimit });
       }
+
+      computeSceneScale();
     }
 
     function setupEventListeners() {
@@ -363,6 +374,7 @@
       window.addEventListener('resize', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         updateCameraPosition();
+        computeSceneScale();
       });
 
       document.getElementById('input-offset').oninput = (e) => {
@@ -413,35 +425,31 @@
         });
       });
 
-      let isDown = false;
-      let lastTouch = null;
-
-      const handleDrag = (dx, dy) => {
-        if (isDown && !pinchDistance) {
-          targetRotation.y += dx * 0.005;
-          targetRotation.x += dy * 0.005;
-        }
-      };
-
-      window.addEventListener('mousedown', () => (isDown = true));
-      window.addEventListener('mouseup', () => (isDown = false));
-      window.addEventListener('mousemove', (e) => handleDrag(e.movementX, e.movementY));
-
-      canvasEl.addEventListener('wheel', (e) => {
+      window.addEventListener('wheel', (e) => {
         applyZoom(e.deltaY * 0.02);
         e.preventDefault();
       }, { passive: false });
 
-      canvasEl.addEventListener('touchstart', (e) => {
+      window.addEventListener('mousedown', () => (isDragging = true));
+      window.addEventListener('mouseup', () => (isDragging = false));
+      window.addEventListener('mousemove', (e) => {
+        if (isDragging && !pinchDistance) {
+          targetRotation.y += e.movementX * 0.005;
+          targetRotation.x += e.movementY * 0.005;
+        }
+      });
+
+      window.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
           pinchDistance = getTouchDistance(e.touches);
+          isDragging = false;
         } else if (e.touches.length === 1) {
-          isDown = true;
+          isDragging = true;
           lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
       }, { passive: false });
 
-      canvasEl.addEventListener('touchmove', (e) => {
+      window.addEventListener('touchmove', (e) => {
         if (e.touches.length === 2) {
           const newDist = getTouchDistance(e.touches);
           if (pinchDistance) {
@@ -450,18 +458,19 @@
           }
           pinchDistance = newDist;
           e.preventDefault();
-        } else if (isDown && e.touches.length === 1) {
+        } else if (isDragging && e.touches.length === 1) {
           const dx = e.touches[0].clientX - lastTouch.x;
           const dy = e.touches[0].clientY - lastTouch.y;
           lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-          handleDrag(dx, dy);
+          targetRotation.y += dx * 0.005;
+          targetRotation.x += dy * 0.005;
           e.preventDefault();
         }
       }, { passive: false });
 
-      canvasEl.addEventListener('touchend', (e) => {
+      window.addEventListener('touchend', (e) => {
         if (e.touches.length < 2) pinchDistance = null;
-        if (e.touches.length === 0) isDown = false;
+        if (e.touches.length === 0) isDragging = false;
       });
     }
 
