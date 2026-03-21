@@ -289,6 +289,7 @@
       document.body.appendChild(renderer.domElement);
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 0, 0);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
       controls.enablePan = true;
@@ -438,11 +439,6 @@
           b.mesh.material.emissive.set(state.pointColor);
         });
       });
-
-      window.addEventListener('wheel', (e) => {
-        applyZoom(e.deltaY * 0.02);
-        e.preventDefault();
-      }, { passive: false });
     }
 
     function animate() {
