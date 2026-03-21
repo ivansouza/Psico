@@ -1,419 +1,495 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ilusão de Tusi • Minimalista</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        :root {
-            --bg: #051622; 
-            --panel: rgba(10, 25, 41, 0.95);
-            --accent: #ffffff;
-            --text: #f8fafc;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ilusão de Tusi • Minimalista</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #051622;
+      --panel: rgba(10, 25, 41, 0.95);
+      --accent: #ffffff;
+      --text: #f8fafc;
+    }
 
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
-            background-color: var(--bg); 
-            color: var(--text);
-            user-select: none;
-            touch-action: none;
-        }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      user-select: none;
+      touch-action: none;
+    }
 
-        canvas { 
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
 
-        /* Botão de Engrenagem */
-        #settings-trigger {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            background: var(--panel);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            pointer-events: auto;
-            z-index: 100;
-            transition: transform 0.3s ease, background 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
+    #settings-trigger {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 100;
+      transition: transform 0.3s ease, background 0.2s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
 
-        #settings-trigger:hover {
-            background: rgba(20, 40, 60, 0.95);
-            transform: rotate(45deg);
-        }
+    #settings-trigger:hover {
+      background: rgba(20, 40, 60, 0.95);
+      transform: rotate(45deg);
+    }
 
-        #settings-trigger svg {
-            fill: white;
-            width: 24px;
-            height: 24px;
-        }
+    #settings-trigger svg {
+      fill: white;
+      width: 24px;
+      height: 24px;
+    }
 
-        /* Painel Lateral (Drawer) */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 90;
-        }
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 90;
+    }
 
-        .panel {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 320px;
-            height: 100%;
-            background: var(--panel);
-            backdrop-filter: blur(15px);
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 40px 25px;
-            box-sizing: border-box;
-            pointer-events: auto;
-            transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            flex-direction: column;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
-        }
+    .panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 320px;
+      height: 100%;
+      background: var(--panel);
+      backdrop-filter: blur(15px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px 25px;
+      box-sizing: border-box;
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    }
 
-        .panel.open {
-            transform: translateX(0);
-        }
+    .panel.open {
+      transform: translateX(0);
+    }
 
-        /* Responsividade para Portrait */
-        @media (max-width: 600px) or (orientation: portrait) {
-            .panel {
-                width: 100%;
-                padding: 60px 30px;
-            }
-            h1 { font-size: 1.5rem; }
-        }
+    @media (max-width: 600px) or (orientation: portrait) {
+      .panel {
+        width: 100%;
+        padding: 60px 30px;
+      }
+      h1 { font-size: 1.4rem; }
+    }
 
-        h1 { 
-            margin: 0 0 10px 0; 
-            font-size: 1.2rem; 
-            color: var(--accent);
-            font-weight: 300;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      color: var(--accent);
+      font-weight: 300;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
 
-        p { 
-            font-size: 0.85rem; 
-            line-height: 1.5; 
-            margin: 0 0 25px 0;
-            opacity: 0.6;
-        }
+    p {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 0 0 25px 0;
+      opacity: 0.65;
+    }
 
-        .control-group {
-            margin-bottom: 20px;
-        }
+    .control-group { margin-bottom: 22px; }
 
-        label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 10px;
-            color: rgba(255, 255, 255, 0.5);
-        }
+    label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      color: rgba(255, 255, 255, 0.6);
+    }
 
-        input[type="range"] {
-            width: 100%;
-            accent-color: var(--accent);
-            cursor: pointer;
-            height: 6px;
-        }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 6px;
+    }
 
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+    .color-row {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+    }
 
-        button {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-            flex: 1;
-        }
+    .color-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+      background: transparent;
+    }
 
-        button:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
+    .color-dot.active { border-color: white; }
 
-        button.active {
-            background: white;
-            color: var(--bg);
-            font-weight: bold;
-        }
+    .color-dot span {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
 
-        .close-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            opacity: 0.5;
-            padding: 0;
-            width: auto;
-            flex: none;
-        }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
 
-        .close-btn:hover { background: none; opacity: 1; }
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: transparent;
+      color: var(--text);
+      padding: 10px 18px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      flex: 1;
+      transition: background 0.2s ease;
+    }
 
-        .footer-info {
-            margin-top: auto;
-            font-size: 0.7rem;
-            opacity: 0.4;
-            text-align: center;
-        }
-    </style>
+    button:hover { background: rgba(255, 255, 255, 0.1); }
+
+    button.active {
+      background: white;
+      color: var(--bg);
+      font-weight: bold;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      opacity: 0.5;
+      padding: 0;
+      width: auto;
+      flex: none;
+    }
+
+    .close-btn:hover { opacity: 1; }
+
+    .footer-info {
+      margin-top: auto;
+      font-size: 0.7rem;
+      opacity: 0.4;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
+  <div id="settings-trigger" title="Configurações">
+    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+  </div>
 
-    <div id="settings-trigger" title="Configurações">
-        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
-    </div>
+  <div id="ui-layer">
+    <div class="panel" id="settings-panel">
+      <button class="close-btn" id="close-panel">✕</button>
+      <h1>Configurações</h1>
+      <p>Ajuste os parâmetros da geometria para explorar diferentes padrões de interferência.</p>
 
-    <div id="ui-layer">
-        <div class="panel" id="settings-panel">
-            <button class="close-btn" id="close-panel">✕</button>
-            <h1>Configurações</h1>
-            <p>Ajuste os parâmetros da geometria para explorar diferentes padrões de interferência.</p>
-            
-            <div class="control-group">
-                <label>Desvio (Offset): <span id="val-offset">4.05</span></label>
-                <input type="range" id="input-offset" min="0" max="850" value="450">
-            </div>
+      <div class="control-group">
+        <label>Desvio (Offset) <span id="val-offset">4.05</span></label>
+        <input type="range" id="input-offset" min="0" max="850" value="450" />
+      </div>
 
-            <div class="control-group">
-                <label>Nº de Pontos: <span id="val-n">24</span></label>
-                <input type="range" id="input-n" min="2" max="100" value="24">
-            </div>
+      <div class="control-group">
+        <label>Nº de Pontos <span id="val-n">24</span></label>
+        <input type="range" id="input-n" min="2" max="100" value="24" />
+      </div>
 
-            <div class="control-group">
-                <label>Velocidade</label>
-                <input type="range" id="input-speed" min="0" max="300" value="100">
-            </div>
+      <div class="control-group">
+        <label>Velocidade</label>
+        <input type="range" id="input-speed" min="0" max="300" value="100" />
+      </div>
 
-            <div class="btn-row">
-                <button id="btn-lines" class="active">Linhas</button>
-                <button id="btn-3d">Modo 3D</button>
-            </div>
-
-            <div class="footer-info">
-                Interação: Arraste para girar • Pinch/Scroll para zoom
-            </div>
+      <div class="control-group">
+        <label>Cor das esferas</label>
+        <div class="color-row" id="color-row">
+          <button class="color-dot active" data-color="#ffffff"><span style="background:#ffffff"></span></button>
+          <button class="color-dot" data-color="#ff4d6d"><span style="background:#ff4d6d"></span></button>
+          <button class="color-dot" data-color="#3ee7ff"><span style="background:#3ee7ff"></span></button>
+          <button class="color-dot" data-color="#ffe45c"><span style="background:#ffe45c"></span></button>
         </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-lines" class="active">Linhas</button>
+        <button id="btn-3d">Modo 3D</button>
+      </div>
+
+      <div class="footer-info">Arraste para girar • Pinch/Scroll para zoom</div>
     </div>
+  </div>
 
-    <script>
-        const state = {
-            n: 24,
-            speed: 1.0,
-            showLines: true,
-            is3D: false,
-            radius: 9,
-            offsetDist: 4.05 
-        };
+  <script>
+    const state = {
+      n: 24,
+      speed: 1.0,
+      showLines: true,
+      is3D: false,
+      radius: 9,
+      offsetDist: 4.05,
+      pointColor: 0xffffff,
+      zoom: 28
+    };
 
-        let scene, camera, renderer;
-        let ballGroup, lineGroup, outerCircle;
-        let balls = [];
-        
-        let targetRotation = { x: 0, y: 0 };
-        let currentRotation = { x: 0, y: 0 };
+    let scene, camera, renderer;
+    let ballGroup, lineGroup, outerCircle;
+    let balls = [];
+    let targetRotation = { x: 0, y: 0 };
+    let currentRotation = { x: 0, y: 0 };
+    let ballMat, lineMat;
+    let pinchDistance = null;
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x051622);
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x051622);
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            updateCameraPosition();
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      updateCameraPosition();
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.body.appendChild(renderer.domElement);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      document.body.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const pLight = new THREE.PointLight(0xffffff, 0.8);
-            pLight.position.set(10, 10, 15);
-            scene.add(pLight);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+      const pLight = new THREE.PointLight(0xffffff, 0.8);
+      pLight.position.set(10, 10, 15);
+      scene.add(pLight);
 
-            ballGroup = new THREE.Group();
-            lineGroup = new THREE.Group();
-            scene.add(ballGroup);
-            scene.add(lineGroup);
+      ballGroup = new THREE.Group();
+      lineGroup = new THREE.Group();
+      scene.add(ballGroup);
+      scene.add(lineGroup);
 
-            const circleGeo = new THREE.TorusGeometry(state.radius, 0.03, 16, 128);
-            const circleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
-            outerCircle = new THREE.Mesh(circleGeo, circleMat);
-            scene.add(outerCircle);
+      const circleGeo = new THREE.TorusGeometry(state.radius, 0.03, 16, 128);
+      const circleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+      outerCircle = new THREE.Mesh(circleGeo, circleMat);
+      scene.add(outerCircle);
 
-            setupObjects();
-            setupEventListeners();
-            animate();
+      ballMat = new THREE.MeshPhongMaterial({ color: state.pointColor, emissive: state.pointColor, emissiveIntensity: 0.25 });
+      lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: state.showLines ? 0.2 : 0 });
+
+      setupObjects();
+      setupEventListeners();
+      animate();
+    }
+
+    function updateCameraPosition() {
+      const isPortrait = window.innerHeight > window.innerWidth;
+      state.zoom = isPortrait ? Math.max(state.zoom, 32) : Math.min(state.zoom, 28);
+      camera.position.set(0, 0, state.zoom);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+
+    function applyZoom(delta) {
+      state.zoom = THREE.MathUtils.clamp(state.zoom + delta, 12, 60);
+      camera.position.z = state.zoom;
+    }
+
+    function setupObjects() {
+      while (ballGroup.children.length) ballGroup.remove(ballGroup.children[0]);
+      while (lineGroup.children.length) lineGroup.remove(lineGroup.children[0]);
+      balls = [];
+
+      const ballGeo = new THREE.SphereGeometry(0.22, 24, 24);
+
+      for (let i = 0; i < state.n; i++) {
+        const angle = (i / state.n) * Math.PI * 2;
+        const theta = angle / 2;
+        const d = state.offsetDist;
+        const dir = new THREE.Vector2(Math.cos(theta), Math.sin(theta));
+        const normal = new THREE.Vector2(-dir.y, dir.x);
+        const sLimit = Math.sqrt(Math.max(0, state.radius ** 2 - d ** 2));
+
+        const mesh = new THREE.Mesh(ballGeo, ballMat.clone());
+        mesh.material.color.set(state.pointColor);
+        mesh.material.emissive.set(state.pointColor);
+        ballGroup.add(mesh);
+
+        const p1 = new THREE.Vector3(d * normal.x - sLimit * dir.x, d * normal.y - sLimit * dir.y, 0);
+        const p2 = new THREE.Vector3(d * normal.x + sLimit * dir.x, d * normal.y + sLimit * dir.y, 0);
+
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+        const line = new THREE.Line(lineGeo, lineMat.clone());
+        line.material.opacity = state.showLines ? 0.2 : 0;
+        lineGroup.add(line);
+
+        balls.push({ mesh, line, theta, d, dir, normal, sLimit });
+      }
+    }
+
+    function setupEventListeners() {
+      const panel = document.getElementById('settings-panel');
+      document.getElementById('settings-trigger').onclick = () => panel.classList.add('open');
+      document.getElementById('close-panel').onclick = () => panel.classList.remove('open');
+
+      window.addEventListener('resize', () => {
+        updateCameraPosition();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      document.getElementById('input-offset').oninput = (e) => {
+        state.offsetDist = (parseFloat(e.target.value) / 1000) * state.radius;
+        document.getElementById('val-offset').innerText = state.offsetDist.toFixed(2);
+        setupObjects();
+      };
+
+      document.getElementById('input-n').oninput = (e) => {
+        state.n = parseInt(e.target.value, 10);
+        document.getElementById('val-n').innerText = state.n;
+        setupObjects();
+      };
+
+      document.getElementById('input-speed').oninput = (e) => {
+        state.speed = parseFloat(e.target.value) / 100;
+      };
+
+      document.getElementById('btn-lines').onclick = function () {
+        state.showLines = !state.showLines;
+        this.classList.toggle('active');
+        balls.forEach((b) => (b.line.material.opacity = state.showLines ? 0.2 : 0));
+      };
+
+      document.getElementById('btn-3d').onclick = function () {
+        state.is3D = !state.is3D;
+        this.classList.toggle('active');
+        if (!state.is3D) {
+          targetRotation.x = 0;
+          targetRotation.y = 0;
         }
+      };
 
-        function updateCameraPosition() {
-            const isPortrait = window.innerHeight > window.innerWidth;
-            camera.position.set(0, 0, isPortrait ? 35 : 28);
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+      document.getElementById('color-row').addEventListener('click', (e) => {
+        const btn = e.target.closest('.color-dot');
+        if (!btn) return;
+        document.querySelectorAll('.color-dot').forEach((dot) => dot.classList.remove('active'));
+        btn.classList.add('active');
+        state.pointColor = new THREE.Color(btn.dataset.color).getHex();
+        balls.forEach((b) => {
+          b.mesh.material.color.set(state.pointColor);
+          b.mesh.material.emissive.set(state.pointColor);
+        });
+      });
+
+      let isDown = false;
+      let lastTouch = null;
+
+      window.addEventListener('mousedown', () => (isDown = true));
+      window.addEventListener('mouseup', () => (isDown = false));
+      window.addEventListener('mousemove', (e) => {
+        if (isDown && !pinchDistance) {
+          targetRotation.y += e.movementX * 0.005;
+          targetRotation.x += e.movementY * 0.005;
         }
+      });
 
-        function setupObjects() {
-            while(ballGroup.children.length > 0) ballGroup.remove(ballGroup.children[0]);
-            while(lineGroup.children.length > 0) lineGroup.remove(lineGroup.children[0]);
-            balls = [];
+      window.addEventListener('wheel', (e) => {
+        applyZoom(e.deltaY * 0.01);
+      }, { passive: true });
 
-            const ballGeo = new THREE.SphereGeometry(0.22, 24, 24);
-            const ballMat = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2 });
-
-            for (let i = 0; i < state.n; i++) {
-                const angle = (i / state.n) * Math.PI * 2;
-                const theta = angle / 2; 
-                const d = state.offsetDist;
-                const dir = new THREE.Vector2(Math.cos(theta), Math.sin(theta));
-                const normal = new THREE.Vector2(-dir.y, dir.x);
-                const sLimit = Math.sqrt(Math.max(0, state.radius**2 - d**2));
-
-                const mesh = new THREE.Mesh(ballGeo, ballMat);
-                ballGroup.add(mesh);
-
-                const p1 = new THREE.Vector3(d * normal.x - sLimit * dir.x, d * normal.y - sLimit * dir.y, 0);
-                const p2 = new THREE.Vector3(d * normal.x + sLimit * dir.x, d * normal.y + sLimit * dir.y, 0);
-                
-                const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-                const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: state.showLines ? 0.2 : 0 });
-                const line = new THREE.Line(lineGeo, lineMat);
-                lineGroup.add(line);
-
-                balls.push({ mesh, line, theta, d, dir, normal, sLimit });
-            }
+      window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          pinchDistance = getTouchDistance(e.touches);
+        } else if (e.touches.length === 1) {
+          isDown = true;
+          lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
+      }, { passive: false });
 
-        function setupEventListeners() {
-            // UI Toggle
-            const panel = document.getElementById('settings-panel');
-            document.getElementById('settings-trigger').onclick = () => panel.classList.add('open');
-            document.getElementById('close-panel').onclick = () => panel.classList.remove('open');
-
-            window.addEventListener('resize', () => {
-                updateCameraPosition();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-
-            // Controles
-            document.getElementById('input-offset').oninput = (e) => {
-                state.offsetDist = (parseFloat(e.target.value) / 1000) * state.radius;
-                document.getElementById('val-offset').innerText = state.offsetDist.toFixed(2);
-                setupObjects();
-            };
-
-            document.getElementById('input-n').oninput = (e) => {
-                state.n = parseInt(e.target.value);
-                document.getElementById('val-n').innerText = state.n;
-                setupObjects();
-            };
-
-            document.getElementById('input-speed').oninput = (e) => {
-                state.speed = parseFloat(e.target.value) / 100;
-            };
-
-            document.getElementById('btn-lines').onclick = function() {
-                state.showLines = !state.showLines;
-                this.classList.toggle('active');
-                balls.forEach(b => b.line.material.opacity = state.showLines ? 0.2 : 0);
-            };
-
-            document.getElementById('btn-3d').onclick = function() {
-                state.is3D = !state.is3D;
-                this.classList.toggle('active');
-                if(!state.is3D) { targetRotation.x = 0; targetRotation.y = 0; }
-            };
-
-            // Touch/Mouse Interação
-            let isDown = false;
-            const handleDown = () => isDown = true;
-            const handleUp = () => isDown = false;
-            const handleMove = (dx, dy) => {
-                if(isDown) {
-                    targetRotation.y += dx * 0.005;
-                    targetRotation.x += dy * 0.005;
-                }
-            };
-
-            window.addEventListener('mousedown', handleDown);
-            window.addEventListener('mouseup', handleUp);
-            window.addEventListener('mousemove', (e) => handleMove(e.movementX, e.movementY));
-
-            window.addEventListener('touchstart', (e) => {
-                isDown = true;
-                this.lastX = e.touches[0].clientX;
-                this.lastY = e.touches[0].clientY;
-            }, {passive: false});
-            window.addEventListener('touchend', handleUp);
-            window.addEventListener('touchmove', (e) => {
-                const dx = e.touches[0].clientX - (this.lastX || e.touches[0].clientX);
-                const dy = e.touches[0].clientY - (this.lastY || e.touches[0].clientY);
-                this.lastX = e.touches[0].clientX;
-                this.lastY = e.touches[0].clientY;
-                handleMove(dx, dy);
-            }, {passive: false});
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+          const newDist = getTouchDistance(e.touches);
+          if (pinchDistance) {
+            const delta = pinchDistance - newDist;
+            applyZoom(delta * 0.02);
+          }
+          pinchDistance = newDist;
+          e.preventDefault();
+        } else if (isDown && e.touches.length === 1) {
+          const dx = e.touches[0].clientX - lastTouch.x;
+          const dy = e.touches[0].clientY - lastTouch.y;
+          lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          targetRotation.y += dx * 0.005;
+          targetRotation.x += dy * 0.005;
+          e.preventDefault();
         }
+      }, { passive: false });
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const time = performance.now() * 0.0015 * state.speed;
+      window.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) pinchDistance = null;
+        if (e.touches.length === 0) isDown = false;
+      });
+    }
 
-            balls.forEach((b, i) => {
-                const phase = time + (i * Math.PI * 2 / state.n);
-                const s = Math.cos(phase) * b.sLimit;
-                b.mesh.position.x = b.d * b.normal.x + s * b.dir.x;
-                b.mesh.position.y = b.d * b.normal.y + s * b.dir.y;
-                if (state.is3D) b.mesh.position.z = Math.sin(time * 0.5 + i * 0.2) * 0.8;
-                else b.mesh.position.z = 0;
-            });
+    function getTouchDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
+    }
 
-            currentRotation.x += (targetRotation.x - currentRotation.x) * 0.1;
-            currentRotation.y += (targetRotation.y - currentRotation.y) * 0.1;
-            
-            ballGroup.rotation.x = currentRotation.x;
-            ballGroup.rotation.y = currentRotation.y;
-            lineGroup.rotation.copy(ballGroup.rotation);
-            outerCircle.rotation.copy(ballGroup.rotation);
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = performance.now() * 0.0015 * state.speed;
 
-            renderer.render(scene, camera);
-        }
+      balls.forEach((b, i) => {
+        const phase = time + (i * Math.PI * 2) / state.n;
+        const s = Math.cos(phase) * b.sLimit;
+        b.mesh.position.x = b.d * b.normal.x + s * b.dir.x;
+        b.mesh.position.y = b.d * b.normal.y + s * b.dir.y;
+        b.mesh.position.z = state.is3D ? Math.sin(time * 0.5 + i * 0.2) * 0.8 : 0;
+      });
 
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+      currentRotation.x += (targetRotation.x - currentRotation.x) * 0.1;
+      currentRotation.y += (targetRotation.y - currentRotation.y) * 0.1;
+
+      ballGroup.rotation.x = currentRotation.x;
+      ballGroup.rotation.y = currentRotation.y;
+      lineGroup.rotation.copy(ballGroup.rotation);
+      outerCircle.rotation.copy(ballGroup.rotation);
+
+      renderer.render(scene, camera);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>
-
