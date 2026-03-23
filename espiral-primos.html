@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Espiral de Primos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .control-panel {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top-left-radius: 1.5rem;
+      border-top-right-radius: 1.5rem;
+      z-index: 20;
+    }
+    input[type="range"] {
+      accent-color: #8b5cf6;
+      height: 6px;
+    }
+    canvas {
+      touch-action: none;
+    }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: #020617;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.5s;
+    }
+  </style>
+</head>
+<body>
+  <div id="loader" class="loading-overlay">
+    <div class="text-center">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-violet-500 border-t-transparent mb-4"></div>
+      <p class="text-violet-400 text-sm font-medium">Calculando Primos...</p>
+    </div>
+  </div>
+
+  <main id="canvasContainer" class="flex-1 flex items-center justify-center p-2 relative overflow-hidden">
+    <canvas id="spiralCanvas"></canvas>
+  </main>
+
+  <footer class="control-panel p-5 pb-8 shadow-2xl">
+    <div class="max-w-md mx-auto space-y-5">
+      <div class="flex items-center justify-between mb-2">
+        <h1 class="text-lg font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+          Espiral de Números Primos
+        </h1>
+        <button id="resetBtn" class="text-xs bg-slate-800 px-3 py-1 rounded-full border border-slate-700 active:scale-95 transition-transform">
+          Resetar
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <div class="flex justify-between text-[11px] uppercase tracking-wider text-slate-400 mb-1">
+            <span>Quantidade de Primos</span>
+            <span id="countVal" class="font-mono text-violet-400">38000</span>
+          </div>
+          <input type="range" id="count" min="1000" max="60000" step="100" value="38000" class="w-full bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="flex justify-between text-[11px] uppercase tracking-wider text-slate-400 mb-1">
+              <span>Densidade</span>
+              <span id="densityVal" class="font-mono text-violet-400">50</span>
+            </div>
+            <input type="range" id="density" min="10" max="1000" step="5" value="50" class="w-full bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[11px] uppercase tracking-wider text-slate-400 mb-1">
+              <span>Aperto (Tightness)</span>
+              <span id="windingVal" class="font-mono text-violet-400">15000</span>
+            </div>
+            <input type="range" id="winding" min="1000" max="50000" step="500" value="15000" class="w-full bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const MAX_PRIMES = 60000;
+    const SIEVE_LIMIT = 800000;
+    const primes = [];
+
+    function generatePrimes() {
+      const sieve = new Uint8Array(SIEVE_LIMIT).fill(1);
+      sieve[0] = sieve[1] = 0;
+      for (let p = 2; p * p < SIEVE_LIMIT; p++) {
+        if (sieve[p]) {
+          for (let i = p * p; i < SIEVE_LIMIT; i += p) sieve[i] = 0;
+        }
+      }
+      for (let p = 2; p < SIEVE_LIMIT && primes.length < MAX_PRIMES; p++) {
+        if (sieve[p]) primes.push(p);
+      }
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      setTimeout(() => { loader.style.display = 'none'; }, 500);
+    }
+
+    const canvas = document.getElementById('spiralCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const container = document.getElementById('canvasContainer');
+
+    const inputs = {
+      count: document.getElementById('count'),
+      density: document.getElementById('density'),
+      winding: document.getElementById('winding')
+    };
+
+    const displays = {
+      count: document.getElementById('countVal'),
+      density: document.getElementById('densityVal'),
+      winding: document.getElementById('windingVal')
+    };
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const size = Math.min(container.clientWidth, container.clientHeight) - 20;
+      canvas.style.width = size + 'px';
+      canvas.style.height = size + 'px';
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      draw();
+    }
+
+    function draw() {
+      const count = parseInt(inputs.count.value, 10);
+      const density = parseFloat(inputs.density.value);
+      const winding = parseFloat(inputs.winding.value);
+
+      displays.count.textContent = count;
+      displays.density.textContent = density;
+      displays.winding.textContent = winding;
+
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, w, h);
+
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const baseScale = w * 0.45;
+
+      ctx.fillStyle = '#818cf8';
+      const pointSize = count > 40000 ? 0.6 : count > 10000 ? 0.8 : 1.1;
+
+      for (let n = 1; n <= count; n++) {
+        const prime = primes[n - 1];
+        const angle = prime / density;
+        const r = (n / winding) * baseScale;
+        const x = r * Math.sin(angle);
+        const y = r * Math.cos(angle);
+        const screenX = centerX + x;
+        const screenY = centerY - y;
+
+        if (screenX > -2 && screenX < w + 2 && screenY > -2 && screenY < h + 2) {
+          ctx.beginPath();
+          ctx.arc(screenX, screenY, pointSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    let frameRequested = false;
+    function update() {
+      if (!frameRequested) {
+        frameRequested = true;
+        requestAnimationFrame(() => {
+          draw();
+          frameRequested = false;
+        });
+      }
+    }
+
+    Object.values(inputs).forEach(input => {
+      input.addEventListener('input', update);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      inputs.count.value = 38000;
+      inputs.density.value = 50;
+      inputs.winding.value = 15000;
+      update();
+    });
+
+    window.onload = () => {
+      generatePrimes();
+      resizeCanvas();
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+  </script>
+</body>
+</html>
