@@ -96,6 +96,15 @@
                     <div class="flex flex-wrap gap-1.5" id="filters-month"></div>
                 </div>
             </div>
+
+            <div class="flex flex-col lg:flex-row gap-3 items-center">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Busca:</span>
+                <div class="relative w-full max-w-2xl">
+                    <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                    <input id="search-input" type="text" placeholder="Filtrar por nome, descrição, categoria ou arquivo..." class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition" />
+                    <button id="clear-search" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-lg leading-none transition-opacity opacity-0 pointer-events-none">&times;</button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -124,6 +133,7 @@
         let activeCategory = "Todos";
         let activeMonth = "Todos";
         let activeYear = "Todos";
+        let searchQuery = "";
 
         // Mapeamento de meses
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -398,18 +408,56 @@
             renderCards();
         }
 
+        function initSearch() {
+            const input = document.getElementById('search-input');
+            const clearBtn = document.getElementById('clear-search');
+            if (!input) return;
+
+            const toggleClear = () => {
+                if (!clearBtn) return;
+                if (searchQuery) {
+                    clearBtn.classList.remove('opacity-0', 'pointer-events-none');
+                } else {
+                    clearBtn.classList.add('opacity-0', 'pointer-events-none');
+                }
+            };
+
+            input.addEventListener('input', () => {
+                searchQuery = input.value.trim();
+                toggleClear();
+                renderCards();
+            });
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    searchQuery = "";
+                    input.value = "";
+                    toggleClear();
+                    renderCards();
+                    input.focus();
+                });
+            }
+
+            toggleClear();
+        }
+
         function renderCards() {
             const gallery = document.getElementById('gallery');
             const stats = document.getElementById('stats');
+            const normalizedSearch = searchQuery.toLowerCase();
             
             const filtered = experiments.filter(exp => {
                 const matchCat = activeCategory === "Todos" || exp.cat === activeCategory;
                 const matchMonth = activeMonth === "Todos" || getMonthFromDate(exp.date) === activeMonth;
                 const matchYear = activeYear === "Todos" || getYearFromDate(exp.date) === activeYear;
-                return matchCat && matchMonth && matchYear;
+                const matchSearch = !normalizedSearch || [exp.name, exp.desc, exp.cat, exp.file]
+                    .filter(Boolean)
+                    .some(field => String(field).toLowerCase().includes(normalizedSearch));
+                return matchCat && matchMonth && matchYear && matchSearch;
             });
             
-            stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length} experiências`;
+            const searchBadge = normalizedSearch ? ` • busca: “${searchQuery}”` : '';
+            stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length} experiências${searchBadge}`;
             
             gallery.innerHTML = filtered.map(exp => `
                 <div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">
@@ -533,6 +581,7 @@
         sortExperiments();
         document.getElementById('cards-total').textContent = experiments.length;
         initFilters();
+        initSearch();
         renderCards();
         syncMissingCardsFromGitHub();
     </script>
