@@ -371,8 +371,8 @@
         ];
 
         // Auxiliares de Data
-        function getYearFromDate(dateStr) { return dateStr.split('/')[2]; }
-        function getMonthFromDate(dateStr) { return monthNames[parseInt(dateStr.split('/')[1]) - 1]; }
+        function getYearFromDate(dateStr) { return String(parseDateBR(dateStr).getFullYear()); }
+        function getMonthFromDate(dateStr) { return monthNames[parseDateBR(dateStr).getMonth()]; }
 
         function initFilters() {
             // Filtro Categoria
