@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+ <title>Fractal Dance</title>
+ <style>
+ body {
+ margin: 0;
+ overflow: hidden;
+ background: #000;
+ touch-action: none;
+ font-family: system-ui, Arial, sans-serif;
+ color: #0ff;
+ }
+ #ui {
+ position: absolute;
+ top: 15px;
+ left: 15px;
+ z-index: 300;
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
+ }
+ #langBtn {
+ font-size: 15px;
+ padding: 10px 16px;
+ background: rgba(0, 255, 255, 0.2);
+ border: 2px solid #0ff;
+ border-radius: 10px;
+ color: #0ff;
+ cursor: pointer;
+ box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+ transition: all 0.2s;
+ }
+ #langBtn:hover {
+ background: rgba(0, 255, 255, 0.35);
+ transform: scale(1.05);
+ }
+ #info {
+ position: absolute;
+ top: 70px;
+ left: 15px;
+ z-index: 100;
+ font-size: 16px;
+ line-height: 1.4;
+ text-shadow: 0 0 12px #0ff;
+ pointer-events: none;
+ background: rgba(0, 0, 0, 0.4);
+ padding: 10px 14px;
+ border-radius: 8px;
+ }
+ #controls {
+ position: absolute;
+ bottom: 25px;
+ left: 50%;
+ transform: translateX(-50%);
+ background: rgba(0, 0, 0, 0.85);
+ padding: 16px 22px;
+ border-radius: 14px;
+ z-index: 200;
+ width: 90%;
+ max-width: 390px;
+ box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+ text-align: center;
+ }
+ label {
+ display: block;
+ margin-bottom: 8px;
+ font-size: 15px;
+ }
+ input[type="range"] {
+ width: 100%;
+ accent-color: #00ffff;
+ }
+ .value {
+ margin-top: 8px;
+ font-size: 14px;
+ color: #0ff;
+ }
+ canvas { display: block; }
+ </style>
+</head>
+<body>
+
+<div id="ui">
+ <button id="langBtn">Switch to Português</button>
+</div>
+
+<div id="info">Fractal Dance<br>1 finger: rotate on Z axis<br>2 fingers: pinch to zoom</div>
+
+<div id="controls">
+ <label id="speedLabel">Rotation Speed (Z) — -20 to +20</label>
+ <input type="range" id="speed" min="-20" max="20" step="0.2" value="1.0">
+ <div class="value" id="speedValue">1.00</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+ const translations = {
+ en: {
+ info: "Fractal Dance<br>1 finger: rotate on Z axis<br>2 fingers: pinch to zoom",
+ speedLabel: "Rotation Speed (Z) — -20 to +20",
+ langBtn: "Switch to Português"
+ },
+ pt: {
+ info: "Dança de Fractais<br>1 dedo: girar no eixo Z<br>2 dedos: pinch para zoom",
+ speedLabel: "Velocidade do Giro (Z) — -20 a +20",
+ langBtn: "Switch to English"
+ }
+ };
+
+ let currentLang = 'en';
+
+ function updateLanguage() {
+ const t = translations[currentLang];
+ document.getElementById('info').innerHTML = t.info;
+ document.getElementById('speedLabel').textContent = t.speedLabel;
+ document.getElementById('langBtn').textContent = t.langBtn;
+ }
+
+ let scene, camera, renderer, group, line;
+ let time = 0;
+ let isDragging = false;
+ let prevTouchX = 0;
+ let touchRotZ = 0;
+ let autoRotSpeed = 1.0;
+ let lastPinchDistance = null;
+
+ function init() {
+ scene = new THREE.Scene();
+ scene.background = new THREE.Color(0x0a0014);
+
+ camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+ camera.position.set(0, 0, 9);
+
+ renderer = new THREE.WebGLRenderer({ antialias: true });
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ document.body.appendChild(renderer.domElement);
+
+ scene.add(new THREE.AmbientLight(0x222266, 0.8));
+ const p1 = new THREE.PointLight(0x00ffff, 2.8, 50); p1.position.set(10, 10, 15); scene.add(p1);
+ const p2 = new THREE.PointLight(0xff00ff, 2.8, 50); p2.position.set(-10, -10, 15); scene.add(p2);
+
+ group = new THREE.Group();
+ scene.add(group);
+
+ const canvas = renderer.domElement;
+ canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+ canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+ canvas.addEventListener('touchend', onTouchEnd);
+ canvas.addEventListener('touchcancel', onTouchEnd);
+
+ document.getElementById('langBtn').addEventListener('click', () => {
+ currentLang = currentLang === 'en' ? 'pt' : 'en';
+ updateLanguage();
+ });
+
+ const slider = document.getElementById('speed');
+ const valueDisplay = document.getElementById('speedValue');
+ slider.addEventListener('input', () => {
+ autoRotSpeed = parseFloat(slider.value);
+ valueDisplay.textContent = autoRotSpeed.toFixed(2);
+ });
+
+ window.addEventListener('resize', onResize);
+ updateLanguage();
+ }
+
+ function generateKoch(t) {
+ if (line) {
+ group.remove(line);
+ line.geometry.dispose();
+ }
+
+ let points = [
+ new THREE.Vector3(-3, -1.732, 0),
+ new THREE.Vector3( 3, -1.732, 0),
+ new THREE.Vector3( 0, 3.464, 0)
+ ];
+
+ for (let level = 0; level < 6; level++) {
+ const newPoints = [];
+ for (let i = 0; i < points.length; i++) {
+ const a = points[i];
+ const b = points[(i + 1) % points.length];
+ const dir = b.clone().sub(a);
+
+ const p1 = a.clone().addScaledVector(dir, 1/3);
+ const p3 = a.clone().addScaledVector(dir, 2/3);
+
+ const mid = a.clone().addScaledVector(dir, 0.5);
+ const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize();
+ const pulse = Math.sin(t * 3 + level * 1.5) * 0.28 + 0.92;
+ const bumpHeight = (dir.length() * Math.sqrt(3) / 6) * pulse;
+ const p2 = mid.clone().addScaledVector(perp, bumpHeight);
+
+ newPoints.push(a.clone(), p1, p2, p3);
+ }
+ newPoints.push(points[0].clone());
+ points = newPoints;
+ }
+
+ const geometry = new THREE.BufferGeometry().setFromPoints(points);
+ line = new THREE.Line(geometry, new THREE.LineBasicMaterial({
+ color: 0x00ffff,
+ linewidth: 4,
+ transparent: true,
+ opacity: 0.95
+ }));
+ group.add(line);
+ }
+
+ function animate() {
+ requestAnimationFrame(animate);
+ time += 0.018;
+
+ generateKoch(time);
+
+ group.rotation.z += autoRotSpeed * 0.012 + touchRotZ;
+ touchRotZ *= 0.88;
+
+ if (line) {
+ const hue = (time * 0.35) % 1;
+ line.material.color.setHSL(hue, 1.0, 0.78);
+ }
+
+ renderer.render(scene, camera);
+ }
+
+ function onTouchStart(e) {
+ isDragging = true;
+ if (e.touches.length === 1) prevTouchX = e.touches[0].clientX;
+ lastPinchDistance = null;
+ e.preventDefault();
+ }
+
+ function onTouchMove(e) {
+ if (!isDragging) return;
+
+ if (e.touches.length === 2) {
+ const dx = e.touches[0].clientX - e.touches[1].clientX;
+ const dy = e.touches[0].clientY - e.touches[1].clientY;
+ const currentDist = Math.hypot(dx, dy);
+
+ if (lastPinchDistance !== null) {
+ const delta = (lastPinchDistance - currentDist) * 0.15;
+ camera.position.z += delta;
+ camera.position.z = Math.max(3, Math.min(35, camera.position.z));
+ }
+ lastPinchDistance = currentDist;
+ }
+ else if (e.touches.length === 1) {
+ const deltaX = (e.touches[0].clientX - prevTouchX) * 0.022;
+ touchRotZ = deltaX;
+ prevTouchX = e.touches[0].clientX;
+ }
+
+ e.preventDefault();
+ }
+
+ function onTouchEnd() {
+ isDragging = false;
+ lastPinchDistance = null;
+ touchRotZ *= 0.6;
+ }
+
+ function onResize() {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ }
+
+ init();
+ animate();
+</script>
+</body>
+</html>
