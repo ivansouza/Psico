@@ -61,6 +61,19 @@
  color: #444;
  line-height: 1.5;
  }
+ .result {
+ background: white;
+ padding: 16px;
+ border-radius: 12px;
+ box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+ margin-top: 15px;
+ text-align: center;
+ font-size: 1.1em;
+ color: #222;
+ }
+ .result strong {
+ color: #d32f2f;
+ }
  </style>
 </head>
 <body>
@@ -88,6 +101,10 @@
  A linha do <strong>x</strong> é proporcional à distância entre os centros.
  </div>
 
+ <div class="result">
+ Comprimento de <strong>x</strong>: <span id="x_val">0.0</span> unidades
+ </div>
+
  <script>
  const canvas = document.getElementById('canvas');
  const ctx = canvas.getContext('2d');
@@ -96,6 +113,7 @@
  const r2Slider = document.getElementById('r2');
  const r1Val = document.getElementById('r1_val');
  const r2Val = document.getElementById('r2_val');
+ const xVal = document.getElementById('x_val');
 
  function draw() {
  let r1 = parseFloat(r1Slider.value);
@@ -107,6 +125,8 @@
  const verticalDiff = Math.abs(r2 - r1);
  const distanceCenters = r1 + r2;
  let x = verticalDiff < distanceCenters ? Math.sqrt(distanceCenters**2 - verticalDiff**2) : 0;
+
+ xVal.textContent = x.toFixed(2);
 
  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
