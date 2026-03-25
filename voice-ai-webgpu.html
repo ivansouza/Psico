@@ -43,9 +43,113 @@
  ::-webkit-scrollbar { width: 6px; }
  ::-webkit-scrollbar-track { background: transparent; }
  ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+ .help-button {
+ position: fixed;
+ top: 20px;
+ right: 20px;
+ z-index: 400;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 2px;
+ border-radius: 999px;
+ border: 1px solid rgba(255,255,255,0.2);
+ background: rgba(15, 23, 42, 0.8);
+ color: #f0f0f0;
+ width: 48px;
+ height: 48px;
+ cursor: pointer;
+ box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+ transition: transform 0.2s ease, border-color 0.2s ease;
+ }
+ .help-button:hover {
+ transform: scale(1.05);
+ border-color: rgba(129, 212, 250, 0.6);
+ }
+ .help-button .gear {
+ font-size: 1.15rem;
+ }
+ .help-button .help-question {
+ font-size: 1rem;
+ font-weight: 700;
+ }
+ .help-modal {
+ position: fixed;
+ inset: 0;
+ background: rgba(0, 0, 0, 0.75);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ z-index: 500;
+ padding: 20px;
+ }
+ .help-modal.hidden {
+ display: none;
+ }
+ .help-box {
+ background: rgba(5, 8, 15, 0.95);
+ border: 1px solid rgba(99, 102, 241, 0.4);
+ border-radius: 20px;
+ max-width: 520px;
+ width: 100%;
+ padding: 28px;
+ box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+ }
+ .help-box h2 {
+ font-size: 1.25rem;
+ font-weight: 700;
+ margin-bottom: 12px;
+ color: #c7d2fe;
+ }
+ .help-steps {
+ list-style: decimal;
+ margin-left: 1.25rem;
+ color: #cbd5f5;
+ line-height: 1.5;
+ font-size: 0.95rem;
+ }
+ .help-steps li + li {
+ margin-top: 8px;
+ }
+ .close-help {
+ margin-top: 18px;
+ width: 100%;
+ background: #6366f1;
+ border: none;
+ border-radius: 12px;
+ color: white;
+ padding: 10px 0;
+ font-weight: 600;
+ letter-spacing: 0.04em;
+ text-transform: uppercase;
+ cursor: pointer;
+ transition: background 0.2s ease;
+ }
+ .close-help:hover {
+ background: #7c82ff;
+ }
  </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+
+ <button id="helpBtn" class="help-button" aria-label="Como o Voice AI Studio funciona">
+ <span class="gear">⚙</span>
+ <span class="help-question">?</span>
+ </button>
+
+ <div id="helpModal" class="help-modal hidden" role="dialog" aria-modal="true">
+ <div class="help-box">
+ <h2>Como o Voice AI Studio funciona</h2>
+ <ol class="help-steps">
+ <li><strong>Pré-carga:</strong> o app detecta WebGPU, baixa o modelo Whisper Tiny e exibe o progresso. Se WebGPU falhar, há fallback automático para CPU/WASM.</li>
+ <li><strong>Gravação:</strong> escolha o idioma (PT/EN) e toque no botão roxo. O microfone alimenta o visualizador em barras e grava um buffer local.</li>
+ <li><strong>Processamento:</strong> ao parar, o áudio é enviado para o pipeline ONNX em memória. O modelo usa chunking + stride para transcrever com mínima latência.</li>
+ <li><strong>Resultado:</strong> o texto aparece no cartão de transcrição e pode ser copiado com um toque. Nada sai do dispositivo.</li>
+ </ol>
+ <button id="closeHelp" class="close-help">Entendi</button>
+ </div>
+ </div>
 
  <div class="w-full max-w-2xl space-y-6">
  <header class="text-center space-y-2 py-4">
@@ -134,6 +238,9 @@
  const transcriptDiv = document.getElementById('transcript');
  const canvas = document.getElementById('visualizer');
  const ctx = canvas.getContext('2d');
+ const helpBtn = document.getElementById('helpBtn');
+ const helpModal = document.getElementById('helpModal');
+ const closeHelp = document.getElementById('closeHelp');
 
  const showMsg = (text) => {
  const box = document.getElementById('msgBox');
@@ -299,6 +406,14 @@
  showMsg("Copiado para a área de transferência!");
  }
  };
+
+ helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+ closeHelp.addEventListener('click', () => helpModal.classList.add('hidden'));
+ helpModal.addEventListener('click', (event) => {
+ if (event.target === helpModal) {
+ helpModal.classList.add('hidden');
+ }
+ });
 
  function resize() {
  canvas.width = canvas.clientWidth * window.devicePixelRatio;
