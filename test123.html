@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TinyCoder v3 - Fix Repo</title>
+    <title>TinyCoder v3 - Float16 Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Polyfill para Float16Array - ESSENCIAL para evitar o erro do Tensor -->
+    <script src="https://cdn.jsdelivr.net/npm/@petamoriken/float16@3.8.6/dist/float16.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #050507; color: #cbd5e1; -webkit-tap-highlight-color: transparent; }
         .font-mono { font-family: 'Fira Code', monospace; }
         .glass { background: rgba(15, 15, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .hidden-state { display: none; }
-        @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
@@ -23,96 +25,93 @@
         <header class="flex items-center justify-between py-4 border-b border-white/10">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-900/40">
-                    <i data-lucide="code-2" class="text-white w-5 h-5"></i>
+                    <i data-lucide="zap" class="text-white w-5 h-5"></i>
                 </div>
-                <h1 class="text-xl font-extrabold text-white tracking-tighter italic uppercase">
-                    TinyCoder <span class="text-blue-500 font-mono">FIX</span>
+                <h1 class="text-xl font-black text-white tracking-tighter italic uppercase">
+                    TinyCoder <span class="text-blue-500 font-mono">PRO</span>
                 </h1>
             </div>
-            <div id="device-indicator" class="text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5 uppercase">
-                CPU Mode
+            <div id="device-tag" class="text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5">
+                AUTO-DETECT
             </div>
         </header>
 
-        <!-- Debug Console -->
-        <div id="debug-console" class="bg-black/60 border border-white/5 rounded-xl p-3 font-mono text-[10px] space-y-1 h-32 overflow-y-auto shadow-inner">
-            <div class="text-blue-500 font-bold flex items-center gap-1 mb-1 border-b border-white/5 pb-1 uppercase tracking-widest">
-                <i data-lucide="terminal" class="w-3 h-3"></i> Network_Logs
+        <!-- Debug / Logs -->
+        <div id="debug-console" class="bg-black/60 border border-white/5 rounded-xl p-3 font-mono text-[10px] h-32 overflow-y-auto shadow-inner">
+            <div class="text-blue-500 font-bold mb-1 border-b border-white/5 pb-1 uppercase flex items-center gap-1">
+                <i data-lucide="activity" class="w-3 h-3"></i> Monitor de Sistema
             </div>
             <div id="logs" class="opacity-70 space-y-1 text-slate-400">
-                <div>> Pronto. O ID do repositório foi corrigido.</div>
+                <div>> Float16Array Polyfill carregado.</div>
+                <div>> Pronto para iniciar.</div>
             </div>
         </div>
 
-        <!-- Start View -->
+        <!-- View: Inicial -->
         <div id="view-start" class="space-y-4">
             <div class="glass rounded-3xl p-8 text-center space-y-6 shadow-2xl">
                 <div class="space-y-2">
                     <h2 class="text-xl font-bold text-white tracking-tight">Qwen 2.5 Coder</h2>
-                    <p class="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto">
-                        Corrigido para o repositório oficial da comunidade (0.5B Instruct).
+                    <p class="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">
+                        Versão optimizada para WebGPU móvel com correção de tensores fp16.
                     </p>
                 </div>
                 
-                <button id="btn-load-main" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-900/40 active:scale-[0.97]">
-                    Carregar IA
-                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                <button id="btn-load" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-900/40 active:scale-[0.97]">
+                    Iniciar Motor IA
+                    <i data-lucide="play" class="w-4 h-4 fill-current"></i>
                 </button>
-
-                <p class="text-[9px] text-slate-600 font-medium italic">
-                    Repositório: onnx-community/Qwen2.5-Coder-0.5B-Instruct
-                </p>
             </div>
         </div>
 
-        <!-- Loading View -->
+        <!-- View: Loading -->
         <div id="view-loading" class="hidden-state glass rounded-3xl p-8 space-y-6">
             <div class="flex justify-between items-end">
                 <div class="space-y-1">
                     <span class="text-[10px] font-black uppercase text-blue-500 flex items-center gap-2">
-                        <i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Descarregando
+                        <i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> A Carregar
                     </span>
-                    <p id="loading-file" class="text-[10px] text-slate-500 font-mono truncate max-w-[180px]">
-                        A verificar ficheiros...
+                    <p id="loading-file" class="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">
+                        Preparando GPU...
                     </p>
                 </div>
                 <span id="progress-text" class="font-black text-2xl text-white font-mono">0%</span>
             </div>
-            <div class="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-300" style="width: 0%"></div>
+            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
             </div>
         </div>
 
-        <!-- Editor View -->
+        <!-- View: Editor -->
         <div id="view-editor" class="hidden-state space-y-4">
             <div class="glass rounded-2xl overflow-hidden shadow-2xl">
-                <textarea id="input-area" spellcheck="false" class="w-full bg-transparent p-5 h-40 outline-none resize-none font-mono text-sm text-blue-100 placeholder:text-slate-800" placeholder="Escreva código aqui..."></textarea>
+                <textarea id="input-area" spellcheck="false" class="w-full bg-transparent p-5 h-40 outline-none resize-none font-mono text-sm text-blue-100 placeholder:text-slate-800" placeholder="Insira o código inicial..."></textarea>
                 <div class="p-4 bg-black/40 border-t border-white/5 flex justify-between items-center">
-                    <button id="btn-clear" class="p-2 text-slate-700 hover:text-red-500">
+                    <button id="btn-clear" class="p-2 text-slate-700 hover:text-red-500 transition-colors">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
                     </button>
-                    <button id="btn-generate" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-3 active:scale-95">
-                        <i data-lucide="send" class="w-4 h-4"></i>
+                    <button id="btn-generate" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-3 active:scale-95 transition-all shadow-lg">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
                         <span>Gerar</span>
                     </button>
                 </div>
             </div>
-            <div id="output-area" class="bg-black/60 border border-white/5 rounded-2xl p-6 font-mono text-xs leading-relaxed text-emerald-400 whitespace-pre-wrap min-h-[200px] shadow-inner border-l-2 border-l-emerald-500/30">
-                Resultado...
+            <div id="output-area" class="bg-[#020203] border border-white/5 rounded-2xl p-6 font-mono text-xs leading-relaxed text-emerald-400 whitespace-pre-wrap min-h-[250px] shadow-inner border-l-2 border-l-emerald-500/30 overflow-auto max-h-[400px]">
+                <span class="opacity-20 italic">A aguardar input...</span>
             </div>
         </div>
 
-        <!-- Error View -->
+        <!-- View: Error -->
         <div id="view-error" class="hidden-state bg-red-950/20 border border-red-500/30 rounded-2xl p-6 space-y-4">
             <div class="flex items-start gap-4 text-red-400">
-                <i data-lucide="alert-circle" class="w-6 h-6 shrink-0 mt-0.5"></i>
+                <i data-lucide="alert-triangle" class="w-6 h-6 shrink-0 mt-0.5"></i>
                 <div class="space-y-1">
-                    <p class="font-black uppercase text-xs">Erro Detectado</p>
+                    <p class="font-black uppercase text-xs tracking-tight">Falha Técnica</p>
                     <p id="error-message" class="text-[10px] leading-relaxed opacity-80"></p>
                 </div>
             </div>
-            <button id="btn-retry" class="w-full bg-white/5 py-3 rounded-xl font-bold text-[10px] uppercase border border-white/5">
-                Limpar Cache e Tentar CPU
+            <button onclick="window.location.reload()" class="w-full bg-white/5 py-3 rounded-xl font-bold text-[10px] uppercase border border-white/5">
+                Reiniciar Aplicação
             </button>
         </div>
 
@@ -120,6 +119,12 @@
 
     <script type="module">
         import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.1';
+
+        // Aplicar Polyfill se não existir nativamente
+        if (typeof window.Float16Array === 'undefined') {
+            window.Float16Array = float16.Float16Array;
+            console.log("Float16Array Polyfill aplicado manualmente.");
+        }
 
         const views = {
             start: document.getElementById('view-start'),
@@ -138,7 +143,7 @@
         let generator = null;
         lucide.createIcons();
 
-        // Configuração segura
+        // Configurações de Ambiente
         env.allowLocalModels = false;
         env.allowRemoteModels = true;
         env.useBrowserCache = true;
@@ -158,16 +163,19 @@
 
         const initEngine = async () => {
             showView('loading');
-            // NOVO ID CORRIGIDO
             const modelId = 'onnx-community/Qwen2.5-Coder-0.5B-Instruct';
-            addLog(`Conectando ao repositório oficial...`);
+            addLog(`Ligando ao Hugging Face...`);
             
             try {
-                const device = navigator.gpu ? 'webgpu' : 'cpu';
-                document.getElementById('device-indicator').innerText = `${device} Mode`;
+                // Tentar WebGPU, se falhar, avisar
+                const hasGPU = !!navigator.gpu;
+                const device = hasGPU ? 'webgpu' : 'cpu';
+                document.getElementById('device-tag').innerText = `${device.toUpperCase()} MODE`;
+                addLog(`Dispositivo detectado: ${device.toUpperCase()}`);
 
                 generator = await pipeline('text-generation', modelId, {
                     device: device,
+                    // Se for WebGPU, tentamos fp16. Se for CPU, usamos quantização q8
                     dtype: device === 'webgpu' ? 'fp16' : 'q8',
                     progress_callback: (p) => {
                         if (p.status === 'progress') {
@@ -176,35 +184,40 @@
                             progressText.innerText = `${prog}%`;
                         }
                         if (p.status === 'init') {
-                            addLog(`A ler: ${p.file.split('/').pop()}`);
                             loadingFile.innerText = p.file.split('/').pop();
                         }
                     }
                 });
 
-                addLog("Tudo pronto!");
+                addLog("Motor IA carregado e estável.");
                 showView('editor');
-                inputArea.value = "// Exemplo: Função de soma\nfunction sum(a, b) {";
+                inputArea.value = "// Exemplo de função de ordenação\nfunction bubbleSort(arr) {";
             } catch (err) {
                 console.error(err);
-                addLog(`ERRO CRÍTICO: ${err.message}`);
-                errorMsg.innerText = `O erro '${err.message}' costuma acontecer quando o browser bloqueia o download de ficheiros grandes por segurança. Tente mudar de rede (Wi-Fi/4G).`;
+                addLog(`ERRO: ${err.message}`);
+                errorMsg.innerText = `Erro de Hardware: ${err.message}. Isto ocorre frequentemente quando o navegador móvel não suporta totalmente o construtor Float16Array ou falta memória GPU.`;
                 showView('error');
             }
         };
 
-        document.getElementById('btn-load-main').onclick = initEngine;
-        document.getElementById('btn-retry').onclick = () => window.location.reload();
+        document.getElementById('btn-load').onclick = initEngine;
+        document.getElementById('btn-clear').onclick = () => {
+            inputArea.value = "";
+            outputArea.innerHTML = '<span class="opacity-20 italic">A aguardar input...</span>';
+        };
 
         document.getElementById('btn-generate').onclick = async () => {
             if (!generator || !inputArea.value.trim()) return;
             const btn = document.getElementById('btn-generate');
             btn.disabled = true;
-            outputArea.innerText = "Gerando...";
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>A Gerar...</span>`;
+            lucide.createIcons();
+            
+            outputArea.innerText = "A processar tensores...";
 
             try {
                 const result = await generator(inputArea.value, {
-                    max_new_tokens: 100,
+                    max_new_tokens: 120,
                     temperature: 0.1,
                     do_sample: false,
                     callback_function: (beams) => {
@@ -214,9 +227,12 @@
                 });
                 outputArea.innerText = result[0].generated_text;
             } catch (err) {
-                addLog(`Erro na geração: ${err.message}`);
+                addLog(`Erro na Inferência: ${err.message}`);
+                outputArea.innerHTML = `<span class="text-red-500">Erro: ${err.message}</span>`;
             } finally {
                 btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>Gerar</span>`;
+                lucide.createIcons();
             }
         };
     </script>
