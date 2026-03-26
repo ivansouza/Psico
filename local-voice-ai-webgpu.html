@@ -3,108 +3,85 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
- <title>AI Studio - WebGPU Checker</title>
+ <title>AI Studio - Mobile Edition</title>
  <script src="https://cdn.tailwindcss.com"></script>
  <style>
  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
- body { font-family: 'Inter', sans-serif; background-color: #050505; color: #e5e7eb; }
- .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
- .progress-fill { transition: width 0.4s ease-out; }
+ body { font-family: 'Inter', sans-serif; background-color: #030305; color: #e2e8f0; }
+ .glass-card { background: rgba(15, 15, 25, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+ .progress-bar { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
  #output::-webkit-scrollbar { width: 4px; }
- #output::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
- .animate-flicker { animation: flicker 2s linear infinite; }
- @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+ #output::-webkit-scrollbar-thumb { background: #2d2d39; border-radius: 10px; }
+ .btn-glow { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+ @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 0.2; } 100% { transform: scale(0.95); opacity: 0.5; } }
+ .recording-ring { animation: pulse-ring 2s infinite; }
  </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4">
 
- <div class="w-full max-w-2xl space-y-6 pb-12">
+ <div class="w-full max-w-lg space-y-6">
  <header class="text-center py-6">
- <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
- Local AI Studio
+ <h1 class="text-3xl font-bold tracking-tighter text-white">
+ Studio <span class="text-indigo-500 italic">V5</span>
  </h1>
- <p class="text-gray-500 text-sm mt-1 uppercase tracking-widest font-bold">Privacidade Total • WebGPU</p>
+ <p class="text-gray-500 text-[10px] uppercase tracking-[0.2em] font-bold">Hardware Accelerated • Mobile Stable</p>
  </header>
 
- <div id="gpuChecker" class="glass-card p-6 rounded-3xl border-orange-500/30 border">
- <div class="flex items-center gap-4 mb-4">
- <div id="gpuStatusIcon" class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500">
- <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
- </div>
- <div>
- <h2 class="font-bold text-lg">Estado da WebGPU</h2>
- <p id="gpuStatusText" class="text-sm text-gray-400">A verificar compatibilidade do hardware...</p>
- </div>
- </div>
- 
- <div id="gpuFixInstructions" class="hidden mt-4 p-4 bg-white/5 rounded-2xl text-xs space-y-2 border border-white/10">
- <p class="font-bold text-orange-400">Como ativar no Android:</p>
- <ol class="list-decimal ml-4 space-y-1 text-gray-300">
- <li>Aceda a <code class="bg-black px-1">chrome://flags</code> no Chrome.</li>
- <li>Pesquise por <span class="text-white">"WebGPU"</span>.</li>
- <li>Ative <span class="text-white">"Unsafe WebGPU Support"</span>.</li>
- <li>Reinicie o navegador e tente novamente.</li>
- </ol>
- </div>
- </div>
-
- <div id="loaderPanel" class="hidden glass-card p-6 rounded-3xl space-y-6">
+ <div id="loaderPanel" class="glass-card p-6 rounded-[2rem] space-y-5">
  <div class="space-y-4">
  <div class="space-y-2">
- <div class="flex justify-between text-[10px] font-mono uppercase tracking-widest text-gray-500">
- <span>Voz (Whisper)</span>
+ <div class="flex justify-between text-[10px] font-mono text-indigo-400">
+ <span>STT (Whisper Tiny)</span>
  <span id="whisperPercent">0%</span>
  </div>
  <div class="h-1 bg-white/5 rounded-full overflow-hidden">
- <div id="whisperBar" class="progress-fill h-full bg-cyan-500 w-0"></div>
+ <div id="whisperBar" class="progress-bar h-full bg-indigo-500 w-0"></div>
  </div>
  </div>
  <div class="space-y-2">
- <div class="flex justify-between text-[10px] font-mono uppercase tracking-widest text-gray-500">
- <span>Cérebro (Gemma 2B)</span>
- <span id="gemmaPercent">0%</span>
+ <div class="flex justify-between text-[10px] font-mono text-emerald-400">
+ <span>LLM (Qwen 0.5B Mobile)</span>
+ <span id="llmPercent">0%</span>
  </div>
  <div class="h-1 bg-white/5 rounded-full overflow-hidden">
- <div id="gemmaBar" class="progress-fill h-full bg-blue-500 w-0"></div>
+ <div id="llmBar" class="progress-bar h-full bg-emerald-500 w-0"></div>
  </div>
  </div>
  </div>
- <button id="initBtn" class="w-full bg-white text-black py-4 rounded-2xl font-bold hover:bg-gray-200 transition-colors">
- Iniciar Download Local
+ <button id="initBtn" class="w-full bg-white text-black py-4 rounded-2xl font-bold btn-glow active:scale-95 transition-all">
+ Ativar Estúdio Local
  </button>
+ <p class="text-[9px] text-center text-gray-600">Modelos leves selecionados para estabilidade em Android/iOS.</p>
  </div>
 
- <div id="mainUI" class="hidden space-y-4">
- <div class="glass-card p-6 rounded-3xl relative">
- <div class="flex justify-between items-center mb-4">
- <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Entrada de Voz</span>
- <button id="clearBtn" class="text-[10px] text-gray-500 hover:text-white uppercase font-bold">Limpar</button>
- </div>
+ <div id="mainUI" class="hidden space-y-4 animate-in fade-in duration-700">
+ <div class="glass-card p-6 rounded-[2rem] relative">
  <div id="output" class="text-lg leading-relaxed h-32 overflow-y-auto italic text-gray-500 pr-2">
- Aguardando voz...
+ Toque no microfone para falar...
  </div>
- <div class="absolute bottom-4 right-6 flex items-center gap-2 bg-black/50 px-2 py-1 rounded-full border border-white/5">
- <span id="volNum" class="text-[10px] font-mono text-gray-600">00</span>
- <div id="vadCircle" class="w-2 h-2 rounded-full bg-zinc-800 transition-colors"></div>
- </div>
- </div>
-
- <div class="glass-card p-6 rounded-3xl min-h-[220px] border-l-2 border-blue-500/50 flex flex-col">
- <div class="flex justify-between items-center mb-4">
- <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Resposta da IA</span>
- <span id="aiStatus" class="text-[10px] font-mono text-gray-600">IDLE</span>
- </div>
- <div id="aiResponse" class="flex-1 text-md leading-relaxed text-blue-50/80 overflow-y-auto">
- A sua resposta aparecerá aqui...
+ <div class="absolute bottom-4 right-6 flex items-center gap-2">
+ <span id="volNum" class="text-[10px] font-mono text-gray-700">00</span>
+ <div id="vadCircle" class="w-2 h-2 rounded-full bg-zinc-800"></div>
  </div>
  </div>
 
- <div class="flex justify-center gap-6 py-4">
- <button id="micBtn" class="w-20 h-20 bg-cyan-600 rounded-full flex items-center justify-center shadow-xl shadow-cyan-900/20 active:scale-95 transition-all">
- <svg id="micIcon" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a 7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+ <div class="glass-card p-6 rounded-[2rem] min-h-[180px] border-t border-white/5">
+ <div class="flex justify-between mb-4">
+ <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Resposta Local</span>
+ <span id="aiStatus" class="text-[10px] font-mono text-gray-600 italic tracking-tighter">Standby</span>
+ </div>
+ <div id="aiResponse" class="text-md leading-relaxed text-gray-300">
+ Sua resposta aparecerá aqui.
+ </div>
+ </div>
+
+ <div class="flex justify-center items-center gap-8 py-4">
+ <button id="micBtn" class="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center relative z-10">
+ <div id="micRing" class="absolute inset-0 rounded-full border-4 border-indigo-400 hidden recording-ring"></div>
+ <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
  </button>
- <button id="thinkBtn" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-2xl font-bold text-white shadow-lg transition-all flex items-center gap-2">
- <span>🧠</span> Analisar
+ <button id="thinkBtn" class="bg-emerald-600 px-8 py-4 rounded-2xl font-bold text-white shadow-lg active:scale-95 transition-all">
+ Processar
  </button>
  </div>
  </div>
@@ -113,61 +90,26 @@
  <script type="module">
  import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.10";
 
- let sttPipe = null;
- let llmPipe = null;
+ let stt = null;
+ let llm = null;
  let audioCtx = null;
  let isRecording = false;
- let isProcessing = false;
 
- const gpuStatusText = document.getElementById('gpuStatusText');
- const gpuStatusIcon = document.getElementById('gpuStatusIcon');
- const gpuFixInstructions = document.getElementById('gpuFixInstructions');
- const loaderPanel = document.getElementById('loaderPanel');
- const gpuChecker = document.getElementById('gpuChecker');
- const whisperBar = document.getElementById('whisperBar');
- const whisperPercent = document.getElementById('whisperPercent');
- const gemmaBar = document.getElementById('gemmaBar');
- const gemmaPercent = document.getElementById('gemmaPercent');
  const initBtn = document.getElementById('initBtn');
- const mainUI = document.getElementById('mainUI');
+ const whisperBar = document.getElementById('whisperBar');
+ const llmBar = document.getElementById('llmBar');
+ const whisperPercent = document.getElementById('whisperPercent');
+ const llmPercent = document.getElementById('llmPercent');
  const output = document.getElementById('output');
  const aiResponse = document.getElementById('aiResponse');
  const aiStatus = document.getElementById('aiStatus');
 
- async function checkWebGPU() {
- if (!navigator.gpu) {
- gpuStatusText.textContent = "WebGPU não detetada neste navegador.";
- gpuStatusText.className = "text-sm text-red-400 font-bold";
- gpuStatusIcon.className = "w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500";
- gpuFixInstructions.classList.remove('hidden');
- return false;
- }
- try {
- const adapter = await navigator.gpu.requestAdapter();
- if (!adapter) throw new Error();
- gpuStatusText.textContent = "Hardware compatível detetado!";
- gpuStatusText.className = "text-sm text-green-400 font-bold";
- gpuStatusIcon.className = "w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-500";
- gpuStatusIcon.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
- 
- setTimeout(() => {
- gpuChecker.classList.add('hidden');
- loaderPanel.classList.remove('hidden');
- }, 1000);
- return true;
- } catch (e) {
- gpuStatusText.textContent = "WebGPU existe mas o hardware recusou o acesso.";
- gpuFixInstructions.classList.remove('hidden');
- return false;
- }
- }
-
- async function loadModels() {
+ async function startSystem() {
  initBtn.disabled = true;
- initBtn.textContent = "A descarregar...";
+ initBtn.textContent = "⚙️ Configurando WebGPU...";
 
  try {
- sttPipe = await pipeline("automatic-speech-recognition", "onnx-community/whisper-tiny", {
+ stt = await pipeline("automatic-speech-recognition", "onnx-community/whisper-tiny", {
  device: "webgpu",
  dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
  progress_callback: (p) => {
@@ -178,116 +120,115 @@
  }
  });
 
- llmPipe = await pipeline("text-generation", "onnx-community/gemma-2-2b-it", {
+ llm = await pipeline("text-generation", "onnx-community/Qwen2.5-0.5B-Instruct", {
  device: "webgpu",
- dtype: "q4f16",
+ dtype: "q4",
  progress_callback: (p) => {
  if (p.status === 'progress') {
- gemmaBar.style.width = `${Math.round(p.progress)}%`;
- gemmaPercent.textContent = `${Math.round(p.progress)}%`;
+ llmBar.style.width = `${Math.round(p.progress)}%`;
+ llmPercent.textContent = `${Math.round(p.progress)}%`;
  }
  }
  });
 
- loaderPanel.classList.add('hidden');
- mainUI.classList.remove('hidden');
+ document.getElementById('loaderPanel').classList.add('hidden');
+ document.getElementById('mainUI').classList.remove('hidden');
+
  } catch (err) {
  console.error(err);
- alert("Erro ao carregar modelos. Certifique-se de ter memória livre e WebGPU ativa.");
+ alert("Ocorreu um erro. Tente fechar outras abas do navegador para libertar RAM.");
  initBtn.disabled = false;
- initBtn.textContent = "Tentar novamente";
+ initBtn.textContent = "Reiniciar";
  }
  }
 
- async function startMic() {
+ async function runMic() {
  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
  const source = audioCtx.createMediaStreamSource(stream);
  const analyzer = audioCtx.createAnalyser();
  source.connect(analyzer);
- const dataArr = new Uint8Array(analyzer.frequencyBinCount);
+ const data = new Uint8Array(analyzer.frequencyBinCount);
 
  const updateVAD = () => {
  if (!isRecording) return;
- analyzer.getByteFrequencyData(dataArr);
+ analyzer.getByteFrequencyData(data);
  let sum = 0;
- for(let i=0; i<dataArr.length; i++) sum += dataArr[i];
- let v = Math.round(sum/dataArr.length);
+ for(let i=0; i<data.length; i++) sum += data[i];
+ let v = Math.round(sum/data.length);
  document.getElementById('volNum').textContent = v.toString().padStart(2, '0');
- document.getElementById('vadCircle').style.backgroundColor = v > 5 ? '#22d3ee' : '#27272a';
+ document.getElementById('vadCircle').style.backgroundColor = v > 5 ? '#6366f1' : '#27272a';
  requestAnimationFrame(updateVAD);
  };
  updateVAD();
 
- const runCycle = () => {
+ const loop = () => {
  if (!isRecording) return;
- const recorder = new MediaRecorder(stream);
- recorder.ondataavailable = async (e) => {
- if (isProcessing) return;
- isProcessing = true;
- try {
- const buffer = await e.data.arrayBuffer();
- const decoded = await audioCtx.decodeAudioData(buffer);
- const result = await sttPipe(decoded.getChannelData(0), { language: "pt", task: "transcribe" });
- if (result.text.trim()) {
+ const rec = new MediaRecorder(stream);
+ rec.ondataavailable = async (e) => {
+ const buf = await e.data.arrayBuffer();
+ const decoded = await audioCtx.decodeAudioData(buf);
+ const res = await stt(decoded.getChannelData(0), { language: "pt", task: "transcribe" });
+ if (res.text.trim()) {
  if (output.classList.contains('italic')) output.textContent = "";
- output.textContent += (output.textContent ? " " : "") + result.text.trim();
- output.scrollTop = output.scrollHeight;
+ output.textContent += (output.textContent ? " " : "") + res.text.trim();
  output.classList.remove('italic', 'text-gray-500');
+ output.scrollTop = output.scrollHeight;
  }
- } catch (err) {} finally { isProcessing = false; }
  };
- recorder.onstop = () => { if(isRecording) runCycle(); };
- recorder.start();
- setTimeout(() => { if(recorder.state === "recording") recorder.stop(); }, 3000);
+ rec.onstop = () => { if(isRecording) loop(); };
+ rec.start();
+ setTimeout(() => { if(rec.state === "recording") rec.stop(); }, 3000);
  };
- runCycle();
+ loop();
  }
 
- async function runAI() {
+ async function think() {
  const prompt = output.textContent.trim();
  if (!prompt || output.classList.contains('italic')) return;
 
  document.getElementById('thinkBtn').disabled = true;
- aiStatus.textContent = "A PROCESSAR...";
- aiStatus.className = "text-[10px] font-mono text-blue-400 animate-flicker";
+ aiStatus.textContent = "PENSANDO...";
  aiResponse.textContent = "A IA local está a gerar uma resposta...";
 
  try {
- const chatPrompt = `<start_of_turn>user\n${prompt}<end_of_turn>\n<start_of_turn>model\n`;
- const result = await llmPipe(chatPrompt, { max_new_tokens: 128, temperature: 0.7, do_sample: true });
+ const formattedPrompt = `<|im_start|>system\nResponda de forma concisa em português.<|im_end|>\n<|im_start|>user\n${prompt}<|im_end|>\n<|im_start|>assistant\n`;
+ const startTime = performance.now();
+ const result = await llm(formattedPrompt, { 
+ max_new_tokens: 100, 
+ temperature: 0.6,
+ do_sample: true 
+ });
+ const duration = ((performance.now() - startTime)/1000).toFixed(1);
+
  const fullText = result[0].generated_text;
- const answer = fullText.split('<start_of_turn>model\n')[1] || fullText;
+ const answer = fullText.split('assistant\n')[1] || fullText;
+ 
  aiResponse.textContent = answer.trim();
- aiStatus.textContent = "PRONTO";
- aiStatus.className = "text-[10px] font-mono text-green-500";
+ aiStatus.textContent = `OK (${duration}s)`;
  } catch (err) {
- aiResponse.textContent = "Erro de memória na GPU. Tente frases mais curtas.";
+ aiResponse.textContent = "Erro: A GPU mobile esgotou a memória. Tente limpar o texto e falar frases menores.";
  aiStatus.textContent = "ERRO";
  } finally {
  document.getElementById('thinkBtn').disabled = false;
  }
  }
 
- initBtn.onclick = loadModels;
+ initBtn.onclick = startSystem;
  document.getElementById('micBtn').onclick = async () => {
  if (!isRecording) {
  isRecording = true;
- document.getElementById('micBtn').classList.replace('bg-cyan-600', 'bg-red-600');
- if (output.classList.contains('italic')) output.textContent = "Ouvindo...";
- await startMic();
+ document.getElementById('micBtn').classList.replace('bg-indigo-600', 'bg-red-600');
+ document.getElementById('micRing').classList.remove('hidden');
+ output.textContent = "A ouvir...";
+ await runMic();
  } else {
  isRecording = false;
- document.getElementById('micBtn').classList.replace('bg-red-600', 'bg-cyan-600');
+ document.getElementById('micBtn').classList.replace('bg-red-600', 'bg-indigo-600');
+ document.getElementById('micRing').classList.add('hidden');
  }
  };
- document.getElementById('thinkBtn').onclick = runAI;
- document.getElementById('clearBtn').onclick = () => {
- output.textContent = "Aguardando voz...";
- output.classList.add('italic', 'text-gray-500');
- };
-
- window.onload = checkWebGPU;
+ document.getElementById('thinkBtn').onclick = think;
  </script>
 </body>
 </html>
