@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BitNet WebGPU Debugger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #f4f4f5; font-family: system-ui, -apple-system, sans-serif; }
+        .console-box { background: rgba(24, 24, 27, 0.4); border: 1px solid rgba(39, 39, 42, 0.5); border-radius: 1.5rem; backdrop-filter: blur(8px); }
+        .btn-primary { background: #2563eb; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-primary:active { transform: scale(0.96); opacity: 0.9; }
+        .loader { border: 2px solid rgba(59, 130, 246, 0.2); border-top: 2px solid #3b82f6; border-radius: 50%; width: 14px; height: 14px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .log-entry { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden p-6">
+
+    <!-- Header -->
+    <header class="mb-8">
+        <h1 class="text-2xl font-black text-blue-500 italic tracking-tighter uppercase">BitNet Debugger</h1>
+        <div class="flex items-center gap-2 mt-2">
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-zinc-700"></div>
+            <span id="gpu-display" class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Hardware: A aguardar...</span>
+        </div>
+    </header>
+
+    <!-- Console -->
+    <main class="flex-1 space-y-6 overflow-hidden flex flex-col">
+        <div class="console-box flex-1 p-6 flex flex-col">
+            <h2 class="text-[10px] font-black text-zinc-500 uppercase mb-6 tracking-[0.2em]">Fluxo de Diagnóstico</h2>
+            
+            <div id="log-container" class="flex-1 space-y-4 overflow-y-auto pr-2 text-sm text-zinc-400">
+                <div class="flex flex-col items-center justify-center h-full text-zinc-800 text-center opacity-40">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                    <p class="text-[10px] uppercase tracking-widest font-bold">Sistema em Standby</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Advice (Hidden by default) -->
+        <div id="error-advice" class="hidden bg-red-500/5 border border-red-500/20 p-5 rounded-2xl">
+            <h3 class="text-red-500 text-[10px] font-black mb-2 uppercase tracking-wider">Como resolver:</h3>
+            <ul class="text-[11px] text-zinc-500 space-y-2 leading-relaxed">
+                <li class="flex gap-2"><span>•</span> <span><strong>Rede:</strong> Desativa o Wi-Fi e usa o 5G/4G. Muitos routers barram o HuggingFace.</span></li>
+                <li class="flex gap-2"><span>•</span> <span><strong>Privacidade:</strong> Abre este link numa <strong>Aba Incógnita</strong>.</span></li>
+                <li class="flex gap-2"><span>•</span> <span><strong>Bateria:</strong> Desativa o "Modo de Poupança" do telemóvel.</span></li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- Footer Action -->
+    <footer class="py-6">
+        <button id="start-btn" onclick="runTest()" class="w-full btn-primary text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3">
+            <svg id="btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="btn-text">INICIAR TESTE REAL</span>
+        </button>
+    </footer>
+
+    <script>
+        const logContainer = document.getElementById('log-container');
+        const gpuDisplay = document.getElementById('gpu-display');
+        const statusDot = document.getElementById('status-dot');
+        const btn = document.getElementById('start-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnIcon = document.getElementById('btn-icon');
+        const errorAdvice = document.getElementById('error-advice');
+
+        function addLog(msg, type = 'info') {
+            if (logContainer.querySelector('svg')) logContainer.innerHTML = '';
+            
+            const div = document.createElement('div');
+            div.className = 'log-entry flex gap-3 items-start';
+            
+            let icon = '';
+            let textColor = 'text-zinc-400';
+            
+            if (type === 'info') {
+                icon = '<div class="loader mt-1"></div>';
+                textColor = 'text-blue-400';
+            } else if (type === 'success') {
+                icon = '<svg class="text-emerald-500 mt-1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                textColor = 'text-emerald-400 font-medium';
+            } else if (type === 'error') {
+                icon = '<svg class="text-red-500 mt-1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>';
+                textColor = 'text-red-400 font-bold';
+            }
+
+            div.innerHTML = `<div>${icon}</div><span class="${textColor}">${msg}</span>`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function runTest() {
+            // Reset UI
+            btn.disabled = true;
+            btnText.innerText = "A ANALISAR...";
+            btn.classList.replace('btn-primary', 'bg-zinc-800');
+            btn.classList.add('text-zinc-500');
+            errorAdvice.classList.add('hidden');
+            logContainer.innerHTML = '';
+            statusDot.className = 'w-2 h-2 rounded-full bg-blue-500 animate-pulse';
+            
+            addLog("A iniciar diagnóstico manual...", "info");
+
+            try {
+                // 1. WebGPU check
+                addLog("A validar hardware GPU...", "info");
+                if (!navigator.gpu) {
+                    throw new Error("WebGPU não suportado neste navegador.");
+                }
+
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    throw new Error("GPU detectada, mas adaptador recusado.");
+                }
+
+                const name = adapter.name || "WebGPU Genérica";
+                gpuDisplay.innerText = "Hardware: " + (name.length > 20 ? name.substring(0, 20) + '...' : name);
+                addLog("Hardware: " + name + " OK.", "success");
+
+                // 2. Internet check
+                addLog("A testar rota de rede...", "info");
+                try {
+                    await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors', cache: 'no-store' });
+                    addLog("Conexão à Internet: OK.", "success");
+                } catch (e) {
+                    addLog("Aviso: Falha no ping básico.", "error");
+                }
+
+                // 3. HuggingFace check
+                addLog("A ligar ao HuggingFace...", "info");
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                try {
+                    const res = await fetch('https://huggingface.co/api/models/onnx-community/BitNet-b1.58-100M-ONNX', {
+                        signal: controller.signal
+                    });
+
+                    if (res.ok) {
+                        addLog("Ligação ao HF: SUCESSO!", "success");
+                        statusDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                        btnText.innerText = "TESTE CONCLUÍDO";
+                    } else {
+                        throw new Error("Servidor HF bloqueou o acesso (Status " + res.status + ")");
+                    }
+                } catch (e) {
+                    if (e.name === 'AbortError') throw new Error("TIMEOUT: Rede muito lenta.");
+                    throw e;
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+
+            } catch (err) {
+                addLog("FALHA: " + err.message, "error");
+                statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
+                errorAdvice.classList.remove('hidden');
+                btnText.innerText = "REPETIR DIAGNÓSTICO";
+                btn.disabled = false;
+                btn.classList.replace('bg-zinc-800', 'btn-primary');
+                btn.classList.remove('text-zinc-500');
+            }
+        }
+    </script>
+</body>
+</html>
+
