@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TinyCoder v3 - Mobile Ultimate</title>
+    <title>TinyCoder v3 - Stable Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -12,7 +12,6 @@
         .font-mono { font-family: 'Fira Code', monospace; }
         .glass { background: rgba(15, 15, 18, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .hidden-state { display: none; }
-        .status-pulse { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
@@ -22,99 +21,84 @@
         <!-- Header -->
         <header class="flex items-center justify-between py-4 border-b border-white/10">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-900/40">
-                    <i data-lucide="cpu" class="text-white w-5 h-5"></i>
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg">
+                    <i data-lucide="terminal" class="text-white w-5 h-5"></i>
                 </div>
                 <h1 class="text-xl font-black text-white tracking-tighter italic uppercase">
-                    TinyCoder <span class="text-blue-500 font-mono">Mobile</span>
+                    TinyCoder <span class="text-blue-500 font-mono text-sm">STABLE</span>
                 </h1>
             </div>
-            <div id="device-tag" class="text-[9px] font-black text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5 uppercase">
-                Detectando...
+            <div id="device-tag" class="text-[9px] font-bold text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5">
+                STATUS: OFF
             </div>
         </header>
 
-        <!-- Monitor de Sistema -->
-        <div id="debug-console" class="bg-black/60 border border-white/5 rounded-xl p-3 font-mono text-[10px] h-28 overflow-y-auto shadow-inner">
-            <div class="text-blue-500 font-bold mb-1 border-b border-white/5 pb-1 uppercase flex items-center gap-1">
-                <i data-lucide="activity" class="w-3 h-3"></i> Consola de Sistema
-            </div>
+        <!-- Monitor -->
+        <div id="debug-console" class="bg-black/60 border border-white/5 rounded-xl p-3 font-mono text-[10px] h-24 overflow-y-auto">
             <div id="logs" class="opacity-70 space-y-1 text-slate-400">
-                <div>> Inicializando ambiente mobile...</div>
+                <div>> Pronto para iniciar o motor estável.</div>
             </div>
         </div>
 
-        <!-- Vista: Inicial -->
-        <div id="view-start" class="space-y-4">
+        <!-- Vista Inicial -->
+        <div id="view-start">
             <div class="glass rounded-3xl p-8 text-center space-y-6 shadow-2xl">
                 <div class="space-y-2">
-                    <h2 class="text-xl font-bold text-white tracking-tight">Qwen 2.5 Coder</h2>
+                    <h2 class="text-xl font-bold text-white">Qwen 2.5 Coder (q8)</h2>
                     <p class="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">
-                        Optimização 4-bit (q4). <br>Corrige o erro de tensores Float16 em telemóveis.
+                        Actualizado para 8-bit. Maior estabilidade e precisão para evitar erros de repetição.
                     </p>
                 </div>
-                
-                <button id="btn-load" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-900/40 active:scale-[0.97]">
-                    Iniciar IA (q4)
-                    <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                <button id="btn-load" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 shadow-xl shadow-blue-500/20">
+                    Ligar Motor Estável
+                    <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Vista: Loading -->
+        <!-- Vista Loading -->
         <div id="view-loading" class="hidden-state glass rounded-3xl p-8 space-y-6">
             <div class="flex justify-between items-end">
-                <div class="space-y-1">
-                    <span class="text-[10px] font-black uppercase text-blue-500 flex items-center gap-2">
-                        <i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> A Carregar
-                    </span>
-                    <p id="loading-file" class="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">
-                        Preparando motor q4...
-                    </p>
-                </div>
+                <span class="text-[10px] font-black uppercase text-blue-500 flex items-center gap-2">
+                    <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> A Sincronizar IA
+                </span>
                 <span id="progress-text" class="font-black text-2xl text-white font-mono">0%</span>
             </div>
             <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
                 <div id="progress-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
             </div>
+            <p id="loading-file" class="text-[9px] text-slate-600 font-mono text-center uppercase tracking-widest italic"></p>
         </div>
 
-        <!-- Vista: Editor -->
-        <div id="view-editor" class="hidden-state space-y-4">
-            <div class="glass rounded-2xl overflow-hidden shadow-2xl border border-white/5">
-                <textarea id="input-area" spellcheck="false" class="w-full bg-transparent p-5 h-40 outline-none resize-none font-mono text-sm text-blue-100 placeholder:text-slate-800" placeholder="Insira o código inicial..."></textarea>
-                <div class="p-4 bg-black/40 border-t border-white/5 flex justify-between items-center">
-                    <button id="btn-clear" class="p-2 text-slate-700 hover:text-red-500 transition-colors">
-                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+        <!-- Vista Editor -->
+        <div id="view-editor" class="hidden-state space-y-4 animate-in fade-in zoom-in-95 duration-500">
+            <div class="glass rounded-2xl overflow-hidden border border-white/5">
+                <div class="bg-white/5 px-4 py-2 border-b border-white/5 flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">Input de Código</span>
+                    <button id="btn-clear" class="text-slate-600 hover:text-red-500 transition-colors">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
                     </button>
-                    <button id="btn-generate" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-3 active:scale-95 transition-all shadow-lg">
+                </div>
+                <textarea id="input-area" spellcheck="false" class="w-full bg-transparent p-5 h-40 outline-none resize-none font-mono text-sm text-blue-100 placeholder:text-slate-800" placeholder="Escreva aqui (ex: function hello() { )"></textarea>
+                <div class="p-4 bg-black/40 border-t border-white/5">
+                    <button id="btn-generate" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg shadow-blue-500/20">
                         <i data-lucide="sparkles" class="w-4 h-4"></i>
-                        <span>Gerar</span>
+                        <span>Gerar Solução</span>
                     </button>
                 </div>
             </div>
-            <div id="output-area" class="bg-[#020203] border border-white/5 rounded-2xl p-6 font-mono text-xs leading-relaxed text-emerald-400 whitespace-pre-wrap min-h-[250px] shadow-inner border-l-2 border-l-emerald-500/30 overflow-auto max-h-[400px]">
-                <span class="opacity-20 italic">O resultado aparecerá aqui...</span>
+            <div id="output-area" class="bg-black border border-white/10 rounded-2xl p-6 font-mono text-xs leading-relaxed text-emerald-400 whitespace-pre-wrap min-h-[200px] shadow-inner border-l-2 border-l-emerald-500/40">
+                <span class="opacity-20">O resultado aparecerá aqui...</span>
             </div>
         </div>
 
-        <!-- Vista: Erro -->
-        <div id="view-error" class="hidden-state bg-red-950/20 border border-red-500/30 rounded-2xl p-6 space-y-4">
-            <div class="flex items-start gap-4 text-red-400">
-                <i data-lucide="alert-triangle" class="w-6 h-6 shrink-0 mt-0.5"></i>
-                <div class="space-y-1">
-                    <p class="font-black uppercase text-xs tracking-tight">Falha Técnica</p>
-                    <p id="error-message" class="text-[10px] leading-relaxed opacity-80"></p>
-                </div>
-            </div>
-            <button onclick="window.location.reload()" class="w-full bg-white/10 py-3 rounded-xl font-bold text-[10px] uppercase border border-white/5 text-white">
-                Reiniciar e Tentar CPU
-            </button>
+        <!-- Vista Erro -->
+        <div id="view-error" class="hidden-state bg-red-950/20 border border-red-500/30 rounded-2xl p-6 text-center">
+            <i data-lucide="alert-circle" class="w-8 h-8 text-red-500 mx-auto mb-3"></i>
+            <p id="error-message" class="text-[10px] text-red-300 opacity-80 mb-4"></p>
+            <button onclick="window.location.reload()" class="bg-white/5 px-6 py-2 rounded-lg text-[10px] font-bold uppercase text-white border border-white/10">Reiniciar</button>
         </div>
 
-        <footer class="text-center opacity-20 text-[8px] font-mono tracking-[0.4em] py-6 uppercase">
-            Safe Mode • Quantized q4 Engine
-        </footer>
     </div>
 
     <script type="module">
@@ -137,12 +121,9 @@
         let generator = null;
         lucide.createIcons();
 
-        // Configurações críticas para mobile
         env.allowLocalModels = false;
         env.allowRemoteModels = true;
         env.useBrowserCache = true;
-        // Impedir tentativas de usar Float16 nativo se o browser for instável
-        env.backends.onnx.wasm.proxy = false; 
 
         const addLog = (msg) => {
             const div = document.createElement('div');
@@ -159,21 +140,17 @@
 
         const initEngine = async () => {
             showView('loading');
-            // Usamos o modelo Instruct mas forçamos dtype q4 no pipeline
+            // Usamos a versão oficial da Xenova ou a da onnx-community com q8 para estabilidade
             const modelId = 'onnx-community/Qwen2.5-Coder-0.5B-Instruct';
-            addLog(`Ligando ao repositório...`);
             
             try {
-                const hasGPU = !!navigator.gpu;
-                // Em mobile, mesmo com GPU, o modo 'q4' ou 'q8' é o único 100% seguro contra erros de Tensor
-                const device = hasGPU ? 'webgpu' : 'cpu';
-                document.getElementById('device-tag').innerText = `${device.toUpperCase()} MODE`;
-                addLog(`Dispositivo: ${device.toUpperCase()}`);
+                const device = navigator.gpu ? 'webgpu' : 'cpu';
+                document.getElementById('device-tag').innerText = `MODE: ${device.toUpperCase()}`;
+                addLog(`Iniciando motor em ${device.toUpperCase()}...`);
 
                 generator = await pipeline('text-generation', modelId, {
                     device: device,
-                    // SOLUÇÃO: Usar 'q4' ou 'q8' remove a dependência de Float16Array
-                    dtype: 'q4', 
+                    dtype: 'q8', // MUITO MAIS ESTÁVEL QUE Q4 EM MOBILE
                     progress_callback: (p) => {
                         if (p.status === 'progress') {
                             const prog = Math.round(p.progress);
@@ -181,17 +158,15 @@
                             progressText.innerText = `${prog}%`;
                         }
                         if (p.status === 'init') {
-                            loadingFile.innerText = p.file.split('/').pop();
-                            addLog(`Lendo: ${p.file.split('/').pop()}`);
+                            loadingFile.innerText = `Lendo: ${p.file.split('/').pop()}`;
                         }
                     }
                 });
 
-                addLog("Motor IA carregado em modo Quantizado (q4).");
+                addLog("Motor IA estável carregado.");
                 showView('editor');
-                inputArea.value = "// Exemplo: Função para somar array\nfunction sumArray(arr) {";
+                inputArea.value = "// Exemplo: Função para filtrar números pares\nfunction filterEven(arr) {";
             } catch (err) {
-                console.error(err);
                 addLog(`ERRO: ${err.message}`);
                 errorMsg.innerText = err.message;
                 showView('error');
@@ -199,37 +174,45 @@
         };
 
         document.getElementById('btn-load').onclick = initEngine;
-        document.getElementById('btn-clear').onclick = () => {
-            inputArea.value = "";
-            outputArea.innerHTML = '<span class="opacity-20 italic">O resultado aparecerá aqui...</span>';
-        };
+        document.getElementById('btn-clear').onclick = () => inputArea.value = "";
 
         document.getElementById('btn-generate').onclick = async () => {
             if (!generator || !inputArea.value.trim()) return;
             const btn = document.getElementById('btn-generate');
+            const originalText = btn.innerHTML;
+            
             btn.disabled = true;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>...</span>`;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>A Processar...</span>`;
             lucide.createIcons();
             
-            outputArea.innerText = "A gerar código (Modo q4)...";
+            outputArea.innerText = "A pensar...";
 
             try {
-                const result = await generator(inputArea.value, {
-                    max_new_tokens: 100,
-                    temperature: 0.1,
-                    do_sample: false,
+                // CORREÇÃO CRÍTICA: Usar Chat Template para o modelo Instruct
+                // Se escreveres código direto, ele alucina. Com o template, ele sabe o que fazer.
+                const prompt = `<|user|>\nCompleta o seguinte código: \n${inputArea.value}\n<|assistant|>\n`;
+
+                const result = await generator(prompt, {
+                    max_new_tokens: 150,
+                    temperature: 0.1, // Quase sem aleatoriedade para evitar erros
+                    do_sample: false, // Greedy search para máxima estabilidade
+                    repetition_penalty: 1.2, // Evita que ele se repita (ex: !!!!!!!!)
                     callback_function: (beams) => {
                         const decoded = generator.tokenizer.decode(beams[0].output_token_ids, { skip_special_tokens: true });
-                        outputArea.innerText = decoded;
+                        // Limpar o prefixo do prompt da resposta se necessário
+                        const cleanOutput = decoded.split('<|assistant|>').pop().trim();
+                        outputArea.innerText = cleanOutput;
                     }
                 });
-                outputArea.innerText = result[0].generated_text;
+
+                const finalClean = result[0].generated_text.split('<|assistant|>').pop().trim();
+                outputArea.innerText = finalClean;
             } catch (err) {
-                addLog(`Erro na Inferência: ${err.message}`);
-                outputArea.innerHTML = `<span class="text-red-500 font-bold">Erro: ${err.message}</span>`;
+                addLog(`Erro: ${err.message}`);
+                outputArea.innerText = "Erro ao gerar código.";
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>Gerar</span>`;
+                btn.innerHTML = originalText;
                 lucide.createIcons();
             }
         };
