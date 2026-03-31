@@ -49,7 +49,7 @@
           <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-2">Psico • Voice Lab</p>
           <h1 class="text-3xl md:text-4xl font-black tracking-tight gradient-text">Edge TTS Voices Lab</h1>
           <p class="text-slate-400 mt-3 max-w-2xl">
-            Teste as vozes disponíveis no navegador, incluindo as vozes do Microsoft Edge quando estiverem instaladas no dispositivo.
+            Teste apenas as vozes em português do Brasil disponíveis no navegador, incluindo vozes Microsoft/Edge e neurais quando estiverem expostas pelo sistema.
           </p>
         </div>
         <div class="glass-card rounded-2xl px-4 py-3 min-w-[260px]">
@@ -66,7 +66,7 @@
           <div>
             <label for="voiceSelect" class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Voz</label>
             <select id="voiceSelect" class="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-sky-500">
-              <option>Carregando vozes...</option>
+              <option>Carregando vozes pt-BR...</option>
             </select>
           </div>
 
@@ -128,7 +128,7 @@
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div>
               <h2 class="text-sm font-bold uppercase tracking-[0.25em] text-slate-400">Vozes encontradas</h2>
-              <p class="text-xs text-slate-500 mt-1">Filtre rápido por nome, idioma, Google, Microsoft, etc.</p>
+              <p class="text-xs text-slate-500 mt-1">A lista abaixo mostra apenas vozes pt-BR detectadas no navegador.</p>
             </div>
             <input id="filterInput" type="text" placeholder="Filtrar vozes..." class="w-full md:w-72 bg-slate-950/90 text-slate-100 border border-white/10 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-sky-500">
           </div>
@@ -278,7 +278,10 @@
         return;
       }
 
-      const voices = speechSynthesis.getVoices().slice().sort((a, b) => {
+      const voices = speechSynthesis.getVoices()
+        .filter((voice) => (voice.lang || '').toLowerCase().startsWith('pt-br'))
+        .slice()
+        .sort((a, b) => {
         const byLang = (a.lang || '').localeCompare(b.lang || '');
         if (byLang !== 0) return byLang;
         return (a.name || '').localeCompare(b.name || '');
@@ -287,9 +290,9 @@
       allVoices = voices;
 
       if (!voices.length) {
-        engineStatus.textContent = 'Nenhuma voz encontrada ainda. Aguarde o navegador carregar.';
+        engineStatus.textContent = 'Nenhuma voz pt-BR encontrada ainda. Aguarde o navegador carregar.';
         engineMeta.textContent = 'No Edge, isso pode levar alguns instantes.';
-        voiceSelect.innerHTML = '<option>Sem vozes no momento</option>';
+        voiceSelect.innerHTML = '<option>Sem vozes pt-BR no momento</option>';
         renderVoiceList();
         return;
       }
@@ -299,14 +302,14 @@
         return `<option value="${index}">${label}</option>`;
       }).join('');
 
-      const edgeVoiceIndex = voices.findIndex(v => /microsoft|edge/i.test(`${v.name} ${v.voiceURI}`));
+      const edgeVoiceIndex = voices.findIndex(v => /microsoft|edge|neural/i.test(`${v.name} ${v.voiceURI}`));
       voiceSelect.value = String(edgeVoiceIndex >= 0 ? edgeVoiceIndex : 0);
 
-      const microsoftCount = voices.filter(v => /microsoft|edge/i.test(`${v.name} ${v.voiceURI}`)).length;
+      const microsoftCount = voices.filter(v => /microsoft|edge|neural/i.test(`${v.name} ${v.voiceURI}`)).length;
       engineStatus.textContent = `${voices.length} vozes detectadas.`;
       engineMeta.textContent = microsoftCount
-        ? `${microsoftCount} voz(es) Microsoft/Edge encontradas.`
-        : 'Nenhuma voz explicitamente identificada como Microsoft/Edge, mas as vozes do sistema estão disponíveis.';
+        ? `${microsoftCount} voz(es) Microsoft/Edge/Neural encontradas.`
+        : 'Nenhuma voz Microsoft/Edge/Neural pt-BR foi identificada pelo navegador; só aparecem as vozes pt-BR que o browser expõe.';
 
       updateVoiceMeta();
       renderVoiceList();
