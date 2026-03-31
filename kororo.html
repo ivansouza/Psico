@@ -5,58 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kokoro TTS 82M - Voz Dora (Português Brasileiro)</title>
   <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #f8f9fa;
-      color: #222;
-    }
-    h1 { font-size: 28px; margin-bottom: 8px; }
-    p { margin: 8px 0 16px; color: #555; }
-    textarea {
-      width: 100%;
-      height: 140px;
-      padding: 14px;
-      font-size: 17px;
-      border: 2px solid #ddd;
-      border-radius: 12px;
-      resize: none;
-    }
-    button {
-      width: 100%;
-      padding: 16px;
-      font-size: 18px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      margin: 20px 0;
-    }
-    button:disabled { background: #999; cursor: not-allowed; }
-    #status {
-      min-height: 60px;
-      font-weight: bold;
-      font-size: 17px;
-      padding: 12px;
-      border-radius: 8px;
-    }
-    audio { width: 100%; margin-top: 10px; }
+    body { font-family: system-ui; padding: 20px; max-width: 800px; margin: auto; }
+    button { padding: 16px; font-size: 18px; background: #007bff; color: white; border: none; border-radius: 12px; width: 100%; }
+    #status { min-height: 70px; font-weight: bold; padding: 12px; border-radius: 8px; margin: 15px 0; }
+    textarea { width: 100%; height: 140px; padding: 14px; font-size: 17px; border: 2px solid #ddd; border-radius: 12px; }
   </style>
 </head>
 <body>
   <h1>Kokoro TTS 82M - Voz Dora (Português Brasileiro)</h1>
   <p><strong>Texto em português:</strong></p>
   <textarea id="input">Olá! Isso é um teste de voz em português brasileiro com o Kokoro TTS 82M usando a voz Dora.</textarea>
+  <br><br>
   <button id="btn" onclick="generateAudio()">▶ Gerar Áudio com Voz Dora</button>
   <div id="status"></div>
-  <audio id="player" controls style="display:none;"></audio>
+  <audio id="player" controls style="width:100%; margin-top: 10px; display:none;"></audio>
 
   <script>
-    const API_BASE = "https://voice-generator.pages.dev";
-
     async function generateAudio() {
       const btn = document.getElementById('btn');
       const status = document.getElementById('status');
@@ -66,15 +30,18 @@
       if (!text) return alert("Digite algum texto!");
 
       btn.disabled = true;
-      btn.textContent = "⏳ Gerando áudio...";
+      btn.textContent = "⏳ Gerando...";
       status.style.background = "#e6f7ff";
       status.style.color = "#0066cc";
-      status.textContent = "Enviando texto para a API do Kokoro...";
+      status.textContent = "Enviando para a API do Kokoro...";
 
       try {
-        const response = await fetch(`${API_BASE}/api/v1/text-to-speech`, {
+        const response = await fetch("https://voice-generator.pages.dev/api/v1/text-to-speech", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer http"   // ← Token que você autorizou
+          },
           body: JSON.stringify({
             text: text,
             voice: "pf_dora",
@@ -82,7 +49,7 @@
           })
         });
 
-        if (!response.ok) throw new Error("Erro na API");
+        if (!response.ok) throw new Error("Erro na API: " + response.status);
 
         const audioBlob = await response.blob();
         const url = URL.createObjectURL(audioBlob);
