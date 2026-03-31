@@ -30,7 +30,6 @@
  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
  }
 
- /* Estado recolhido do painel */
  .glass-panel.collapsed {
  transform: translateX(calc(-100% - 24px));
  }
@@ -53,7 +52,6 @@
  border-color: #00ffcc;
  }
 
- /* Botão de Toggle */
  #toggle-ui {
  position: absolute;
  right: -45px;
@@ -85,7 +83,6 @@
  </div>
  
  <div id="ui-container" class="fixed top-6 left-6 z-10 w-72 glass-panel p-5 rounded-xl space-y-4 pointer-events-auto">
- <!-- Botão para retrair/expandir -->
  <button id="toggle-ui" title="Alternar Painel">
  <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
  </button>
@@ -177,7 +174,7 @@
  this.targetY = targetY;
  this.vx = 0;
  this.vy = 0;
- this.color = \`hsl(\${150 + Math.random() * 50}, 100%, 60%)\`;
+ this.color = `hsl(${150 + Math.random() * 50}, 100%, 60%)`;
  this.char = "01"[Math.floor(Math.random() * 2)];
  }
 
@@ -194,78 +191,59 @@
 
  let mdx = mouse.x - this.x;
  let mdy = mouse.y - this.y;
- let mDistance = Math.sqrt(mdx * mdx + mdy * mdy);
+ let mDist = Math.sqrt(mdx * mdx + mdy * mdy);
  
- if (mDistance < 150) {
- const mouseForce = settings.force * (1 - mDistance / 150) * (settings.mode === 'scatter' ? 8 : -2);
- this.vx -= (mdx / mDistance) * mouseForce * 0.05;
- this.vy -= (mdy / mDistance) * mouseForce * 0.05;
+ if (mDist < settings.force) {
+ let mForce = (settings.force - mDist) / settings.force;
+ if (settings.mode === 'scatter') {
+ this.vx -= (mdx / mDist) * mForce * 20;
+ this.vy -= (mdy / mDist) * mForce * 20;
+ } else {
+ this.vx += (mdx / mDist) * mForce * 15;
+ this.vy += (mdy / mDist) * mForce * 15;
  }
- 
+ }
+
  this.vx *= settings.friction;
  this.vy *= settings.friction;
  this.x += this.vx;
  this.y += this.vy;
  }
 
- draw(ctx) {
+ draw() {
  ctx.fillStyle = this.color;
- ctx.font = \`8px monospace\`;
+ ctx.font = '8px monospace';
  ctx.fillText(this.char, this.x, this.y);
  }
  }
 
- function getTargetPoints() {
+ function initParticles() {
+ particles = [];
+ const text = settings.text.toUpperCase();
+ 
+ settings.fontSize = Math.min(width / (text.length * 0.6), 160);
+ settings.spacing = settings.fontSize > 100 ? 5 : 4;
+
  offscreen.width = width;
  offscreen.height = height;
- 
- const fontSize = Math.min(width * 0.18, settings.fontSize);
- offCtx.clearRect(0, 0, offscreen.width, offscreen.height);
- offCtx.fillStyle = "#ffffff";
- offCtx.font = \`bold \${fontSize}px 'JetBrains Mono', monospace\`;
- offCtx.textAlign = "center";
- offCtx.textBaseline = "middle";
- offCtx.fillText(settings.text, width / 2, height / 2);
- 
- const imageData = offCtx.getImageData(0, 0, width, height);
- const points = [];
- const spacing = settings.spacing;
- 
- for (let y = 0; y < height; y += spacing) {
- for (let x = 0; x < width; x += spacing) {
- const alpha = imageData.data[(y * width + x) * 4 + 3];
- if (alpha > 128) points.push({ x, y });
- }
- }
- return points;
- }
+ offCtx.clearRect(0, 0, width, height);
+ offCtx.fillStyle = 'white';
+ offCtx.font = `bold ${settings.fontSize}px monospace`;
+ offCtx.textAlign = 'center';
+ offCtx.textBaseline = 'middle';
+ offCtx.fillText(text, width / 2, height / 2);
 
- function initParticles() {
- const points = getTargetPoints();
- const count = points.length;
- particles = [];
- 
- for (let i = 0; i < count; i++) {
- const p = new Particle(
- Math.random() * width,
- Math.random() * height,
- points[i].x,
- points[i].y
- );
- particles.push(p);
- }
- }
+ const pixels = offCtx.getImageData(0, 0, width, height).data;
 
- function animate() {
- ctx.fillStyle = 'rgba(5, 5, 5, 0.15)';
- ctx.fillRect(0, 0, width, height);
- 
- particles.forEach(p => {
- p.update();
- p.draw(ctx);
- });
- 
- requestAnimationFrame(animate);
+ for (let y = 0; y < height; y += settings.spacing) {
+ for (let x = 0; x < width; x += settings.spacing) {
+ const index = (y * width + x) * 4;
+ const alpha = pixels[index + 3];
+ if (alpha > 128) {
+ particles.push(new Particle(x, y, x, y));
+ }
+ }
+ }
  }
 
  function resize() {
@@ -276,75 +254,76 @@
  initParticles();
  }
 
- window.addEventListener('resize', resize);
- resize();
- animate();
+ function animate() {
+ ctx.fillStyle = 'rgba(5, 5, 5, 0.25)';
+ ctx.fillRect(0, 0, width, height);
 
+ particles.forEach(p => {
+ p.update();
+ p.draw();
+ });
+
+ requestAnimationFrame(animate);
+ }
+
+ toggleBtn.addEventListener('click', () => {
+ const isCollapsed = uiContainer.classList.toggle('collapsed');
+ toggleIcon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+ });
+
+ window.addEventListener('resize', resize);
+ 
  canvas.addEventListener('mousemove', (e) => {
  mouse.x = e.clientX;
  mouse.y = e.clientY;
- mouse.active = true;
  });
 
- canvas.addEventListener('mouseleave', () => { mouse.active = false; });
- 
- canvas.addEventListener('mousedown', (e) => {
- if (!mouse.active) return;
+ canvas.addEventListener('mousedown', () => {
  particles.forEach(p => {
- const dx = p.x - e.clientX;
- const dy = p.y - e.clientY;
- const dist = Math.random() * 100;
- p.vx += (dx / dist) * 20;
- p.vy += (dy / dist) * 20;
+ p.vx += (Math.random() - 0.5) * 60;
+ p.vy += (Math.random() - 0.5) * 60;
  });
  });
-
- canvas.addEventListener('touchmove', (e) => {
- e.preventDefault();
- mouse.x = e.touches[0].clientX;
- mouse.y = e.touches[0].clientY;
- }, { passive: false });
 
  canvas.addEventListener('touchstart', (e) => {
  mouse.x = e.touches[0].clientX;
  mouse.y = e.touches[0].clientY;
- mouse.active = true;
- }, { passive: false });
-
- canvas.addEventListener('touchend', () => { mouse.active = false; });
+ });
 
  textInput.addEventListener('input', (e) => {
- settings.text = e.target.value || " ";
+ settings.text = e.target.value || "TEXT";
  initParticles();
  });
 
- const toggleUI = () => {
- uiContainer.classList.toggle('collapsed');
- toggleIcon.innerHTML = uiContainer.classList.contains('collapsed')
- ? '<path d="m9 18 6-6-6-6"/>'
- : '<path d="m15 18-6-6 6-6"/>';
- };
- toggleBtn.addEventListener('click', toggleUI);
-
- const bindSlider = (slider, id, key, displayId) => {
- slider.addEventListener('input', (e) => {
- settings[key] = parseFloat(e.target.value);
- document.getElementById(displayId).textContent = e.target.value;
- initParticles();
+ speedInput.addEventListener('input', (e) => {
+ settings.speed = parseFloat(e.target.value);
+ document.getElementById('speedVal').innerText = settings.speed.toFixed(1);
  });
- };
 
- bindSlider(speedInput, 'speedInput', 'speed', 'speedVal');
- bindSlider(frictionInput, 'frictionInput', 'friction', 'frictionVal');
- bindSlider(forceInput, 'forceInput', 'force', 'forceVal');
+ frictionInput.addEventListener('input', (e) => {
+ settings.friction = parseFloat(e.target.value);
+ document.getElementById('frictionVal').innerText = settings.friction;
+ });
 
- function setMode(mode) {
- settings.mode = mode;
- modeScatterBtn.classList.toggle('active', mode === 'scatter');
- modeGatherBtn.classList.toggle('active', mode === 'gather');
- }
- modeScatterBtn.addEventListener('click', () => setMode('scatter'));
- modeGatherBtn.addEventListener('click', () => setMode('gather'));
+ forceInput.addEventListener('input', (e) => {
+ settings.force = parseInt(e.target.value);
+ document.getElementById('forceVal').innerText = settings.force;
+ });
+
+ modeScatterBtn.addEventListener('click', () => {
+ settings.mode = 'scatter';
+ modeScatterBtn.classList.add('active');
+ modeGatherBtn.classList.remove('active');
+ });
+
+ modeGatherBtn.addEventListener('click', () => {
+ settings.mode = 'gather';
+ modeGatherBtn.classList.add('active');
+ modeScatterBtn.classList.remove('active');
+ });
+
+ resize();
+ animate();
  </script>
 </body>
 </html>
