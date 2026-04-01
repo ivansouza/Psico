@@ -8,32 +8,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
-        
-        body { 
-            background-color: #05070a; 
-            color: #e2e8f0; 
+
+        body {
+            background-color: #05070a;
+            color: #e2e8f0;
             font-family: 'Inter', sans-serif;
             background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%);
         }
-        
-        .card { 
-            background: rgba(15, 23, 42, 0.4); 
-            backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255, 255, 255, 0.03); 
+
+        .card {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        .card:hover { 
-            transform: translateY(-8px); 
-            border-color: #38bdf8; 
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #38bdf8;
             box-shadow: 0 20px 40px -20px rgba(56, 189, 248, 0.4);
             background: rgba(30, 41, 59, 0.6);
         }
 
-        .gradient-text { 
-            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
+        .gradient-text {
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .filter-btn {
@@ -42,9 +42,9 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
-        .filter-btn.active { 
-            background-color: #38bdf8; 
-            color: #0b0f1a; 
+        .filter-btn.active {
+            background-color: #38bdf8;
+            color: #0b0f1a;
             border-color: #38bdf8;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
         }
@@ -114,7 +114,7 @@
                         <p class="text-slate-500 text-[10px] font-medium uppercase tracking-widest mt-1">Ivan Souza • Laboratório de Código • <span id="cards-total">0</span> cards</p>
                     </div>
                 </div>
-                
+
                 <div class="flex flex-wrap justify-center gap-1.5" id="filters-cat"></div>
             </div>
 
@@ -418,7 +418,7 @@
             { name: "Dígitos e Divisores", file: "digitos-multiplicador-divisores.html", cat: "Matemática", date: "05/03/2026", desc: "App educativo sobre bloco repetido, multiplicador (10^k+1) e fatores." },
             { name: "Dígitos e Divisores v2", file: "digitos-multiplicador-divisores-v2.html", cat: "Matemática", date: "05/03/2026", desc: "Versão animada com explicação visual passo a passo da fórmula N = X(10^k+1)." }
             ,{ name: "Palheta Vibrante", file: "palheta-site.html", cat: "Util", date: "09/03/2026", desc: "Escolha paletas criativas para site com preview ao vivo, presets e cópia de variáveis CSS.", dev: false },
-            { name: "Kororo2", file: "kororo2.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo2 — card de desenvolvimento.", dev: true }
+            { name: "Kororo2", file: "kororo2.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo2 - card de desenvolvimento.", dev: true }
         ];
 
         // Auxiliares de Data
@@ -466,6 +466,12 @@
             renderCards();
         }
 
+        function toggleMockCards(btn) {
+            showMockCards = !showMockCards;
+            btn.classList.toggle('active', showMockCards);
+            renderCards();
+        }
+
         function initSearch() {
             const input = document.getElementById('search-input');
             const clearBtn = document.getElementById('clear-search');
@@ -503,7 +509,7 @@
             const gallery = document.getElementById('gallery');
             const stats = document.getElementById('stats');
             const normalizedSearch = searchQuery.toLowerCase();
-            
+
             const filtered = experiments.filter(exp => {
                 const matchCat = activeCategory === "Todos" || exp.cat === activeCategory;
                 const matchMonth = activeMonth === "Todos" || getMonthFromDate(exp.date) === activeMonth;
@@ -511,15 +517,20 @@
                 const matchSearch = !normalizedSearch || [exp.name, exp.desc, exp.cat, exp.file]
                     .filter(Boolean)
                     .some(field => String(field).toLowerCase().includes(normalizedSearch));
-                const matchDev = !exp.dev || showMockCards;
-                return matchCat && matchMonth && matchYear && matchSearch && matchDev;
+                const isDev = !!exp.dev;
+                const isDevMode = showMockCards;
+                const showByDev = (isDevMode && isDev) || (!isDevMode && !isDev);
+                return matchCat && matchMonth && matchYear && matchSearch && showByDev;
             });
-            
-            const searchBadge = normalizedSearch ? ` • busca: “${searchQuery}”` : '';
+
+            const searchBadge = normalizedSearch ? ` • busca: "${searchQuery}"` : '';
             const devTotal = experiments.filter(e => e.dev).length;
+            const normalTotal = experiments.length - devTotal;
             document.getElementById('mock-count').textContent = `(${devTotal})`;
-            stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length - devTotal} experiências${searchBadge}${showMockCards ? ' <span class="text-amber-500">+ ${devTotal} mock</span>' : ''}`;
-            
+            stats.innerHTML = showMockCards
+                ? `Mock Cards: ${filtered.length} de ${devTotal} projetos em desenvolvimento${searchBadge}`
+                : `Resultados: ${filtered.length} de ${normalTotal} experiências${searchBadge}`;
+
             gallery.innerHTML = filtered.map(exp => `
                 ${exp.dev ? `<div class="card dev-card p-6 rounded-[2rem] flex flex-col justify-between h-full group">` : `<div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">`}
                     <div>
@@ -536,7 +547,7 @@
                         <h3 class="text-lg font-extrabold text-white mb-2 leading-tight group-hover:text-sky-400 transition-colors">${exp.name}</h3>
                         <p class="text-[11px] text-slate-500 leading-relaxed mb-6 font-medium">${exp.desc}</p>
                     </div>
-                    
+
                     <div class="flex flex-col gap-2 mt-auto">
                         <a href="${baseUrl}/${exp.file}" target="_blank" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black py-3 rounded-2xl text-center transition-all uppercase tracking-widest flex items-center justify-center gap-2">
                             <i class="fas fa-play"></i> Ver Demo
