@@ -49,6 +49,38 @@
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
         }
 
+        .mock-btn {
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .mock-btn.active {
+            background-color: #f59e0b;
+            color: #0b0f1a;
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .card.dev-card {
+            border-color: rgba(245, 158, 11, 0.3);
+            position: relative;
+        }
+
+        .card.dev-card::before {
+            content: 'DEV';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.55rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
         .badge-cat {
             font-size: 0.65rem;
             letter-spacing: 0.1em;
@@ -97,6 +129,12 @@
                 </div>
             </div>
 
+            <div class="flex flex-col lg:flex-row gap-2 items-center">
+                <button onclick="toggleMockCards(this)" class="mock-btn px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <i class="fas fa-flask"></i> Mock Cards <span id="mock-count" class="ml-1 opacity-50">(0)</span>
+                </button>
+            </div>
+
             <div class="flex flex-col lg:flex-row gap-3 items-center">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Busca:</span>
                 <div class="relative w-full max-w-2xl">
@@ -134,6 +172,7 @@
         let activeMonth = "Todos";
         let activeYear = "Todos";
         let searchQuery = "";
+        let showMockCards = false;
 
         // Mapeamento de meses
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -471,14 +510,17 @@
                 const matchSearch = !normalizedSearch || [exp.name, exp.desc, exp.cat, exp.file]
                     .filter(Boolean)
                     .some(field => String(field).toLowerCase().includes(normalizedSearch));
-                return matchCat && matchMonth && matchYear && matchSearch;
+                const matchDev = !exp.dev || showMockCards;
+                return matchCat && matchMonth && matchYear && matchSearch && matchDev;
             });
             
             const searchBadge = normalizedSearch ? ` • busca: “${searchQuery}”` : '';
-            stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length} experiências${searchBadge}`;
+            const devTotal = experiments.filter(e => e.dev).length;
+            document.getElementById('mock-count').textContent = `(${devTotal})`;
+            stats.innerHTML = `Resultados: ${filtered.length} de ${experiments.length - devTotal} experiências${searchBadge}${showMockCards ? ' <span class="text-amber-500">+ ${devTotal} mock</span>' : ''}`;
             
             gallery.innerHTML = filtered.map(exp => `
-                <div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">
+                ${exp.dev ? `<div class="card dev-card p-6 rounded-[2rem] flex flex-col justify-between h-full group">` : `<div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">`}
                     <div>
                         <div class="flex justify-between items-start mb-4">
                             <div class="flex flex-col">
