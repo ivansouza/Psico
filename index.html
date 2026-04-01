@@ -521,7 +521,11 @@
             // Ordenação global por data (mais recente primeiro), independente de filtros
             experiments.sort((a, b) => {
                 const diff = parseDateBR(b.date) - parseDateBR(a.date);
-                return diff !== 0 ? diff : a.name.localeCompare(b.name);
+                if (diff !== 0) return diff;
+                // Mesma data: manter ordem de inserção (último colocado = primeiro)
+                const posA = experiments.indexOf(a);
+                const posB = experiments.indexOf(b);
+                return posB - posA;
             });
         }
 
