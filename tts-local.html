@@ -124,6 +124,17 @@ voiceGrid.querySelector('[data-voice="M1"]').classList.add('active', 'ring-2', '
 el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
 el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
 
+// Helpers
+function flattenArray(arr) {
+    const result = [];
+    function recurse(a) {
+        if (Array.isArray(a)) { for (const x of a) recurse(x); }
+        else result.push(Number(a));
+    }
+    recurse(arr);
+    return result;
+}
+
 // ═══════════════════════════════════════════════════════════
 //  TEXT PREPROCESSING (from helper.py UnicodeProcessor)
 // ═══════════════════════════════════════════════════════════
@@ -272,9 +283,9 @@ async function loadAll() {
             el('phase-desc').textContent = `Loading voice ${v}...`;
             const style = await loadJSON(STYLE_DIR + v + '.json');
             voiceStyles[v] = {
-                ttl: new Float32Array(style.style_ttl.data),
-                dp: new Float32Array(style.style_dp.data),
-                ttlShape: style.style_ttl.dims, // [dim1, dim2]
+                ttl: new Float32Array(flattenArray(style.style_ttl.data)),
+                dp: new Float32Array(flattenArray(style.style_dp.data)),
+                ttlShape: style.style_ttl.dims,
                 dpShape: style.style_dp.dims
             };
         }
