@@ -23,12 +23,12 @@
     <div class="max-w-xl w-full mt-6 space-y-5">
         <div class="text-center">
             <h1 class="text-3xl font-bold mb-1">🔊 TTS Local</h1>
-            <p class="text-slate-400 text-sm">Supertonic TTS — pipeline oficial via Transformers.js</p>
+            <p class="text-slate-400 text-sm">Supertonic TTS — via Transformers.js</p>
         </div>
 
         <!-- Setup -->
         <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
-            <div id="phase-desc" class="text-sm text-slate-300">Baixa modelo do HuggingFace (~160MB). Primeira vez demora, depois fica em cache (IndexedDB).</div>
+            <div id="phase-desc" class="text-sm text-slate-300">Baixa modelo do HuggingFace (~160MB). Cacheia no navegador (IndexedDB).</div>
             <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
                 <div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div>
             </div>
@@ -42,7 +42,6 @@
         <div id="tts-card" class="hidden bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
             <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full uppercase tracking-widest">—</div>
 
-            <!-- Voices -->
             <div>
                 <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
                 <div id="voice-grid" class="grid grid-cols-5 gap-2">
@@ -59,7 +58,6 @@
                 </div>
             </div>
 
-            <!-- Sliders -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Steps: <span id="steps-val">5</span></label>
@@ -71,12 +69,10 @@
                 </div>
             </div>
 
-            <!-- Input -->
             <textarea id="text-input" rows="3"
                 class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 font-sans text-sm placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-                placeholder="Type some text here..."></textarea>
+                placeholder="Type some text..."></textarea>
 
-            <!-- Actions -->
             <div class="flex gap-3">
                 <button id="generate-btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition disabled:opacity-40">🔊 Gerar</button>
                 <button id="download-btn" class="hidden px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition text-sm">⬇ WAV</button>
@@ -87,50 +83,26 @@
     </div>
 
     <script type="module">
-        // ──────────────────────────────────────────────
-        //  Supertonic TTS via Transformers.js (v1)
-        //  This model works with transformers.js pipeline.
-        //  Model: onnx-community/Supertonic-TTS-ONNX
-        //  Voiced by: PR #1459 in transformers.js repo
-        // ──────────────────────────────────────────────
+        // Transformers.js nightly / latest via jsDelivr ESM
+        // The latest version on the CDN is 4.0.x which includes Supertonic
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@next';
 
-        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
+        const MODEL_ID = 'onnx-community/Supertonic-TTS-ONNX';
+        const HF_BASE  = `https://huggingface.co/${MODEL_ID}/resolve/main`;
+        const VOICES   = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
 
-        const MODEL_ID   = 'onnx-community/Supertonic-TTS-ONNX';
-        const HF_BASE    = `https://huggingface.co/${MODEL_ID}/resolve/main`;
-        const VOICES     = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
-
-        let genPipeline;
-        let lastBlob;
-        let selectedVoice = 'M1';
+        let genPipeline, lastBlob, selectedVoice = 'M1';
 
         // ── Elements ──
-        const loadBtn        = document.getElementById('load-btn');
-        const phaseDesc      = document.getElementById('phase-desc');
-        const progressBar    = document.getElementById('progress-bar');
-        const progressDetail = document.getElementById('progress-detail');
-        const ttsCard        = document.getElementById('tts-card');
-        const setupCard      = document.getElementById('setup-card');
-        const backendBadge   = document.getElementById('backend-badge');
-        const textInput      = document.getElementById('text-input');
-        const generateBtn    = document.getElementById('generate-btn');
-        const downloadBtn    = document.getElementById('download-btn');
-        const audioPlayer    = document.getElementById('audio-player');
-        const playerWrap     = document.getElementById('player-wrap');
-        const statsDiv       = document.getElementById('stats');
-        const stepsSlider    = document.getElementById('steps-slider');
-        const speedSlider    = document.getElementById('speed-slider');
-        const stepsVal       = document.getElementById('steps-val');
-        const speedVal       = document.getElementById('speed-val');
-        const voiceGrid      = document.getElementById('voice-grid');
+        const el = (id) => document.getElementById(id);
 
         function setProgress(pct, text) {
-            progressBar.style.width = pct + '%';
-            if (text !== undefined) progressDetail.textContent = text;
+            el('progress-bar').style.width = pct + '%';
+            if (text !== undefined) el('progress-detail').textContent = text;
         }
 
         // ── Voice selection ──
-        voiceGrid.addEventListener('click', e => {
+        el('voice-grid').addEventListener('click', e => {
             const btn = e.target.closest('.voice-btn');
             if (!btn) return;
             document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active', 'ring-2', 'ring-blue-500'));
@@ -139,15 +111,14 @@
         });
         document.querySelector('[data-voice="M1"]').classList.add('active', 'ring-2', 'ring-blue-500');
 
-        stepsSlider.addEventListener('input', e => stepsVal.textContent = e.target.value);
-        speedSlider.addEventListener('input', e => speedVal.textContent = parseFloat(e.target.value).toFixed(2));
+        el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
+        el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
 
-        // ── Load pipeline ──
-        loadBtn.addEventListener('click', async () => {
-            loadBtn.disabled = true;
-            loadBtn.textContent = '⏳ Carregando...';
-            phaseDesc.textContent = 'Iniciando...';
-            setProgress(5);
+        // ── Load ──
+        el('load-btn').addEventListener('click', async () => {
+            el('load-btn').disabled = true;
+            el('load-btn').textContent = '⏳ Carregando...';
+            setProgress(5, 'Importando Transformers.js...');
 
             try {
                 // Detect WebGPU
@@ -160,58 +131,54 @@
                 }
                 setProgress(10, `Backend: ${backend.toUpperCase()}`);
 
-                // Allow downloads from HF
                 env.allowLocalModels = false;
                 env.useBrowserCache  = true;
 
-                phaseDesc.textContent = 'Baixando modelo onnx-community/Supertonic-TTS-ONNX (~160MB, cache)...';
+                setProgress(15, `Baixando ${MODEL_ID}...`);
 
                 genPipeline = await pipeline('text-to-speech', MODEL_ID, {
                     dtype: 'fp32',
                     device: backend === 'webgpu' ? 'gpu' : 'wasm',
                     progress_callback: (info) => {
                         if (info.progress !== undefined) {
-                            const pct = Math.round(15 + (info.progress || 0) * 75);
-                            setProgress(pct, `${info.file || ''} – ${Math.round((info.progress||0)*100)}%`);
-                            phaseDesc.textContent = `Baixando: ${info.file || 'modelo'}...`;
-                        } else if (info.status) {
-                            phaseDesc.textContent = info.status;
+                            const pct = Math.round(20 + (info.progress || 0) * 75);
+                            setProgress(pct, `${info.file || ''} — ${Math.round((info.progress||0)*100)}%`);
                         }
                     },
                 });
 
                 setProgress(100);
-                phaseDesc.textContent = '✅ Pronto — Supertonic TTS carregado';
+                el('phase-desc').textContent = '✅ Pronto';
 
                 setTimeout(() => {
-                    setupCard.classList.add('hidden');
-                    ttsCard.classList.remove('hidden');
-                    backendBadge.innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes`;
+                    el('setup-card').classList.add('hidden');
+                    el('tts-card').classList.remove('hidden');
+                    el('backend-badge').innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes`;
                 }, 500);
 
             } catch (err) {
                 console.error('Erro:', err);
-                phaseDesc.textContent = `❌ ${err.message.slice(0,100)}`;
-                phaseDesc.classList.add('text-red-400');
-                loadBtn.disabled = false;
-                loadBtn.textContent = '🔄 Tentar novamente';
+                el('phase-desc').textContent = `❌ ${err.message.slice(0,150)}`;
+                el('phase-desc').classList.add('text-red-400');
+                el('load-btn').disabled = false;
+                el('load-btn').textContent = '🔄 Tentar novamente';
             }
         });
 
         // ── Generate ──
-        generateBtn.addEventListener('click', async () => {
-            const text = textInput.value.trim();
+        el('generate-btn').addEventListener('click', async () => {
+            const text = el('text-input').value.trim();
             if (!text || !genPipeline) return;
 
-            generateBtn.disabled = true;
-            generateBtn.textContent = '⏳ Gerando...';
-            generateBtn.classList.add('synthesizing');
-            statsDiv.classList.add('hidden');
-            downloadBtn.classList.add('hidden');
-            playerWrap.classList.add('hidden');
+            el('generate-btn').disabled = true;
+            el('generate-btn').textContent = '⏳ Gerando...';
+            el('generate-btn').classList.add('synthesizing');
+            el('stats').classList.add('hidden');
+            el('download-btn').classList.add('hidden');
+            el('player-wrap').classList.add('hidden');
 
-            const steps = parseInt(stepsSlider.value);
-            const speed = parseFloat(speedSlider.value);
+            const steps = parseInt(el('steps-slider').value);
+            const speed = parseFloat(el('speed-slider').value);
             const t0    = performance.now();
 
             try {
@@ -223,34 +190,31 @@
 
                 const elapsed  = performance.now() - t0;
                 lastBlob       = await output.toBlob();
-                const samples   = output.audio[0];
-                const audioLen = samples.length / 24000; // sample rate 24kHz for Supertonic v1
+                const audioLen = output.audio[0].length / 24000;
                 const url      = URL.createObjectURL(lastBlob);
 
-                audioPlayer.src = url;
-                playerWrap.classList.remove('hidden');
-                audioPlayer.play();
+                el('audio-player').src = url;
+                el('player-wrap').classList.remove('hidden');
+                el('audio-player').play();
 
-                statsDiv.innerHTML = `
-                    <div>Voz: <b>${selectedVoice}</b> | Steps: <b>${steps}</b> | Speed: <b>${speed}</b></div>
-                    <div>Texto: <b>${text.length}</b> chars | Áudio: <b>${audioLen.toFixed(1)}s</b></div>
-                    <div>Tempo: <b>${(elapsed/1000).toFixed(1)}s</b></div>
+                el('stats').innerHTML = `
+                    <div>Voz: <b>${selectedVoice}</b> | Steps: <b>${steps}</b></div>
+                    <div>Áudio: <b>${audioLen.toFixed(1)}s</b> em <b>${(elapsed/1000).toFixed(1)}s</b></div>
                 `;
-                statsDiv.classList.remove('hidden');
-                downloadBtn.classList.remove('hidden');
-
-                generateBtn.textContent = '🔊 Gerar';
+                el('stats').classList.remove('hidden');
+                el('download-btn').classList.remove('hidden');
+                el('generate-btn').textContent = '🔊 Gerar';
             } catch (err) {
                 console.error(err);
-                generateBtn.textContent = `❌ ${err.message.slice(0,50)}`;
+                el('generate-btn').textContent = `❌ ${err.message.slice(0,50)}`;
             }
 
-            generateBtn.disabled = false;
-            generateBtn.classList.remove('synthesizing');
+            el('generate-btn').disabled = false;
+            el('generate-btn').classList.remove('synthesizing');
         });
 
         // ── Download ──
-        downloadBtn.addEventListener('click', () => {
+        el('download-btn').addEventListener('click', () => {
             if (!lastBlob) return;
             const a = document.createElement('a');
             a.href = URL.createObjectURL(lastBlob);
