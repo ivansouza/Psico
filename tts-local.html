@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TTS Local — Supertonic</title>
+    <title>TTS Local — Supertonic 2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .loading-bar { transition: width 0.4s ease; }
@@ -23,25 +23,22 @@
     <div class="max-w-xl w-full mt-6 space-y-5">
         <div class="text-center">
             <h1 class="text-3xl font-bold mb-1">🔊 TTS Local</h1>
-            <p class="text-slate-400 text-sm">Supertonic TTS — via Transformers.js</p>
+            <p class="text-slate-400 text-sm">Supertonic 2 — PT-BR, no navegador</p>
         </div>
 
         <!-- Setup -->
         <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
-            <div id="phase-desc" class="text-sm text-slate-300">Baixa modelo do HuggingFace (~160MB). Cacheia no navegador (IndexedDB).</div>
+            <div id="phase-desc" class="text-sm text-slate-300">Baixa modelo (~260MB). Primeira vez demora, depois fica em cache.</div>
             <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
                 <div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div>
             </div>
             <div id="progress-detail" class="text-xs text-slate-500 font-mono min-h-[1.2em]"></div>
-            <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">
-                ▶ Carregar Modelo
-            </button>
+            <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">▶ Carregar Modelo</button>
         </div>
 
         <!-- TTS -->
         <div id="tts-card" class="hidden bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
             <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full uppercase tracking-widest">—</div>
-
             <div>
                 <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
                 <div id="voice-grid" class="grid grid-cols-5 gap-2">
@@ -57,7 +54,6 @@
                     <button class="voice-btn py-2 px-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium" data-voice="F5">F5</button>
                 </div>
             </div>
-
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Steps: <span id="steps-val">10</span></label>
@@ -68,11 +64,9 @@
                     <input id="speed-slider" type="range" min="0.8" max="1.3" step="0.05" value="1.00" class="w-full accent-blue-500">
                 </div>
             </div>
-
-            <textarea id="text-input" rows="3"
+            <textarea id="text-input" rows="3" lang="pt-BR"
                 class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 font-sans text-sm placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-                placeholder="Digite o texto..." lang="pt-BR"></textarea>
-
+                placeholder="Digite o texto..."></textarea>
             <div class="flex gap-3">
                 <button id="generate-btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition disabled:opacity-40">🔊 Gerar</button>
                 <button id="download-btn" class="hidden px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition text-sm">⬇ WAV</button>
@@ -83,134 +77,91 @@
     </div>
 
     <script type="module">
-        // Transformers.js nightly / latest via jsDelivr ESM
-        // The latest version on the CDN is 4.0.x which includes Supertonic
         import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@next';
 
         const MODEL_ID = 'onnx-community/Supertonic-TTS-2-ONNX';
         const HF_BASE  = `https://huggingface.co/${MODEL_ID}/resolve/main`;
         const VOICES   = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
-        const LANG     = 'pt'; // Portuguese by default
+        const SR       = 44100;
 
-        // ── Audio trimming to remove reverberation at the end ──
-        function trimSilenceEnd(samples, threshold = 0.02, minSilence = 500) {
-            let end = samples.length;
-            let silentSamples = 0;
+        let genPipeline, lastBlob, selectedVoice = 'M1';
+
+        const el = (id) => document.getElementById(id);
+
+        function setProgress(pct, txt) {
+            el('progress-bar').style.width = pct + '%';
+            if (txt !== undefined) el('progress-detail').textContent = txt;
+        }
+
+        // ── Voice grid ──
+        el('voice-grid').addEventListener('click', e => {
+            const btn = e.target.closest('.voice-btn');
+            if (!btn) return;
+            document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active','ring-2','ring-blue-500'));
+            btn.classList.add('active','ring-2','ring-blue-500');
+            selectedVoice = btn.dataset.voice;
+        });
+        document.querySelector('[data-voice="M1"]').classList.add('active','ring-2','ring-blue-500');
+        el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
+        el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
+
+        // ── Trim silent tail ──
+        function trimTail(samples, threshold = 0.015, minSil = 800) {
+            let end = samples.length, silent = 0;
             for (let i = samples.length - 1; i >= 0; i--) {
-                if (Math.abs(samples[i]) < threshold) {
-                    silentSamples++;
-                    if (silentSamples >= minSilence) {
-                        end = i + minSilence;
-                        break;
-                    }
-                } else {
-                    silentSamples = 0;
-                }
+                if (Math.abs(samples[i]) < threshold) { silent++; if (silent >= minSil) { end = i + minSil; break; } }
+                else silent = 0;
             }
             return samples.slice(0, end);
         }
 
-        // ── Encode WAV from Float32 samples ──
-        function encodeWav(samples, sampleRate) {
+        // ── WAV encoder ──
+        function encodeWav(samples, sr) {
             const buf = new ArrayBuffer(44 + samples.length * 2);
-            const view = new DataView(buf);
-            // RIFF
-            write8Str(view, 0, 'RIFF');
-            view.setUint32(4, 36 + samples.length * 2, true);
-            write8Str(view, 8, 'WAVE');
-            // fmt
-            write8Str(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            // data
-            write8Str(view, 36, 'data');
-            view.setUint32(40, samples.length * 2, true);
-            const offset = 44;
-            for (let i = 0; i < samples.length; i++) {
-                const s = Math.max(-1, Math.min(1, samples[i]));
-                view.setInt16(offset + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-            }
+            const v = new DataView(buf);
+            const write = (o,s) => { for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+            write(0,'RIFF'); v.setUint32(4, 36+samples.length*2, true); write(8,'WAVE');
+            write(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+            v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+            write(36,'data'); v.setUint32(40,samples.length*2,true);
+            for(let i=0;i<samples.length;i++){ const s=Math.max(-1,Math.min(1,samples[i])); v.setInt16(44+i*2, s<0?s*0x8000:s*0x7FFF, true); }
             return buf;
         }
 
-        function write8Str(view, offset, str) {
-            for (let i = 0; i < str.length; i++) {
-                view.setUint8(offset + i, str.charCodeAt(i));
-            }
-        }
-
-        let genPipeline, lastBlob, selectedVoice = 'M1';
-
-        // ── Elements ──
-        const el = (id) => document.getElementById(id);
-
-        function setProgress(pct, text) {
-            el('progress-bar').style.width = pct + '%';
-            if (text !== undefined) el('progress-detail').textContent = text;
-        }
-
-        // ── Voice selection ──
-        el('voice-grid').addEventListener('click', e => {
-            const btn = e.target.closest('.voice-btn');
-            if (!btn) return;
-            document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active', 'ring-2', 'ring-blue-500'));
-            btn.classList.add('active', 'ring-2', 'ring-blue-500');
-            selectedVoice = btn.dataset.voice;
-        });
-        document.querySelector('[data-voice="M1"]').classList.add('active', 'ring-2', 'ring-blue-500');
-
-        el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
-        el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
-
-        // ── Load ──
+        // ── Load model ──
         el('load-btn').addEventListener('click', async () => {
             el('load-btn').disabled = true;
             el('load-btn').textContent = '⏳ Carregando...';
-            setProgress(5, 'Importando Transformers.js...');
+            setProgress(5, 'Importando Transformers.js 4.x...');
 
             try {
-                // Detect WebGPU
                 let backend = 'wasm';
-                if (navigator.gpu) {
-                    try {
-                        const adapter = await navigator.gpu.requestAdapter();
-                        if (adapter) backend = 'webgpu';
-                    } catch {}
-                }
+                if (navigator.gpu) { try { if(await navigator.gpu.requestAdapter()) backend='webgpu'; } catch{} }
                 setProgress(10, `Backend: ${backend.toUpperCase()}`);
 
                 env.allowLocalModels = false;
                 env.useBrowserCache  = true;
-
-                setProgress(15, `Baixando ${MODEL_ID}...`);
+                el('phase-desc').textContent = 'Baixando Supertonic 2 (~260MB)...';
 
                 genPipeline = await pipeline('text-to-speech', MODEL_ID, {
                     dtype: 'fp32',
                     device: backend === 'webgpu' ? 'gpu' : 'wasm',
                     progress_callback: (info) => {
                         if (info.progress !== undefined) {
-                            const pct = Math.round(20 + (info.progress || 0) * 75);
-                            setProgress(pct, `${info.file || ''} — ${Math.round((info.progress||0)*100)}%`);
+                            setProgress(Math.round(20 + info.progress * 75), `${info.file||''} ${Math.round(info.progress*100)}%`);
                         }
                     },
                 });
 
                 setProgress(100);
-                el('phase-desc').textContent = '✅ Pronto';
-
+                el('phase-desc').textContent = '✅ Pronto!';
                 setTimeout(() => {
                     el('setup-card').classList.add('hidden');
                     el('tts-card').classList.remove('hidden');
                     el('backend-badge').innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes (PT)`;
                 }, 500);
-
             } catch (err) {
-                console.error('Erro:', err);
+                console.error(err);
                 el('phase-desc').textContent = `❌ ${err.message.slice(0,150)}`;
                 el('phase-desc').classList.add('text-red-400');
                 el('load-btn').disabled = false;
@@ -239,18 +190,33 @@
                     speaker_embeddings: `${HF_BASE}/voices/${selectedVoice}.bin`,
                     num_inference_steps: steps,
                     speed,
-                    guidance_scale: 2.0,
                 });
 
-                // Add silence trimming to remove reverberation artifacts at the end
-                const rawSamples = output.audio[0];
-                const samples = trimSilenceEnd(rawSamples);
+                // Extract samples from output — handle both formats
+                let samples;
+                if (output.audio && Array.isArray(output.audio) && output.audio.length > 0) {
+                    samples = output.audio[0]; // Float32Array
+                } else if (output.sampling_rate !== undefined) {
+                    samples = output.audio[0]; // {audio: Float32Array[], sampling_rate}
+                } else {
+                    console.log('Output keys:', Object.keys(output));
+                    const firstVal = output[Object.keys(output)[0]];
+                    samples = Array.isArray(firstVal) ? firstVal[0] : firstVal;
+                }
 
-                const elapsed  = performance.now() - t0;
-                const trimmedBlob = encodeWav(samples, 44100);
-                lastBlob       = trimmedBlob;
-                const audioLen = samples.length / 44100;
-                const url      = URL.createObjectURL(lastBlob);
+                // Ensure Float32Array
+                if (!(samples instanceof Float32Array)) {
+                    samples = new Float32Array(samples);
+                }
+
+                // Trim silence tail to remove reverb
+                samples = trimTail(samples);
+
+                const elapsed = performance.now() - t0;
+                const buf = encodeWav(samples, SR);
+                lastBlob = new Blob([buf], { type: 'audio/wav' });
+                const audioLen = samples.length / SR;
+                const url = URL.createObjectURL(lastBlob);
 
                 el('audio-player').src = url;
                 el('player-wrap').classList.remove('hidden');
@@ -258,14 +224,14 @@
 
                 el('stats').innerHTML = `
                     <div>Voz: <b>${selectedVoice}</b> | Steps: <b>${steps}</b></div>
-                    <div>Áudio: <b>${audioLen.toFixed(1)}s</b> em <b>${(elapsed/1000).toFixed(1)}s</b></div>
+                    <div>Áudio: <b>${audioLen.toFixed(1)}s</b> · Gerado em <b>${(elapsed/1000).toFixed(1)}s</b> (RTF: ${(elapsed/1000/audioLen).toFixed(2)})</div>
                 `;
                 el('stats').classList.remove('hidden');
                 el('download-btn').classList.remove('hidden');
                 el('generate-btn').textContent = '🔊 Gerar';
             } catch (err) {
-                console.error(err);
-                el('generate-btn').textContent = `❌ ${err.message.slice(0,50)}`;
+                console.error('Generate error:', err);
+                el('generate-btn').textContent = `❌ ${err.message.slice(0,60)}`;
             }
 
             el('generate-btn').disabled = false;
