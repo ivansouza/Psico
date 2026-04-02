@@ -97,24 +97,64 @@
         }
 
         .hero {
-            border-radius: 32px;
-            padding: 22px;
+            border-radius: 28px;
+            padding: 18px;
             overflow: hidden;
         }
 
-        .hero-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.4fr) minmax(320px, .9fr);
-            gap: 18px;
-            align-items: stretch;
+        .hero-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
         }
 
+        .hero-left { min-width: 0; flex: 1 1 0; }
+
         .hero-title {
-            font-size: clamp(30px, 4vw, 52px);
-            line-height: .95;
-            margin: 10px 0 14px;
+            margin: 6px 0 8px;
             font-weight: 900;
-            letter-spacing: -.05em;
+            letter-spacing: -.04em;
+            line-height: 1;
+        }
+
+        .hero-title-sm {
+            font-size: clamp(1.25rem, 3.5vw, 2rem);
+        }
+
+        .hero-metrics {
+            display: flex;
+            gap: 20px;
+            align-items: baseline;
+            margin-top: 10px;
+        }
+
+        .hero-metric-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            letter-spacing: -.03em;
+        }
+
+        .hero-metric-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .18em;
+        }
+
+        .mode-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.08);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            white-space: nowrap;
         }
 
         .gradient-text {
@@ -123,43 +163,9 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .metric-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 20px;
-        }
 
-        .metric-card {
-            border-radius: 24px;
-            padding: 16px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
-        }
 
-        .metric-value { font-size: 1.8rem; font-weight: 900; letter-spacing: -.04em; }
-        .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .18em; }
 
-        .hero-panel {
-            border-radius: 28px;
-            padding: 18px;
-            background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-            border: 1px solid rgba(255,255,255,.08);
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .mini-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 18px;
-            background: rgba(4, 8, 20, 0.45);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
 
         .toolbar {
             margin-top: 16px;
@@ -387,21 +393,21 @@
             .sidebar { position: fixed; inset: 12px auto 12px 12px; width: min(360px, calc(100vw - 24px)); z-index: 70; transform: translateX(-120%); transition: transform .28s ease; max-height: calc(100vh - 24px); overflow: auto; }
             .sidebar.open { transform: translateX(0); }
             .sidebar-toggle { display: inline-flex; }
-            .hero-grid { grid-template-columns: 1fr; }
             .toolbar-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 900px) {
             .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .metric-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 640px) {
             .app-shell { width: min(100vw - 16px, 1680px); margin: 8px auto; gap: 12px; }
-            .hero, .toolbar { border-radius: 24px; padding: 16px; }
+            .hero, .toolbar { border-radius: 22px; padding: 14px 12px; }
             .gallery { grid-template-columns: 1fr; gap: 12px; }
             .gallery-card { border-radius: 24px; min-height: 230px; padding: 16px; }
-            .hero-title { font-size: 2rem; }
+            .hero-title-sm { font-size: 1.35rem; }
+            .mode-pill { font-size: 10px; padding: 6px 12px; }
+            .hero-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
     </style>
 </head>
@@ -470,50 +476,27 @@
 
         <main class="content-area">
             <section id="hero" class="hero glass">
-                <div class="hero-grid">
-                    <div>
-                        <div class="eyebrow">Portfolio dashboard</div>
-                        <h1 class="hero-title gradient-text">Explora o Psico como um app premium, não como uma lista de ficheiros.</h1>
-                        <p class="text-slate-300 text-base md:text-lg max-w-3xl leading-relaxed">Uma vitrine com cara de dashboard: foco no conteúdo, leitura rápida dos projetos e filtros mais elegantes para desktop e mobile.</p>
-
-                        <div class="metric-grid">
-                            <div class="metric-card">
-                                <div class="metric-label">Total</div>
-                                <div id="cards-total" class="metric-value">0</div>
+                <div class="hero-inner">
+                    <div class="hero-left">
+                        <div class="eyebrow">Psico Portfolio — <span style="color:var(--cyan)">Creative coding</span></div>
+                        <h1 class="hero-title hero-title-sm gradient-text">Laboratório interativo de Ivan Souza</h1>
+                        <div class="hero-metrics">
+                            <div>
+                                <span id="cards-total" class="hero-metric-value">0</span>
+                                <div class="hero-metric-label">Total</div>
                             </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Categorias</div>
-                                <div id="cat-total" class="metric-value">0</div>
+                            <div>
+                                <span id="cat-total" class="hero-metric-value">0</span>
+                                <div class="hero-metric-label">Categorias</div>
                             </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Visíveis</div>
-                                <div id="visible-total" class="metric-value">0</div>
+                            <div>
+                                <span id="visible-total" class="hero-metric-value">0</span>
+                                <div class="hero-metric-label">Visíveis</div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="hero-panel">
-                        <div class="mini-row">
-                            <div>
-                                <div class="eyebrow">Modo atual</div>
-                                <div id="mode-label" class="text-lg font-extrabold mt-1">Produção</div>
-                            </div>
-                            <div class="text-sky-300 text-2xl"><i class="fas fa-grid-2"></i></div>
-                        </div>
-                        <div class="mini-row">
-                            <div>
-                                <div class="eyebrow">Filtro dominante</div>
-                                <div id="focus-label" class="text-base font-bold mt-1 text-slate-200">Todos os experiments</div>
-                            </div>
-                            <div class="text-violet-300 text-2xl"><i class="fas fa-sparkles"></i></div>
-                        </div>
-                        <div class="mini-row">
-                            <div>
-                                <div class="eyebrow">Última faixa temporal</div>
-                                <div id="time-label" class="text-base font-bold mt-1 text-slate-200">Sem recorte</div>
-                            </div>
-                            <div class="text-emerald-300 text-2xl"><i class="fas fa-clock"></i></div>
-                        </div>
+                    <div class="mode-pill">
+                        <span id="mode-label" class="font-bold">Produção</span>
                     </div>
                 </div>
             </section>
@@ -861,7 +844,8 @@
         function toggleMockCards(btn) {
             showMockCards = !showMockCards;
             btn.classList.toggle('active', showMockCards);
-            document.getElementById('mode-label').textContent = showMockCards ? 'Laboratório / Mock' : 'Produção';
+            const modeLabel = document.getElementById('mode-label');
+            if (modeLabel) modeLabel.textContent = showMockCards ? 'Mock' : 'Produção';
             renderActiveFilters();
             renderCards();
         }
@@ -887,14 +871,11 @@
             if (activeYear !== 'Todos') bits.push(`Ano: ${activeYear}`);
             if (activeMonth !== 'Todos') bits.push(`Mês: ${activeMonth}`);
             if (searchQuery) bits.push(`Busca: ${searchQuery}`);
-            if (showMockCards) bits.push('Modo mock');
+            if (showMockCards) bits.push('Mock');
 
             document.getElementById('active-filters').innerHTML = bits.length
-                ? bits.map(bit => `<span class="active-pill"><i class="fas fa-sparkles"></i> ${bit}</span>`).join('')
-                : `<span class="active-pill" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);color:#cbd5e1"><i class="fas fa-layer-group"></i> Sem filtros ativos</span>`;
-
-            document.getElementById('focus-label').textContent = activeCategory !== 'Todos' ? activeCategory : (searchQuery ? 'Busca ativa' : 'Todos os experiments');
-            document.getElementById('time-label').textContent = activeYear !== 'Todos' ? `${activeMonth !== 'Todos' ? activeMonth + ' / ' : ''}${activeYear}` : 'Sem recorte';
+                ? bits.map(bit => `<span class="active-pill">${bit}</span>`).join('')
+                : `<span class="active-pill" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);color:#cbd5e1"><i class="fas fa-layer-group"></i> Sem filtros</span>`;
         }
 
         function getFilteredExperiments() {
