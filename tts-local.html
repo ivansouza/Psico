@@ -197,38 +197,43 @@ el('generate-btn').addEventListener('click', async () => {
         console.log('dur inputs:', JSON.stringify(sessions.duration_predictor.inputNames));
         console.log('dur outputs:', JSON.stringify(sessions.duration_predictor.outputNames));
 
-        // Duration predictor
+        // 2. Duration predictor
+        //    Inputs: text_ids, text_mask, style_dp
+        //    Outputs: duration
         const durRes = await sessions.duration_predictor.run({
             text_ids:  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
             text_mask: new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
             style_dp:  new ort.Tensor('float32', vs.dp, vs.dpDims)
         });
-        const dk = outKey(durRes);
-        if (!dk) throw new Error('dur_predictor returned empty result. Keys: ' + Object.keys(durRes));
+        const dk = Object.keys(durRes)[0];
+        console.log('dur_predictor output:', dk, '| data:', durRes[dk].data.length);
         const duration = durRes[dk].data[0];
-        console.log('Duration:', duration, '|', duration * SR, 'samples');
+        console.log('Duration:', duration);
 
-        // Text encoder
+        // 3. Text encoder
+        //    Inputs: text_ids, text_mask, style_ttl  
+        //    Outputs: text_emb
         const embRes = await sessions.text_encoder.run({
             text_ids:  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
             text_mask: new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
             style_ttl: new ort.Tensor('float32', vs.ttl, vs.ttlDims)
         });
-        const ek = outKey(embRes);
-        if (!ek) throw new Error('text_encoder returned empty');
+        const ek = Object.keys(embRes)[0];
+        console.log('text_encoder output:', ek, '| dims:', embRes[ek].dims);
         const textEmb = embRes[ek];
-        console.log('Text emb dims:', textEmb.dims);
 
-        // Sample noisy latent
+        // 4. Sample noisy latent
         const wavLen = Math.round(duration * SR);
-        const latentLen = Math.ceil(wavLen / LATENT_SIZE);
+        const latentLen = Math.max(1, Math.ceil(wavLen / LATENT_SIZE));
         const xt = new Float32Array(LATENT_DIM * latentLen);
         for (let i = 0; i < xt.length; i++) xt[i] = (Math.random() * 2 - 1);
         const lmask = new Float32Array(latentLen);
         lmask.fill(1);
-        console.log('Latent: [' + LATENT_DIM + ', ' + latentLen + ']');
+        console.log('Noisy latent: [' + LATENT_DIM + ', ' + latentLen + ']');
 
-        // Denoising
+        // 5. Denoising loop
+        //    Inputs: noisy_latent, text_emb, style_ttl, text_mask, latent_mask, current_step, total_step
+        //    Outputs: ?
         const totalStep = new Float32Array([steps]);
         for (let step = 0; step < steps; step++) {
             const dnRes = await sessions.vector_estimator.run({
@@ -240,23 +245,25 @@ el('generate-btn').addEventListener('click', async () => {
                 current_step: new ort.Tensor('float32', [step], [1]),
                 total_step:   new ort.Tensor('float32', totalStep, [1])
             });
-            const nk = outKey(dnRes);
-            if (!nk) throw new Error('vector_estimator returned empty');
+            const nk = Object.keys(dnRes)[0];
+            if (step === 0) console.log('vector_estimator output:', nk, '| dims:', dnRes[nk].dims);
             xt.set(dnRes[nk].data);
         }
 
-        // Vocoder
+        // 6. Vocoder
+        //    Inputs: latent
+        //    Outputs: audio/wav
         const vocRes = await sessions.vocoder.run({
             latent: new ort.Tensor('float32', xt, [1, LATENT_DIM, latentLen])
         });
-        const vk = outKey(vocRes);
-        if (!vk) throw new Error('vocoder returned empty');
-        const audio = vocRes[vk];
-        console.log('Audio dims:', audio.dims, '| type:', audio.type);
+        const vk = Object.keys(vocRes)[0];
+        console.log('vocoder output:', vk, '| dims:', vocRes[vk].dims);
+        const wavData = vocRes[vk].data;
 
-        const nSamples = Math.min(wavLen, audio.data.length);
-        console.log('Writing', nSamples, 'of', audio.data.length, 'samples');
-        const wavBuf = encodeWav(audio.data, nSamples, SR);
+        const audioLen = Math.floor(duration * SR);
+        const nSamples = Math.min(audioLen, wavData.length);
+        console.log('Samples:', nSamples, 'of', wavData.length);
+        const wavBuf = encodeWav(wavData, nSamples, SR);
         lastBlob = new Blob([wavBuf], { type: 'audio/wav' });
         const url = URL.createObjectURL(lastBlob);
         const audioDur = nSamples / SR;
