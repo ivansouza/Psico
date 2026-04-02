@@ -97,6 +97,58 @@
             color: #64748b;
         }
 
+        .filters-shell {
+            background: linear-gradient(180deg, rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.38));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .filters-panel {
+            overflow: hidden;
+            transition: max-height 0.28s ease, opacity 0.24s ease, transform 0.24s ease, margin-top 0.24s ease;
+        }
+
+        .filters-panel.mobile-collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            transform: translateY(-8px);
+            margin-top: 0 !important;
+            pointer-events: none;
+        }
+
+        .toolbar-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.2s ease;
+        }
+
+        .toolbar-btn:hover,
+        .toolbar-btn.active {
+            border-color: rgba(56, 189, 248, 0.45);
+            color: #fff;
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.18);
+        }
+
+        .active-pill {
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            background: rgba(14, 165, 233, 0.08);
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 767px) {
+            .mobile-filter-scroll {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+
+            .mobile-filter-scroll::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #05070a; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
@@ -105,45 +157,56 @@
 </head>
 <body class="min-h-screen selection:bg-sky-500/30">
 
-    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-4 mb-8">
-        <div class="max-w-[1600px] mx-auto flex flex-col gap-4">
-            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-3 md:p-4 mb-5 md:mb-8">
+        <div class="max-w-[1600px] mx-auto flex flex-col gap-3 md:gap-4">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 shrink-0 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
                         <i class="fas fa-brain text-white text-xl"></i>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-black gradient-text tracking-tighter uppercase leading-none">Psico Portfolio</h1>
-                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-widest mt-1">Ivan Souza • Laboratório de Código • <span id="cards-total">0</span> cards</p>
+                    <div class="min-w-0">
+                        <h1 class="text-xl md:text-2xl font-black gradient-text tracking-tighter uppercase leading-none">Psico Portfolio</h1>
+                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-[0.22em] mt-1 truncate">Ivan Souza • Laboratório de Código • <span id="cards-total">0</span> cards</p>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap justify-center gap-1.5" id="filters-cat"></div>
-            </div>
-
-            <div class="flex flex-col lg:flex-row gap-4 py-2 border-t border-white/5">
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ano:</span>
-                    <div class="flex gap-1.5" id="filters-year"></div>
-                </div>
-                <div class="flex items-center gap-3 lg:border-l lg:border-white/5 lg:pl-4">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mês:</span>
-                    <div class="flex flex-wrap gap-1.5" id="filters-month"></div>
-                </div>
-            </div>
-
-            <div class="flex flex-col lg:flex-row gap-2 items-center">
-                <button onclick="toggleMockCards(this)" class="mock-btn px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                    <i class="fas fa-flask"></i> Mock Cards <span id="mock-count" class="ml-1 opacity-50">(0)</span>
+                <button id="filters-toggle" type="button" class="toolbar-btn md:hidden shrink-0 px-3 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300 flex items-center gap-2">
+                    <i class="fas fa-sliders"></i>
+                    <span>Filtros</span>
                 </button>
             </div>
 
-            <div class="flex flex-col lg:flex-row gap-3 items-center">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Busca:</span>
-                <div class="relative w-full max-w-2xl">
-                    <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
-                    <input id="search-input" type="text" placeholder="Filtrar por nome, descrição, categoria ou arquivo..." class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition" />
-                    <button id="clear-search" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-lg leading-none transition-opacity opacity-0 pointer-events-none">&times;</button>
+            <div class="filters-shell rounded-[1.5rem] p-3 md:p-4">
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col md:flex-row gap-2 md:gap-3 md:items-center">
+                        <div class="relative flex-1">
+                            <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                            <input id="search-input" type="text" placeholder="Buscar experimento..." class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition" />
+                            <button id="clear-search" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-lg leading-none transition-opacity opacity-0 pointer-events-none">&times;</button>
+                        </div>
+
+                        <div class="flex items-center gap-2 overflow-x-auto">
+                            <button onclick="toggleMockCards(this)" class="mock-btn whitespace-nowrap px-4 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                                <i class="fas fa-flask"></i> Mock <span id="mock-count" class="ml-1 opacity-50">(0)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="active-filters" class="flex flex-wrap gap-2"></div>
+
+                    <div id="filters-panel" class="filters-panel mobile-collapsed md:!max-h-none md:!opacity-100 md:!transform-none md:mt-0 mt-1 flex flex-col gap-3">
+                        <div>
+                            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] mb-2">Categorias</div>
+                            <div class="mobile-filter-scroll gap-1.5 md:flex md:flex-wrap md:justify-start" id="filters-cat"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_1fr] gap-3 md:gap-4 md:items-center pt-1 border-t border-white/5">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em]">Ano</span>
+                            <div class="mobile-filter-scroll gap-1.5" id="filters-year"></div>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em]">Mês</span>
+                            <div class="mobile-filter-scroll gap-1.5 md:flex md:flex-wrap" id="filters-month"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -428,34 +491,33 @@
         function getMonthFromDate(dateStr) { return monthNames[parseDateBR(dateStr).getMonth()]; }
 
         function initFilters() {
-            // Filtro Categoria
             const cats = ["Todos", ...new Set(experiments.map(e => e.cat))];
             const filtersCat = document.getElementById('filters-cat');
             filtersCat.innerHTML = cats.map(cat => `
-                <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}">
+                <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}">
                     ${cat}
                 </button>
             `).join('');
 
-            // Filtro Ano
             const years = ["Todos", ...new Set(experiments.map(e => getYearFromDate(e.date)))].sort();
             const filtersYear = document.getElementById('filters-year');
             filtersYear.innerHTML = years.map(y => `
-                <button onclick="applyFilter('year', '${y}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}">
+                <button onclick="applyFilter('year', '${y}', this)" class="filter-btn whitespace-nowrap px-3 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}">
                     ${y}
                 </button>
             `).join('');
 
-            // Filtro Mês
             const availableMonths = [...new Set(experiments.map(e => getMonthFromDate(e.date)))];
             availableMonths.sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b));
             const filtersMonth = document.getElementById('filters-month');
             const monthList = ["Todos", ...availableMonths];
             filtersMonth.innerHTML = monthList.map(m => `
-                <button onclick="applyFilter('month', '${m}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}">
+                <button onclick="applyFilter('month', '${m}', this)" class="filter-btn whitespace-nowrap px-3 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}">
                     ${m}
                 </button>
             `).join('');
+
+            renderActiveFilters();
         }
 
         function applyFilter(type, value, btn) {
@@ -465,13 +527,64 @@
 
             btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            renderActiveFilters();
             renderCards();
+        }
+
+        function renderActiveFilters() {
+            const active = [];
+            if (activeCategory !== 'Todos') active.push({ label: `Categoria: ${activeCategory}`, type: 'cat' });
+            if (activeYear !== 'Todos') active.push({ label: `Ano: ${activeYear}`, type: 'year' });
+            if (activeMonth !== 'Todos') active.push({ label: `Mês: ${activeMonth}`, type: 'month' });
+            if (showMockCards) active.push({ label: 'Mock ativo', type: 'mock' });
+            if (searchQuery) active.push({ label: `Busca: ${searchQuery}`, type: 'search' });
+
+            const container = document.getElementById('active-filters');
+            if (!container) return;
+
+            container.innerHTML = active.length
+                ? active.map(item => `<span class="active-pill inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.18em]">${item.label}</span>`).join('')
+                : `<span class="text-[10px] text-slate-500 uppercase tracking-[0.22em]">Sem filtros ativos</span>`;
         }
 
         function toggleMockCards(btn) {
             showMockCards = !showMockCards;
             btn.classList.toggle('active', showMockCards);
+            renderActiveFilters();
             renderCards();
+        }
+
+        function initMobileFilters() {
+            const toggle = document.getElementById('filters-toggle');
+            const panel = document.getElementById('filters-panel');
+            if (!toggle || !panel) return;
+
+            const syncState = () => {
+                const isDesktop = window.innerWidth >= 768;
+                const expanded = isDesktop || !panel.classList.contains('mobile-collapsed');
+                toggle.classList.toggle('active', expanded && !isDesktop);
+                toggle.innerHTML = expanded && !isDesktop
+                    ? '<i class="fas fa-xmark"></i><span>Fechar</span>'
+                    : '<i class="fas fa-sliders"></i><span>Filtros</span>';
+            };
+
+            toggle.addEventListener('click', () => {
+                panel.classList.toggle('mobile-collapsed');
+                syncState();
+            });
+
+            const handleResize = () => {
+                if (window.innerWidth >= 768) {
+                    panel.classList.remove('mobile-collapsed');
+                } else if (!toggle.classList.contains('touched')) {
+                    panel.classList.add('mobile-collapsed');
+                }
+                syncState();
+            };
+
+            toggle.addEventListener('click', () => toggle.classList.add('touched'));
+            window.addEventListener('resize', handleResize);
+            handleResize();
         }
 
         function initSearch() {
@@ -491,6 +604,7 @@
             input.addEventListener('input', () => {
                 searchQuery = input.value.trim();
                 toggleClear();
+                renderActiveFilters();
                 renderCards();
             });
 
@@ -499,6 +613,7 @@
                     searchQuery = "";
                     input.value = "";
                     toggleClear();
+                    renderActiveFilters();
                     renderCards();
                     input.focus();
                 });
@@ -666,6 +781,8 @@
         document.getElementById('cards-total').textContent = experiments.length;
         initFilters();
         initSearch();
+        initMobileFilters();
+        renderActiveFilters();
         renderCards();
         syncMissingCardsFromGitHub();
     </script>
