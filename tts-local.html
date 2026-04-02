@@ -60,18 +60,18 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Steps: <span id="steps-val">5</span></label>
-                    <input id="steps-slider" type="range" min="2" max="20" value="5" class="w-full accent-blue-500">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Steps: <span id="steps-val">10</span></label>
+                    <input id="steps-slider" type="range" min="2" max="25" value="10" class="w-full accent-blue-500">
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Velocidade: <span id="speed-val">1.05</span>x</label>
-                    <input id="speed-slider" type="range" min="0.8" max="1.5" step="0.05" value="1.05" class="w-full accent-blue-500">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Velocidade: <span id="speed-val">1.00</span>x</label>
+                    <input id="speed-slider" type="range" min="0.8" max="1.3" step="0.05" value="1.00" class="w-full accent-blue-500">
                 </div>
             </div>
 
             <textarea id="text-input" rows="3"
                 class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 font-sans text-sm placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-                placeholder="Type some text..."></textarea>
+                placeholder="Digite o texto..." lang="pt-BR"></textarea>
 
             <div class="flex gap-3">
                 <button id="generate-btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition disabled:opacity-40">🔊 Gerar</button>
@@ -91,6 +91,58 @@
         const HF_BASE  = `https://huggingface.co/${MODEL_ID}/resolve/main`;
         const VOICES   = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
         const LANG     = 'pt'; // Portuguese by default
+
+        // ── Audio trimming to remove reverberation at the end ──
+        function trimSilenceEnd(samples, threshold = 0.02, minSilence = 500) {
+            let end = samples.length;
+            let silentSamples = 0;
+            for (let i = samples.length - 1; i >= 0; i--) {
+                if (Math.abs(samples[i]) < threshold) {
+                    silentSamples++;
+                    if (silentSamples >= minSilence) {
+                        end = i + minSilence;
+                        break;
+                    }
+                } else {
+                    silentSamples = 0;
+                }
+            }
+            return samples.slice(0, end);
+        }
+
+        // ── Encode WAV from Float32 samples ──
+        function encodeWav(samples, sampleRate) {
+            const buf = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buf);
+            // RIFF
+            write8Str(view, 0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            write8Str(view, 8, 'WAVE');
+            // fmt
+            write8Str(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            // data
+            write8Str(view, 36, 'data');
+            view.setUint32(40, samples.length * 2, true);
+            const offset = 44;
+            for (let i = 0; i < samples.length; i++) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(offset + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            return buf;
+        }
+
+        function write8Str(view, offset, str) {
+            for (let i = 0; i < str.length; i++) {
+                view.setUint8(offset + i, str.charCodeAt(i));
+            }
+        }
 
         let genPipeline, lastBlob, selectedVoice = 'M1';
 
@@ -187,11 +239,17 @@
                     speaker_embeddings: `${HF_BASE}/voices/${selectedVoice}.bin`,
                     num_inference_steps: steps,
                     speed,
+                    guidance_scale: 2.0,
                 });
 
+                // Add silence trimming to remove reverberation artifacts at the end
+                const rawSamples = output.audio[0];
+                const samples = trimSilenceEnd(rawSamples);
+
                 const elapsed  = performance.now() - t0;
-                lastBlob       = await output.toBlob();
-                const audioLen = output.audio[0].length / 24000;
+                const trimmedBlob = encodeWav(samples, 44100);
+                lastBlob       = trimmedBlob;
+                const audioLen = samples.length / 44100;
                 const url      = URL.createObjectURL(lastBlob);
 
                 el('audio-player').src = url;
