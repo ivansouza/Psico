@@ -24,14 +24,12 @@
             <h1 class="text-3xl font-bold mb-1">🔊 TTS Local</h1>
             <p class="text-slate-400 text-sm">Supertonic 2 — ONNX Runtime Web · PT-BR · WebGPU</p>
         </div>
-        <!-- Setup -->
         <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
-            <div id="phase-desc" class="text-sm text-slate-300">Carrega modelo ONNX (~260MB) do HF. Primeira vez demora, depois cacheia no browser.</div>
+            <div id="phase-desc" class="text-sm text-slate-300">Carrega modelo ONNX (~260MB) do HF. Cacheia no browser depois.</div>
             <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden"><div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div></div>
             <div id="progress-detail" class="text-xs text-slate-500 font-mono min-h-[1.2em]"></div>
             <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">▶ Carregar Modelos</button>
         </div>
-        <!-- TTS -->
         <div id="tts-card" class="hidden bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
             <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full uppercase tracking-widest">—</div>
             <div>
@@ -61,331 +59,235 @@
     </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-//  Supertonic 2 TTS — ONNX Runtime Web (pure)
-//  Based on: supertone-inc/supertonic py/ + helper.py
-// ═══════════════════════════════════════════════════════════
+// Supertonic 2 TTS — ONNX Runtime Web (pure)
+// Pipeline: duration_predictor → text_encoder → vector_estimator → vocoder
 const MODEL_DIR = 'https://huggingface.co/Supertone/supertonic-2/resolve/main/onnx/';
 const STYLE_DIR = 'https://huggingface.co/Supertone/supertonic-2/resolve/main/voice_styles/';
-const VOICES    = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
-const SR        = 44100;
-const BASE_CHUNK = 512;
-const CHUNK_COMP = 6;
-const LATENT_DIM = 24;
-const LATENT_SIZE = BASE_CHUNK * CHUNK_COMP;
+const VOICES = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
+const SR = 44100;
+const LATENT_SIZE = 3072; // 512 * 6
+const LATENT_DIM = 144;   // 24 * 6
 
-let sessions    = {};   // ONNX sessions by name
-let unicodeIdx  = null; // array[65536]
-let vStyles     = {};   // voice style data
-let selVoice    = 'M1';
-let lastBlob    = null;
-let loaded      = false;
-
+let sessions = {}, unicodeIdx = null, vStyles = {}, selVoice = 'M1', lastBlob = null, loaded = false;
 const el = id => document.getElementById(id);
+
+// Get first output key from inference result
+const outKey = (result) => { const k = Object.keys(result); return k.length > 0 ? k[0] : null; };
 
 function setProgress(pct, txt) {
     el('progress-bar').style.width = pct + '%';
     if (txt !== undefined) el('progress-detail').textContent = txt;
 }
 
-// ── Voice grid ──
-(function buildVoiceGrid() {
+// Voice grid
+(function() {
     const vg = el('voice-grid');
     for (const v of VOICES) {
         const b = document.createElement('button');
         b.className = 'voice-btn py-2 px-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium';
-        b.dataset.voice = v;
-        b.textContent = v;
+        b.dataset.voice = v; b.textContent = v;
         b.onclick = () => {
             vg.querySelectorAll('.voice-btn').forEach(x => x.classList.remove('active','ring-2','ring-blue-500'));
-            b.classList.add('active','ring-2','ring-blue-500');
-            selVoice = v;
+            b.classList.add('active','ring-2','ring-blue-500'); selVoice = v;
         };
         vg.appendChild(b);
     }
     vg.querySelector('[data-voice="M1"]').classList.add('active','ring-2','ring-blue-500');
 })();
-
 el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
 el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
 
-// ═══════════════════════════════════════════════════════════
-//  TEXT NORMALIZATION
-// ═══════════════════════════════════════════════════════════
-
-function normalizeText(text, lang) {
-    // NFKD normalization
+// Text normalization → unicode codepoints → token IDs
+function normText(text, lang) {
     text = text.normalize('NFKD');
-    // Remove emojis
-    text = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u2600-\u26FF\u2700-\u27BF\u{1F1E6}-\u{1F1FF}]+/gu, '');
-    // Replacements
-    text = text.replace(/–|‑|—/g, '-').replace(/_/g, ' ')
-               .replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019\u00B4\u0060]/g, "'")
-               .replace(/[\[\]|\/#→←]/g, ' ');
-    text = text.replace(/[♥☆♡©\\]/g, '');
-    text = text.replace(/@/g, ' at ').replace(/e\.g\.,/g, 'for example, ').replace(/i\.e\.,/g, 'that is, ');
-    text = text.replace(/ ,/g, ',').replace(/ \./g, '.').replace(/ !/g, '!').replace(/ \?/g, '?')
-               .replace(/ ;/g, ';').replace(/ :/g, ':').replace(/ '/g, "'");
-    text = text.replace(/""/g, '"').replace(/''/g, "'").replace(/``/g, '`');
-    text = text.replace(/\s+/g, ' ').trim();
-    if (!/[.!?;,'"')\]}…。」』】〉》›»]$/.test(text)) text += '.';
-    return `<${lang}>${text}</${lang}>`;
+    text = text.replace(/[\u{1F600}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E0}-\u{1F1FF}]+/gu, '');
+    text = text.replace(/–|‑|—/g, '-').replace(/_/g, ' ').replace(/[\u201C\u201D]/g, '"')
+               .replace(/[\u2018\u2019\u00B4\u0060]/g, "'").replace(/[\[\]|\/#→←]/g, ' ')
+               .replace(/[♥☆♡©\\]/g, '').replace(/@/g, ' at ').replace(/e\.g\.,/g, 'for example, ').replace(/i\.e\.,/g, 'that is, ');
+    text = text.replace(/ ,/g, ',').replace(/ \./g, '.').replace(/\s+/g, ' ').trim();
+    if (!/[.!?;,'"')\]}>…。」』】〉》›»]$/.test(text)) text += '.';
+    return '<' + lang + '>' + text + '</' + lang + '>';
 }
 
 function tokenize(text) {
     const cps = [];
-    for (let i = 0; i < text.length; i++) {
-        const cp = text.codePointAt(i);
-        if (cp > 0xFFFF) i++;
-        cps.push(cp);
-    }
-    return cps.map(cp => unicodeIdx[cp] !== undefined && unicodeIdx[cp] >= 0 ? unicodeIdx[cp] : -1);
+    for (let i = 0; i < text.length; i++) { let cp = text.codePointAt(i); if (cp > 0xFFFF) i++; cps.push(cp); }
+    return cps.map(cp => (unicodeIdx[cp] !== undefined && unicodeIdx[cp] >= 0) ? unicodeIdx[cp] : -1);
 }
 
-// ═══════════════════════════════════════════════════════════
-//  FLAT ARRAY HELPER
-// ═══════════════════════════════════════════════════════════
-
-function flatten(arr) {
-    const r = [];
-    (function go(x) { if (Array.isArray(x)) { for (const v of x) go(v); } else r.push(Number(x)); })(arr);
-    return r;
+// Flatten nested JSON arrays
+function flat(arr) {
+    const r = []; (function go(x) { if (Array.isArray(x)) x.forEach(go); else r.push(Number(x)); })(arr); return r;
 }
 
-// ═══════════════════════════════════════════════════════════
-//  LOAD MODELS
-// ═══════════════════════════════════════════════════════════
-
-async function fetchONNX(url, name) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + url);
-    const buf = await r.arrayBuffer();
-    console.log(name + ': ' + buf.byteLength + ' bytes');
-    return await ort.InferenceSession.create(buf);
-}
-
-async function fetchJSON(url) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + url);
-    return r.json();
-}
-
+// ── LOAD ──
 el('load-btn').addEventListener('click', async () => {
-    el('load-btn').disabled = true;
-    el('load-btn').textContent = '⏳ Carregando...';
+    el('load-btn').disabled = true; el('load-btn').textContent = '⏳ Carregando...';
     setProgress(5, 'Init ORT...');
-    el('phase-desc').textContent = 'Initializing...';
 
     try {
-        // Detect backend
         let backend = 'wasm';
-        if (navigator.gpu) {
-            try { const a = await navigator.gpu.requestAdapter(); if (a) backend = 'webgpu'; } catch {}
-        }
+        if (navigator.gpu) try { if (await navigator.gpu.requestAdapter()) backend = 'webgpu'; } catch {}
         setProgress(10, 'Backend: ' + backend.toUpperCase());
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
 
-        // Load indexer
         setProgress(15, 'unicode_indexer.json');
-        unicodeIdx = await fetchJSON(MODEL_DIR + 'unicode_indexer.json');
+        unicodeIdx = await (await fetch(MODEL_DIR + 'unicode_indexer.json')).json();
 
-        // Load ONNX models
-        const files = [
-            ['duration_predictor', 'duration_predictor.onnx'],
-            ['text_encoder',       'text_encoder.onnx'],
-            ['vector_estimator',   'vector_estimator.onnx'],
-            ['vocoder',           'vocoder.onnx']
-        ];
+        const files = [['duration_predictor','duration_predictor.onnx'],['text_encoder','text_encoder.onnx'],['vector_estimator','vector_estimator.onnx'],['vocoder','vocoder.onnx']];
         for (let i = 0; i < files.length; i++) {
             const [name, fname] = files[i];
             setProgress(20 + i * 15, fname);
             el('phase-desc').textContent = 'Loading ' + fname + ' (' + (i+1) + '/4)...';
-            sessions[name] = await fetchONNX(MODEL_DIR + fname, name);
+            const resp = await fetch(MODEL_DIR + fname);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status + ' for ' + fname);
+            const buf = await resp.arrayBuffer();
+            console.log(fname + ': ' + (buf.byteLength / 1e6).toFixed(1) + ' MB');
+            sessions[name] = await ort.InferenceSession.create(buf);
+            console.log(name + ' outputs:', sessions[name].outputNames);
         }
 
-        // Load voice styles
-        setProgress(90, 'voice styles');
         for (const v of VOICES) {
             el('phase-desc').textContent = 'Loading ' + v + '...';
-            const s = await fetchJSON(STYLE_DIR + v + '.json');
+            const s = await (await fetch(STYLE_DIR + v + '.json')).json();
             vStyles[v] = {
-                ttl: new Float32Array(flatten(s.style_ttl.data)),
-                dp:  new Float32Array(flatten(s.style_dp.data)),
-                ttlDims: s.style_ttl.dims,  // e.g. [1, 50, 256]
-                dpDims:  s.style_dp.dims    // e.g. [1, 8, 16]
+                ttl: new Float32Array(flat(s.style_ttl.data)), dp: new Float32Array(flat(s.style_dp.data)),
+                ttlDims: s.style_ttl.dims, dpDims: s.style_dp.dims
             };
         }
 
-        setProgress(100, '✓ Ready!');
-        el('phase-desc').textContent = '✅ Pronto — ' + backend.toUpperCase() + ', ' + VOICES.length + ' vozes';
-
+        setProgress(100); el('phase-desc').textContent = '✅ Pronto — ' + backend.toUpperCase();
         setTimeout(() => {
-            el('setup-card').classList.add('hidden');
-            el('tts-card').classList.remove('hidden');
+            el('setup-card').classList.add('hidden'); el('tts-card').classList.remove('hidden');
             el('backend-badge').innerHTML = '<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>' + backend.toUpperCase() + ' · ' + VOICES.length + ' vozes (PT)';
             loaded = true;
         }, 500);
-
     } catch (err) {
-        console.error('Load error:', err);
-        el('phase-desc').textContent = '❌ ' + err.message;
+        console.error(err); el('phase-desc').textContent = '❌ ' + err.message;
         el('phase-desc').classList.add('text-red-400');
-        el('load-btn').disabled = false;
-        el('load-btn').textContent = '🔄 Tentar novamente';
+        el('load-btn').disabled = false; el('load-btn').textContent = '🔄 Tentar novamente';
     }
 });
 
-// ═══════════════════════════════════════════════════════════
-//  GENERATE AUDIO — exact pipeline from helper.py
-// ═══════════════════════════════════════════════════════════
-
-async function generateAudio(text, voice, steps, speed) {
-    const vs = vStyles[voice];
-
-    // 1. Preprocess & tokenize
-    const processed = normalizeText(text, 'pt');
-    const tids = tokenize(processed);
-    const tlen = tids.length;
-    console.log('Processed:', processed, '| tokens:', tlen);
-
-    // Prepare tensors for duration predictor + text encoder
-    const paddedLen = Math.max(tlen, 1);
-    // text_ids: [1, paddedLen] int64
-    const textIds = new BigInt64Array(paddedLen);
-    for (let i = 0; i < tlen; i++) textIds[i] = BigInt(tids[i]);
-    // text_mask: [1, 1, paddedLen] float32
-    const textMask = new Float32Array(paddedLen);
-    textMask.fill(1, 0, tlen);
-
-    // 2. Run duration predictor
-    //   input: text_ids[1,N], text_mask[1,1,N], style_dp[1,8,16]
-    //   output: duration[1]
-    const durRes = await sessions.duration_predictor.run({
-        'text_ids':  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
-        'text_mask': new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
-        'style_dp':  new ort.Tensor('float32', vs.dp,   vs.dpDims)
-    });
-    const durOut = durRes[durRes.outputNames[0]];
-    const duration = durOut.data[0];  // scalar
-    console.log('Duration:', duration);
-
-    // 3. Run text encoder
-    //   input: text_ids[1,N], text_mask[1,1,N], style_tts[1,50,256]
-    //   output: text_emb[1, 256, N']
-    const embRes = await sessions.text_encoder.run({
-        'text_ids':  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
-        'text_mask': new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
-        'style_ttl': new ort.Tensor('float32', vs.ttl,  vs.ttlDims)
-    });
-    const textEmb = embRes[embRes.outputNames[0]];
-    console.log('Text emb dims:', textEmb.dims);
-
-    // 4. Sample noisy latent
-    const wavLenMax = Math.round(duration * SR);
-    const latentLen = Math.ceil(wavLenMax / LATENT_SIZE);
-    const latentDim = LATENT_DIM * CHUNK_COMP; // 144
-    const xt = new Float32Array(latentDim * latentLen);
-    for (let i = 0; i < xt.length; i++) xt[i] = (Math.random() * 2 - 1);
-    const latentMaskData = new Float32Array(latentLen);
-    latentMaskData.fill(1);
-    console.log('Noisy latent: [' + latentDim + ', ' + latentLen + ']');
-
-    // 5. Denoising loop
-    const totalStep = new Float32Array([steps]);
-    for (let step = 0; step < steps; step++) {
-        const currentStep = new Float32Array([step]);
-        const dnRes = await sessions.vector_estimator.run({
-            'noisy_latent': new ort.Tensor('float32', xt,           [1, latentDim, latentLen]),
-            'text_emb':     textEmb,
-            'style_ttl':    new ort.Tensor('float32', vs.ttl,       vs.ttlDims),
-            'text_mask':    new ort.Tensor('float32', textMask,     [1, 1, paddedLen]),
-            'latent_mask':  new ort.Tensor('float32', latentMaskData, [1, 1, latentLen]),
-            'current_step': new ort.Tensor('float32', currentStep,  [1]),
-            'total_step':   new ort.Tensor('float32', totalStep,    [1])
-        });
-        const newXt = dnRes[dnRes.outputNames[0]];
-        xt.set(newXt.data);
-    }
-
-    // 6. Vocoder
-    //   input: latent[1, 144, len]
-    //   output: wav[1, 1, audio_len]
-    const vocRes = await sessions.vocoder.run({
-        'latent': new ort.Tensor('float32', xt, [1, latentDim, latentLen])
-    });
-    const audio = vocRes[vocRes.outputNames[0]];
-    console.log('Audio dims:', audio.dims);
-
-    const trimmed = audio.data.slice(0, Math.min(Math.floor(duration * SR), audio.data.length));
-    return { samples: trimmed, duration: trimmed.length / SR };
-}
-
-// ═══════════════════════════════════════════════════════════
-//  UI HANDLERS
-// ═══════════════════════════════════════════════════════════
-
+// ── GENERATE ──
 el('generate-btn').addEventListener('click', async () => {
     const text = el('text-input').value.trim();
     if (!text || !loaded) return;
-
     const btn = el('generate-btn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Gerando...';
-    btn.classList.add('synthesizing');
-    el('stats').classList.add('hidden');
-    el('download-btn').classList.add('hidden');
-    el('player-wrap').classList.add('hidden');
+    btn.disabled = true; btn.textContent = '⏳ Gerando...'; btn.classList.add('synthesizing');
+    el('stats').classList.add('hidden'); el('download-btn').classList.add('hidden'); el('player-wrap').classList.add('hidden');
 
     const steps = parseInt(el('steps-slider').value);
     const speed = parseFloat(el('speed-slider').value);
     const t0 = performance.now();
 
     try {
-        const { samples, duration } = await generateAudio(text, selVoice, steps, speed);
-        const elapsed = (performance.now() - t0) / 1000;
+        const vs = vStyles[selVoice];
+        const processed = normText(text, 'pt');
+        const tids = tokenize(processed);
+        const tlen = tids.length;
+        const paddedLen = Math.max(tlen, 1);
 
-        const wavBuf = encodeWav16(samples, SR);
+        const textIds = new BigInt64Array(paddedLen);
+        for (let i = 0; i < tlen; i++) textIds[i] = BigInt(tids[i]);
+        const textMask = new Float32Array(paddedLen);
+        textMask.fill(1, 0, tlen);
+
+        console.log('Text:', processed, '| tokens:', tlen);
+        console.log('dur inputs:', JSON.stringify(sessions.duration_predictor.inputNames));
+        console.log('dur outputs:', JSON.stringify(sessions.duration_predictor.outputNames));
+
+        // Duration predictor
+        const durRes = await sessions.duration_predictor.run({
+            text_ids:  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
+            text_mask: new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+            style_dp:  new ort.Tensor('float32', vs.dp, vs.dpDims)
+        });
+        const dk = outKey(durRes);
+        if (!dk) throw new Error('dur_predictor returned empty result. Keys: ' + Object.keys(durRes));
+        const duration = durRes[dk].data[0];
+        console.log('Duration:', duration, '|', duration * SR, 'samples');
+
+        // Text encoder
+        const embRes = await sessions.text_encoder.run({
+            text_ids:  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
+            text_mask: new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+            style_ttl: new ort.Tensor('float32', vs.ttl, vs.ttlDims)
+        });
+        const ek = outKey(embRes);
+        if (!ek) throw new Error('text_encoder returned empty');
+        const textEmb = embRes[ek];
+        console.log('Text emb dims:', textEmb.dims);
+
+        // Sample noisy latent
+        const wavLen = Math.round(duration * SR);
+        const latentLen = Math.ceil(wavLen / LATENT_SIZE);
+        const xt = new Float32Array(LATENT_DIM * latentLen);
+        for (let i = 0; i < xt.length; i++) xt[i] = (Math.random() * 2 - 1);
+        const lmask = new Float32Array(latentLen);
+        lmask.fill(1);
+        console.log('Latent: [' + LATENT_DIM + ', ' + latentLen + ']');
+
+        // Denoising
+        const totalStep = new Float32Array([steps]);
+        for (let step = 0; step < steps; step++) {
+            const dnRes = await sessions.vector_estimator.run({
+                noisy_latent: new ort.Tensor('float32', xt, [1, LATENT_DIM, latentLen]),
+                text_emb:     textEmb,
+                style_ttl:    new ort.Tensor('float32', vs.ttl, vs.ttlDims),
+                text_mask:    new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+                latent_mask:  new ort.Tensor('float32', lmask, [1, 1, latentLen]),
+                current_step: new ort.Tensor('float32', [step], [1]),
+                total_step:   new ort.Tensor('float32', totalStep, [1])
+            });
+            const nk = outKey(dnRes);
+            if (!nk) throw new Error('vector_estimator returned empty');
+            xt.set(dnRes[nk].data);
+        }
+
+        // Vocoder
+        const vocRes = await sessions.vocoder.run({
+            latent: new ort.Tensor('float32', xt, [1, LATENT_DIM, latentLen])
+        });
+        const vk = outKey(vocRes);
+        if (!vk) throw new Error('vocoder returned empty');
+        const audio = vocRes[vk];
+        console.log('Audio dims:', audio.dims, '| type:', audio.type);
+
+        const nSamples = Math.min(wavLen, audio.data.length);
+        console.log('Writing', nSamples, 'of', audio.data.length, 'samples');
+        const wavBuf = encodeWav(audio.data, nSamples, SR);
         lastBlob = new Blob([wavBuf], { type: 'audio/wav' });
         const url = URL.createObjectURL(lastBlob);
+        const audioDur = nSamples / SR;
+        const elapsed = (performance.now() - t0) / 1000;
 
-        el('audio-player').src = url;
-        el('player-wrap').classList.remove('hidden');
-        el('audio-player').play();
-
-        el('stats').innerHTML =
-            '<div>Voz: <b>' + selVoice + '</b> | Steps: <b>' + steps + '</b></div>' +
-            '<div>Áudio: <b>' + duration.toFixed(1) + 's</b> · Gerado em <b>' + elapsed.toFixed(1) + 's</b> (RTF: ' + (elapsed/duration).toFixed(2) + ')</div>';
-        el('stats').classList.remove('hidden');
-        el('download-btn').classList.remove('hidden');
+        el('audio-player').src = url; el('player-wrap').classList.remove('hidden'); el('audio-player').play();
+        el('stats').innerHTML = '<div>Voz: <b>' + selVoice + '</b> | Steps: <b>' + steps + '</b></div>' +
+            '<div>Áudio: <b>' + audioDur.toFixed(1) + 's</b> em <b>' + elapsed.toFixed(1) + 's</b> (RTF: ' + (elapsed/audioDur).toFixed(2) + ')</div>';
+        el('stats').classList.remove('hidden'); el('download-btn').classList.remove('hidden');
         btn.textContent = '🔊 Gerar';
     } catch (err) {
-        console.error('Generate error:', err);
-        btn.textContent = '❌ ' + err.message.slice(0, 60);
+        console.error('Generate error:', err); btn.textContent = '❌ ' + err.message.slice(0, 60);
     }
-    btn.disabled = false;
-    btn.classList.remove('synthesizing');
+    btn.disabled = false; btn.classList.remove('synthesizing');
 });
 
 el('download-btn').addEventListener('click', () => {
     if (!lastBlob) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(lastBlob);
-    a.download = 'tts-' + selVoice + '-' + Date.now() + '.wav';
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(lastBlob);
+    a.download = 'tts-' + selVoice + '-' + Date.now() + '.wav'; a.click();
 });
 
-function encodeWav16(samples, sr) {
-    const n = samples.length;
-    const buf = new ArrayBuffer(44 + n * 2);
-    const v = new DataView(buf);
+function encodeWav(data, n, sr) {
+    const buf = new ArrayBuffer(44 + n * 2); const v = new DataView(buf);
     const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
     ws(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); ws(8, 'WAVE');
     ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
     v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
     ws(36, 'data'); v.setUint32(40, n * 2, true);
     for (let i = 0; i < n; i++) {
-        const s = Math.max(-1, Math.min(1, samples[i]));
-        v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        const s = Math.max(-1, Math.min(1, data[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
     return buf;
 }
