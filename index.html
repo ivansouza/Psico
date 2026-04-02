@@ -58,7 +58,8 @@
         .fab-filter {
             position: fixed;
             bottom: 22px;
-            right: 18px;
+            left: 18px;
+            right: auto;
             z-index: 999;
             min-width: 62px;
             height: 62px;
@@ -1025,7 +1026,8 @@
 
             const placeFab = () => {
                 openBtn.style.position = 'fixed';
-                openBtn.style.right = window.innerWidth <= 640 ? '10px' : '14px';
+                openBtn.style.left = window.innerWidth <= 640 ? '10px' : '14px';
+                openBtn.style.right = 'auto';
                 openBtn.style.top = window.innerWidth <= 640 ? '10px' : '14px';
                 openBtn.style.bottom = 'auto';
                 openBtn.style.zIndex = '9999';
