@@ -100,15 +100,7 @@
         }
 
         .filters-shell.hidden-shell {
-            max-height: 0 !important;
-            opacity: 0;
-            transform: translateY(-10px);
-            margin: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-            pointer-events: none;
-            border-width: 0;
-            box-shadow: none;
+            display: none !important;
         }
 
         .filters-panel {
@@ -1026,6 +1018,8 @@
                 shell.classList.add('hidden-shell');
                 openBtn.style.display = 'inline-flex';
             };
+
+            closeShell();
 
             openBtn.addEventListener('click', openShell);
             closeBtn.addEventListener('click', closeShell);
