@@ -1025,8 +1025,9 @@
 
             const placeFab = () => {
                 openBtn.style.position = 'fixed';
-                openBtn.style.right = window.innerWidth <= 640 ? '12px' : '18px';
-                openBtn.style.bottom = window.innerWidth <= 640 ? '16px' : '18px';
+                openBtn.style.right = window.innerWidth <= 640 ? '10px' : '14px';
+                openBtn.style.top = window.innerWidth <= 640 ? '10px' : '14px';
+                openBtn.style.bottom = 'auto';
                 openBtn.style.zIndex = '9999';
                 openBtn.style.display = shell.classList.contains('hidden-shell') ? 'inline-flex' : 'none';
             };
