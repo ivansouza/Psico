@@ -320,7 +320,7 @@ async function generateAudio(text, voice, steps, speed) {
 
     // Pad to at least 1
     const paddedLen = Math.max(textLen, 1);
-    const textIds = new Int64Array(paddedLen);
+    const textIds = new BigInt64Array(paddedLen);
     const textMask = new Float32Array(paddedLen);
     for (let i = 0; i < textLen; i++) textIds[i] = BigInt(tokenIds[i]);
     textMask.fill(1, 0, textLen);
