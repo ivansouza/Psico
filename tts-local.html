@@ -3,374 +3,478 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TTS Local — Edge TTS + Piper</title>
+    <title>TTS Local — Supertonic 2 (ONNX Runtime)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@microsoft/fetch-event-source@2.0.1/lib/cjs/index.min.js"></script>
     <style>
-        .loading-bar { transition: width 0.4s ease; }
+        .loading-bar { transition: width 0.3s ease; }
+        textarea { resize: vertical; }
         .voice-btn { transition: all 0.15s ease; }
         .voice-btn.active { box-shadow: 0 0 0 2px #3b82f6; }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+            100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+        .synthesizing { animation: pulse-ring 1.2s infinite; }
     </style>
+    <!-- ONNX Runtime Web -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
-
     <div class="max-w-xl w-full mt-6 space-y-5">
         <div class="text-center">
             <h1 class="text-3xl font-bold mb-1">🔊 TTS Local</h1>
-            <p class="text-slate-400 text-sm">Vozes PT-BR — Edge TTS (API) / Kokoro (local)</p>
+            <p class="text-slate-400 text-sm">Supertonic 2 — ONNX Runtime Web · PT-BR · WebGPU</p>
         </div>
 
-        <div id="main-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
+        <!-- Setup -->
+        <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
+            <div id="phase-desc" class="text-sm text-slate-300">Clique para carregar os modelos ONNX (~260MB) do disco.</div>
+            <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
+                <div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div>
+            </div>
+            <div id="progress-detail" class="text-xs text-slate-500 font-mono min-h-[1.2em]"></div>
+            <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">▶ Carregar Modelos</button>
+        </div>
 
-            <!-- Method selector -->
+        <!-- TTS -->
+        <div id="tts-card" class="hidden bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
+            <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full uppercase tracking-widest">—</div>
             <div>
-                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Método</label>
-                <div id="method-grid" class="grid grid-cols-2 gap-2">
-                    <button class="method-btn py-3 px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-medium flex items-center gap-2"
-                            data-method="edge">
-                        <span class="text-lg">☁️</span>
-                        <div class="text-left">
-                            <div class="font-semibold">Edge TTS</div>
-                            <div class="text-[10px] text-slate-500">Vozes naturais, precisa internet</div>
-                        </div>
-                    </button>
-                    <button class="method-btn py-3 px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-medium flex items-center gap-2"
-                            data-method="kokoro">
-                        <span class="text-lg">🏠</span>
-                        <div class="text-left">
-                            <div class="font-semibold">Kokoro</div>
-                            <div class="text-[10px] text-slate-500">100% local, WebGPU</div>
-                        </div>
-                    </button>
+                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
+                <div id="voice-grid" class="grid grid-cols-5 gap-2">
+                    <!-- Voice buttons rendered by JS -->
                 </div>
             </div>
-
-            <div id="voice-select-area" class="space-y-2">
-                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Voz</label>
-                <select id="voice-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:border-blue-500 focus:outline-none">
-                    <option value="">Carregando vozes...</option>
-                </select>
-            </div>
-
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Velocidade: <span id="speed-val">1.00</span>x</label>
-                    <input id="speed-slider" type="range" min="0.5" max="2.0" step="0.05" value="1.00" class="w-full accent-blue-500">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Steps: <span id="steps-val">5</span></label>
+                    <input id="steps-slider" type="range" min="2" max="15" value="5" class="w-full accent-blue-500">
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Pitch: <span id="pitch-val">0</span></label>
-                    <input id="pitch-slider" type="range" min="-10" max="10" value="0" step="1" class="w-full accent-blue-500">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Velocidade: <span id="speed-val">1.05</span></label>
+                    <input id="speed-slider" type="range" min="0.5" max="2.0" step="0.05" value="1.05" class="w-full accent-blue-500">
                 </div>
             </div>
-
             <textarea id="text-input" rows="4" lang="pt-BR"
                 class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 font-sans text-sm placeholder-slate-600 focus:border-blue-500 focus:outline-none"
                 placeholder="Digite o texto em português..."></textarea>
-
-            <!-- Progress -->
-            <div id="progress-wrap" class="hidden space-y-2">
-                <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div>
-                </div>
-                <div id="progress-text" class="text-xs text-slate-500 text-center">Gerando áudio...</div>
-            </div>
-
             <div class="flex gap-3">
                 <button id="generate-btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition disabled:opacity-40">🔊 Gerar</button>
-                <button id="download-btn" class="hidden px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition text-sm">⬇ Áudio</button>
+                <button id="download-btn" class="hidden px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition text-sm">⬇ WAV</button>
             </div>
-
             <div id="player-wrap" class="hidden"><audio id="audio-player" controls class="w-full"></audio></div>
             <div id="stats" class="hidden text-xs font-mono text-slate-500 space-y-1 bg-slate-900/50 rounded-xl p-3"></div>
         </div>
     </div>
 
-    <script type="module">
-        // ─── STATE ───
-        let selectedMethod = 'edge';
-        let edgeVoices = [];
-        let lastAudioUrl = null;
+<script>
+// ═══════════════════════════════════════════════════════════
+//  Supertonic 2 TTS — ONNX Runtime Web (pure, no Python)
+//  Pipeline: duration_predictor → text_encoder → vector_estimator → vocoder
+//  Based on: supertone-inc/supertonic py/example_onx.py + helper.py
+// ═══════════════════════════════════════════════════════════
 
-        const el = id => document.getElementById(id);
+const MODEL_DIR  = './supertonic-model/onnx/';
+const STYLE_DIR  = './supertonic-model/voice_styles/';
+const VOICES     = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
+const LANGS      = ['en','ko','es','pt','fr'];
+const SR         = 44100;
+const BASE_CHUNK = 512;
+const CHUNK_COMP = 6;
+const LATENT_DIM = 24;
+const LATENT_SIZE = BASE_CHUNK * CHUNK_COMP; // 3072
+const STYLE_DIM   = 256;
+const STYLE_DP_DIM = 16;
+const STYLE_N = 50;
+const STYLE_DP_N = 8;
 
-        // ─── METHOD SELECTION ───
-        el('method-grid').addEventListener('click', e => {
-            const btn = e.target.closest('.method-btn');
-            if (!btn) return;
-            document.querySelectorAll('.method-btn').forEach(b => {
-                b.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-600/20');
-                b.classList.add('bg-slate-700');
-            });
-            btn.classList.add('ring-2', 'ring-blue-500', 'bg-blue-600/20');
-            btn.classList.remove('bg-slate-700');
-            selectedMethod = btn.dataset.method;
-            loadVoices();
-        });
-        // Default: edge
-        document.querySelector('[data-method="edge"]').classList.add('ring-2', 'ring-blue-500', 'bg-blue-600/20');
+// State
+let sessions = {};     // ONNX InferenceSession per model
+let unicodeIndexer = null; // array[65536]
+let voiceStyles  = {}; // { M1: { ttl: Float32Array, dp: Float32Array }, ... }
+let selectedVoice = 'M1';
+let lastBlob = null;
+let loaded = false;
 
-        el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
-        el('pitch-slider').addEventListener('input', e => el('pitch-val').textContent = e.target.value);
+// ── Elements ──
+const el = id => document.getElementById(id);
 
-        // ─── VOICES ───
-        async function loadVoices() {
-            const select = el('voice-select');
-            select.innerHTML = '<option>Carregando...</option>';
+function setProgress(pct, txt) {
+    el('progress-bar').style.width = pct + '%';
+    if (txt !== undefined) el('progress-detail').textContent = txt;
+}
 
-            if (selectedMethod === 'edge') {
-                await loadEdgeVoices();
-            } else {
-                await loadKokoroVoices();
-            }
+// ── Voice grid ──
+const voiceGrid = el('voice-grid');
+for (const v of VOICES) {
+    const btn = document.createElement('button');
+    btn.className = 'voice-btn py-2 px-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium';
+    btn.dataset.voice = v;
+    btn.textContent = v;
+    btn.onclick = () => {
+        voiceGrid.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active', 'ring-2', 'ring-blue-500'));
+        btn.classList.add('active', 'ring-2', 'ring-blue-500');
+        selectedVoice = v;
+    };
+    voiceGrid.appendChild(btn);
+}
+voiceGrid.querySelector('[data-voice="M1"]').classList.add('active', 'ring-2', 'ring-blue-500');
+
+el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
+el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
+
+// ═══════════════════════════════════════════════════════════
+//  TEXT PREPROCESSING (from helper.py UnicodeProcessor)
+// ═══════════════════════════════════════════════════════════
+
+function preprocessText(text, lang) {
+    // Basic normalization (NFKD)
+    text = text.normalize('NFKD');
+    
+    // Remove emojis
+    text = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u2600-\u26FF\u2700-\u27BF\u{1F1E6}-\u{1F1FF}]+/gu, '');
+    
+    // Replacements
+    text = text.replace(/–|‑|—/g, '-')
+               .replace(/_/g, ' ')
+               .replace(/[\u201C\u201D]/g, '"')
+               .replace(/[\u2018\u2019\u00B4\u0060]/g, "'")
+               .replace(/[\[\]|\/#→←]/g, ' ');
+    
+    // Remove special
+    text = text.replace(/[♥☆♡©\\]/g, '');
+    
+    // Known expressions
+    text = text.replace(/@/g, ' at ')
+               .replace(/e\.g\.,/g, 'for example, ')
+               .replace(/i\.e\.,/g, 'that is, ');
+    
+    // Fix spacing around punctuation
+    text = text.replace(/ ,/g, ',').replace(/ \./g, '.')
+               .replace(/ !/g, '!').replace(/ \?/g, '?')
+               .replace(/ ;/g, ';').replace(/ :/g, ':')
+               .replace(/ '/g, "'");
+    
+    // Remove duplicate quotes
+    text = text.replace(/""/g, '"').replace(/''/g, "'").replace(/``/g, '`');
+    
+    // Remove extra spaces
+    text = text.replace(/\s+/g, ' ').trim();
+    
+    // Add period if needed
+    if (!/[.!?;,'"')\]}…。」』】〉》›»]$/.test(text)) {
+        text += '.';
+    }
+    
+    // Wrap with language tag
+    return `<${lang}>${text}</${lang}>`;
+}
+
+function tokenizeText(text) {
+    // Convert text to unicode codepoints, then map via unicodeIndexer
+    const unicodeVals = [];
+    for (let i = 0; i < text.length; i++) {
+        const cp = text.codePointAt(i);
+        if (cp > 0xFFFF) i++; // surrogate pair
+        unicodeVals.push(cp);
+    }
+    return unicodeVals.map(cp => unicodeIndexer[cp] || -1);
+}
+
+function lengthToMask(lengths) {
+    const maxLen = Math.max(...lengths);
+    const mask = new Float32Array(lengths.length * maxLen);
+    for (let i = 0; i < lengths.length; i++) {
+        for (let j = 0; j < maxLen; j++) {
+            mask[i * maxLen + j] = j < lengths[i] ? 1 : 0;
         }
+    }
+    return { data: mask, shape: [lengths.length, 1, maxLen], maxLen };
+}
 
-        async function loadEdgeVoices() {
+function getLatentMask(wavLengths) {
+    const latentLens = wavLengths.map(wl => Math.ceil((wl + LATENT_SIZE - 1) / LATENT_SIZE));
+    const maxLL = Math.max(...latentLens);
+    const mask = new Float32Array(wavLengths.length * maxLL);
+    for (let i = 0; i < wavLengths.length; i++) {
+        for (let j = 0; j < maxLL; j++) {
+            mask[i * maxLL + j] = j < latentLens[i] ? 1 : 0;
+        }
+    }
+    return { data: mask, shape: [wavLengths.length, 1, maxLL], maxLL };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOAD MODELS
+// ═══════════════════════════════════════════════════════════
+
+async function loadONNX(url, name) {
+    setProgress(undefined, `Loading ${name}...`);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+    const buf = await resp.arrayBuffer();
+    console.log(`${name}: ${buf.byteLength} bytes`);
+    return await ort.InferenceSession.create(buf);
+}
+
+async function loadJSON(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+    return resp.json();
+}
+
+async function loadAll() {
+    const loadBtn = el('load-btn');
+    loadBtn.disabled = true;
+    loadBtn.textContent = '⏳ Carregando...';
+    el('phase-desc').textContent = 'Initializing ORT...';
+    setProgress(5, '');
+
+    try {
+        // Detect backend
+        let backend = 'wasm';
+        if (navigator.gpu) {
             try {
-                const resp = await fetch('https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=6A5AA1D4EAFF4E9FB37E23D68491D6F4');
-                const voices = await resp.json();
-                edgeVoices = voices
-                    .filter(v => v.Locale?.startsWith('pt-BR'))
-                    .map(v => ({
-                        voiceName: v.ShortName,
-                        friendlyName: v.FriendlyName || v.ShortName,
-                        locale: v.Locale
-                    }));
+                const adapter = await navigator.gpu.requestAdapter();
+                if (adapter) backend = 'webgpu';
+            } catch {}
+        }
+        setProgress(10, `Backend: ${backend.toUpperCase()}`);
 
-                const select = el('voice-select');
-                select.innerHTML = '';
-                for (const v of edgeVoices) {
-                    const opt = document.createElement('option');
-                    opt.value = v.voiceName;
-                    opt.textContent = v.friendlyName;
-                    select.appendChild(opt);
-                }
-                select.value = 'pt-BR-AntonioNeural';
-            } catch (err) {
-                el('voice-select').innerHTML = '<option>Erro ao carregar vozes</option>';
-                console.error(err);
-            }
+        // Configure ORT
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+
+        // Load unicode indexer
+        el('phase-desc').textContent = 'Loading unicode_indexer.json...';
+        setProgress(15, 'unicode_indexer.json');
+        unicodeIndexer = await loadJSON(MODEL_DIR + 'unicode_indexer.json');
+
+        // Load ONNX models
+        const modelNames = [
+            ['duration_predictor', 'duration_predictor.onnx'],
+            ['text_encoder', 'text_encoder.onnx'],
+            ['vector_estimator', 'vector_estimator.onnx'],
+            ['vocoder', 'vocoder.onnx']
+        ];
+
+        for (let i = 0; i < modelNames.length; i++) {
+            const [name, file] = modelNames[i];
+            setProgress(20 + Math.round(i * 15), file);
+            el('phase-desc').textContent = `Loading ${file} (${(i+1)}/4)...`;
+            sessions[name] = await loadONNX(MODEL_DIR + file, name);
         }
 
-        async function loadKokoroVoices() {
-            const select = el('voice-select');
-            select.innerHTML = '<option>Copilot (pt-BR)</option><option>Kokoro (em desenvolvimento)</option>';
+        // Load voice styles
+        el('phase-desc').textContent = 'Loading voice styles...';
+        setProgress(90, 'voice styles');
+        for (const v of VOICES) {
+            el('phase-desc').textContent = `Loading voice ${v}...`;
+            const style = await loadJSON(STYLE_DIR + v + '.json');
+            voiceStyles[v] = {
+                ttl: new Float32Array(style.style_ttl.data),
+                dp: new Float32Array(style.style_dp.data),
+                ttlShape: style.style_ttl.dims, // [dim1, dim2]
+                dpShape: style.style_dp.dims
+            };
         }
 
-        // ─── GENERATE ───
-        el('generate-btn').addEventListener('click', async () => {
-            const text = el('text-input').value.trim();
-            if (!text) return;
+        // Done!
+        setProgress(100, '✓ Ready!');
+        el('phase-desc').textContent = `✅ Pronto — ${backend.toUpperCase()}, ${VOICES.length} vozes`;
 
-            const selectedVoice = el('voice-select').value;
-            const speed = el('speed-slider').value;
-            const pitch = el('pitch-slider').value;
+        setTimeout(() => {
+            el('setup-card').classList.add('hidden');
+            el('tts-card').classList.remove('hidden');
+            const badge = el('backend-badge');
+            badge.innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes (PT)`;
+            loaded = true;
+        }, 400);
 
-            if (selectedMethod === 'edge') {
-                await generateEdgeTTS(text, selectedVoice, speed, pitch);
-            } else {
-                generatePiperTTS(text);
-            }
+    } catch (err) {
+        console.error('Load error:', err);
+        el('phase-desc').textContent = `❌ ${err.message}`;
+        el('phase-desc').classList.add('text-red-400');
+        loadBtn.disabled = false;
+        loadBtn.textContent = '🔄 Tentar novamente';
+    }
+}
+
+el('load-btn').addEventListener('click', loadAll);
+
+// ═══════════════════════════════════════════════════════════
+//  GENERATE AUDIO
+// ═══════════════════════════════════════════════════════════
+
+async function generateAudio(text, voice, steps, speed) {
+    const { ttl, dp, ttlShape, dpShape } = voiceStyles[voice];
+
+    // 1. Preprocess text
+    const processedText = preprocessText(text, 'pt');
+    console.log('Preprocessed:', processedText);
+
+    // 2. Tokenize
+    const tokenIds = tokenizeText(processedText);
+    const textLen = tokenIds.length;
+    console.log('Tokenized length:', textLen);
+
+    // Pad to at least 1
+    const paddedLen = Math.max(textLen, 1);
+    const textIds = new Int64Array(paddedLen);
+    const textMask = new Float32Array(paddedLen);
+    for (let i = 0; i < textLen; i++) textIds[i] = BigInt(tokenIds[i]);
+    textMask.fill(1, 0, textLen);
+
+    // Style tensors
+    const ttlDims = ttlShape; // [dim1, dim2]
+    const dpDims = dpShape;
+    const ttlStyle = ttl; // already flat Float32Array of dim1*dim2
+    const dpStyle = dp;
+
+    // Reshape for ORT [1, dim1, dim2]
+    const ttlData = new Float32Array(ttlStyle);
+    const dpStyleData = new Float32Array(dpStyle);
+
+    // 3. Run duration predictor
+    const durResult = await sessions.duration_predictor.run({
+        'text_ids':   new ort.Tensor('int64', textIds, [1, paddedLen]),
+        'text_mask':  new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+        'style_dp':   new ort.Tensor('float32', dpStyleData, [1, dpDims[0], dpDims[1]])
+    });
+
+    // Duration is a single value [1]
+    const durKey = durResult.outputNames || Object.keys(durResult);
+    const dur = durResult[durKey[0]].data;
+    const duration = dur[0];
+    console.log('Duration:', duration);
+
+    // 4. Run text encoder
+    const embResult = await sessions.text_encoder.run({
+        'text_ids':   new ort.Tensor('int64', textIds, [1, paddedLen]),
+        'text_mask':  new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+        'style_ttl':  new ort.Tensor('float32', ttlData, [1, ttlDims[0], ttlDims[1]])
+    });
+    const embKey = embResult.outputNames || Object.keys(embResult);
+    const textEmb = embResult[embKey[0]];
+    console.log('Text embedding shape:', textEmb.dims);
+
+    // 5. Sample noisy latent
+    const wavLenMax = Math.round(duration * SR);
+    const latentLen = Math.ceil(wavLenMax / LATENT_SIZE);
+    const latentDim = LATENT_DIM * CHUNK_COMP;
+    const xt = new Float32Array(latentDim * latentLen);
+    for (let i = 0; i < xt.length; i++) xt[i] = (Math.random() * 2 - 1) * 1.0;
+    const latentMaskData = new Float32Array(latentLen);
+    latentMaskData.fill(1);
+
+    console.log('Noisy latent:', xt.length, 'latentLen:', latentLen);
+
+    // 6. Denoising loop
+    const totalStepArr = new Float32Array([steps]);
+    for (let step = 0; step < steps; step++) {
+        const currentStepArr = new Float32Array([step]);
+        const denoiseResult = await sessions.vector_estimator.run({
+            'noisy_latent':   new ort.Tensor('float32', xt, [1, latentDim, latentLen]),
+            'text_emb':       textEmb,
+            'style_ttl':      new ort.Tensor('float32', ttlData, [1, ttlDims[0], ttlDims[1]]),
+            'text_mask':      new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+            'latent_mask':    new ort.Tensor('float32', latentMaskData, [1, 1, latentLen]),
+            'current_step':   new ort.Tensor('float32', currentStepArr, [1]),
+            'total_step':     new ort.Tensor('float32', totalStepArr, [1])
         });
+        const dnKey = denoiseResult.outputNames || Object.keys(denoiseResult);
+        const newXt = denoiseResult[dnKey[0]];
+        xt.set(newXt.data);
+    }
 
-        // ─── EDGE TTS ───
-        async function generateEdgeTTS(text, voiceName, speed, pitch) {
-            const btn = el('generate-btn');
-            btn.disabled = true;
-            btn.textContent = '⏳ Gerando...';
-            el('progress-wrap').classList.remove('hidden');
-            el('progress-text').textContent = 'Conectando...';
-            el('progress-bar').style.width = '20%';
-            el('download-btn').classList.add('hidden');
-            el('player-wrap').classList.add('hidden');
-            el('stats').classList.add('hidden');
+    console.log('Denoised latent shape:', [1, latentDim, latentLen]);
 
-            const t0 = performance.now();
+    // 7. Vocoder
+    const vocResult = await sessions.vocoder.run({
+        'latent': new ort.Tensor('float32', xt, [1, latentDim, latentLen])
+    });
+    const vocKey = vocResult.outputNames || Object.keys(vocResult);
+    const audio = vocResult[vocKey[0]];
+    console.log('Audio shape:', audio.dims);
 
-            try {
-                // Edge TTS WebSocket approach
-                const ssml = `
-                    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="pt-BR">
-                        <voice name="${voiceName}">
-                            <prosody rate="${speed}" pitch="${pitch > 0 ? '+' + pitch : pitch}Hz">
-                                ${escapeXml(text)}
-                            </prosody>
-                        </voice>
-                    </speak>
-                `;
+    // Trim to actual duration
+    const nSamples = Math.floor(duration * SR);
+    const trimmed = audio.data.slice(0, Math.min(nSamples, audio.data.length));
+    return { samples: trimmed, duration: trimmed.length / SR };
+}
 
-                const requestId = crypto.randomUUID();
-                const config = `
-                {
-                    "context": {
-                        "synthesis": {
-                            "audio": {
-                                "metadataoptions": {
-                                    "sentenceBoundaryEnabled": false,
-                                    "wordBoundaryEnabled": false
-                                },
-                                "outputFormat": "audio-24khz-48kbitrate-mono-mp3"
-                            }
-                        }
-                    }
-                }
-                `.trim();
+// ═══════════════════════════════════════════════════════════
+//  UI EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════
 
-                // Connect to Edge TTS
-                const socket = new WebSocket(
-                    'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?' +
-                    'ConnectionId=' + requestId
-                );
+el('generate-btn').addEventListener('click', async () => {
+    const text = el('text-input').value.trim();
+    if (!text || !loaded) return;
 
-                socket.binaryType = 'arraybuffer';
+    const btn = el('generate-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Gerando...';
+    btn.classList.add('synthesizing');
+    el('stats').classList.add('hidden');
+    el('download-btn').classList.add('hidden');
+    el('player-wrap').classList.add('hidden');
 
-                const chunks = [];
+    const steps = parseInt(el('steps-slider').value);
+    const speed = parseFloat(el('speed-slider').value);
+    const t0 = performance.now();
 
-                socket.onopen = () => {
-                    el('progress-text').textContent = 'Enviando texto...';
-                    el('progress-bar').style.width = '40%';
+    try {
+        const { samples, duration } = await generateAudio(text, selectedVoice, steps, speed);
+        const elapsed = (performance.now() - t0) / 1000;
 
-                    // Send config
-                    const configMsg = 'X-Timestamp:' + new Date().toISOString() + '\r\n' +
-                                     'Content-Type:application/json; charset=utf-8\r\n' +
-                                     'Path:speech.config\r\n\r\n' + config;
-                    socket.send(configMsg);
+        // Encode to WAV
+        const wavBuf = encodeWav(samples, SR);
+        lastBlob = new Blob([wavBuf], { type: 'audio/wav' });
+        const url = URL.createObjectURL(lastBlob);
 
-                    // Send SSML
-                    const ssmlMsg = 'X-Timestamp:' + new Date().toISOString() + '\r\n' +
-                                   'Content-Type:application/ssml+xml\r\n' +
-                                   'Path:ssml\r\n' +
-                                   'X-RequestId:' + requestId + '\r\n\r\n' + ssml;
-                    socket.send(ssmlMsg);
-                };
+        el('audio-player').src = url;
+        el('player-wrap').classList.remove('hidden');
+        el('audio-player').play();
 
-                let audioDone = false;
-                socket.onmessage = (event) => {
-                    if (!audioDone && event.data instanceof ArrayBuffer) {
-                        const view = new DataView(event.data);
-                        const header = new TextDecoder().decode(new Uint8Array(event.data, 0, Math.min(50, event.data.byteLength)));
+        el('stats').innerHTML = `
+            <div>Voz: <b>${selectedVoice}</b> | Steps: <b>${steps}</b> | Speed: <b>${speed}</b></div>
+            <div>Áudio: <b>${duration.toFixed(1)}s</b> · Gerado em <b>${elapsed.toFixed(1)}s</b> (RTF: ${(elapsed/duration).toFixed(2)})</div>
+        `;
+        el('stats').classList.remove('hidden');
+        el('download-btn').classList.remove('hidden');
+        btn.textContent = '🔊 Gerar';
+    } catch (err) {
+        console.error('Generate error:', err);
+        btn.textContent = `❌ ${err.message.slice(0,60)}`;
+    }
+    btn.disabled = false;
+    btn.classList.remove('synthesizing');
+});
 
-                        if (header.includes('Path:audio')) {
-                            // Find where audio data starts
-                            const idx = header.indexOf('\r\n\r\n');
-                            const separator = header.substring(0, idx + 4);
-                            const audioStart = separator.length;
-                            chunks.push(event.data.slice(audioStart));
-                            el('progress-bar').style.width = '60%';
-                        }
-                    }
-                };
+el('download-btn').addEventListener('click', () => {
+    if (!lastBlob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(lastBlob);
+    a.download = `tts-${selectedVoice}-${Date.now()}.wav`;
+    a.click();
+});
 
-                socket.onclose = async () => {
-                    if (chunks.length === 0) {
-                        throw new Error('Nenhum áudio gerado. Verifique o texto.');
-                    }
-
-                    el('progress-bar').style.width = '100%';
-                    el('progress-text').textContent = 'Finalizando...';
-
-                    // Combine chunks
-                    const totalLen = chunks.reduce((a, b) => a + b.byteLength, 0);
-                    const combined = new Uint8Array(totalLen);
-                    let offset = 0;
-                    for (const chunk of chunks) {
-                        combined.set(new Uint8Array(chunk), offset);
-                        offset += chunk.byteLength;
-                    }
-
-                    const elapsed = performance.now() - t0;
-                    const blob = new Blob([combined], { type: 'audio/mpeg' });
-                    const url = URL.createObjectURL(blob);
-                    lastAudioUrl = url;
-
-                    el('audio-player').src = url;
-                    el('player-wrap').classList.remove('hidden');
-                    el('audio-player').play();
-
-                    el('stats').innerHTML = `
-                        <div>Voz: <b>${voiceName}</b></div>
-                        <div>Texto: <b>${text.length}</b> chars</div>
-                        <div>Tempo: <b>${(elapsed/1000).toFixed(1)}s</b></div>
-                        <div>Método: <b>Edge TTS</b></div>
-                    `;
-                    el('stats').classList.remove('hidden');
-                    el('download-btn').classList.remove('hidden');
-
-                    btn.textContent = '🔊 Gerar';
-                    btn.disabled = false;
-                    el('progress-wrap').classList.add('hidden');
-                };
-
-            } catch (err) {
-                console.error('Edge TTS error:', err);
-                btn.textContent = `❌ ${err.message.slice(0,50)}`;
-                btn.disabled = false;
-                el('progress-wrap').classList.add('hidden');
-
-                // Fallback to Web Speech API
-                btn.textContent = '⏳ Tentando Web Speech...';
-                try {
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = 'pt-BR';
-                    utterance.rate = parseFloat(speed);
-                    utterance.pitch = 1.0 + parseInt(pitch) / 20;
-
-                    const voices = speechSynthesis.getVoices();
-                    const ptVoice = voices.find(v => v.lang.startsWith('pt'));
-                    if (ptVoice) utterance.voice = ptVoice;
-
-                    speechSynthesis.speak(utterance);
-                    btn.textContent = '🔊 Gerar (Web Speech)';
-
-                    el('stats').innerHTML = `
-                        <div>Método: <b>Web Speech API</b> (fallback)</div>
-                        <div>Voz: <b>${utterance.voice ? utterance.voice.name : 'default'}</b></div>
-                    `;
-                    el('stats').classList.remove('hidden');
-                } catch (e2) {
-                    btn.textContent = '❌ Sem áudio disponível';
-                }
-            }
-        }
-
-        function generatePiperTTS(text) {
-            // Web Speech API fallback for local
-            const btn = el('generate-btn');
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'pt-BR';
-            utterance.rate = parseFloat(el('speed-slider').value);
-            utterance.pitch = 1.0 + parseInt(el('pitch-slider').value) / 20;
-
-            const voices = speechSynthesis.getVoices();
-            const ptVoice = voices.find(v => v.lang.startsWith('pt'));
-            if (ptVoice) utterance.voice = ptVoice;
-
-            speechSynthesis.speak(utterance);
-            btn.textContent = '🔊 Reproduzindo (Web Speech)';
-
-            el('stats').innerHTML = `<div>Método: <b>Web Speech API</b></div>`;
-            el('stats').classList.remove('hidden');
-        }
-
-        function escapeXml(text) {
-            return text.replace(/[<>&'"]/g, c => ({
-                '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;'
-            })[c]);
-        }
-
-        // ─── Download ───
-        el('download-btn').addEventListener('click', () => {
-            if (!lastAudioUrl) return;
-            const voice = el('voice-select').value.replace('pt-BR-', '').replace(/Neural/g, '');
-            const a = document.createElement('a');
-            a.href = lastAudioUrl;
-            a.download = `tts-${voice}-${Date.now()}.mp3`;
-            a.click();
-        });
-
-        // ─── Init ───
-        speechSynthesis.getVoices(); // Preload
-        loadVoices();
-    </script>
-
+// ── WAV encoder (16-bit mono PCM) ──
+function encodeWav(samples, sr) {
+    const n = samples.length;
+    const buf = new ArrayBuffer(44 + n * 2);
+    const v = new DataView(buf);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE');
+    w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return buf;
+}
+</script>
 </body>
 </html>
