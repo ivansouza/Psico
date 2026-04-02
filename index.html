@@ -55,11 +55,30 @@
             -webkit-backdrop-filter: blur(24px);
         }
 
+        .filters-launcher {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }
+
         .filters-shell {
             border-radius: 28px;
             padding: 14px;
             overflow: hidden;
             margin-bottom: 14px;
+            transition: max-height .28s ease, opacity .22s ease, transform .22s ease, margin .22s ease, padding .22s ease;
+        }
+
+        .filters-shell.hidden-shell {
+            max-height: 0 !important;
+            opacity: 0;
+            transform: translateY(-10px);
+            margin: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            pointer-events: none;
+            border-width: 0;
+            box-shadow: none;
         }
 
         .filters-panel {
@@ -419,7 +438,11 @@
 <body>
     <div class="app-shell">
         <main class="content-area">
-            <section class="filters-shell glass">
+            <div class="filters-launcher">
+                <button id="filters-open" class="action-btn"><i class="fas fa-sliders"></i> Buscar e filtrar</button>
+            </div>
+
+            <section id="filters-shell" class="filters-shell glass hidden-shell">
                 <div class="toolbar-grid">
                     <div class="search-wrap">
                         <i class="fas fa-magnifying-glass"></i>
@@ -427,7 +450,7 @@
                         <button id="clear-search" class="clear-btn" type="button">&times;</button>
                     </div>
 
-                    <button id="filters-toggle" class="action-btn"><i class="fas fa-sliders"></i> Filtros</button>
+                    <button id="filters-toggle" class="action-btn"><i class="fas fa-xmark"></i> Fechar</button>
                 </div>
 
                 <div id="active-filters" class="active-strip"></div>
@@ -957,24 +980,27 @@
         }
 
         function initFiltersPanel() {
-            const toggle = document.getElementById('filters-toggle');
+            const shell = document.getElementById('filters-shell');
+            const openBtn = document.getElementById('filters-open');
+            const closeBtn = document.getElementById('filters-toggle');
             const panel = document.getElementById('filters-panel');
-            if (!toggle || !panel) return;
+            if (!shell || !openBtn || !closeBtn || !panel) return;
 
-            const syncState = () => {
-                const expanded = !panel.classList.contains('collapsed');
-                toggle.classList.toggle('active', expanded);
-                toggle.innerHTML = expanded
-                    ? '<i class="fas fa-xmark"></i> Fechar'
-                    : '<i class="fas fa-sliders"></i> Filtros';
+            panel.classList.remove('collapsed');
+
+            const openShell = () => {
+                shell.classList.remove('hidden-shell');
+                openBtn.style.display = 'none';
+                document.getElementById('search-input')?.focus();
             };
 
-            toggle.addEventListener('click', () => {
-                panel.classList.toggle('collapsed');
-                syncState();
-            });
+            const closeShell = () => {
+                shell.classList.add('hidden-shell');
+                openBtn.style.display = 'inline-flex';
+            };
 
-            syncState();
+            openBtn.addEventListener('click', openShell);
+            closeBtn.addEventListener('click', closeShell);
         }
 
         function scrollToSection(id) {
