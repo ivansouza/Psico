@@ -192,29 +192,52 @@
                     speed,
                 });
 
-                // Extract samples from output — handle both formats
+                // Extract samples from output
+                console.log('Output structure:', typeof output, Object.keys(output));
+                
                 let samples;
                 if (output.audio && Array.isArray(output.audio) && output.audio.length > 0) {
-                    samples = output.audio[0]; // Float32Array
+                    samples = output.audio[0];
                 } else if (output.sampling_rate !== undefined) {
-                    samples = output.audio[0]; // {audio: Float32Array[], sampling_rate}
+                    samples = output.audio[0];
                 } else {
-                    console.log('Output keys:', Object.keys(output));
-                    const firstVal = output[Object.keys(output)[0]];
-                    samples = Array.isArray(firstVal) ? firstVal[0] : firstVal;
+                    // Try to find audio-like data
+                    const keys = Object.keys(output);
+                    console.log('Fallback, keys:', keys);
+                    samples = output[keys[0]];
                 }
-
-                // Ensure Float32Array
-                if (!(samples instanceof Float32Array)) {
+                
+                // Flatten if needed
+                if (Array.isArray(samples) && samples.length > 0 && !('length' in samples[0])) {
+                    samples = new Float32Array(samples);
+                } else if (!(samples instanceof Float32Array)) {
                     samples = new Float32Array(samples);
                 }
 
-                // Trim silence tail to remove reverb
+                console.log('Samples length:', samples.length, 'type:', samples.constructor.name);
+                
+                // Check if samples are valid (not all zeros)
+                let maxVal = 0, sumVal = 0;
+                for (let i = 0; i < Math.min(samples.length, 1000); i++) {
+                    const v = Math.abs(samples[i]);
+                    if (v > 100) { // Big values might mean wrong format
+                        console.warn('Sample values look wrong at index', i, '=', samples[i]);
+                        break;
+                    }
+                    if (v > maxVal) maxVal = v;
+                    sumVal += v;
+                }
+                console.log('Max sample (first 1000):', maxVal, 'Avg:', (sumVal/1000).toFixed(4));
+
+                // Trim silence tail
                 samples = trimTail(samples);
+                console.log('After trim:', samples.length);
 
                 const elapsed = performance.now() - t0;
-                const buf = encodeWav(samples, SR);
-                lastBlob = new Blob([buf], { type: 'audio/wav' });
+                const wavBuf = encodeWav(samples, SR);
+                lastBlob = new Blob([wavBuf], { type: 'audio/wav' });
+                console.log('WAV blob size:', lastBlob.size, 'bytes');
+                
                 const audioLen = samples.length / SR;
                 const url = URL.createObjectURL(lastBlob);
 
