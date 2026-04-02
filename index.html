@@ -44,10 +44,7 @@
         .app-shell {
             width: min(1680px, calc(100vw - 24px));
             margin: 12px auto;
-            display: grid;
-            grid-template-columns: 320px minmax(0, 1fr);
-            gap: 16px;
-            align-items: start;
+            display: block;
         }
 
         .glass {
@@ -58,15 +55,27 @@
             -webkit-backdrop-filter: blur(24px);
         }
 
-        .sidebar {
-            position: sticky;
-            top: 12px;
-            border-radius: 30px;
-            padding: 20px;
+        .filters-shell {
+            border-radius: 28px;
+            padding: 14px;
             overflow: hidden;
+            margin-bottom: 14px;
         }
 
-        .sidebar::before,
+        .filters-panel {
+            overflow: hidden;
+            transition: max-height .28s ease, opacity .22s ease, transform .22s ease, margin-top .22s ease;
+        }
+
+        .filters-panel.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            transform: translateY(-8px);
+            margin-top: 0 !important;
+            pointer-events: none;
+        }
+
+        .filters-shell::before,
         .hero::before {
             content: '';
             position: absolute;
@@ -75,7 +84,7 @@
             background: linear-gradient(140deg, rgba(56,189,248,0.10), transparent 35%, rgba(139,92,246,0.10));
         }
 
-        .sidebar, .hero, .metric-card, .toolbar, .gallery-card { position: relative; }
+        .filters-shell, .hero, .toolbar, .gallery-card { position: relative; }
 
         .brand-mark {
             width: 52px;
@@ -168,14 +177,14 @@
 
 
         .toolbar {
-            margin-top: 16px;
-            border-radius: 28px;
-            padding: 14px;
+            margin-top: 12px;
+            border-radius: 24px;
+            padding: 12px;
         }
 
         .toolbar-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto auto;
+            grid-template-columns: minmax(0, 1fr) auto;
             gap: 12px;
             align-items: center;
         }
@@ -249,16 +258,16 @@
             color: #fde68a;
         }
 
-        .side-section + .side-section { margin-top: 18px; }
+        .side-section + .side-section { margin-top: 14px; }
 
         .side-box {
-            padding: 14px;
-            border-radius: 22px;
+            padding: 12px;
+            border-radius: 20px;
             background: rgba(255,255,255,0.035);
             border: 1px solid rgba(255,255,255,0.05);
         }
 
-        .filter-stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .filter-stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
         .filter-btn, .quick-chip {
             cursor: pointer;
@@ -389,10 +398,6 @@
         .sidebar-toggle { display: none; width: 100%; justify-content: center; margin-bottom: 12px; }
 
         @media (max-width: 1180px) {
-            .app-shell { grid-template-columns: 1fr; }
-            .sidebar { position: fixed; inset: 12px auto 12px 12px; width: min(360px, calc(100vw - 24px)); z-index: 70; transform: translateX(-120%); transition: transform .28s ease; max-height: calc(100vh - 24px); overflow: auto; }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-toggle { display: inline-flex; }
             .toolbar-grid { grid-template-columns: 1fr; }
         }
 
@@ -413,68 +418,68 @@
 </head>
 <body>
     <div class="app-shell">
-        <aside id="sidebar" class="sidebar glass">
-            <button id="close-sidebar" class="sidebar-toggle"><i class="fas fa-xmark"></i> Fechar filtros</button>
-
-            <div class="flex items-center gap-4 mb-6">
-                <div class="brand-mark"><i class="fas fa-brain text-xl"></i></div>
-                <div>
-                    <div class="eyebrow">Creative coding lab</div>
-                    <div class="text-2xl font-black tracking-tight">Psico Portfolio</div>
-                    <div class="text-sm text-slate-400 mt-1">Interface premium para explorar os experiments</div>
-                </div>
-            </div>
-
-            <div class="side-section">
-                <div class="side-box">
-                    <div class="eyebrow">Navegação rápida</div>
-                    <div class="filter-stack">
-                        <button class="quick-chip" onclick="scrollToSection('hero')">Overview</button>
-                        <button class="quick-chip" onclick="scrollToSection('gallery-section')">Galeria</button>
-                        <button class="quick-chip" onclick="applyPreset('recent')">Recentes</button>
-                        <button class="quick-chip" onclick="applyPreset('ai')">IA</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="side-section">
-                <div class="side-box">
-                    <div class="eyebrow">Categorias</div>
-                    <div id="filters-cat" class="filter-stack"></div>
-                </div>
-            </div>
-
-            <div class="side-section">
-                <div class="side-box">
-                    <div class="eyebrow">Ano</div>
-                    <div id="filters-year" class="filter-stack"></div>
-                </div>
-            </div>
-
-            <div class="side-section">
-                <div class="side-box">
-                    <div class="eyebrow">Mês</div>
-                    <div id="filters-month" class="filter-stack"></div>
-                </div>
-            </div>
-
-            <div class="side-section">
-                <div class="side-box">
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <div class="eyebrow">Modo laboratório</div>
-                            <div class="text-sm text-slate-300 mt-1">Mostrar experiments em desenvolvimento</div>
-                        </div>
-                        <button id="mock-toggle" onclick="toggleMockCards(this)" class="action-btn">
-                            <i class="fas fa-flask"></i>
-                            <span>Mock <span id="mock-count">(0)</span></span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
         <main class="content-area">
+            <section class="filters-shell glass">
+                <div class="toolbar-grid">
+                    <div class="search-wrap">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input id="search-input" class="search-input" type="text" placeholder="Buscar por nome, descrição, categoria ou ficheiro...">
+                        <button id="clear-search" class="clear-btn" type="button">&times;</button>
+                    </div>
+
+                    <button id="filters-toggle" class="action-btn"><i class="fas fa-sliders"></i> Filtros</button>
+                </div>
+
+                <div id="active-filters" class="active-strip"></div>
+
+                <div id="filters-panel" class="filters-panel collapsed mt-2">
+                    <div class="side-section">
+                        <div class="side-box">
+                            <div class="eyebrow">Navegação rápida</div>
+                            <div class="filter-stack">
+                                <button class="quick-chip" onclick="scrollToSection('hero')">Overview</button>
+                                <button class="quick-chip" onclick="scrollToSection('gallery-section')">Galeria</button>
+                                <button class="quick-chip" onclick="applyPreset('recent')">Recentes</button>
+                                <button class="quick-chip" onclick="applyPreset('ai')">IA</button>
+                                <button class="quick-chip" onclick="applyPreset('fresh')">Fresh picks</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="side-section">
+                        <div class="side-box">
+                            <div class="eyebrow">Categorias</div>
+                            <div id="filters-cat" class="filter-stack"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 side-section">
+                        <div class="side-box">
+                            <div class="eyebrow">Ano</div>
+                            <div id="filters-year" class="filter-stack"></div>
+                        </div>
+                        <div class="side-box">
+                            <div class="eyebrow">Mês</div>
+                            <div id="filters-month" class="filter-stack"></div>
+                        </div>
+                    </div>
+
+                    <div class="side-section">
+                        <div class="side-box">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="eyebrow">Modo laboratório</div>
+                                    <div class="text-sm text-slate-300 mt-1">Mostrar experiments em desenvolvimento</div>
+                                </div>
+                                <button id="mock-toggle" onclick="toggleMockCards(this)" class="action-btn">
+                                    <i class="fas fa-flask"></i>
+                                    <span>Mock <span id="mock-count">(0)</span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <section id="hero" class="hero glass">
                 <div class="hero-inner">
                     <div class="hero-left">
@@ -501,20 +506,6 @@
                 </div>
             </section>
 
-            <section class="toolbar glass">
-                <div class="toolbar-grid">
-                    <div class="search-wrap">
-                        <i class="fas fa-magnifying-glass"></i>
-                        <input id="search-input" class="search-input" type="text" placeholder="Buscar por nome, descrição, categoria ou ficheiro...">
-                        <button id="clear-search" class="clear-btn" type="button">&times;</button>
-                    </div>
-
-                    <button id="open-sidebar" class="action-btn"><i class="fas fa-sliders"></i> Filtros</button>
-                    <button onclick="applyPreset('fresh')" class="action-btn"><i class="fas fa-bolt"></i> Fresh picks</button>
-                </div>
-
-                <div id="active-filters" class="active-strip"></div>
-            </section>
 
             <section id="gallery-section">
                 <div class="section-head">
@@ -965,13 +956,25 @@
             sync();
         }
 
-        function initSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const open = document.getElementById('open-sidebar');
-            const close = document.getElementById('close-sidebar');
-            open.addEventListener('click', () => sidebar.classList.add('open'));
-            close.addEventListener('click', () => sidebar.classList.remove('open'));
-            window.addEventListener('resize', () => { if (window.innerWidth > 1180) sidebar.classList.remove('open'); });
+        function initFiltersPanel() {
+            const toggle = document.getElementById('filters-toggle');
+            const panel = document.getElementById('filters-panel');
+            if (!toggle || !panel) return;
+
+            const syncState = () => {
+                const expanded = !panel.classList.contains('collapsed');
+                toggle.classList.toggle('active', expanded);
+                toggle.innerHTML = expanded
+                    ? '<i class="fas fa-xmark"></i> Fechar'
+                    : '<i class="fas fa-sliders"></i> Filtros';
+            };
+
+            toggle.addEventListener('click', () => {
+                panel.classList.toggle('collapsed');
+                syncState();
+            });
+
+            syncState();
         }
 
         function scrollToSection(id) {
@@ -1035,7 +1038,7 @@
         sortExperiments();
         initFilters();
         initSearch();
-        initSidebar();
+        initFiltersPanel();
         renderActiveFilters();
         renderCards();
         syncMissingCardsFromGitHub();
