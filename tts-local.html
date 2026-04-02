@@ -87,9 +87,10 @@
         // The latest version on the CDN is 4.0.x which includes Supertonic
         import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@next';
 
-        const MODEL_ID = 'onnx-community/Supertonic-TTS-ONNX';
+        const MODEL_ID = 'onnx-community/Supertonic-TTS-2-ONNX';
         const HF_BASE  = `https://huggingface.co/${MODEL_ID}/resolve/main`;
         const VOICES   = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
+        const LANG     = 'pt'; // Portuguese by default
 
         let genPipeline, lastBlob, selectedVoice = 'M1';
 
@@ -153,7 +154,7 @@
                 setTimeout(() => {
                     el('setup-card').classList.add('hidden');
                     el('tts-card').classList.remove('hidden');
-                    el('backend-badge').innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes`;
+                    el('backend-badge').innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes (PT)`;
                 }, 500);
 
             } catch (err) {
