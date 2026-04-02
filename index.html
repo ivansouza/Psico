@@ -172,13 +172,41 @@
         }
 
         .hero {
-            position: sticky;
+            position: fixed;
             top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 40;
+            width: min(1680px, calc(100vw - 24px));
             border-radius: 28px;
-            padding: 18px;
+            padding: 16px 18px;
             overflow: hidden;
-            margin-bottom: 18px;
+            margin: 0;
+        }
+
+        .hero-spacer {
+            height: 140px;
+            width: 100%;
+        }
+
+        @media (max-width: 1180px) {
+            .hero {
+                width: calc(100vw - 24px);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                top: 8px;
+                width: calc(100vw - 16px);
+                padding: 12px 14px;
+                left: 8px;
+                transform: translateX(0);
+            }
+
+            .hero-spacer {
+                height: 120px;
+            }
         }
 
         .hero-inner {
@@ -577,7 +605,7 @@
                     </div>
                 </div>
             </section>
-
+            <div class="hero-spacer"></div>
 
             <section id="gallery-section">
                 <div class="section-head">
