@@ -1023,21 +1023,31 @@
 
             panel.classList.remove('collapsed');
 
+            const placeFab = () => {
+                openBtn.style.position = 'fixed';
+                openBtn.style.right = window.innerWidth <= 640 ? '12px' : '18px';
+                openBtn.style.bottom = window.innerWidth <= 640 ? '16px' : '18px';
+                openBtn.style.zIndex = '9999';
+                openBtn.style.display = shell.classList.contains('hidden-shell') ? 'inline-flex' : 'none';
+            };
+
             const openShell = () => {
                 shell.classList.remove('hidden-shell');
-                openBtn.style.display = 'none';
+                placeFab();
                 document.getElementById('search-input')?.focus();
             };
 
             const closeShell = () => {
                 shell.classList.add('hidden-shell');
-                openBtn.style.display = 'inline-flex';
+                placeFab();
             };
 
             closeShell();
+            placeFab();
 
             openBtn.addEventListener('click', openShell);
             closeBtn.addEventListener('click', closeShell);
+            window.addEventListener('resize', placeFab);
         }
 
         function scrollToSection(id) {
