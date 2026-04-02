@@ -87,29 +87,58 @@
             }
         }
 
-        .filters-shell {
-            border-radius: 28px;
-            padding: 14px;
-            overflow: hidden;
-            margin-bottom: 14px;
-            transition: max-height .28s ease, opacity .22s ease, transform .22s ease, margin .22s ease, padding .22s ease;
+        .content-area {
+            padding-top: 2px;
         }
 
-        .filters-shell.hidden-shell {
-            display: none !important;
+        .filters-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .28s ease;
+            z-index: 70;
+        }
+
+        .filters-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .filters-shell {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: min(420px, 92vw);
+            height: 100vh;
+            border-radius: 0 28px 28px 0;
+            padding: 18px;
+            overflow-y: auto;
+            margin: 0;
+            transform: translateX(-105%);
+            opacity: 1;
+            transition: transform .32s cubic-bezier(.22,.8,.2,1);
+            z-index: 80;
+        }
+
+        .filters-shell.open {
+            transform: translateX(0);
         }
 
         .filters-panel {
-            overflow: hidden;
-            transition: max-height .28s ease, opacity .22s ease, transform .22s ease, margin-top .22s ease;
+            overflow: visible;
+            transition: none;
         }
 
         .filters-panel.collapsed {
-            max-height: 0 !important;
-            opacity: 0;
-            transform: translateY(-8px);
+            max-height: none !important;
+            opacity: 1;
+            transform: none;
             margin-top: 0 !important;
-            pointer-events: none;
+            pointer-events: auto;
         }
 
         .filters-shell::before,
@@ -143,9 +172,13 @@
         }
 
         .hero {
+            position: sticky;
+            top: 10px;
+            z-index: 40;
             border-radius: 28px;
             padding: 18px;
             overflow: hidden;
+            margin-bottom: 18px;
         }
 
         .hero-inner {
@@ -192,8 +225,8 @@
         .mode-pill {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
+            gap: 10px;
+            padding: 8px 10px 8px 14px;
             border-radius: 999px;
             background: rgba(255,255,255,.05);
             border: 1px solid rgba(255,255,255,.08);
@@ -456,7 +489,8 @@
 <body>
     <div class="app-shell">
         <main class="content-area">
-            <section id="filters-shell" class="filters-shell glass hidden-shell">
+            <div id="filters-backdrop" class="filters-backdrop"></div>
+            <section id="filters-shell" class="filters-shell glass">
                 <div class="toolbar-grid">
                     <div class="search-wrap">
                         <i class="fas fa-magnifying-glass"></i>
@@ -539,7 +573,7 @@
                     </div>
                     <div class="mode-pill">
                         <span id="mode-label" class="font-bold">Produção</span>
-                        <button id="filters-open" class="pill-filters" title="Buscar e filtrar"><i class="fas fa-sliders"></i> Buscar</button>
+                        <button id="filters-open" class="pill-filters" title="Buscar e filtrar"><i class="fas fa-sliders"></i> Filtros</button>
                     </div>
                 </div>
             </section>
@@ -996,33 +1030,35 @@
 
         function initFiltersPanel() {
             const shell = document.getElementById('filters-shell');
+            const backdrop = document.getElementById('filters-backdrop');
             const openBtn = document.getElementById('filters-open');
             const closeBtn = document.getElementById('filters-toggle');
             const panel = document.getElementById('filters-panel');
-            if (!shell || !openBtn || !closeBtn || !panel) return;
+            if (!shell || !backdrop || !openBtn || !closeBtn || !panel) return;
 
             panel.classList.remove('collapsed');
 
-            const syncOpenButton = () => {
-                openBtn.style.display = shell.classList.contains('hidden-shell') ? 'inline-flex' : 'none';
-            };
-
             const openShell = () => {
-                shell.classList.remove('hidden-shell');
-                syncOpenButton();
+                shell.classList.add('open');
+                backdrop.classList.add('open');
+                openBtn.style.display = 'none';
                 document.getElementById('search-input')?.focus();
             };
 
             const closeShell = () => {
-                shell.classList.add('hidden-shell');
-                syncOpenButton();
+                shell.classList.remove('open');
+                backdrop.classList.remove('open');
+                openBtn.style.display = 'inline-flex';
             };
 
             closeShell();
-            syncOpenButton();
 
             openBtn.addEventListener('click', openShell);
             closeBtn.addEventListener('click', closeShell);
+            backdrop.addEventListener('click', closeShell);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeShell();
+            });
         }
 
         function scrollToSection(id) {
