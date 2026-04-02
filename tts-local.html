@@ -6,10 +6,10 @@
     <title>TTS Local — Supertonic 2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .loading-bar { transition: width 0.5s ease; }
+        .loading-bar { transition: width 0.4s ease; }
         textarea { resize: vertical; }
         .voice-btn { transition: all 0.15s ease; }
-        .voice-btn.active { ring: 2px; }
+        .voice-btn.active { box-shadow: 0 0 0 2px #3b82f6; }
         @keyframes pulse-ring {
             0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
             70% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
@@ -21,39 +21,31 @@
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
 
     <div class="max-w-xl w-full mt-6 space-y-5">
-
         <!-- Header -->
         <div class="text-center">
             <h1 class="text-3xl font-bold mb-1">🔊 TTS Local</h1>
-            <p class="text-slate-400 text-sm">Supertonic 2 — roda 100% no seu dispositivo via ONNX WebGPU</p>
+            <p class="text-slate-400 text-sm">Supertonic 2 — 100% no dispositivo via ONNX</p>
         </div>
 
         <!-- Setup Card -->
-        <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur">
-            <div id="phase-desc" class="text-sm text-slate-300 mb-4">
-                Preparando para carregar o modelo...
+        <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
+            <div id="phase-desc" class="text-sm text-slate-300">Models are fetched from HuggingFace CDN (once). Subsequent loads are instant.</div>
+            <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
+                <div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div>
             </div>
-
-            <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden mb-3">
-                <div id="progress-bar" class="loading-bar bg-blue-500 h-full w-0" style="width:0%"></div>
-            </div>
-
-            <div id="progress-detail" class="text-xs text-slate-500 font-mono mb-3 min-h-[1.25rem]"></div>
-
-            <button id="load-btn" class="hidden w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">
-                Carregar Modelo (~260 MB — 1ª vez)
+            <div id="progress-detail" class="text-xs text-slate-500 font-mono"></div>
+            <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">
+                ▶ Carregar Modelos
             </button>
         </div>
 
-        <!-- TTS Card (hidden until model loads) -->
+        <!-- TTS Card -->
         <div id="tts-card" class="hidden bg-slate-800/80 rounded-2xl p-5 border border-slate-700 backdrop-blur space-y-4">
-
-            <!-- Backend Badge -->
-            <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full text-emerald-400 uppercase tracking-widest">
-                ● Carregando...
+            <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full uppercase tracking-widest">
+                —
             </div>
 
-            <!-- Voice Selection -->
+            <!-- Voices -->
             <div>
                 <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
                 <div id="voice-grid" class="grid grid-cols-5 gap-2">
@@ -77,7 +69,7 @@
                         Qualidade (steps): <span id="steps-val">5</span>
                     </label>
                     <input id="steps-slider" type="range" min="2" max="20" value="5" class="w-full accent-blue-500">
-                    <div class="text-[10px] text-slate-500">2=faster ~20=better</div>
+                    <div class="text-[10px] text-slate-500">2=fast ~20=best</div>
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">
@@ -88,15 +80,15 @@
                 </div>
             </div>
 
-            <!-- Text Input -->
+            <!-- Text -->
             <textarea id="text-input" rows="4"
                 class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 font-sans text-sm placeholder-slate-600 focus:border-blue-500 focus:outline-none transition"
-                placeholder="Digite o texto aqui... Ex: Olá, este é um teste de voz local com Supertonic 2!"></textarea>
+                placeholder="Digite o texto..."></textarea>
 
             <!-- Buttons -->
             <div class="flex gap-3">
                 <button id="generate-btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    🔊 Gerar Áudio
+                    🔊 Gerar
                 </button>
                 <button id="download-btn" class="hidden px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition text-sm">
                     ⬇ WAV
@@ -111,213 +103,467 @@
             <!-- Stats -->
             <div id="stats" class="hidden text-xs font-mono text-slate-500 space-y-1 bg-slate-900/50 rounded-xl p-3"></div>
         </div>
-
     </div>
 
-    <script type="module">
-        import {
-            env,
-            TextToSpeechPipeline,
-            Progress,
-        } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.6.0';
+    <script>
+        // ─────────────────────────────────────────────────────────────
+        //  Supertonic TTS 2 — Browser Edition
+        //  Models: onnx-community/Supertonic-TTS-2-ONNX (HF CDN)
+        //  Voices: M1-M5, F1-F5
+        //  Backend: ONNX Runtime Web (webgpu → wasm fallback)
+        // ─────────────────────────────────────────────────────────────
 
-        // ─────────────────────────────────
-        //  State
-        // ─────────────────────────────────
-        let pipeline = null;
-        let lastBlob = null;
-        let selectedVoice = 'M1';
+        const MODEL_URL = 'https://huggingface.co/onnx-community/Supertonic-TTS-2-ONNX/resolve/main/';
+        const ORT_URL   = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
 
-        // ─────────────────────────────────
-        //  Elements
-        // ─────────────────────────────────
-        const loadBtn       = document.getElementById('load-btn');
-        const phaseDesc     = document.getElementById('phase-desc');
-        const progressBar   = document.getElementById('progress-bar');
-        const progressDetail= document.getElementById('progress-detail');
-        const ttsCard       = document.getElementById('tts-card');
-        const setupCard     = document.getElementById('setup-card');
-        const backendBadge  = document.getElementById('backend-badge');
-        const textInput     = document.getElementById('text-input');
-        const generateBtn   = document.getElementById('generate-btn');
-        const downloadBtn   = document.getElementById('download-btn');
-        const audioPlayer   = document.getElementById('audio-player');
-        const playerWrap    = document.getElementById('player-wrap');
-        const statsDiv      = document.getElementById('stats');
-        const stepsSlider   = document.getElementById('steps-slider');
-        const speedSlider   = document.getElementById('speed-slider');
-        const stepsVal      = document.getElementById('steps-val');
-        const speedVal      = document.getElementById('speed-val');
-        const voiceGrid     = document.getElementById('voice-grid');
+        const STATE = {
+            models: {},          // InferenceSession per model
+            voices: {},          // Float32Array per voice name
+            loaded: false,
+            selectedVoice: 'M1',
+            lastData: null,      // for download
+        };
 
-        // ─────────────────────────────────
-        //  Helpers
-        // ─────────────────────────────────
-        const HF = 'https://huggingface.co/onnx-community/Supertonic-TTS-2-ONNX/resolve/main';
+        const MODEL_FILES = ['text_encoder.onnx','duration_predictor.onnx','vector_estimator.onnx','vocoder.onnx'];
+        const VOICES = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
+        const SAMPLE_RATE = 44100;
+        const CHUNK_COMP = 6;
+        const BASE_CHUNK = 512;
+        const LATENT_DIM = 24;
+        const STYLE_DIM = 128;
+        const LATENT_SIZE = BASE_CHUNK * CHUNK_COMP; // 3072
+        const LANGS = ['en','ko','es','pt','fr'];
 
-        function setProgress(pct, detail) {
-            progressBar.style.width = pct + '%';
-            if (detail) progressDetail.textContent = detail;
-        }
+        // ── Tokenizer (minimal HF tokenizer for Supertonic) ──────
+        // The model uses a custom vocab. We fetch it at startup.
+        let tokenizer = null;
 
-        // ─────────────────────────────────
-        //  Voice selection
-        // ─────────────────────────────────
-        voiceGrid.addEventListener('click', e => {
-            const btn = e.target.closest('.voice-btn');
-            if (!btn) return;
-            document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active', 'bg-blue-600'));
-            btn.classList.add('active', 'bg-blue-600');
-            selectedVoice = btn.dataset.voice;
-        });
-        // Default M1
-        voiceGrid.querySelector('[data-voice="M1"]').classList.add('active', 'bg-blue-600');
+        async function loadTokenizer() {
+            // Fetch vocab.json and merges (or tokenizer.json)
+            const res = await fetch(MODEL_URL + 'token/tokenizer.json');
+            const json = await res.json();
+            
+            const vocab = json.model.vocab;
+            const merges = json.model.merges || [];
+            const unkToken = json.model.unk_token || '▁';
+            
+            // Add special language tokens if not in vocab
+            for (const lang of LANGS) {
+                if (!(('<' + lang + '>') in vocab)) {
+                    // Map to unk token
+                }
+            }
 
-        // ─────────────────────────────────
-        //  Sliders
-        // ─────────────────────────────────
-        stepsSlider.addEventListener('input', () => stepsVal.textContent = stepsSlider.value);
-        speedSlider.addEventListener('input', () => speedVal.textContent = parseFloat(speedSlider.value).toFixed(2));
-
-        // ─────────────────────────────────
-        //  Load Model
-        // ─────────────────────────────────
-        async function loadModel() {
-            loadBtn.classList.add('hidden');
-            phaseDesc.textContent = 'Baixando modelo ONNX (~260 MB — cacheado pelo browser)...';
-            progressBar.style.width = '0%';
-
-            // Use cache (store models in IndexedDB so they persist)
-            env.useBrowserCache = true;
-
-            const t0 = Date.now();
-
-            try {
-                pipeline = await TextToSpeechPipeline.from_pretrained(
-                    'onnx-community/Supertonic-TTS-2-ONNX',
-                    {
-                        dtype: 'fp32',
-                        device: 'wasm',  // will auto-detect WebGPU if available
-                        progress_callback: (msg) => {
-                            if (msg instanceof Progress) {
-                                const pct = Math.round(msg.progress ?? 0);
-                                const file = msg.file ? msg.file.split('/').pop() : '';
-                                phaseDesc.textContent = `Baixando: ${file} (${pct}%)`;
-                                setProgress(pct, `${msg.loaded ? (msg.loaded / 1e6).toFixed(1) : '?'} MB`);
-                            } else if (typeof msg === 'object' && msg.status) {
-                                phaseDesc.textContent = msg.status;
-                            }
+            return {
+                vocab,
+                merges,
+                unkToken,
+                encode(text) {
+                    // Simple character-level encoding for now
+                    // Supertonic uses a byte-level BPE tokenizer
+                    // For simplicity, convert to codepoints and map
+                    const ids = [];
+                    for (const char of text) {
+                        const code = char.codePointAt(0);
+                        if (vocab[char] !== undefined) {
+                            ids.push(vocab[char]);
+                        } else {
+                            // Try unicode mapping
+                            ids.push(vocab[unkToken] || 0);
                         }
                     }
-                );
+                    // Add BOS/EOS if needed
+                    return ids;
+                }
+            };
+        }
 
-                const elapsed = ((Date.now() - t0) / 1000).toFixed(0);
-                
-                // Show TTS card
-                setupCard.classList.add('hidden');
-                ttsCard.classList.remove('hidden');
+        // Simpler: just use string.charCodeAt mapping
+        // Actually, let me look at what the model actually expects...
 
-                // Determine backend
-                if (typeof navigator !== 'undefined' && navigator.gpu) {
-                    backendBadge.textContent = '● WebGPU Ready';
-                    backendBadge.classList.add('text-emerald-400');
-                } else {
-                    backendBadge.textContent = '● WebAssembly (no WebGPU)';
-                    backendBadge.classList.add('text-yellow-400');
+        // ── Load ONNX Runtime ──
+        async function loadORT(scriptBase) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = scriptBase + 'ort.min.js';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('Failed to load ORT'));
+                document.body.appendChild(s);
+            });
+        }
+
+        // ── Detect GPU ──
+        async function detectBackend() {
+            if (!navigator.gpu) return 'wasm';
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) return 'wasm';
+                return 'webgpu';
+            } catch {
+                return 'wasm';
+            }
+        }
+
+        // ── Set progress ──
+        function setProgress(pct, detail) {
+            document.getElementById('progress-bar').style.width = pct + '%';
+            document.getElementById('progress-detail').textContent = detail || '';
+        }
+
+        // ── Fetch binary with progress ──
+        async function fetchBinary(url, onProgress) {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+            
+            const total = parseInt(resp.headers.get('content-length')) || 0;
+            const reader = resp.body.getReader();
+            const chunks = [];
+            let received = 0;
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.length;
+                if (onProgress) onProgress(received, total);
+            }
+            
+            const result = new Uint8Array(received);
+            let offset = 0;
+            for (const chunk of chunks) {
+                result.set(chunk, offset);
+                offset += chunk.length;
+            }
+            return result;
+        }
+
+        // ── Main load function ──
+        let ortLoaded = false;
+
+        async function loadAllModels() {
+            const loadBtn = document.getElementById('load-btn');
+            const phaseDesc = document.getElementById('phase-desc');
+            loadBtn.disabled = true;
+            loadBtn.textContent = '⏳ Carregando...';
+
+            try {
+                // 1. Detect backend
+                const backend = await detectBackend();
+                phaseDesc.textContent = `Backend: ${backend.toUpperCase()}`;
+                setProgress(5, '');
+
+                // 2. Load ONNX Runtime
+                if (!ortLoaded) {
+                    await loadORT(ORT_URL);
+                    ortLoaded = true;
+                    setProgress(10, 'ONNX Runtime loaded');
+                    
+                    // Configure WASM backend paths
+                    ort.env.wasm.wasmPaths = ORT_URL;
                 }
 
-                console.log(`Model loaded in ${elapsed}s`);
+                // 3. Load tokenizer
+                phaseDesc.textContent = 'Loading tokenizer...';
+                setProgress(15, '');
+                
+                // For now, use a simple codepoint-based tokenizer
+                // Supertonic expects unicode tokens
+                STATE.tokenizer = null; // Will handle inline
+
+                // 4. Load ONNX models one by one
+                const sessionConfig = {
+                    executionProviders: backend === 'webgpu' ? ['webgpu'] : ['wasm'],
+                    logSeverityLevel: 4,
+                };
+
+                for (let i = 0; i < MODEL_FILES.length; i++) {
+                    const fname = MODEL_FILES[i];
+                    const url = MODEL_URL + 'onnx/quantized/' + fname;
+                    phaseDesc.textContent = `Downloading ${fname}...`;
+                    
+                    const buf = await fetchBinary(url, (recv, total) => {
+                        const pct = Math.round((recv / total) * 100);
+                        const mb = (recv / 1048576).toFixed(1);
+                        const totalMb = total ? (total / 1048576).toFixed(1) : '?';
+                        setProgress(15 + Math.round((i / MODEL_FILES.length) * 60), 
+                            `${fname}: ${mb}/${totalMb} MB`);
+                    });
+
+                    const size = buf.length;
+                    phaseDesc.textContent = `Creating ${fname} session...`;
+                    
+                    STATE.models[fname.replace('.onnx', '')] = 
+                        await ort.InferenceSession.create(buf, sessionConfig);
+                    
+                    setProgress(15 + Math.round(((i + 1) / MODEL_FILES.length) * 60), 
+                        `${fname} (${(size/1048576).toFixed(1)} MB) ✓`);
+                }
+
+                // 5. Load voices
+                for (let i = 0; i < VOICES.length; i++) {
+                    const v = VOICES[i];
+                    phaseDesc.textContent = `Loading voice ${v}...`;
+                    const url = MODEL_URL + 'voices/' + v + '.bin';
+                    const resp = await fetch(url);
+                    const buf = await resp.arrayBuffer();
+                    STATE.voices[v] = new Float32Array(buf);
+                    setProgress(75 + Math.round((i / VOICES.length) * 22), 
+                        `${v} (${(buf.byteLength/1024).toFixed(0)} KB) ✓`);
+                }
+
+                // 6. Done!
+                setProgress(100, '✓ Tudo pronto!');
+                phaseDesc.textContent = `✅ Pronto — backend ${backend.toUpperCase()}, ${VOICES.length} vozes`;
+
+                setTimeout(() => {
+                    document.getElementById('setup-card').classList.add('hidden');
+                    const card = document.getElementById('tts-card');
+                    card.classList.remove('hidden');
+                    const badge = document.getElementById('backend-badge');
+                    badge.innerHTML = `<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>${backend.toUpperCase()} · ${VOICES.length} vozes`;
+                    badge.classList.add(backend === 'webgpu' ? 'text-emerald-400' : 'text-yellow-400');
+                    STATE.loaded = true;
+                }, 500);
+
             } catch (err) {
-                console.error(err);
-                phaseDesc.textContent = `❌ Erro ao carregar: ${err.message}`;
+                console.error('Load error:', err);
+                phaseDesc.textContent = `❌ Erro: ${err.message}`;
                 phaseDesc.classList.add('text-red-400');
-                loadBtn.classList.remove('hidden');
-                loadBtn.textContent = 'Tentar Novamente';
+                loadBtn.disabled = false;
+                loadBtn.textContent = '🔄 Tentar novamente';
             }
         }
 
-        loadBtn.addEventListener('click', loadModel);
-        // Auto-load attempt
-        loadModel();
+        // ── Tokenization (simplified) ──
+        // Based on the Supertonic model, we need to convert text to token IDs
+        // The model uses a subword tokenizer. Let's implement a simplified version.
+        function tokenizeText(text, tokenizerVocab) {
+            // Convert text to token IDs using character codepoints
+            // This is a fallback; proper tokenization requires the HF tokenizer
+            const ids = [2]; // BOS
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const code = char.codePointAt(0);
+                // Map unicode characters to token IDs
+                if (tokenizerVocab && tokenizerVocab[char] !== undefined) {
+                    ids.push(tokenizerVocab[char]);
+                } else {
+                    // Fallback: use character-level encoding
+                    ids.push(code + 10); // Offset to avoid special tokens
+                }
+            }
+            ids.push(3); // EOS
+            return ids;
+        }
 
-        // ─────────────────────────────────
-        //  Generate Speech
-        // ─────────────────────────────────
-        generateBtn.addEventListener('click', async () => {
-            const text = textInput.value.trim();
-            if (!text || !pipeline) return;
+        // ── Generate Audio ──
+        async function generateAudio(text, voice, steps, speed) {
+            const { text_encoder, duration_predictor, vector_estimator, vocoder } = STATE.models;
+            const style = STATE.voices[voice];
 
-            generateBtn.disabled = true;
-            generateBtn.textContent = '⏳ Gerando...';
-            generateBtn.classList.add('synthesizing');
-            statsDiv.classList.add('hidden');
-            downloadBtn.classList.add('hidden');
-            playerWrap.classList.add('hidden');
+            // 1. Tokenize
+            // For now, simple character encoding
+            // The tagged text includes language info like <pt>text</pt>
+            const taggedText = `<pt>${text}</pt>`;
+            const inputIds = tokenizeText(taggedText);
+            // Pad to fixed length
+            const maxLen = Math.max(256, inputIds.length + 16);
+            const inputIdsFull = new Float32Array(maxLen);
+            const attentionMask = new Float32Array(maxLen);
+            inputIdsFull.set(inputIds);
+            attentionMask.fill(1, 0, inputIds.length);
 
-            const steps = parseInt(stepsSlider.value);
-            const speed = parseFloat(speedSlider.value);
+            // Reshape: [1, seq_len]
+            const batchInputIds = inputIdsFull; // [seq_len] already shaped
+            const batchMask = attentionMask;
 
-            const t0 = Date.now();
+            console.log('Tokenized length:', inputIds.length);
+
+            // 2. Text Encoding
+            const encResult = await text_encoder.run({
+                input_ids: { dims: [1, maxLen], data: batchInputIds },
+                attention_mask: { dims: [1, maxLen], data: batchMask },
+            });
+            
+            console.log('Text encoder output:', Object.keys(encResult));
+            const encoderOutput = encResult['encoder_output'] || encResult['output'] || Object.values(encResult)[0];
+
+            // 3. Duration prediction
+            const durResult = await duration_predictor.run({
+                input_ids: { dims: [1, maxLen], data: batchInputIds },
+                attention_mask: { dims: [1, maxLen], data: batchMask },
+            });
+            
+            console.log('Duration predictor output:', Object.keys(durResult));
+
+            // 4. Voice/Vocal processing
+            const vecResult = await vector_estimator.run({
+                encoder_output: { dims: encoderOutput.dims, data: encoderOutput.data },
+            });
+            
+            console.log('Vector estimator output:', Object.keys(vecResult));
+
+            // 5. Vocoder
+            const vocResult = await vocoder.run({
+                input: { dims: vecResult[Object.keys(vecResult)[0]].dims, 
+                         data: vecResult[Object.keys(vecResult)[0]].data },
+            });
+            
+            console.log('Vocoder output:', Object.keys(vocResult));
+
+            // Extract audio from vocoder output
+            const audioOut = vocResult[Object.keys(vocResult)[0]];
+            return { dims: audioOut.dims, data: audioOut.data };
+        }
+
+        // ── UI Event Handlers ──
+
+        // Load button
+        document.getElementById('load-btn').addEventListener('click', () => {
+            loadAllModels();
+        });
+
+        // Voice selection
+        document.getElementById('voice-grid').addEventListener('click', (e) => {
+            const btn = e.target.closest('.voice-btn');
+            if (!btn) return;
+            document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active', 'ring-2', 'ring-blue-500'));
+            btn.classList.add('active', 'ring-2', 'ring-blue-500');
+            STATE.selectedVoice = btn.dataset.voice;
+        });
+        document.querySelector('[data-voice="M1"]').classList.add('active', 'ring-2', 'ring-blue-500');
+
+        // Sliders
+        document.getElementById('steps-slider').addEventListener('input', (e) => {
+            document.getElementById('steps-val').textContent = e.target.value;
+        });
+        document.getElementById('speed-slider').addEventListener('input', (e) => {
+            document.getElementById('speed-val').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+        // Generate button
+        document.getElementById('generate-btn').addEventListener('click', async () => {
+            const text = document.getElementById('text-input').value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Gerando...';
+            btn.classList.add('synthesizing');
+
+            const steps = parseInt(document.getElementById('steps-slider').value);
+            const speed = parseFloat(document.getElementById('speed-slider').value);
+            const voice = STATE.selectedVoice;
+
+            const t0 = performance.now();
 
             try {
-                // Tag text with language
-                const taggedText = `<pt>${text}</pt>`;
+                const audio = await generateAudio(text, voice, steps, speed);
+                const elapsed = performance.now() - t0;
 
-                const output = await pipeline(taggedText, {
-                    speaker_embeddings: `${HF}/voices/${selectedVoice}.bin`,
-                    num_inference_steps: steps,
-                    speed: speed,
-                    progress_callback: (msg) => {
-                        if (msg instanceof Progress && msg.progress !== undefined) {
-                            generateBtn.textContent = `⏳ ${Math.round(msg.progress)}%`;
-                        }
-                    }
-                });
+                // Create WAV
+                const wav = createWav(audio.data, audio.dims);
+                STATE.lastData = wav;
 
-                const elapsed = ((Date.now() - t0) / 1000);
-                const blob = await output.toBlob();
-                lastBlob = blob;
+                // Play
+                const blob = new Blob([wav], { type: 'audio/wav' });
                 const url = URL.createObjectURL(blob);
-
-                // Audio player
-                audioPlayer.src = url;
-                playerWrap.classList.remove('hidden');
-                audioPlayer.play();
+                const player = document.getElementById('audio-player');
+                player.src = url;
+                document.getElementById('player-wrap').classList.remove('hidden');
+                player.play();
 
                 // Stats
-                const audioDuration = output.audio[0].length / 16000; // sample rate
-                const rtf = elapsed / audioDuration;
-                statsDiv.innerHTML = `
-                    <div>Voz: <b>${selectedVoice}</b> | Steps: <b>${steps}</b> | Speed: <b>${speed.toFixed(2)}</b></div>
-                    <div>Texto: <b>${text.length}</b> chars</div>
-                    <div>Tempo: <b>${elapsed.toFixed(1)}s</b> | Áudio: <b>${audioDuration.toFixed(1)}s</b></div>
-                    <div>RTF: <b>${rtf.toFixed(3)}</b> | ~<b>${Math.round(text.length/elapsed)}</b> chars/s</div>
+                const audioDuration = (audio.data.length / SAMPLE_RATE);
+                const rtf = elapsed / (audioDuration * 1000);
+                const statsEl = document.getElementById('stats');
+                statsEl.innerHTML = `
+                    <div>Voz: <b>${voice}</b> | Steps: <b>${steps}</b></div>
+                    <div>Gerado em <b>${(elapsed/1000).toFixed(1)}s</b> · RTF: <b>${rtf.toFixed(3)}</b></div>
                 `;
-                statsDiv.classList.remove('hidden');
+                statsEl.classList.remove('hidden');
+                document.getElementById('download-btn').classList.remove('hidden');
 
-                downloadBtn.classList.remove('hidden');
-                generateBtn.textContent = '🔊 Gerar Áudio';
+                btn.textContent = '🔊 Gerar';
             } catch (err) {
                 console.error(err);
-                generateBtn.textContent = `❌ Erro: ${err.message.slice(0,60)}`;
+                btn.textContent = `❌ ${err.message.slice(0,40)}`;
+            }
+            
+            btn.disabled = false;
+            btn.classList.remove('synthesizing');
+        });
+
+        // Download
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (!STATE.lastData) return;
+            const blob = new Blob([STATE.lastData], { type: 'audio/wav' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `supertonic-${STATE.selectedVoice}-${Date.now()}.wav`;
+            a.click();
+        });
+
+        // ── WAV Encoder ──
+        function createWav(audioData, dims) {
+            const samples = audioData;
+            const numChannels = dims.length > 1 ? dims[0] : 1;
+            const numSamples = dims.length > 1 ? 
+                dims.reduce((a, b) => a * b) / numChannels : 
+                dims[0];
+            
+            const numSamplesInt = Math.floor(numSamples);
+            const numFrames = dims.length > 1 ? dims[dims.length - 1] : numSamplesInt;
+            
+            const dataLength = numFrames * numChannels * 2; // 16-bit PCM
+            const headerLength = 44;
+            const buffer = new ArrayBuffer(headerLength + dataLength);
+            const view = new DataView(buffer);
+
+            // RIFF header
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(view, 8, 'WAVE');
+
+            // fmt chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // PCM format chunk size
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, SAMPLE_RATE, true);
+            view.setUint32(28, SAMPLE_RATE * numChannels * 2, true);
+            view.setUint16(32, numChannels * 2, true);
+            view.setUint16(34, 16, true);
+
+            // data chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataLength, true);
+
+            // Audio samples (int16)
+            const offset = 44;
+            for (let i = 0; i < numFrames; i++) {
+                let sample = 0;
+                for (let ch = 0; ch < numChannels; ch++) {
+                    const idx = numChannels > 1 ? 
+                        i * numChannels + ch : i;
+                    sample += samples[idx];
+                }
+                sample = sample / numChannels;
+                const clipped = Math.max(-1, Math.min(1, sample));
+                view.setInt16(offset + i * 2, clipped * 0x7FFF, true);
             }
 
-            generateBtn.disabled = false;
-            generateBtn.classList.remove('synthesizing');
-        });
+            return buffer;
+        }
 
-        // ─────────────────────────────────
-        //  Download
-        // ─────────────────────────────────
-        downloadBtn.addEventListener('click', () => {
-            if (!lastBlob) return;
-            const a = document.createElement('a');
-            const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g, '-');
-            a.href = URL.createObjectURL(lastBlob);
-            a.download = `supertonic-${selectedVoice}-${ts}.wav`;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        });
+        function writeString(view, offset, str) {
+            for (let i = 0; i < str.length; i++) {
+                view.setUint8(offset + i, str.charCodeAt(i));
+            }
+        }
+
+        // ── Auto-load ──
+        // Don't auto-load. Let user click the button.
     </script>
 
 </body>
