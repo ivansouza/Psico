@@ -180,97 +180,97 @@
  orbitCircle.rotation.x = Math.PI / 2;
  scene.add(orbitCircle);
 
- const geometry = new THREE.SphereGeometry(data.size, 32, 32);
- const material = new THREE.MeshStandardMaterial({ color: data.color });
- const mesh = new THREE.Mesh(geometry, material);
- mesh.position.x = data.distance;
- scene.add(mesh);
+ const planet = new THREE.Mesh(
+ new THREE.SphereGeometry(data.size, 32, 32),
+ new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.8 })
+ );
+ planet.position.x = data.distance;
+ orbitGroup.add(planet);
 
  if (data.ring) {
- const ringGeo = new THREE.RingGeometry(data.size + 1, data.size + 3, 64);
- const ringMat = new THREE.MeshBasicMaterial({ color: 0xc5ab6e, side: THREE.DoubleSide, opacity: 0.6, transparent: true });
- const ring = new THREE.Mesh(ringGeo, ringMat);
- ring.rotation.x = Math.PI / 2;
- mesh.add(ring);
+ const ring = new THREE.Mesh(
+ new THREE.RingGeometry(data.size + 1, data.size + 3.5, 64),
+ new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
+ );
+ ring.rotation.x = Math.PI / 2.2;
+ planet.add(ring);
  }
 
- planets.push({ mesh, data, angle: Math.random() * Math.PI * 2 });
+ planets.push({ mesh: planet, group: orbitGroup, data: data, angle: Math.random() * Math.PI * 2 });
 
  const card = document.createElement('div');
- card.className = 'planet-card';
- card.innerHTML = `
- <p class="text-yellow-500 font-bold text-sm">${data.name}</p>
- <p class="text-gray-400 text-xs mt-1">Distância: ${data.distance} • Tamanho: ${data.size}</p>
- `;
- card.onclick = () => focusPlanet(index);
+ card.className = 'planet-card text-white text-sm';
+ card.innerHTML = `<strong>${data.name}</strong><br><span class="text-[11px] text-gray-400">Distância: ${data.distance} UA</span>`;
+ card.onclick = () => {
+ focusPlanet(index);
+ toggleDrawer();
+ };
  planetListEl.appendChild(card);
  });
 
- window.addEventListener('touchstart', (e) => {
- if (e.touches.length === 1) {
- window._touchStartX = e.touches[0].clientX;
- window._touchStartY = e.touches[0].clientY;
- } else if (e.touches.length === 2) {
- const dx = e.touches[0].clientX - e.touches[1].clientX;
- const dy = e.touches[0].clientY - e.touches[1].clientY;
- window._touchStartDist = Math.sqrt(dx * dx + dy * dy);
- }
- }, { passive: true });
+ // Lógica de Interação Melhorada (Mouse + Touch com Pinch)
+ let isInteracting = false;
+ let prevPos = { x: 0, y: 0 };
+ let initialPinchDist = 0;
 
- window.addEventListener('touchmove', (e) => {
- if (e.touches.length === 1 && window._touchStartX !== null) {
- const dx = e.touches[0].clientX - window._touchStartX;
- const dy = e.touches[0].clientY - window._touchStartY;
- const cosA = Math.cos(dx * 0.005);
- const sinA = Math.sin(dx * 0.005);
- const cosB = Math.cos(dy * 0.005);
- const sinB = Math.sin(dy * 0.005);
- const pos = camera.position;
- const newX = pos.x * cosA - pos.z * sinA;
- const newZ = pos.x * sinA + pos.z * cosA;
- const newY = pos.y * cosB - newZ * sinB;
- const newZ2 = pos.y * sinB + newZ * cosB;
- camera.position.set(newX, newY, newZ2);
- camera.lookAt(0, 0, 0);
- window._touchStartX = e.touches[0].clientX;
- window._touchStartY = e.touches[0].clientY;
- } else if (e.touches.length === 2 && window._touchStartDist) {
- const dx = e.touches[0].clientX - e.touches[1].clientX;
- const dy = e.touches[0].clientY - e.touches[1].clientY;
- const dist = Math.sqrt(dx * dx + dy * dy);
- const scale = window._touchStartDist / dist;
- camera.position.multiplyScalar(scale);
- camera.lookAt(0, 0, 0);
- window._touchStartDist = dist;
- }
- }, { passive: true });
+ const getDistance = (t1, t2) => {
+ const dx = t1.clientX - t2.clientX;
+ const dy = t1.clientY - t2.clientY;
+ return Math.sqrt(dx * dx + dy * dy);
+ };
 
- window.addEventListener('touchend', () => {
- window._touchStartX = null;
- window._touchStartDist = null;
- });
-
- window.addEventListener('mousedown', (e) => { window._mouseDown = true; window._mouseX = e.clientX; window._mouseY = e.clientY; });
- window.addEventListener('mouseup', () => { window._mouseDown = false; window._mouseX = null; window._mouseY = null; });
- window.addEventListener('mousemove', (e) => {
- if (window._mouseDown) {
- const dx = e.clientX - window._mouseX;
- const dy = e.clientY - window._mouseY;
- const cosA = Math.cos(dx * 0.005);
- const sinA = Math.sin(dx * 0.005);
- const cosB = Math.cos(dy * 0.005);
- const sinB = Math.sin(dy * 0.005);
- const pos = camera.position;
- const newX = pos.x * cosA - pos.z * sinA;
- const newZ = pos.x * sinA + pos.z * cosA;
- const newY = pos.y * cosB - newZ * sinB;
- const newZ2 = pos.y * sinB + newZ * cosB;
- camera.position.set(newX, newY, newZ2);
- camera.lookAt(0, 0, 0);
- window._mouseX = e.clientX;
- window._mouseY = e.clientY;
+ const onStart = (e) => {
+ if (e.target.closest('#drawer') || e.target.closest('.controls') || e.target.closest('#toggle-drawer')) return;
+ 
+ isInteracting = true;
+ if (e.touches && e.touches.length === 2) {
+ initialPinchDist = getDistance(e.touches[0], e.touches[1]);
+ } else {
+ const x = e.touches ? e.touches[0].clientX : e.clientX;
+ const y = e.touches ? e.touches[0].clientY : e.clientY;
+ prevPos = { x, y };
  }
- });
+ };
+
+ const onMove = (e) => {
+ if (!isInteracting) return;
+ e.preventDefault();
+
+ if (e.touches && e.touches.length === 2) {
+ const currentDist = getDistance(e.touches[0], e.touches[1]);
+ const diff = initialPinchDist - currentDist;
+ camera.position.multiplyScalar(1 + diff * 0.005);
+ camera.lookAt(0, 0, 0);
+ initialPinchDist = currentDist;
+ return;
+ }
+
+ const x = e.touches ? e.touches[0].clientX : e.clientX;
+ const y = e.touches ? e.touches[0].clientY : e.clientY;
+ 
+ const deltaX = x - prevPos.x;
+ const deltaY = y - prevPos.y;
+
+ const rotationSpeed = 0.005;
+ camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -deltaX * rotationSpeed);
+ camera.position.y += deltaY * 0.5;
+ camera.lookAt(0, 0, 0);
+
+ prevPos = { x, y };
+ };
+
+ const onEnd = () => {
+ isInteracting = false;
+ initialPinchDist = 0;
+ };
+
+ window.addEventListener('mousedown', onStart);
+ window.addEventListener('mousemove', onMove);
+ window.addEventListener('mouseup', onEnd);
+
+ window.addEventListener('touchstart', onStart, { passive: false });
+ window.addEventListener('touchmove', onMove, { passive: false });
+ window.addEventListener('touchend', onEnd);
 
  window.addEventListener('wheel', (e) => {
  camera.position.multiplyScalar(1 + e.deltaY * 0.001);
