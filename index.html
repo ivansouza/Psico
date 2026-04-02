@@ -55,55 +55,35 @@
             -webkit-backdrop-filter: blur(24px);
         }
 
-        .fab-filter {
-            position: fixed;
-            bottom: 22px;
-            left: 18px;
-            right: auto;
-            z-index: 999;
-            min-width: 62px;
-            height: 62px;
-            padding: 0 18px;
+        .pill-filters {
+            cursor: pointer;
+            height: 40px;
+            padding: 0 14px;
             border-radius: 999px;
-            border: 1px solid rgba(125, 211, 252, 0.65);
-            background: linear-gradient(135deg, #0ea5e9, #6366f1);
-            color: #ffffff;
+            border: 1px solid rgba(56,189,248,0.28);
+            background: rgba(56,189,248,0.08);
+            color: #93c5fd;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-size: 16px;
-            font-weight: 900;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-            cursor: pointer;
-            box-shadow: 0 18px 48px rgba(14,165,233,0.34), 0 14px 36px rgba(0,0,0,0.42);
-            transition: transform .22s ease, box-shadow .22s ease, filter .15s ease;
+            gap: 8px;
+            transition: all .18s ease;
         }
 
-        .fab-filter:hover {
-            transform: translateY(-2px) scale(1.04);
-            filter: brightness(1.06);
-            box-shadow: 0 24px 60px rgba(14,165,233,0.40), 0 18px 42px rgba(0,0,0,0.46);
-        }
-
-        .fab-filter-label {
-            font-size: 11px;
-            line-height: 1;
+        .pill-filters:hover {
+            background: rgba(56,189,248,0.14);
+            border-color: rgba(56,189,248,0.45);
+            color: #dbeafe;
         }
 
         @media (max-width: 640px) {
-            .fab-filter {
-                bottom: 16px;
-                right: 12px;
-                min-width: 56px;
-                height: 56px;
-                padding: 0 16px;
-                font-size: 15px;
-            }
-
-            .fab-filter-label {
-                display: none;
+            .pill-filters {
+                height: 36px;
+                padding: 0 12px;
+                font-size: 10px;
             }
         }
 
@@ -476,8 +456,6 @@
 <body>
     <div class="app-shell">
         <main class="content-area">
-            <button id="filters-open" class="fab-filter" title="Buscar e filtrar"><i class="fas fa-sliders"></i><span class="fab-filter-label">Filtros</span></button>
-
             <section id="filters-shell" class="filters-shell glass hidden-shell">
                 <div class="toolbar-grid">
                     <div class="search-wrap">
@@ -561,6 +539,7 @@
                     </div>
                     <div class="mode-pill">
                         <span id="mode-label" class="font-bold">Produção</span>
+                        <button id="filters-open" class="pill-filters" title="Buscar e filtrar"><i class="fas fa-sliders"></i> Buscar</button>
                     </div>
                 </div>
             </section>
@@ -1024,33 +1003,26 @@
 
             panel.classList.remove('collapsed');
 
-            const placeFab = () => {
-                openBtn.style.position = 'fixed';
-                openBtn.style.left = window.innerWidth <= 640 ? '10px' : '14px';
-                openBtn.style.right = 'auto';
-                openBtn.style.top = window.innerWidth <= 640 ? '10px' : '14px';
-                openBtn.style.bottom = 'auto';
-                openBtn.style.zIndex = '9999';
+            const syncOpenButton = () => {
                 openBtn.style.display = shell.classList.contains('hidden-shell') ? 'inline-flex' : 'none';
             };
 
             const openShell = () => {
                 shell.classList.remove('hidden-shell');
-                placeFab();
+                syncOpenButton();
                 document.getElementById('search-input')?.focus();
             };
 
             const closeShell = () => {
                 shell.classList.add('hidden-shell');
-                placeFab();
+                syncOpenButton();
             };
 
             closeShell();
-            placeFab();
+            syncOpenButton();
 
             openBtn.addEventListener('click', openShell);
             closeBtn.addEventListener('click', closeShell);
-            window.addEventListener('resize', placeFab);
         }
 
         function scrollToSection(id) {
