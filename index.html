@@ -962,6 +962,7 @@
         }
 
         function applyPreset(kind) {
+            if (kind === 'recent' || kind === 'fresh') {
                 activeYear = '2026';
                 activeMonth = 'Todos';
                 activeCategory = 'Todos';
