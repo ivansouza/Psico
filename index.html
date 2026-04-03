@@ -51,8 +51,8 @@
             background: var(--panel);
             border: 1px solid var(--line);
             box-shadow: 0 24px 80px rgba(0,0,0,0.38);
-            /* backdrop-filter: blur(24px); */
-            -webkit-/* backdrop-filter: blur(24px); */
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
         }
 
         .pill-filters {
@@ -88,8 +88,7 @@
         }
 
         .content-area {
-            padding-top: 100px;
-            margin-top: 20px;
+            padding-top: 2px;
         }
 
         .filters-backdrop {
@@ -98,7 +97,7 @@
             background: rgba(2, 6, 23, 0.55);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            opacity: 1;
+            opacity: 0;
             pointer-events: none;
             transition: opacity .28s ease;
             z-index: 70;
@@ -331,7 +330,7 @@
             height: 30px;
             display: grid;
             place-items: center;
-            opacity: 1;
+            opacity: 0;
             pointer-events: none;
         }
 
@@ -497,7 +496,7 @@
             color: var(--muted);
         }
 
-        .sidebar-toggle { display: block; width: 100%; justify-content: center; margin-bottom: 12px; }
+        .sidebar-toggle { display: none; width: 100%; justify-content: center; margin-bottom: 12px; }
 
         @media (max-width: 1180px) {
             .toolbar-grid { grid-template-columns: 1fr; }
@@ -618,7 +617,7 @@
                 <div class="section-head">
                     <div>
                         <div class="eyebrow">Experiments</div>
-                        <h2 style="margin-top: 30px; class="text-2xl md:text-3xl font-black tracking-tight mt-1"><span style="display: block; margin-top: 20px; margin-bottom: 10px;">Galeria curada</span></h2>
+                        <h2 class="text-2xl md:text-3xl font-black tracking-tight mt-1">Galeria curada</h2>
                     </div>
                     <div id="stats" class="text-right text-xs md:text-sm text-slate-400 font-semibold"></div>
                 </div>
