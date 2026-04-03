@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Psico Portfolio — Premium Dashboard</title>
+    <title>Psico Portfolio - Galeria Completa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -39,12 +39,10 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .glass {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            box-shadow: 0 24px 80px rgba(0,0,0,0.38);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+        .filter-btn {
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .filter-btn.active {
@@ -91,469 +89,128 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
             font-weight: 800;
-            font-size: 11px;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all .18s ease;
         }
 
-        .pill-filters:hover {
-            background: rgba(56,189,248,0.14);
-            border-color: rgba(56,189,248,0.45);
-            color: #dbeafe;
-        }
-
-        @media (max-width: 640px) {
-            .pill-filters {
-                height: 36px;
-                padding: 0 12px;
-                font-size: 10px;
-            }
-        }
-
-        .content-area {
-            padding-top: 2px;
-        }
-
-        .filters-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(2, 6, 23, 0.55);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity .28s ease;
-            z-index: 70;
-        }
-
-        .filters-backdrop.open {
-            opacity: 1;
-            pointer-events: auto;
+        .file-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: #64748b;
         }
 
         .filters-shell {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: min(420px, 92vw);
-            height: 100vh;
-            border-radius: 0 28px 28px 0;
-            padding: 18px;
-            overflow-y: auto;
-            margin: 0;
-            transform: translateX(-105%);
-            opacity: 1;
-            transition: transform .32s cubic-bezier(.22,.8,.2,1);
-            z-index: 80;
-            pointer-events: none;
+            background: linear-gradient(180deg, rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.38));
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        .filters-shell.open {
-            transform: translateX(0);
-            pointer-events: auto;
-        }
-
 
         .filters-panel {
-            overflow: visible;
-            transition: none;
-        }
-
-        .filters-panel.collapsed {
-            max-height: none !important;
-            opacity: 1;
-            transform: none;
-            margin-top: 0 !important;
-            pointer-events: auto;
-        }
-
-        .filters-shell::before,
-        .hero::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: linear-gradient(140deg, rgba(56,189,248,0.10), transparent 35%, rgba(139,92,246,0.10));
-        }
-
-        .toolbar, .gallery-card { position: relative; }
-
-        .brand-mark {
-            width: 52px;
-            height: 52px;
-            border-radius: 18px;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(135deg, rgba(56,189,248,0.95), rgba(139,92,246,0.95));
-            color: white;
-            box-shadow: 0 20px 50px rgba(56,189,248,0.24);
-        }
-
-        .eyebrow {
-            font-size: 11px;
-            letter-spacing: .24em;
-            text-transform: uppercase;
-            color: var(--muted);
-            font-weight: 700;
-        }
-
-        .hero {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 40;
-            width: min(1680px, calc(100vw - 24px));
-            border-radius: 28px;
-            padding: 14px 18px;
             overflow: hidden;
-            margin: 0;
+            transition: max-height 0.28s ease, opacity 0.24s ease, transform 0.24s ease, margin-top 0.24s ease;
         }
 
-        .hero-spacer {
-            height: 92px;
-            width: 100%;
-        }
-
-        @media (max-width: 1180px) {
-            .hero {
-                width: calc(100vw - 24px);
-            }
-        }
-
-        @media (max-width: 640px) {
-            .hero {
-                top: 8px;
-                width: calc(100vw - 16px);
-                padding: 12px 14px;
-                left: 8px;
-                transform: translateX(0);
-            }
-
-            .hero-spacer {
-                height: 78px;
-            }
-        }
-
-        .hero-inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .hero-left { min-width: 0; flex: 1 1 0; }
-
-        .hero-title {
-            margin: 6px 0 8px;
-            font-weight: 900;
-            letter-spacing: -.04em;
-            line-height: 1;
-        }
-
-        .hero-title-sm {
-            font-size: clamp(1.25rem, 3.5vw, 2rem);
-        }
-
-        .hero-metrics {
-            display: flex;
-            gap: 20px;
-            align-items: baseline;
-            margin-top: 10px;
-        }
-
-        .hero-metric-value {
-            font-size: 1.5rem;
-            font-weight: 900;
-            letter-spacing: -.03em;
-        }
-
-        .hero-metric-label {
-            font-size: 10px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .18em;
-        }
-
-        .mode-pill {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px 8px 14px;
-            border-radius: 999px;
-            background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.08);
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--muted);
-            white-space: nowrap;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #fff 0%, #9bdcff 35%, #c4b5fd 70%, #fff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-
-
-
-
-        .toolbar {
-            margin-top: 12px;
-            border-radius: 24px;
-            padding: 12px;
-        }
-
-        .toolbar-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .search-wrap { position: relative; }
-        .search-wrap i {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #55627f;
-            font-size: 13px;
-        }
-
-        .search-input {
-            width: 100%;
-            height: 54px;
-            border-radius: 18px;
-            border: 1px solid rgba(255,255,255,0.06);
-            background: rgba(255,255,255,0.04);
-            color: white;
-            padding: 0 48px 0 42px;
-            outline: none;
-            transition: .2s ease;
-        }
-        .search-input:focus { border-color: rgba(56,189,248,0.48); box-shadow: 0 0 0 4px rgba(56,189,248,0.08); }
-
-        .clear-btn, .action-btn, .sidebar-toggle {
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.04);
-            color: var(--text);
-            border-radius: 18px;
-            transition: .22s ease;
-        }
-
-        .clear-btn {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
+        .filters-panel.mobile-collapsed {
+            max-height: 0 !important;
             opacity: 0;
+            transform: translateY(-8px);
+            margin-top: 0 !important;
             pointer-events: none;
         }
 
-        .action-btn, .sidebar-toggle {
-            height: 54px;
-            padding: 0 18px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
+        .toolbar-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.2s ease;
         }
 
-        .action-btn:hover, .sidebar-toggle:hover, .filter-btn:hover, .quick-chip:hover {
-            transform: translateY(-1px);
-            border-color: rgba(56,189,248,0.28);
-            box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+        .toolbar-btn:hover,
+        .toolbar-btn.active {
+            border-color: rgba(56, 189, 248, 0.45);
+            color: #fff;
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.18);
         }
-
-        .action-btn.active {
-            background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(251,191,36,.12));
-            border-color: rgba(245,158,11,.42);
-            color: #fde68a;
-        }
-
-        .side-section + .side-section { margin-top: 14px; }
-
-        .side-box {
-            padding: 12px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.035);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .filter-stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-
-        .filter-btn, .quick-chip {
-            cursor: pointer;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.07);
-            background: rgba(255,255,255,0.03);
-            color: #c8d5e8;
-            padding: 9px 12px;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            transition: .2s ease;
-            white-space: nowrap;
-        }
-
-        .filter-btn.active {
-            background: linear-gradient(135deg, rgba(56,189,248,.22), rgba(139,92,246,.18));
-            border-color: rgba(56,189,248,.38);
-            color: white;
-            box-shadow: 0 10px 30px rgba(56,189,248,.16);
-        }
-
-        .quick-chip { padding: 10px 14px; }
-
-        .content-area { min-width: 0; }
-        .active-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; }
 
         .active-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: rgba(56,189,248,.10);
-            border: 1px solid rgba(56,189,248,.18);
-            color: #dff5ff;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: .14em;
-            text-transform: uppercase;
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            background: rgba(14, 165, 233, 0.08);
+            color: #cbd5e1;
         }
 
-        .section-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            margin: 16px 0 14px;
+        @media (max-width: 767px) {
+            .mobile-filter-scroll {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+
+            .mobile-filter-scroll::-webkit-scrollbar {
+                display: none;
+            }
         }
 
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .gallery-card {
-            border-radius: 28px;
-            padding: 18px;
-            min-height: 255px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow: hidden;
-            background:
-                linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025)),
-                radial-gradient(circle at top right, rgba(56,189,248,.12), transparent 35%);
-            border: 1px solid rgba(255,255,255,.07);
-            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-        }
-
-        .gallery-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(56,189,248,.34);
-            box-shadow: 0 24px 50px rgba(0,0,0,.32);
-        }
-
-        .gallery-card.dev-card {
-            background:
-                linear-gradient(180deg, rgba(245,158,11,.08), rgba(255,255,255,.03)),
-                radial-gradient(circle at top right, rgba(245,158,11,.14), transparent 34%);
-            border-color: rgba(245,158,11,.22);
-        }
-
-        .card-top { display: flex; justify-content: space-between; gap: 12px; align-items: start; margin-bottom: 16px; }
-        .category-dot { width: 11px; height: 11px; border-radius: 999px; box-shadow: 0 0 20px currentColor; }
-        .card-title { font-size: 1.16rem; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 10px 0 10px; }
-        .card-desc { color: #94a3b8; font-size: 13px; line-height: 1.55; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .card-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-        .tag { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-
-        .card-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 20px; }
-        .primary-link, .secondary-link {
-            min-height: 46px;
-            border-radius: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-            font-weight: 800;
-            transition: .2s ease;
-        }
-
-        .primary-link {
-            background: linear-gradient(135deg, #38bdf8, #6366f1);
-            color: white;
-            box-shadow: 0 18px 34px rgba(56,189,248,.22);
-        }
-        .secondary-link {
-            border: 1px solid rgba(255,255,255,.08);
-            color: #d9e5f9;
-            background: rgba(255,255,255,.03);
-            padding: 0 14px;
-        }
-
-        .empty-state {
-            padding: 36px 22px;
-            border-radius: 28px;
-            border: 1px dashed rgba(255,255,255,.12);
-            background: rgba(255,255,255,.025);
-            text-align: center;
-            color: var(--muted);
-        }
-
-        .sidebar-toggle { display: none; width: 100%; justify-content: center; margin-bottom: 12px; }
-
-        @media (max-width: 1180px) {
-            .toolbar-grid { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 900px) {
-            .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-
-        @media (max-width: 640px) {
-            .app-shell { width: min(100vw - 16px, 1680px); margin: 8px auto; gap: 12px; }
-            .hero, .toolbar { border-radius: 22px; padding: 14px 12px; }
-            .gallery { grid-template-columns: 1fr; gap: 12px; }
-            .gallery-card { border-radius: 24px; min-height: 230px; padding: 16px; }
-            .hero-title-sm { font-size: 1.35rem; }
-            .mode-pill { font-size: 10px; padding: 6px 12px; }
-            .hero-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
     </style>
 </head>
 <body class="min-h-screen selection:bg-sky-500/30">
 
-    
-<header style="display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <img src="psico-logo-final.png" alt="Psico Logo" style="height: 50px; width: auto; filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.6)); transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-        <h1 style="margin: 0; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; font-weight: 300; letter-spacing: 2px;">PSICO</h1>
-    </div>
-</header>
+    <header class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 p-3 md:p-4 mb-5 md:mb-8">
+        <div class="max-w-[1600px] mx-auto flex flex-col gap-3 md:gap-4">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 shrink-0 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+                        <i class="fas fa-brain text-white text-xl"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h1 class="text-xl md:text-2xl font-black gradient-text tracking-tighter uppercase leading-none">Psico Portfolio</h1>
+                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-[0.22em] mt-1 truncate">Ivan Souza • Laboratório de Código • <span id="cards-total">0</span> cards</p>
+                    </div>
+                </div>
 
+                <button id="filters-toggle" type="button" class="toolbar-btn md:hidden shrink-0 px-3 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300 flex items-center gap-2">
+                    <i class="fas fa-sliders"></i>
+                    <span>Filtros</span>
+                </button>
+            </div>
+
+            <div class="filters-shell rounded-[1.5rem] p-3 md:p-4">
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col md:flex-row gap-2 md:gap-3 md:items-center">
+                        <div class="relative flex-1">
+                            <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                            <input id="search-input" type="text" placeholder="Buscar experimento..." class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition" />
+                            <button id="clear-search" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-lg leading-none transition-opacity opacity-0 pointer-events-none">&times;</button>
+                        </div>
+
+                        <div class="flex items-center gap-2 overflow-x-auto">
+                            <button onclick="toggleMockCards(this)" class="mock-btn whitespace-nowrap px-4 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                                <i class="fas fa-flask"></i> Mock <span id="mock-count" class="ml-1 opacity-50">(0)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="active-filters" class="flex flex-wrap gap-2"></div>
+
+                    <div id="filters-panel" class="filters-panel mobile-collapsed md:!max-h-none md:!opacity-100 md:!transform-none md:mt-0 mt-1 flex flex-col gap-3">
+                        <div>
+                            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] mb-2">Categorias</div>
+                            <div class="mobile-filter-scroll gap-1.5 md:flex md:flex-wrap md:justify-start" id="filters-cat"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_1fr] gap-3 md:gap-4 md:items-center pt-1 border-t border-white/5">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em]">Ano</span>
+                            <div class="mobile-filter-scroll gap-1.5" id="filters-year"></div>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em]">Mês</span>
+                            <div class="mobile-filter-scroll gap-1.5 md:flex md:flex-wrap" id="filters-month"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
 
     <main class="max-w-[1600px] mx-auto px-6 pb-32">
         <div id="stats" class="mb-6 text-slate-500 text-[10px] font-bold uppercase tracking-widest"></div>
@@ -576,16 +233,17 @@
         const baseUrl = `https://${username}.github.io/${repo}`;
         const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
 
+        // Estado dos filtros
         let activeCategory = "Todos";
         let activeMonth = "Todos";
         let activeYear = "Todos";
         let searchQuery = "";
         let showMockCards = false;
 
+        // Mapeamento de meses
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
         let experiments = [
-
             { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
             { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
             { name: "Sacred Dodecahedron", file: "Sacred-Dodecahedron.html", cat: "Geometria", date: "19/12/2025", desc: "Geometria sagrada baseada no dodecaedro." },
@@ -640,93 +298,356 @@
             { name: "Bubble Display 1", file: "bubble-display.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v1." },
             { name: "Bubble Display 2", file: "bubble-display2.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v2." },
             { name: "Bubble Display 3", file: "bubble-display3.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v3." },
+            { name: "C Experiment", file: "c.html", cat: "Geometria", date: "19/12/2025", desc: "Experimento geométrico minimalista." },
+            { name: "Cabo de Guerra", file: "cabodeguerra.html", cat: "Física", date: "11/02/2026", desc: "Simulação de forças em cabo de guerra." },
+            { name: "Cat Art", file: "cat-art.html", cat: "Arte", date: "12/12/2025", desc: "Arte generativa temática." },
+            { name: "Chat LFM", file: "chat-lfm.html", cat: "IA", date: "29/01/2026", desc: "Interface de chat LFM." },
+            { name: "Chat Qwen", file: "chat-qwen.html", cat: "IA", date: "29/01/2026", desc: "Chat com modelo Qwen." },
+            { name: "Chat Qwen 0.5B", file: "chat-qwen05b.html", cat: "IA", date: "29/01/2026", desc: "Chat Qwen modelo compacto." },
+            { name: "AI Explorer v4", file: "ai-explorer-v4.html", cat: "IA", date: "30/03/2026", desc: "Chat local no navegador com WebGPU/WASM e interface no estilo visual atual do portfólio." },
+            { name: "Color Lab", file: "color-lab.html", cat: "Util", date: "26/01/2026", desc: "Laboratório de cores interativo." },
+            { name: "Calculadora Científica", file: "calculadora.html", cat: "Util", date: "09/03/2026", desc: "Calculadora científica responsiva com visual clássico." },
+            { name: "Calculadora Científica Pro", file: "calc.html", cat: "Util", date: "10/03/2026", desc: "Versão avançada com funções trigonométricas, memória e expoentes." },
+            { name: "Phonebook CRUD", file: "phonebook-crud.html", cat: "Util", date: "10/03/2026", desc: "Agenda telefônica com cadastro, edição e busca em tempo real." },
+            { name: "Agenda CRUD Simples", file: "testecrud.html", cat: "Util", date: "19/03/2026", desc: "CRUD básico para contatos com layout clean e responsivo." },
+            { name: "Cube Wheel EN", file: "cube-wheel.html", cat: "Geometria", date: "08/01/2026", desc: "Cubo em roda (EN)." },
+            { name: "Cubo Roda PT", file: "cubo-roda.html", cat: "Geometria", date: "08/01/2026", desc: "Cubo em roda (PT)." },
+            { name: "Curlycue", file: "curlycue.html", cat: "Matemática", date: "02/12/2025", desc: "Espirais matemáticas complexas." },
+            { name: "Dices 3D", file: "dices.html", cat: "Animação", date: "07/02/2026", desc: "Dados tridimensionais." },
+            { name: "Diminuir Regra", file: "diminuir-regra.html", cat: "Util", date: "03/01/2026", desc: "Utilidade de diminuição com regras." },
+            { name: "Diminuir", file: "diminuir.html", cat: "Util", date: "03/01/2026", desc: "Ferramenta de redução." },
+            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", date: "19/12/2025", desc: "Recursão em dodecaedro." },
+            { name: "Droplets", file: "droplets.html", cat: "Física", date: "09/01/2026", desc: "Simulação de gotas de água." },
+            { name: "Shader Editor", file: "edshader.html", cat: "Shaders", date: "22/01/2026", desc: "Editor de shaders base." },
+            { name: "Elipse Jardim", file: "elipse-jardim.html", cat: "Matemática", date: "08/01/2026", desc: "Jardim de elipses geométricas." },
+            { name: "Engs3", file: "engs3.html", cat: "Engenharia", date: "19/12/2025", desc: "Simulação de engenharia v3." },
+            { name: "Eraser 40", file: "eraser-40.html", cat: "Eraser", date: "02/12/2025", desc: "Revelação por apagamento v40." },
+            { name: "Eraser 41", file: "eraser-41.html", cat: "Eraser", date: "02/12/2025", desc: "Revelação por apagamento v41." },
+            { name: "Eraser 5", file: "eraser-5.html", cat: "Eraser", date: "02/11/2025", desc: "Revelação por apagamento v5." },
+            { name: "Eraser v3", file: "eraser-v3.html", cat: "Eraser", date: "02/11/2025", desc: "Motor de interação v3." },
+            { name: "Eraser v5", file: "eraser-v5.html", cat: "Eraser", date: "02/11/2025", desc: "Motor de interação v5." },
+            { name: "Eraser Base", file: "eraser.html", cat: "Eraser", date: "02/11/2025", desc: "Motor eraser original." },
+            { name: "Escher 3D", file: "escher-3d.html", cat: "Arte", date: "15/01/2026", desc: "Arte impossível inspirada em Escher." },
+            { name: "Fatos de Gatos", file: "fatosdegatos.html", cat: "Util", date: "07/02/2026", desc: "Fatos curiosos sobre gatos." },
+            { name: "Feliz 2026", file: "feliz2026.html", cat: "Especial", date: "31/12/2025", desc: "Celebração de ano novo." },
+            { name: "Natal 3D", file: "feliznatal3d.html", cat: "Especial", date: "19/12/2025", desc: "Cartão de Natal v1." },
+            { name: "Natal 3D v2", file: "feliznatal3d2.html", cat: "Especial", date: "19/12/2025", desc: "Cartão de Natal v2." },
+            { name: "Fibonacci Sopa", file: "fibonacci-sopa.html", cat: "Matemática", date: "29/12/2025", desc: "Sequência de Fibonacci em fluxo." },
+            { name: "Fibonacci Stew", file: "fibonacci-stew.html", cat: "Matemática", date: "29/12/2025", desc: "Variante fluida Fibonacci." },
+            { name: "Fourier Machine", file: "fourier-machine.html", cat: "Física", date: "19/12/2025", desc: "Síntese harmónica de Fourier." },
+            { name: "Frases Famosas", file: "frases-famosas.html", cat: "Util", date: "11/02/2026", desc: "Citações de pessoas famosas." },
+            { name: "Gauss Mod EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", date: "19/12/2025", desc: "Oscilações gaussianas (EN)." },
+            { name: "Gauss Mod PT", file: "gaussian-modulated-oscillation-pt.html", cat: "Física", date: "19/12/2025", desc: "Oscilações gaussianas (PT)." },
+            { name: "Gaussian Waves", file: "gaussian-waves.html", cat: "Física", date: "16/01/2026", desc: "Ondas gaussianas animadas." },
+            { name: "Geocíclico", file: "geociclico.html", cat: "Geometria", date: "01/01/2026", desc: "Padrões circulares repetitivos." },
+            { name: "Geo Procedural", file: "geo-procedural.html", cat: "Geometria", date: "15/01/2026", desc: "Geometria procedural generativa." },
+            { name: "Geo Desafio", file: "geo-desafio.html", cat: "Geometria", date: "08/03/2026", desc: "Desafio interativo de ângulos com pontuação e histórico." },
+            { name: "GLSL Shader 1", file: "glsl-1.html", cat: "Shaders", date: "02/12/2025", desc: "Shader procedural 1." },
+            { name: "GLSL Shader 2", file: "glsl-2.html", cat: "Shaders", date: "02/12/2025", desc: "Shader procedural 2." },
+            { name: "Gravity", file: "gravity.html", cat: "Física", date: "31/12/2025", desc: "Campos gravitacionais dinâmicos." },
+            { name: "Gravity EN", file: "gravity-en.html", cat: "Física", date: "08/02/2026", desc: "Campos gravitacionais (EN)." },
+            { name: "Grok", file: "grok.html", cat: "IA", date: "02/12/2025", desc: "Reconhecimento visual v1." },
+            { name: "Grok 2", file: "grok2.html", cat: "IA", date: "02/12/2025", desc: "Reconhecimento visual v2." },
+            { name: "Hand Control", file: "handcontrol.html", cat: "Interação", date: "02/11/2025", desc: "Controlo manual." },
+            { name: "Harshad Numbers", file: "harshad.html", cat: "Matemática", date: "08/02/2026", desc: "Números de Harshad." },
+            { name: "Hypnotic Waves EN", file: "hypnoticwaves3d-en.html", cat: "Arte", date: "12/12/2025", desc: "Ondas hipnóticas 3D (EN)." },
+            { name: "Hypnotic Waves PT", file: "hypnoticwaves3d.html", cat: "Arte", date: "12/12/2025", desc: "Ondas hipnóticas 3D (PT)." },
+            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "Geometria", date: "12/12/2025", desc: "Subdivisão icosaédrica." },
+            { name: "Ivan Perfil", file: "ivan.html", cat: "Util", date: "01/01/2025", desc: "Dados do autor." },
+            { name: "Térmico 1", file: "jobs-termico.html", cat: "Engenharia", date: "19/12/2025", desc: "Dissipação de calor v1." },
+            { name: "Térmico 2", file: "jobs-termico2.html", cat: "Engenharia", date: "19/12/2025", desc: "Dissipação de calor v2." },
+            { name: "Térmico 3", file: "jobs-termico3.html", cat: "Engenharia", date: "19/12/2025", desc: "Dissipação de calor v3." },
+            { name: "Jobs Dia", file: "jobsdia.html", cat: "Engenharia", date: "19/12/2025", desc: "Carga térmica diária." },
+            { name: "Joy Division", file: "joy.html", cat: "Arte", date: "12/12/2025", desc: "Visual inspirado em rádio." },
+            { name: "Julia Set", file: "julia.html", cat: "Fractal", date: "02/12/2025", desc: "Conjunto Julia." },
+            { name: "Kaleidoscope", file: "kaleidoscope.html", cat: "Arte", date: "02/12/2025", desc: "Simetrias dinâmicas." },
+            { name: "Kaprekar Routine EN", file: "kaprekar-e.html", cat: "Matemática", date: "08/02/2026", desc: "Rotina de Kaprekar (EN)." },
+            { name: "Kaprekar Routine PT", file: "kaprekar.html", cat: "Matemática", date: "08/02/2026", desc: "Rotina de Kaprekar (PT)." },
+            { name: "Energy KE", file: "ke.html", cat: "Física", date: "26/12/2025", desc: "Energia cinética." },
+            { name: "Landscapes", file: "landscapes.html", cat: "Arte", date: "20/01/2026", desc: "Paisagens procedurais." },
+            { name: "Montanhas", file: "montanhas.html", cat: "Arte", date: "28/02/2026", desc: "Variação da paisagem para testes." },
+            { name: "Montanhas 2", file: "montanhas2.html", cat: "Arte", date: "28/02/2026", desc: "Versão com céu dinâmico e estrelas noturnas." },
+            { name: "Lenticular", file: "lenticular.html", cat: "Efeitos", date: "02/12/2025", desc: "Profundidade v1." },
+            { name: "Lenticular 2", file: "lenticular2.html", cat: "Efeitos", date: "02/12/2025", desc: "Profundidade v2." },
+            { name: "Game of Life 1", file: "life.html", cat: "Animação", date: "01/01/2025", desc: "Conway v1." },
+            { name: "Game of Life 2", file: "life2.html", cat: "Animação", date: "01/01/2025", desc: "Conway v2." },
+            { name: "Game of Life 3", file: "life3.html", cat: "Animação", date: "01/01/2025", desc: "Conway v3." },
+            { name: "Limpeza", file: "limpeza.html", cat: "Util", date: "09/01/2026", desc: "Utilidade de limpeza." },
+            { name: "Lissajous 1", file: "lissajous.html", cat: "Matemática", date: "19/12/2025", desc: "Harmónicas v1." },
+            { name: "Lissajous 2", file: "lissajous2.html", cat: "Matemática", date: "19/12/2025", desc: "Harmónicas v2." },
+            { name: "Lissajous 3", file: "lissajous3.html", cat: "Matemática", date: "28/12/2025", desc: "Harmónicas v3." },
+            { name: "Lissajous 4", file: "lissajous4.html", cat: "Matemática", date: "28/12/2025", desc: "Harmónicas v4." },
+            { name: "Logo SEABI", file: "logo-SEABI.html", cat: "Logo", date: "19/12/2025", desc: "Identidade SEABI." },
+            { name: "Logo v1", file: "logo.html", cat: "Logo", date: "19/12/2025", desc: "Logo Psico v1." },
+            { name: "Logo v2", file: "logo2.html", cat: "Logo", date: "19/12/2025", desc: "Logo Psico v2." },
+            { name: "Logo v3", file: "logo3.html", cat: "Logo", date: "19/12/2025", desc: "Logo Psico v3." },
+            { name: "Lorenz EN", file: "lorenz-en.html", cat: "Física", date: "26/12/2025", desc: "Lorenz (EN)." },
+            { name: "Lorenz PT", file: "lorenz.html", cat: "Física", date: "26/12/2025", desc: "Lorenz (PT)." },
+            { name: "Mandelbrot", file: "mandelbrot.html", cat: "Fractal", date: "02/12/2025", desc: "Explorador Mandelbrot." },
+            { name: "Map2Poster", file: "map2poster.html", cat: "Mapas", date: "01/03/2026", desc: "Gerador de pôster de mapa (HTML único)." },
+            { name: "Fourier Machine PT", file: "maquina-de-Fourier.html", cat: "Física", date: "19/12/2025", desc: "Síntese harmónica." },
+            { name: "Matemágica", file: "matemagica.html", cat: "Matemática", date: "05/01/2026", desc: "Truques matemáticos interativos." },
+            { name: "Potências t^t", file: "potencias-ttx.html", cat: "Matemática", date: "01/03/2026", desc: "Analisador da equação t^t = x com Newton-Raphson." },
+            { name: "Mandelbrot Motor", file: "mb1.html", cat: "Fractal", date: "02/12/2025", desc: "Motor leve." },
+            { name: "Mobius Strip", file: "mobius.html", cat: "Geometria", date: "02/12/2025", desc: "Möbius 3D." },
+            { name: "Möbius Trip EN", file: "mobius-trip-en.html", cat: "Geometria", date: "21/01/2026", desc: "Viagem Möbius (EN)." },
+            { name: "Möbius Trip PT", file: "mobius-trip-pt.html", cat: "Geometria", date: "21/01/2026", desc: "Viagem Möbius (PT)." },
+            { name: "Moiré Lab", file: "moirelab.html", cat: "Efeitos", date: "04/02/2026", desc: "Laboratório de padrões Moiré." },
+            { name: "Molas Cinético", file: "molas-cinetico.html", cat: "Física", date: "07/01/2026", desc: "Sistema de molas cinéticas." },
+            { name: "Nebulabrot", file: "nebulabrot.html", cat: "Fractal", date: "15/01/2026", desc: "Fractal Nebulabrot." },
+            { name: "Nexus 3D", file: "nexus3d.html", cat: "Geometria", date: "01/01/2026", desc: "Rede 3D." },
+            { name: "Nó Toral", file: "no-toral.html", cat: "Geometria", date: "08/01/2026", desc: "Nós torais topológicos." },
+            { name: "Orbiter 3D", file: "orbiter-3d.html", cat: "Física", date: "13/01/2026", desc: "Órbitas tridimensionais." },
+            { name: "Organic Flow", file: "organic.html", cat: "Arte", date: "28/12/2025", desc: "Fluxo orgânico." },
+            { name: "Pêndulos", file: "pendulums.html", cat: "Física", date: "20/01/2026", desc: "Simulação de pêndulos." },
+            { name: "Pi Rods", file: "pi-rods.html", cat: "Matemática", date: "06/01/2026", desc: "Varetas de Pi 2D." },
+            { name: "Pi Rods 3D v1", file: "pi-rods3d.html", cat: "Matemática", date: "06/01/2026", desc: "Varetas de Pi 3D v1." },
+            { name: "Pi Rods 3D v2", file: "pi-rods3d2.html", cat: "Matemática", date: "06/01/2026", desc: "Varetas de Pi 3D v2." },
+            { name: "Player Base", file: "player.html", cat: "Util", date: "02/11/2025", desc: "Media player." },
+            { name: "Player IT", file: "playerIT.html", cat: "Util", date: "02/11/2025", desc: "Player técnico." },
+            { name: "Player YouTube", file: "playerYT.html", cat: "Util", date: "02/11/2025", desc: "Player YT." },
+            { name: "Prime Tree", file: "prime-tree.html", cat: "Matemática", date: "11/01/2026", desc: "Árvore de números primos." },
+            { name: "Perfil Usuário Mapa", file: "perfil-usuario-mapa.html", cat: "Dashboard", date: "02/03/2026", desc: "Dashboard com mapa usando dados de perfil do usuário." },
+            { name: "Pulley Simulator", file: "pulley-simulator.html", cat: "Física", date: "12/01/2026", desc: "Simulador de roldanas (EN)." },
+            { name: "Punchcard", file: "punchcard.html", cat: "Arte", date: "05/01/2026", desc: "Cartões perfurados vintage." },
+            { name: "Textstring Pro", file: "textstring-pro.html", cat: "Interativo", date: "31/03/2026", desc: "Partículas de texto interativas com dispersão e agrupamento." },
+            { name: "Rede Neural", file: "redeneural.html", cat: "IA", date: "02/11/2025", desc: "Sinapses neurais." },
+            { name: "Resistor Colors", file: "resistor-colors.html", cat: "Engenharia", date: "28/02/2026", desc: "Calculadora visual de cores de resistores (4/5 bandas)." },
+            { name: "Ressonador", file: "ressonador.html", cat: "Física", date: "07/01/2026", desc: "Ressonância harmónica." },
+            { name: "Riemann Sphere", file: "riemann.html", cat: "Matemática", date: "15/01/2026", desc: "Esfera de Riemann." },
+            { name: "Roldanas PT", file: "roldanas-pt.html", cat: "Física", date: "12/01/2026", desc: "Simulador de roldanas (PT)." },
+            { name: "Rose Collatz", file: "rose-collatz.html", cat: "Matemática", date: "13/01/2026", desc: "Conjectura de Collatz em rosa." },
+            { name: "Samambaia Fern", file: "samambaia.html", cat: "Fractal", date: "02/12/2025", desc: "Barnsley Fern." },
+            { name: "SDF Shapes", file: "sdf.html", cat: "Geometria", date: "19/01/2026", desc: "Formas com Signed Distance Functions." },
+            { name: "Shader Art 1", file: "shader-art.html", cat: "Shaders", date: "15/01/2026", desc: "Arte shader v1." },
+            { name: "Shader Art 2", file: "shader-art2.html", cat: "Shaders", date: "15/01/2026", desc: "Arte shader v2." },
+            { name: "Shader Art 3", file: "shader-art3.html", cat: "Shaders", date: "15/01/2026", desc: "Arte shader v3." },
+            { name: "Shader Editor 1", file: "shader-editor.html", cat: "Shaders", date: "21/01/2026", desc: "Editor shader v1." },
+            { name: "Shader Editor 2", file: "shader-editor2.html", cat: "Shaders", date: "22/01/2026", desc: "Editor shader v2." },
+            { name: "Shader Editor 3", file: "shader-editor3.html", cat: "Shaders", date: "22/01/2026", desc: "Editor shader v3." },
+            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", date: "12/12/2025", desc: "Neve interativa." },
+            { name: "SP Particle 1", file: "sp1.html", cat: "Física", date: "02/12/2025", desc: "Partículas v1." },
+            { name: "SP Particle 2", file: "sp2.html", cat: "Física", date: "02/12/2025", desc: "Partículas v2." },
+            { name: "Sphere 1", file: "sphere.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v1." },
+            { name: "Sphere 2", file: "sphere2.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v2." },
+            { name: "Sphere 3", file: "sphere3.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v3." },
+            { name: "Sphere 4", file: "sphere4.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera v4." },
+            { name: "Spiral 2D-3D", file: "spiral-2d-3d.html", cat: "Geometria", date: "13/01/2026", desc: "Espirais bidimensionais e tridimensionais." },
+            { name: "Spirograph 3D EN", file: "spiro-3d-en.html", cat: "Geometria", date: "03/01/2026", desc: "Espirógrafo 3D (EN)." },
+            { name: "Espirógrafo PT", file: "spiro-pt.html", cat: "Geometria", date: "03/01/2026", desc: "Espirógrafo (PT)." },
+            { name: "Springs & Balls", file: "springs-and-balls.html", cat: "Física", date: "07/01/2026", desc: "Molas e bolas físicas." },
+            { name: "Stereo Visual", file: "stereo.html", cat: "Efeitos", date: "02/12/2025", desc: "Visualização estéreo." },
+            { name: "Stereogram", file: "stereogram.html", cat: "Efeitos", date: "02/12/2025", desc: "Estereogramas." },
+            { name: "Tesseract 4D", file: "tesseract4d.html", cat: "Geometria", date: "26/12/2025", desc: "Hipercubo 4D." },
+            { name: "Teste Sandbox 1", file: "teste1.html", cat: "Util", date: "01/01/2025", desc: "Sandbox v1." },
+            { name: "Teste Sandbox 2", file: "teste2.html", cat: "Util", date: "01/01/2025", desc: "Sandbox v2." },
+            { name: "They Do It 1", file: "they-do-It.html", cat: "IA", date: "02/12/2025", desc: "Emergência v1." },
+            { name: "They Do It 2", file: "theydoit.html", cat: "IA", date: "02/12/2025", desc: "Emergência v2." },
+            { name: "Timer EN", file: "timer-en.html", cat: "Util", date: "09/01/2026", desc: "Temporizador (EN)." },
+            { name: "Timer PT", file: "timer-pt.html", cat: "Util", date: "09/01/2026", desc: "Temporizador (PT)." },
+            { name: "Torus v1", file: "torus.html", cat: "Geometria", date: "19/12/2025", desc: "Torus v1." },
+            { name: "Torus v2", file: "torus2.html", cat: "Geometria", date: "19/12/2025", desc: "Torus v2." },
+            { name: "Troxler Effect", file: "troxler.html", cat: "Efeitos", date: "22/01/2026", desc: "Efeito Troxler de desvanecimento." },
+            { name: "TTS GPU", file: "tts-webgpu.html", cat: "Util", date: "26/12/2025", desc: "Voz WebGPU." },
+            { name: "Edge TTS Voices Lab", file: "edge-tts-voices.html", cat: "Util", date: "31/03/2026", desc: "Laboratório focado em vozes pt-BR do navegador, destacando vozes Microsoft Edge e neurais quando disponíveis.", dev: true },
+            { name: "Vibevoice WebGPU", file: "vibevoice-webgpu.html", cat: "Áudio", date: "01/04/2026", desc: "Laboratório de vozes com processamento WebGPU.", dev: true },
+            { name: "Tunnel 1", file: "tunnel.html", cat: "Arte", date: "26/12/2025", desc: "Túnel v1." },
+            { name: "Tunnel 2", file: "tunnel2.html", cat: "Arte", date: "26/12/2025", desc: "Túnel v2." },
+            { name: "Viviani Curve EN", file: "viviani-en.html", cat: "Geometria", date: "20/01/2026", desc: "Curva de Viviani (EN)." },
+            { name: "Viviani Curve PT", file: "viviani-pt.html", cat: "Geometria", date: "20/01/2026", desc: "Curva de Viviani (PT)." },
+            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", date: "19/12/2025", desc: "Vortex." },
+            { name: "Vortex Symphony 1", file: "vortex-symphony.html", cat: "Arte", date: "11/01/2026", desc: "Sinfonia de vórtices v1." },
+            { name: "Vortex Symphony 2", file: "vortex-symphony2.html", cat: "Arte", date: "11/01/2026", desc: "Sinfonia de vórtices v2." },
+            { name: "Vórtice Sagrado", file: "vortice-sagrado.html", cat: "Arte", date: "11/01/2026", desc: "Vórtice de geometria sagrada." },
+            { name: "VR Experience 1", file: "vr.html", cat: "Interação", date: "07/01/2026", desc: "Experiência VR v1." },
+            { name: "VR Experience 2", file: "vr2.html", cat: "Interação", date: "07/01/2026", desc: "Experiência VR v2." },
+            { name: "Waterfall", file: "waterfall.html", cat: "Animação", date: "19/12/2025", desc: "Waterfall." },
+            { name: "Zen Spinner", file: "zen-spinner.html", cat: "Arte", date: "12/01/2026", desc: "Spinner zen relaxante." },
+            { name: "Zen Garden", file: "zen.html", cat: "Arte", date: "24/01/2026", desc: "Jardim zen interativo." },
+            { name: "Brasil", file: "Brasil.html", cat: "Geometria", date: "24/02/2026", desc: "Visualização temática do Brasil." },
+            { name: "Aerocast Brasil", file: "aerocast-brasil.html", cat: "Util", date: "24/02/2026", desc: "Previsão aeronáutica focada no Brasil." },
+            { name: "Aerocast Brasil 2", file: "aerocast-brasil2.html", cat: "Util", date: "24/02/2026", desc: "Variante Aerocast para cenário brasileiro." },
+            { name: "Bíblia 2", file: "biblia2.html", cat: "Util", date: "18/02/2026", desc: "Leitor bíblico com navegação simplificada." },
+            { name: "Brasil 2", file: "brasil2.html", cat: "Geometria", date: "24/02/2026", desc: "Exploração visual do mapa do Brasil v2." },
+            { name: "Brasil 3", file: "brasil3.html", cat: "Geometria", date: "24/02/2026", desc: "Exploração visual do mapa do Brasil v3." },
+            { name: "Bíblia", file: "bíblia.html", cat: "Util", date: "18/02/2026", desc: "Interface bíblica interativa." },
+            { name: "Index Alternativo", file: "index1.html", cat: "Util", date: "14/01/2025", desc: "Versão alternativa da página inicial." },
+            { name: "Phoenix", file: "phoenix.html", cat: "Arte", date: "19/02/2026", desc: "Composição visual inspirada na fênix." },
+            { name: "Pineal", file: "pineal.html", cat: "Arte", date: "24/02/2026", desc: "Visual psicodélico com estética pineal." },
+            { name: "QR Code", file: "qrcode.html", cat: "Util", date: "25/02/2026", desc: "Gerador de QR Code." },
+            { name: "QR Code 2", file: "qrcode2.html", cat: "Util", date: "25/02/2026", desc: "Gerador de QR Code v2." },
+            { name: "N1089", file: "n1089.html", cat: "Matemática", date: "08/03/2026", desc: "Exploração interativa da rotina 1089 com números de três dígitos." },
+            { name: "Vortex Shader PT", file: "vortex-shader-pt.html", cat: "Shaders", date: "08/03/2026", desc: "Versão em português do shader de vórtice com partículas concêntricas." },
+            { name: "Dígitos e Divisores", file: "digitos-multiplicador-divisores.html", cat: "Matemática", date: "05/03/2026", desc: "App educativo sobre bloco repetido, multiplicador (10^k+1) e fatores." },
+            { name: "Dígitos e Divisores v2", file: "digitos-multiplicador-divisores-v2.html", cat: "Matemática", date: "05/03/2026", desc: "Versão animada com explicação visual passo a passo da fórmula N = X(10^k+1)." }
+            ,{ name: "Palheta Vibrante", file: "palheta-site.html", cat: "Util", date: "09/03/2026", desc: "Escolha paletas criativas para site com preview ao vivo, presets e cópia de variáveis CSS.", dev: false },
+            { name: "Kororo2", file: "kororo2.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo2 - card de desenvolvimento.", dev: true },
+            { name: "Kororo", file: "kororo.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo - card de desenvolvimento.", dev: true },
             { name: "Sistema Solar 3D", file: "sistema-solar-3d.html", cat: "Física", date: "02/04/2026", desc: "Simulador 3D do sistema solar com órbitas, foco nos planetas, drawer lateral e controles de velocidade/câmera." }
         ];
 
+        // Auxiliares de Data
         function getYearFromDate(dateStr) { return String(parseDateBR(dateStr).getFullYear()); }
         function getMonthFromDate(dateStr) { return monthNames[parseDateBR(dateStr).getMonth()]; }
+
         function initFilters() {
             const cats = ["Todos", ...new Set(experiments.map(e => e.cat))];
             const filtersCat = document.getElementById('filters-cat');
             filtersCat.innerHTML = cats.map(cat => `
-                <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}">
+                <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}">
                     ${cat}
                 </button>
             `).join('');
+
             const years = ["Todos", ...new Set(experiments.map(e => getYearFromDate(e.date)))].sort();
             const filtersYear = document.getElementById('filters-year');
             filtersYear.innerHTML = years.map(y => `
-                <button onclick="applyFilter('year', '${y}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}">
+                <button onclick="applyFilter('year', '${y}', this)" class="filter-btn whitespace-nowrap px-3 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}">
                     ${y}
                 </button>
             `).join('');
+
             const availableMonths = [...new Set(experiments.map(e => getMonthFromDate(e.date)))];
             availableMonths.sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b));
             const filtersMonth = document.getElementById('filters-month');
             const monthList = ["Todos", ...availableMonths];
             filtersMonth.innerHTML = monthList.map(m => `
-                <button onclick="applyFilter('month', '${m}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}">
+                <button onclick="applyFilter('month', '${m}', this)" class="filter-btn whitespace-nowrap px-3 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}">
                     ${m}
                 </button>
             `).join('');
+
+            renderActiveFilters();
         }
+
         function applyFilter(type, value, btn) {
             if (type === 'cat') activeCategory = value;
             else if (type === 'month') activeMonth = value;
             else if (type === 'year') activeYear = value;
+
             btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            renderActiveFilters();
             renderCards();
         }
+
+        function renderActiveFilters() {
+            const active = [];
+            if (activeCategory !== 'Todos') active.push({ label: `Categoria: ${activeCategory}`, type: 'cat' });
+            if (activeYear !== 'Todos') active.push({ label: `Ano: ${activeYear}`, type: 'year' });
+            if (activeMonth !== 'Todos') active.push({ label: `Mês: ${activeMonth}`, type: 'month' });
+            if (showMockCards) active.push({ label: 'Mock ativo', type: 'mock' });
+            if (searchQuery) active.push({ label: `Busca: ${searchQuery}`, type: 'search' });
+
+            const container = document.getElementById('active-filters');
+            if (!container) return;
+
+            container.innerHTML = active.length
+                ? active.map(item => `<span class="active-pill inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.18em]">${item.label}</span>`).join('')
+                : `<span class="text-[10px] text-slate-500 uppercase tracking-[0.22em]">Sem filtros ativos</span>`;
+        }
+
         function toggleMockCards(btn) {
             showMockCards = !showMockCards;
             btn.classList.toggle('active', showMockCards);
+            renderActiveFilters();
             renderCards();
         }
+
+        function initMobileFilters() {
+            const toggle = document.getElementById('filters-toggle');
+            const panel = document.getElementById('filters-panel');
+            if (!toggle || !panel) return;
+
+            const syncState = () => {
+                const isDesktop = window.innerWidth >= 768;
+                const expanded = isDesktop || !panel.classList.contains('mobile-collapsed');
+                toggle.classList.toggle('active', expanded && !isDesktop);
+                toggle.innerHTML = expanded && !isDesktop
+                    ? '<i class="fas fa-xmark"></i><span>Fechar</span>'
+                    : '<i class="fas fa-sliders"></i><span>Filtros</span>';
+            };
+
+            toggle.addEventListener('click', () => {
+                panel.classList.toggle('mobile-collapsed');
+                syncState();
+            });
+
+            const handleResize = () => {
+                if (window.innerWidth >= 768) {
+                    panel.classList.remove('mobile-collapsed');
+                } else if (!toggle.classList.contains('touched')) {
+                    panel.classList.add('mobile-collapsed');
+                }
+                syncState();
+            };
+
+            toggle.addEventListener('click', () => toggle.classList.add('touched'));
+            window.addEventListener('resize', handleResize);
+            handleResize();
+        }
+
         function initSearch() {
             const input = document.getElementById('search-input');
             const clearBtn = document.getElementById('clear-search');
             if (!input) return;
+
             const toggleClear = () => {
                 if (!clearBtn) return;
-                if (searchQuery) clearBtn.classList.remove('opacity-0', 'pointer-events-none');
-                else clearBtn.classList.add('opacity-0', 'pointer-events-none');
+                if (searchQuery) {
+                    clearBtn.classList.remove('opacity-0', 'pointer-events-none');
+                } else {
+                    clearBtn.classList.add('opacity-0', 'pointer-events-none');
+                }
             };
+
             input.addEventListener('input', () => {
                 searchQuery = input.value.trim();
                 toggleClear();
+                renderActiveFilters();
                 renderCards();
             });
+
             if (clearBtn) {
                 clearBtn.addEventListener('click', () => {
                     searchQuery = "";
                     input.value = "";
                     toggleClear();
+                    renderActiveFilters();
                     renderCards();
                     input.focus();
                 });
             }
+
             toggleClear();
         }
+
         function renderCards() {
             const gallery = document.getElementById('gallery');
             const stats = document.getElementById('stats');
             const normalizedSearch = searchQuery.toLowerCase();
+
             const filtered = experiments.filter(exp => {
                 const matchCat = activeCategory === "Todos" || exp.cat === activeCategory;
                 const matchMonth = activeMonth === "Todos" || getMonthFromDate(exp.date) === activeMonth;
                 const matchYear = activeYear === "Todos" || getYearFromDate(exp.date) === activeYear;
-                const matchSearch = !normalizedSearch || [exp.name, exp.desc, exp.cat, exp.file].filter(Boolean).some(field => String(field).toLowerCase().includes(normalizedSearch));
+                const matchSearch = !normalizedSearch || [exp.name, exp.desc, exp.cat, exp.file]
+                    .filter(Boolean)
+                    .some(field => String(field).toLowerCase().includes(normalizedSearch));
                 const isDev = !!exp.dev;
                 const isDevMode = showMockCards;
                 const showByDev = (isDevMode && isDev) || (!isDevMode && !isDev);
                 return matchCat && matchMonth && matchYear && matchSearch && showByDev;
             });
+
             const searchBadge = normalizedSearch ? ` • busca: "${searchQuery}"` : '';
             const devTotal = experiments.filter(e => e.dev).length;
             const normalTotal = experiments.length - devTotal;
             document.getElementById('mock-count').textContent = `(${devTotal})`;
-            stats.innerHTML = showMockCards ? `Mock Cards: ${filtered.length} de ${devTotal} projetos em desenvolvimento${searchBadge}` : `Resultados: ${filtered.length} de ${normalTotal} experiências${searchBadge}`;
+            stats.innerHTML = showMockCards
+                ? `Mock Cards: ${filtered.length} de ${devTotal} projetos em desenvolvimento${searchBadge}`
+                : `Resultados: ${filtered.length} de ${normalTotal} experiências${searchBadge}`;
+
             gallery.innerHTML = filtered.map(exp => `
                 ${exp.dev ? `<div class="card dev-card p-6 rounded-[2rem] flex flex-col justify-between h-full group">` : `<div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">`}
                     <div>
@@ -743,6 +664,7 @@
                         <h3 class="text-lg font-extrabold text-white mb-2 leading-tight group-hover:text-sky-400 transition-colors">${exp.name}</h3>
                         <p class="text-[11px] text-slate-500 leading-relaxed mb-6 font-medium">${exp.desc}</p>
                     </div>
+
                     <div class="flex flex-col gap-2 mt-auto">
                         <a href="${baseUrl}/${exp.file}" target="_blank" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black py-3 rounded-2xl text-center transition-all uppercase tracking-widest flex items-center justify-center gap-2">
                             <i class="fas fa-play"></i> Ver Demo
@@ -754,6 +676,7 @@
                 </div>
             `).join('');
         }
+
         function parseDateBR(dateStr) {
             if (!dateStr) return new Date(0);
             const [datePart, timePart] = dateStr.split(' ');
@@ -764,25 +687,104 @@
             }
             return new Date(year, month - 1, day);
         }
+
         function sortExperiments() {
+            // Ordenação global por data (mais recente primeiro), independente de filtros
             experiments.sort((a, b) => {
                 const diff = parseDateBR(b.date) - parseDateBR(a.date);
                 if (diff !== 0) return diff;
+                // Mesma data: manter ordem de inserção (último colocado = primeiro)
                 const posA = experiments.indexOf(a);
                 const posB = experiments.indexOf(b);
                 return posB - posA;
             });
         }
+
         function formatDateBR(date = new Date()) {
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
             return `${day}/${month}/${year}`;
         }
+
+        function prettyNameFromFile(file) {
+            return file
+                .replace(/\.html$/i, '')
+                .replace(/[-_]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function classifyByFileName(file) {
+            const f = file.toLowerCase();
+            if (/(shader|glsl|sdf)/.test(f)) return 'Shaders';
+            if (/(fractal|mandelbrot|julia|nebulabrot|samambaia)/.test(f)) return 'Fractal';
+            if (/(audio|binaur|tts|player|stereo)/.test(f)) return 'Áudio';
+            if (/(lorenz|gravity|faraday|water|pendulum|orbiter|resson|molas|roldanas|pulley|blackhole|vortex|sp|springs)/.test(f)) return 'Física';
+            if (/(n1089|prime|kaprekar|fibonacci|lissajous|riemann|harshad|collatz|pi-|tusi|matem|binet)/.test(f)) return 'Matemática';
+            if (/(geo|torus|mobius|sphere|icosa|dode|tesseract|viviani|escher|spiral|spiro|solidos|cubo|cube)/.test(f)) return 'Geometria';
+            if (/(chat|grok|neural|brain|qwen)/.test(f)) return 'IA';
+            if (/(logo|qrcode|timer|map|perfil|color|astro|limpeza|rsvp|fatos|biblia|keep|index)/.test(f)) return 'Util';
+            return 'Util';
+        }
+
+        async function fetchLastCommitDate(file) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/commits?path=${file}&per_page=1`);
+                if (!res.ok) return null;
+                const commits = await res.json();
+                if (!Array.isArray(commits) || !commits.length) return null;
+                return new Date(commits[0].commit.author.date);
+            } catch (err) {
+                console.warn('Não foi possível obter data do commit para', file, err);
+                return null;
+            }
+        }
+
+        async function syncMissingCardsFromGitHub() {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
+                if (!res.ok) return;
+
+                const items = await res.json();
+                const remoteHtml = items
+                    .filter(item => item.type === 'file' && /\.html$/i.test(item.name) && item.name.toLowerCase() !== 'index.html')
+                    .map(item => item.name);
+
+                const known = new Set(experiments.map(e => e.file.toLowerCase()));
+                const missing = remoteHtml.filter(file => !known.has(file.toLowerCase()));
+                if (!missing.length) return;
+
+                const generated = await Promise.all(missing.map(async (file) => {
+                    const commitDate = await fetchLastCommitDate(file);
+                    return {
+                        name: prettyNameFromFile(file),
+                        file,
+                        cat: classifyByFileName(file),
+                        date: formatDateBR(commitDate || new Date()),
+                        desc: 'Card gerado automaticamente a partir dos arquivos do repositório.'
+                    };
+                }));
+
+                experiments = [...generated, ...experiments];
+                sortExperiments();
+                document.getElementById('cards-total').textContent = experiments.length;
+                initFilters();
+                renderCards();
+            } catch (err) {
+                console.warn('Não foi possível sincronizar cards automaticamente:', err);
+            }
+        }
+
         sortExperiments();
+        document.getElementById('cards-total').textContent = experiments.length;
         initFilters();
         initSearch();
+        initMobileFilters();
+        renderActiveFilters();
         renderCards();
+        syncMissingCardsFromGitHub();
     </script>
 </body>
 </html>
