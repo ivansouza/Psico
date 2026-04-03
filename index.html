@@ -515,6 +515,19 @@
             .mode-pill { font-size: 10px; padding: 6px 12px; }
             .hero-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
+    
+        .quick-nav-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        .quick-nav-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
     </style>
 </head>
 <body>
