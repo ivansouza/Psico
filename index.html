@@ -518,14 +518,6 @@
     </style>
 </head>
 <body>
-
-    <header style="display: flex; align-items: center; justify-content: center; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 1001; border-bottom: 1px solid rgba(56, 189, 248, 0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="psico-logo-final.png" alt="Psico Logo" style="height: 48px; width: auto; filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.7)); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.1) rotate(5deg)'" onmouseout="this.style.transform='scale(1) rotate(0deg)'">
-            <h1 style="margin: 0; color: #ffffff; font-family: 'Inter', sans-serif; font-weight: 700; letter-spacing: 3px; font-size: 1.6rem; text-shadow: 0 2px 8px rgba(56, 189, 248, 0.4);">PSICO</h1>
-        </div>
-    </header>
-
     <div class="app-shell">
         <main class="content-area">
             <div id="filters-backdrop" class="filters-backdrop"></div>
@@ -594,7 +586,10 @@
                 <div class="hero-inner">
                     <div class="hero-left">
                         <div class="eyebrow">Psico Portfolio — <span style="color:var(--cyan)">Creative coding</span></div>
-                        <h1 class="hero-title hero-title-sm gradient-text">Laboratório interativo de Ivan Souza</h1>
+                        <div style="display: flex; align-items: center; gap: 20px; justify-content: center; flex-wrap: wrap;">
+            <img src="psico-logo-final.png" alt="Psico Logo" style="height: 60px; width: auto; filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8)); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.15) rotate(8deg)'" onmouseout="this.style.transform='scale(1) rotate(0deg)'">
+            <h1 class="hero-title hero-title-sm gradient-text">Laboratório interativo de Ivan Souza</h1>
+        </div>
                         <div class="hero-metrics">
                             <div>
                                 <span id="cards-total" class="hero-metric-value">0</span>
