@@ -87,7 +87,7 @@
             }
         }
 
-        .content-area { background: transparent !important; z-index: 1 !important;
+        .content-area {
             padding-top: 60px;
             margin-top: 20px;
         }
@@ -99,7 +99,7 @@
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             opacity: 1;
-            /* pointer-events: none; */
+            pointer-events: none;
             transition: opacity .28s ease;
             z-index: 70;
         }
@@ -123,7 +123,7 @@
             opacity: 1;
             transition: transform .32s cubic-bezier(.22,.8,.2,1);
             z-index: 80;
-            /* pointer-events: none; */
+            pointer-events: none;
         }
 
         .filters-shell.open {
@@ -150,7 +150,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            /* pointer-events: none; */
+            pointer-events: none;
             background: linear-gradient(140deg, rgba(56,189,248,0.10), transparent 35%, rgba(139,92,246,0.10));
         }
 
@@ -332,7 +332,7 @@
             display: grid;
             place-items: center;
             opacity: 1;
-            /* pointer-events: none; */
+            pointer-events: none;
         }
 
         .action-btn, .sidebar-toggle {
@@ -395,7 +395,7 @@
 
         .quick-chip { padding: 10px 14px; }
 
-        .content-area { background: transparent !important; z-index: 1 !important; min-width: 0; }
+        .content-area { min-width: 0; }
         .active-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; }
 
         .active-pill {
