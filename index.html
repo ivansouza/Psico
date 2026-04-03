@@ -654,7 +654,7 @@
 
         let experiments = [
 
-            { name: "TTS Local", file: "tts-local.html", cat: "Util", date: "03/04/2026", desc: "Servidor Supertonic 2 local." },
+            { name: "TTS Local", file: "tts-local.html", pick: true, cat: "Util", date: "03/04/2026", desc: "Servidor Supertonic 2 local." },
             { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
             { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
             { name: "Sacred Dodecahedron", file: "Sacred-Dodecahedron.html", cat: "Geometria", date: "19/12/2025", desc: "Geometria sagrada baseada no dodecaedro." },
@@ -680,7 +680,7 @@
             { name: "Duas Circunferências", file: "duas-circunferencias.html", cat: "Matemática", date: "25/03/2026 13:29:00", desc: "Dois círculos ajustáveis com cálculo visual da projeção x entre os centros." },
             { name: "Two Circles", file: "two-circles.html", cat: "Matemática", date: "25/03/2026 13:35:00", desc: "English counterpart showing the same x span with live readout." },
             { name: "Fractal Dance", file: "fractal-dance.html", cat: "Fractal", date: "25/03/2026 15:20:00", desc: "Touch-friendly Koch snowflake performance with bilingual UI and rotation control." },
-            { name: "Voice AI WebGPU", file: "voice-ai-webgpu.html", cat: "IA", date: "25/03/2026 19:18:00", desc: "Studio STT local usando Whisper tiny, WebGPU e visualizador espectral em tempo real." },
+            { name: "Voice AI WebGPU", file: "voice-ai-webgpu.html", pick: true, cat: "IA", date: "25/03/2026 19:18:00", desc: "Studio STT local usando Whisper tiny, WebGPU e visualizador espectral em tempo real." },
             { name: "Whisper Live v4.3", file: "whisper-live-v4-3.html", cat: "IA", date: "25/03/2026 20:26:00", desc: "Fluxo com barra de progresso, cache local de 150MB e blocos de 3s via WebGPU/WASM." },
             { name: "ASCII Art", file: "ascii.html", cat: "Efeitos", date: "01/01/2025", desc: "Conversor de imagem para texto ASCII." },
             { name: "ASCII Studio", file: "ascii-studio.html", cat: "Efeitos", date: "15/01/2026", desc: "Editor ASCII avançado." },
@@ -715,7 +715,7 @@
             { name: "Chat LFM", file: "chat-lfm.html", cat: "IA", date: "29/01/2026", desc: "Interface de chat LFM." },
             { name: "Chat Qwen", file: "chat-qwen.html", cat: "IA", date: "29/01/2026", desc: "Chat com modelo Qwen." },
             { name: "Chat Qwen 0.5B", file: "chat-qwen05b.html", cat: "IA", date: "29/01/2026", desc: "Chat Qwen modelo compacto." },
-            { name: "AI Explorer v4", file: "ai-explorer-v4.html", cat: "IA", date: "30/03/2026", desc: "Chat local no navegador com WebGPU/WASM e interface no estilo visual atual do portfólio." },
+            { name: "AI Explorer v4", file: "ai-explorer-v4.html", pick: true, cat: "IA", date: "30/03/2026", desc: "Chat local no navegador com WebGPU/WASM e interface no estilo visual atual do portfólio." },
             { name: "Color Lab", file: "color-lab.html", cat: "Util", date: "26/01/2026", desc: "Laboratório de cores interativo." },
             { name: "Calculadora Científica", file: "calculadora.html", cat: "Util", date: "09/03/2026", desc: "Calculadora científica responsiva com visual clássico." },
             { name: "Calculadora Científica Pro", file: "calc.html", cat: "Util", date: "10/03/2026", desc: "Versão avançada com funções trigonométricas, memória e expoentes." },
@@ -894,7 +894,7 @@
             ,{ name: "Palheta Vibrante", file: "palheta-site.html", cat: "Util", date: "09/03/2026", desc: "Escolha paletas criativas para site com preview ao vivo, presets e cópia de variáveis CSS.", dev: false },
             { name: "Kororo2", file: "kororo2.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo2 - card de desenvolvimento.", dev: true },
             { name: "Kororo", file: "kororo.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo - card de desenvolvimento.", dev: true },
-            { name: "Sistema Solar 3D", file: "sistema-solar-3d.html", cat: "Física", date: "02/04/2026", desc: "Simulador 3D do sistema solar com órbitas, foco nos planetas, drawer lateral e controles de velocidade/câmera." }
+            { name: "Sistema Solar 3D", file: "sistema-solar-3d.html", pick: true, cat: "Física", date: "02/04/2026", desc: "Simulador 3D do sistema solar com órbitas, foco nos planetas, drawer lateral e controles de velocidade/câmera." }
         ];
 
         const categoryPalette = {
@@ -961,7 +961,7 @@
         }
 
         function applyPreset(kind) {
-            if (kind === 'recent' || kind === 'fresh') {
+            if (kind === 'fresh') { return p.pick; } if (kind === 'recent') {
                 activeYear = '2026';
                 activeMonth = 'Todos';
                 activeCategory = 'Todos';
