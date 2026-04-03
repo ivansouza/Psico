@@ -1,11 +1,347 @@
-@@@PATCH-EXAMPLE-START
-*** Begin Patch
-*** Update File: index.html
-@@
--        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
-+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
-@@
--            <button onclick="navigateBack()" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest active">Voltar para Galeria</button>
-+            <button onclick="navigateBack()" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest active">Voltar para Galeria</button>
-*** End Patch
-@@@PATCH-EXAMPLE-END
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psico Portfolio - Galeria Completa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
+
+        body {
+            background-color: #05070a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%);
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #38bdf8;
+            box-shadow: 0 20px 40px -20px rgba(56, 189, 248, 0.4);
+            background: rgba(30, 41, 59, 0.6);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .filter-btn {
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .filter-btn.active {
+            background-color: #38bdf8;
+            color: #0b0f1a;
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+
+        .mock-btn {
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .mock-btn.active {
+            background-color: #f59e0b;
+            color: #0b0f1a;
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .card.dev-card {
+            border-color: rgba(245, 158, 11, 0.3);
+            position: relative;
+        }
+
+        .card.dev-card::before {
+            content: 'DEV';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.55rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .badge-cat {
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .file-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: #64748b;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+    </style>
+</head>
+<body class="min-h-screen selection:bg-sky-500/30">
+
+    
+<header style="display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <img src="psico-logo-final.png" alt="Psico Logo" style="height: 50px; width: auto; filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.6)); transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+        <h1 style="margin: 0; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; font-weight: 300; letter-spacing: 2px;">PSICO</h1>
+    </div>
+</header>
+
+
+    <main class="max-w-[1600px] mx-auto px-6 pb-32">
+        <div id="stats" class="mb-6 text-slate-500 text-[10px] font-bold uppercase tracking-widest"></div>
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
+    </main>
+
+    <footer class="border-t border-white/5 bg-slate-950/50 py-12 text-center">
+        <div class="max-w-7xl mx-auto px-6">
+            <p class="text-slate-500 text-sm mb-4 font-medium">Repositório de exploração visual e física computacional.</p>
+            <div class="flex justify-center gap-6 text-slate-400">
+                <a href="https://github.com/ivansouza/Psico" target="_blank" class="hover:text-sky-400 transition-colors"><i class="fab fa-github text-xl"></i></a>
+            </div>
+            <p class="text-slate-700 text-[10px] mt-8 uppercase tracking-widest font-bold">&copy; 2026 ivansouza - Creative Coding Lab</p>
+        </div>
+    </footer>
+
+    <script>
+        const username = "ivansouza";
+        const repo = "Psico";
+        const baseUrl = `https://${username}.github.io/${repo}`;
+        const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
+
+        let activeCategory = "Todos";
+        let activeMonth = "Todos";
+        let activeYear = "Todos";
+        let searchQuery = "";
+        let showMockCards = false;
+
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        let experiments = [
+            { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
+            { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
+            { name: "Sacred Dodecahedron", file: "Sacred-Dodecahedron.html", cat: "Geometria", date: "19/12/2025", desc: "Geometria sagrada baseada no dodecaedro." },
+            { name: "Truchet Tiles", file: "Truchet.html", cat: "Matemática", date: "12/12/2025", desc: "Mosaicos gerados por algoritmos de Truchet." },
+            { name: "Faraday 3D", file: "3d-faraday.html", cat: "Física", date: "19/01/2026", desc: "Gaiola de Faraday tridimensional." },
+            { name: "3D Water 1", file: "3dwater.html", cat: "Física", date: "28/01/2026", desc: "Simulação de água 3D v1." },
+            { name: "3D Water 2", file: "3dwater2.html", cat: "Física", date: "28/01/2026", desc: "Simulação de água 3D v2." },
+            { name: "3D Water 3", file: "3dwater3.html", cat: "Física", date: "28/01/2026", desc: "Simulação de água 3D v3." },
+            { name: "Astroguia", file: "Astroguia.html", cat: "Util", date: "07/01/2026", desc: "Guia astronómico interativo." },
+            { name: "Audio Visualizer", file: "audio.html", cat: "Áudio", date: "28/02/2026", desc: "Visualizador de áudio em tempo real (onda + espectro)." },
+            { name: "Aqua Shader", file: "aqua-shader.html", cat: "Shaders", date: "15/03/2026", desc: "Shader WebGL responsivo que simula água fluida no mobile." },
+            { name: "WuSquare", file: "wusquare.html", cat: "Matemática", date: "17/03/2026", desc: "Truque mental de Scott Wu para quadrados instantâneos." },
+            { name: "Aizawa Neon", file: "aizawa-neon.html", cat: "Física", date: "17/03/2026", desc: "Atrator de Aizawa com órbita neon gerada em three.js." },
+            { name: "Laser no Triângulo", file: "laser-triangulo.html", cat: "Animação", date: "20/03/2026", desc: "Laser refletindo em triângulo de espelhos no estilo do vídeo viral." },
+            { name: "RSVP Reader", file: "RSVP.html", cat: "Util", date: "14/01/2026", desc: "Leitor de leitura rápida RSVP." },
+            { name: "Tusi Couple", file: "Tusi.html", cat: "Matemática", date: "08/01/2026", desc: "Teorema de Tusi em movimento." },
+            { name: "Tusi Minimal", file: "tusi-minimal.html", cat: "Geometria", date: "21/03/2026", desc: "Versão minimalista e neon da ilusão de Tusi com painel lateral." },
+            { name: "Tusi Lines", file: "tusi-lines.html", cat: "Geometria", date: "21/03/2026", desc: "Variante com offset ajustável, múltiplos pontos e modo 3D giratório." },
+            { name: "Aerocast", file: "aerocast.html", cat: "Util", date: "10/02/2026", desc: "Previsão aeronáutica." },
+            { name: "Art Sky", file: "art-sky.html", cat: "Arte", date: "31/12/2025", desc: "Visualização generativa de céus artísticos." },
+            { name: "Árvore Primos", file: "arvore-primos-palindromos.html", cat: "Matemática", date: "11/01/2026", desc: "Árvore de números primos palíndromos." },
+            { name: "Espiral de Primos", file: "espiral-primos.html", cat: "Matemática", date: "23/03/2026", desc: "Espiral responsiva de números primos com painel touch." },
+            { name: "Duas Circunferências", file: "duas-circunferencias.html", cat: "Matemática", date: "25/03/2026 13:29:00", desc: "Dois círculos ajustáveis com cálculo visual da projeção x entre os centros." },
+            { name: "Two Circles", file: "two-circles.html", cat: "Matemática", date: "25/03/2026 13:35:00", desc: "English counterpart showing the same x span with live readout." },
+            { name: "Fractal Dance", file: "fractal-dance.html", cat: "Fractal", date: "25/03/2026 15:20:00", desc: "Touch-friendly Koch snowflake performance with bilingual UI and rotation control." },
+            { name: "Voice AI WebGPU", file: "voice-ai-webgpu.html", cat: "IA", date: "25/03/2026 19:18:00", desc: "Studio STT local usando Whisper tiny, WebGPU e visualizador espectral em tempo real." },
+            { name: "Whisper Live v4.3", file: "whisper-live-v4-3.html", cat: "IA", date: "25/03/2026 20:26:00", desc: "Fluxo com barra de progresso, cache local de 150MB e blocos de 3s via WebGPU/WASM." },
+            { name: "ASCII Art", file: "ascii.html", cat: "Efeitos", date: "01/01/2025", desc: "Conversor de imagem para texto ASCII." },
+            { name: "ASCII Studio", file: "ascii-studio.html", cat: "Efeitos", date: "15/01/2026", desc: "Editor ASCII avançado." },
+            { name: "Back in Black", file: "backinblack.html", cat: "Arte", date: "02/12/2025", desc: "Visual minimalista escuro." },
+            { name: "Balls v1", file: "balls-animation.html", cat: "Física", date: "12/12/2025", desc: "Colisões físicas v1." },
+            { name: "Balls v2", file: "balls-animation2.html", cat: "Física", date: "12/12/2025", desc: "Colisões físicas v2." },
+            { name: "Balls v3", file: "balls-animation3.html", cat: "Física", date: "12/12/2025", desc: "Colisões físicas v3." },
+            { name: "Bíblia Quote", file: "biblia-quote.html", cat: "Util", date: "07/02/2026", desc: "Citações bíblicas aleatórias." },
+            { name: "Binaural BPM", file: "binaurais-bpm.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências binaurais com BPM." },
+            { name: "Binaural BPM 2", file: "binaurais-bpm2.html", cat: "Áudio", date: "26/12/2025", desc: "Variante avançada de batidas binaurais." },
+            { name: "Binaurais Base", file: "binaurais.html", cat: "Áudio", date: "26/12/2025", desc: "Batidas binaurais v1." },
+            { name: "Binaurais 2", file: "binaurais2.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v2." },
+            { name: "Binaurais 3", file: "binaurais3.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v3." },
+            { name: "Binaurais 4", file: "binaurais4.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v4." },
+            { name: "Binaurais 5", file: "binaurais5.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v5." },
+            { name: "Binaurais 6", file: "binaurais6.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências cerebrais v6." },
+            { name: "Binet Formula", file: "binet.html", cat: "Matemática", date: "26/01/2026", desc: "Fórmula de Binet para Fibonacci." },
+            { name: "BitNet", file: "bitnet.html", cat: "IA", date: "27/03/2026", desc: "Visualização interativa inspirada em redes BitNet.", dev: true },
+            { name: "BitNet 2", file: "bitnet2.html", cat: "IA", date: "27/03/2026", desc: "Segunda variação visual para experimentos com BitNet.", dev: true },
+            { name: "BitNet 3", file: "bitnet3.html", cat: "IA", date: "27/03/2026", desc: "Terceira versão do demo BitNet com interface dedicada.", dev: true },
+            { name: "BPMN", file: "bpmn.html", cat: "Util", date: "27/03/2026", desc: "Experimento visual e utilitário baseado em diagramas BPMN." },
+            { name: "Quantization", file: "quantization.html", cat: "IA", date: "27/03/2026", desc: "Demonstração visual de quantização para modelos e sinais." },
+            { name: "Blackhole", file: "blackhole.html", cat: "Física", date: "02/11/2025", desc: "Lente gravitacional e desvio da luz." },
+            { name: "Bola de Cristal", file: "bola-de-cristal.html", cat: "Efeitos", date: "02/11/2025", desc: "Refração esférica e distorção." },
+            { name: "Brain", file: "brain.html", cat: "IA", date: "02/12/2025", desc: "Visualização neural dinâmica." },
+            { name: "Bubble Display 1", file: "bubble-display.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v1." },
+            { name: "Bubble Display 2", file: "bubble-display2.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v2." },
+            { name: "Bubble Display 3", file: "bubble-display3.html", cat: "Animação", date: "19/12/2025", desc: "Simulação de bolhas v3." },
+            { name: "Sistema Solar 3D", file: "sistema-solar-3d.html", cat: "Física", date: "02/04/2026", desc: "Simulador 3D do sistema solar com órbitas, foco nos planetas, drawer lateral e controles de velocidade/câmera." }
+        ];
+
+        function getYearFromDate(dateStr) { return String(parseDateBR(dateStr).getFullYear()); }
+        function getMonthFromDate(dateStr) { return monthNames[parseDateBR(dateStr).getMonth()]; }
+        function initFilters() {
+            const cats = ["Todos", ...new Set(experiments.map(e => e.cat))];
+            const filtersCat = document.getElementById('filters-cat');
+            filtersCat.innerHTML = cats.map(cat => `
+                <button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${cat === activeCategory ? 'active' : ''}">
+                    ${cat}
+                </button>
+            `).join('');
+            const years = ["Todos", ...new Set(experiments.map(e => getYearFromDate(e.date)))].sort();
+            const filtersYear = document.getElementById('filters-year');
+            filtersYear.innerHTML = years.map(y => `
+                <button onclick="applyFilter('year', '${y}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${y === activeYear ? 'active' : ''}">
+                    ${y}
+                </button>
+            `).join('');
+            const availableMonths = [...new Set(experiments.map(e => getMonthFromDate(e.date)))];
+            availableMonths.sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b));
+            const filtersMonth = document.getElementById('filters-month');
+            const monthList = ["Todos", ...availableMonths];
+            filtersMonth.innerHTML = monthList.map(m => `
+                <button onclick="applyFilter('month', '${m}', this)" class="filter-btn px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${m === activeMonth ? 'active' : ''}">
+                    ${m}
+                </button>
+            `).join('');
+        }
+        function applyFilter(type, value, btn) {
+            if (type === 'cat') activeCategory = value;
+            else if (type === 'month') activeMonth = value;
+            else if (type === 'year') activeYear = value;
+            btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderCards();
+        }
+        function toggleMockCards(btn) {
+            showMockCards = !showMockCards;
+            btn.classList.toggle('active', showMockCards);
+            renderCards();
+        }
+        function initSearch() {
+            const input = document.getElementById('search-input');
+            const clearBtn = document.getElementById('clear-search');
+            if (!input) return;
+            const toggleClear = () => {
+                if (!clearBtn) return;
+                if (searchQuery) clearBtn.classList.remove('opacity-0', 'pointer-events-none');
+                else clearBtn.classList.add('opacity-0', 'pointer-events-none');
+            };
+            input.addEventListener('input', () => {
+                searchQuery = input.value.trim();
+                toggleClear();
+                renderCards();
+            });
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    searchQuery = "";
+                    input.value = "";
+                    toggleClear();
+                    renderCards();
+                    input.focus();
+                });
+            }
+            toggleClear();
+        }
+        function renderCards() {
+            const gallery = document.getElementById('gallery');
+            const stats = document.getElementById('stats');
+            const normalizedSearch = searchQuery.toLowerCase();
+            const filtered = experiments.filter(exp => {
+                const matchCat = activeCategory === "Todos" || exp.cat === activeCategory;
+                const matchMonth = activeMonth === "Todos" || getMonthFromDate(exp.date) === activeMonth;
+                const matchYear = activeYear === "Todos" || getYearFromDate(exp.date) === activeYear;
+                const matchSearch = !normalizedSearch || [exp.name, exp.desc, exp.cat, exp.file].filter(Boolean).some(field => String(field).toLowerCase().includes(normalizedSearch));
+                const isDev = !!exp.dev;
+                const isDevMode = showMockCards;
+                const showByDev = (isDevMode && isDev) || (!isDevMode && !isDev);
+                return matchCat && matchMonth && matchYear && matchSearch && showByDev;
+            });
+            const searchBadge = normalizedSearch ? ` • busca: "${searchQuery}"` : '';
+            const devTotal = experiments.filter(e => e.dev).length;
+            const normalTotal = experiments.length - devTotal;
+            document.getElementById('mock-count').textContent = `(${devTotal})`;
+            stats.innerHTML = showMockCards ? `Mock Cards: ${filtered.length} de ${devTotal} projetos em desenvolvimento${searchBadge}` : `Resultados: ${filtered.length} de ${normalTotal} experiências${searchBadge}`;
+            gallery.innerHTML = filtered.map(exp => `
+                ${exp.dev ? `<div class="card dev-card p-6 rounded-[2rem] flex flex-col justify-between h-full group">` : `<div class="card p-6 rounded-[2rem] flex flex-col justify-between h-full group">`}
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex flex-col">
+                                <span class="badge-cat text-sky-400 opacity-60">${exp.cat}</span>
+                                <span class="file-date mt-1">${formatDateBR(parseDateBR(exp.date))}</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-white mb-2 leading-tight group-hover:text-sky-400 transition-colors">${exp.name}</h3>
+                        <p class="text-[11px] text-slate-500 leading-relaxed mb-6 font-medium">${exp.desc}</p>
+                    </div>
+                    <div class="flex flex-col gap-2 mt-auto">
+                        <a href="${baseUrl}/${exp.file}" target="_blank" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black py-3 rounded-2xl text-center transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i> Ver Demo
+                        </a>
+                        <a href="${sourceUrl}/${exp.file}" target="_blank" class="w-full bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white text-[9px] font-bold py-2 rounded-xl text-center transition-all flex items-center justify-center gap-2 border border-white/5">
+                            <i class="fas fa-code"></i> Source Code
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function parseDateBR(dateStr) {
+            if (!dateStr) return new Date(0);
+            const [datePart, timePart] = dateStr.split(' ');
+            const [day, month, year] = datePart.split('/').map(Number);
+            if (timePart) {
+                const [hour = 0, minute = 0, second = 0] = timePart.split(':').map(Number);
+                return new Date(year, month - 1, day, hour || 0, minute || 0, second || 0);
+            }
+            return new Date(year, month - 1, day);
+        }
+        function sortExperiments() {
+            experiments.sort((a, b) => {
+                const diff = parseDateBR(b.date) - parseDateBR(a.date);
+                if (diff !== 0) return diff;
+                const posA = experiments.indexOf(a);
+                const posB = experiments.indexOf(b);
+                return posB - posA;
+            });
+        }
+        function formatDateBR(date = new Date()) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+        sortExperiments();
+        document.getElementById('cards-total').textContent = experiments.length;
+        initFilters();
+        initSearch();
+        renderCards();
+    </script>
+</body>
+</html>
