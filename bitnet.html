@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BitNet WebGPU Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #09090b; color: #fafafa; font-family: system-ui, -apple-system, sans-serif; }
+        .progress-bar { transition: width 0.3s ease; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .message-ai { background: rgba(39, 39, 42, 0.5); border: 1px solid rgba(63, 63, 70, 0.5); }
+        .error-card { background: rgba(153, 27, 27, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="p-4 border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-md flex justify-between items-center">
+        <div>
+            <h1 class="text-lg font-bold text-sky-400">BitNet WebGPU</h1>
+            <p id="status-text" class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">A inicializar sistema...</p>
+        </div>
+        <div id="gpu-tag" class="hidden px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+            WEBGPU DISPONÍVEL
+        </div>
+    </header>
+
+    <!-- App State -->
+    <div id="loading-overlay" class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6">
+        <div id="spinner" class="w-12 h-12 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin"></div>
+        
+        <div class="space-y-3 w-full max-w-xs">
+            <p id="loading-msg" class="text-sm font-medium">A verificar compatibilidade...</p>
+            <div id="progress-container" class="hidden w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                <div id="progress-fill" class="progress-bar bg-sky-500 h-full w-0"></div>
+            </div>
+            
+            <div id="controls" class="flex flex-col gap-2 pt-4">
+                <button id="load-bitnet" class="hidden bg-sky-600 hover:bg-sky-500 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-sky-900/20">
+                    Tentar BitNet (100M)
+                </button>
+                <button id="load-fallback" class="hidden bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-6 py-2 rounded-xl text-xs transition-all">
+                    Usar modelo de teste (GPT-2 Small)
+                </button>
+            </div>
+        </div>
+
+        <div id="error-display" class="hidden error-card p-4 rounded-xl text-red-400 text-xs text-left max-w-sm overflow-auto max-h-40 font-mono">
+            <!-- Erros aqui -->
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <main id="chat-container" class="hidden flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
+        <div class="message-ai p-4 rounded-2xl text-sm leading-relaxed max-w-[90%]">
+            Ligação estabelecida! Estou pronto para processar via <strong>WebGPU</strong>.
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer id="input-area" class="hidden p-4 bg-zinc-950 border-t border-zinc-800 pb-8">
+        <div class="flex gap-2 max-w-4xl mx-auto">
+            <input type="text" id="user-input" placeholder="Escreve uma mensagem..." 
+                class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+            <button id="send-btn" class="bg-sky-600 p-3 rounded-xl hover:bg-sky-500 transition-all active:scale-90">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Importamos a versão estável mais recente
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
+
+        const dom = {
+            loadingOverlay: document.getElementById('loading-overlay'),
+            chatContainer: document.getElementById('chat-container'),
+            inputArea: document.getElementById('input-area'),
+            loadBitNetBtn: document.getElementById('load-bitnet'),
+            loadFallbackBtn: document.getElementById('load-fallback'),
+            progressFill: document.getElementById('progress-fill'),
+            progressContainer: document.getElementById('progress-container'),
+            loadingMsg: document.getElementById('loading-msg'),
+            statusText: document.getElementById('status-text'),
+            gpuTag: document.getElementById('gpu-tag'),
+            errorDisplay: document.getElementById('error-display'),
+            spinner: document.getElementById('spinner')
+        };
+
+        let generator = null;
+
+        async function init() {
+            if (!navigator.gpu) {
+                dom.loadingMsg.innerHTML = "❌ WebGPU não suportado.<br><span class='text-xs opacity-50'>Tenta o Chrome no Android ou Safari 18+.</span>";
+                dom.spinner.style.display = 'none';
+                return;
+            }
+
+            dom.gpuTag.classList.remove('hidden');
+            dom.statusText.innerText = "PRONTO PARA CARREGAR";
+            dom.loadingMsg.innerText = "Escolhe um modelo para iniciar";
+            dom.loadBitNetBtn.classList.remove('hidden');
+            dom.loadFallbackBtn.classList.remove('hidden');
+            dom.spinner.style.display = 'none';
+        }
+
+        async function startInference(modelId) {
+            dom.loadBitNetBtn.classList.add('hidden');
+            dom.loadFallbackBtn.classList.add('hidden');
+            dom.errorDisplay.classList.add('hidden');
+            dom.spinner.style.display = 'block';
+            dom.progressContainer.classList.remove('hidden');
+            dom.loadingMsg.innerText = "A descarregar ficheiros...";
+
+            try {
+                // Configurações cruciais para evitar erros de permissão
+                env.allowLocalModels = false;
+                env.useBrowserCache = true;
+
+                generator = await pipeline('text-generation', modelId, {
+                    device: 'webgpu',
+                    dtype: 'fp32', // Garante compatibilidade em mais telemóveis
+                    progress_callback: (p) => {
+                        if (p.status === 'progress') {
+                            dom.progressFill.style.width = `${p.progress}%`;
+                            dom.loadingMsg.innerText = `A carregar: ${Math.round(p.progress)}%`;
+                        }
+                        if (p.status === 'initiate') {
+                            dom.loadingMsg.innerText = `A iniciar: ${p.file}`;
+                        }
+                    }
+                });
+
+                dom.loadingOverlay.classList.add('hidden');
+                dom.chatContainer.classList.remove('hidden');
+                dom.inputArea.classList.remove('hidden');
+                dom.statusText.innerText = "SISTEMA ONLINE (WEBGPU)";
+            } catch (err) {
+                console.error(err);
+                dom.spinner.style.display = 'none';
+                dom.errorDisplay.classList.remove('hidden');
+                dom.errorDisplay.innerText = `ERRO: ${err.message}\n\nSugestão: Tenta o modelo de teste (Fallback).`;
+                dom.loadBitNetBtn.classList.remove('hidden');
+                dom.loadFallbackBtn.classList.remove('hidden');
+                dom.loadingMsg.innerText = "Falha no carregamento";
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text || !generator) return;
+
+            // UI User
+            const uMsg = document.createElement('div');
+            uMsg.className = "flex justify-end";
+            uMsg.innerHTML = `<div class="bg-sky-600 p-4 rounded-2xl rounded-tr-none text-sm max-w-[85%] shadow-lg shadow-sky-900/10">${text}</div>`;
+            dom.chatContainer.appendChild(uMsg);
+            input.value = '';
+            dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
+
+            // UI AI
+            const aMsg = document.createElement('div');
+            aMsg.className = "message-ai p-4 rounded-2xl rounded-tl-none text-sm max-w-[85%] animate-pulse";
+            aMsg.innerText = "A processar...";
+            dom.chatContainer.appendChild(aMsg);
+
+            try {
+                const start = performance.now();
+                const output = await generator(text, { 
+                    max_new_tokens: 32,
+                    temperature: 0.7 
+                });
+                const time = ((performance.now() - start) / 1000).toFixed(2);
+                
+                aMsg.classList.remove('animate-pulse');
+                const reply = output[0].generated_text.slice(text.length).trim();
+                aMsg.innerHTML = `
+                    <p>${reply || "Sem resposta do modelo."}</p>
+                    <div class="mt-2 pt-2 border-t border-white/5 text-[9px] text-zinc-500 font-mono">
+                        TEMPO: ${time}s | WEBGPU_CORE
+                    </div>
+                `;
+            } catch (err) {
+                aMsg.innerText = "Erro: " + err.message;
+            }
+            dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
+        }
+
+        dom.loadBitNetBtn.onclick = () => startInference('onnx-community/BitNet-b1.58-100M-ONNX');
+        dom.loadFallbackBtn.onclick = () => startInference('Xenova/tiny-random-Gpt2');
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('user-input').onkeypress = (e) => e.key === 'Enter' && sendMessage();
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+

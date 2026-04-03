@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>VibeVoice Realtime 0.5B - WebGPU (Português)</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; max-width: 800px; margin: auto; }
+    button { padding: 12px 24px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>VibeVoice Realtime 0.5B no Browser (WebGPU)</h1>
+  <p><strong>Texto em português:</strong></p>
+  <textarea id="input" rows="4" style="width:100%;">Olá! Isso é um teste de voz em português brasileiro com o VibeVoice 0.5B rodando direto no navegador usando WebGPU.</textarea>
+  <br><br>
+  <button onclick="generateSpeech()">▶ Gerar Áudio em Português</button>
+  <br><br>
+  <audio id="player" controls style="width:100%;"></audio>
+
+  <script>
+    // Configuração WebGPU
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+    ort.env.webgpu = true; // força tentativa de WebGPU
+
+    async function generateSpeech() {
+      const textInput = document.getElementById('input').value.trim();
+      if (!textInput) return alert('Digite algum texto!');
+
+      const status = document.createElement('p');
+      status.textContent = 'Carregando modelos (≈1 GB) e gerando... (pode demorar)';
+      document.body.appendChild(status);
+
+      try {
+        // 1. Tokenizer (Qwen2 usado pelo modelo)
+        const tokenizer = await Xenova.AutoTokenizer.from_pretrained('Qwen/Qwen2-0.5B');
+
+        // 2. Tokenizar texto em português
+        const encoded = await tokenizer(textInput, {
+          return_tensors: 'js',
+          padding: true,
+          truncation: true,
+          max_length: 512
+        });
+
+        const inputIds = new ort.Tensor('int64', encoded.input_ids.data, encoded.input_ids.dims);
+        const attentionMask = new ort.Tensor('int64', encoded.attention_mask.data, encoded.attention_mask.dims);
+
+        // 3. Carregar os 3 modelos ONNX (baixe antes ou use URLs raw do HF)
+        const [llm, diffusion, vocoder] = await Promise.all([
+          ort.InferenceSession.create('tts_llm_int4.onnx', { executionProviders: ['webgpu', 'wasm'] }),
+          ort.InferenceSession.create('diffusion_head_int4.onnx', { executionProviders: ['webgpu', 'wasm'] }),
+          ort.InferenceSession.create('vocoder_int4.onnx', { executionProviders: ['webgpu', 'wasm'] })
+        ]);
+
+        // 4. LLM forward (texto → hidden states)
+        const llmOutput = await llm.run({
+          input_ids: inputIds,
+          attention_mask: attentionMask
+        });
+
+        const hiddenStates = llmOutput.hidden_states; // ou o nome exato do output
+
+        // 5. Diffusion (20 passos - placeholder simples)
+        let latent = new ort.Tensor('float32', new Float32Array(64 * 100), [1, 64, 100]); // ruído inicial
+        for (let step = 20; step >= 0; step--) {
+          const timestep = new ort.Tensor('float32', [step * 50], [1]);
+          const diffOut = await diffusion.run({
+            noisy_latent: latent,
+            timestep: timestep,
+            hidden_states: hiddenStates
+          });
+          // Aqui você precisa do passo de denoising (v-prediction). 
+          // O repo tem placeholder — veja o README do FluffyBunnies/vibevoice-onnx-int4
+          latent = diffOut.v_prediction; // simplificado
+        }
+
+        // 6. Vocoder → áudio
+        const vocOut = await vocoder.run({ latents: latent });
+        const audioData = vocOut.audio.data; // Float32Array 24kHz
+
+        // 7. Tocar áudio
+        const audioBlob = new Blob([new Uint8Array(audioData.buffer)], { type: 'audio/wav' });
+        const url = URL.createObjectURL(audioBlob);
+        const player = document.getElementById('player');
+        player.src = url;
+        player.play();
+
+        status.textContent = '✅ Áudio gerado com sucesso! (Português experimental)';
+      } catch (err) {
+        console.error(err);
+        status.textContent = '❌ Erro: ' + err.message;
+        status.style.color = 'red';
+      }
+    }
+  </script>
+</body>
+</html>

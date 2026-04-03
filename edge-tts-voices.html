@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edge TTS Voices Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #05070a;
+      color: #e2e8f0;
+      background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%);
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.9);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    .voice-row:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(30, 41, 59, 0.85);
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #05070a; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-sky-500/30">
+  <main class="max-w-6xl mx-auto px-4 py-8 md:px-6 md:py-10 space-y-6">
+    <header class="glass-card rounded-3xl p-6 md:p-8">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-2">Psico • Voice Lab</p>
+          <h1 class="text-3xl md:text-4xl font-black tracking-tight gradient-text">Edge TTS Voices Lab</h1>
+          <p class="text-slate-400 mt-3 max-w-2xl">
+            Teste apenas as vozes em português do Brasil disponíveis no navegador, incluindo vozes Microsoft/Edge e neurais quando estiverem expostas pelo sistema.
+          </p>
+        </div>
+        <div class="glass-card rounded-2xl px-4 py-3 min-w-[260px]">
+          <div class="text-[10px] uppercase tracking-[0.25em] text-slate-500 font-bold mb-1">Status</div>
+          <div id="engineStatus" class="text-sm text-slate-200 font-medium">Detectando vozes do navegador...</div>
+          <div id="engineMeta" class="text-xs text-slate-500 mt-2">SpeechSynthesis API</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+      <div class="xl:col-span-2 space-y-6">
+        <div class="glass-card rounded-3xl p-6 space-y-4">
+          <div>
+            <label for="voiceSelect" class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Voz</label>
+            <select id="voiceSelect" class="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-sky-500">
+              <option>Carregando vozes pt-BR...</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="rateInput" class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Velocidade</label>
+              <input id="rateInput" type="range" min="0.5" max="2" step="0.05" value="1" class="w-full accent-sky-400">
+              <div class="text-sm text-slate-300 mt-1 mono"><span id="rateValue">1.00</span>x</div>
+            </div>
+            <div>
+              <label for="pitchInput" class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Tom</label>
+              <input id="pitchInput" type="range" min="0" max="2" step="0.05" value="1" class="w-full accent-fuchsia-400">
+              <div class="text-sm text-slate-300 mt-1 mono"><span id="pitchValue">1.00</span>x</div>
+            </div>
+          </div>
+
+          <div>
+            <label for="volumeInput" class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Volume</label>
+            <input id="volumeInput" type="range" min="0" max="1" step="0.05" value="1" class="w-full accent-emerald-400">
+            <div class="text-sm text-slate-300 mt-1 mono"><span id="volumeValue">1.00</span></div>
+          </div>
+
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button id="speakBtn" class="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow-lg shadow-sky-500/20 transition">Falar</button>
+            <button id="pauseBtn" class="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold transition">Pausar</button>
+            <button id="resumeBtn" class="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold transition">Retomar</button>
+            <button id="stopBtn" class="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition">Parar</button>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-3xl p-6 space-y-3">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <h2 class="text-sm font-bold uppercase tracking-[0.25em] text-slate-400">Informações da voz</h2>
+              <p class="text-xs text-slate-500 mt-1">Mostra o que o navegador reporta para a voz selecionada.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-3 text-sm">
+            <div class="bg-slate-950/70 border border-white/5 rounded-2xl p-4"><span class="text-slate-500 block text-[11px] uppercase tracking-widest mb-1">Nome</span><span id="voiceName" class="text-slate-100">—</span></div>
+            <div class="bg-slate-950/70 border border-white/5 rounded-2xl p-4"><span class="text-slate-500 block text-[11px] uppercase tracking-widest mb-1">Idioma</span><span id="voiceLang" class="text-slate-100 mono">—</span></div>
+            <div class="bg-slate-950/70 border border-white/5 rounded-2xl p-4"><span class="text-slate-500 block text-[11px] uppercase tracking-widest mb-1">Engine</span><span id="voiceLocal" class="text-slate-100">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xl:col-span-3 space-y-6">
+        <div class="glass-card rounded-3xl p-6 space-y-4">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 class="text-sm font-bold uppercase tracking-[0.25em] text-slate-400">Texto para leitura</h2>
+              <p class="text-xs text-slate-500 mt-1">Escolha uma voz e aperte falar. No Edge, as vozes Microsoft instaladas costumam aparecer aqui.</p>
+            </div>
+            <button id="demoBtn" class="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">Carregar texto demo</button>
+          </div>
+          <textarea id="textInput" rows="10" class="w-full bg-slate-950/90 text-slate-100 border border-white/10 rounded-3xl p-4 outline-none focus:ring-2 focus:ring-sky-500 resize-y" placeholder="Digite aqui o texto que a voz vai ler..."></textarea>
+        </div>
+
+        <div class="glass-card rounded-3xl p-6">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-sm font-bold uppercase tracking-[0.25em] text-slate-400">Vozes encontradas</h2>
+              <p class="text-xs text-slate-500 mt-1">A lista abaixo mostra apenas vozes pt-BR detectadas no navegador.</p>
+            </div>
+            <input id="filterInput" type="text" placeholder="Filtrar vozes..." class="w-full md:w-72 bg-slate-950/90 text-slate-100 border border-white/10 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+
+          <div id="voiceCount" class="text-xs uppercase tracking-[0.25em] text-slate-500 font-bold mb-4">0 vozes</div>
+          <div id="voiceList" class="space-y-3 max-h-[520px] overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const voiceSelect = document.getElementById('voiceSelect');
+    const voiceList = document.getElementById('voiceList');
+    const voiceCount = document.getElementById('voiceCount');
+    const engineStatus = document.getElementById('engineStatus');
+    const engineMeta = document.getElementById('engineMeta');
+    const textInput = document.getElementById('textInput');
+    const filterInput = document.getElementById('filterInput');
+    const rateInput = document.getElementById('rateInput');
+    const pitchInput = document.getElementById('pitchInput');
+    const volumeInput = document.getElementById('volumeInput');
+    const rateValue = document.getElementById('rateValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const volumeValue = document.getElementById('volumeValue');
+    const voiceName = document.getElementById('voiceName');
+    const voiceLang = document.getElementById('voiceLang');
+    const voiceLocal = document.getElementById('voiceLocal');
+
+    const demoText = `Olá Ivan. Este laboratório lista as vozes disponíveis no navegador. Se você estiver no Microsoft Edge, as vozes do sistema e vozes Microsoft instaladas devem aparecer aqui. Você pode testar velocidade, tom e volume em tempo real.`;
+
+    let allVoices = [];
+
+    function updateSliders() {
+      rateValue.textContent = Number(rateInput.value).toFixed(2);
+      pitchValue.textContent = Number(pitchInput.value).toFixed(2);
+      volumeValue.textContent = Number(volumeInput.value).toFixed(2);
+    }
+
+    function getSelectedVoice() {
+      const idx = Number(voiceSelect.value);
+      return allVoices[idx] || null;
+    }
+
+    function updateVoiceMeta() {
+      const voice = getSelectedVoice();
+      if (!voice) {
+        voiceName.textContent = '—';
+        voiceLang.textContent = '—';
+        voiceLocal.textContent = '—';
+        return;
+      }
+      voiceName.textContent = voice.name || 'Sem nome';
+      voiceLang.textContent = voice.lang || '—';
+      voiceLocal.textContent = voice.localService ? 'Local/System' : 'Remota/Browser';
+    }
+
+    function stopSpeaking() {
+      speechSynthesis.cancel();
+    }
+
+    function speakText() {
+      const text = textInput.value.trim();
+      const voice = getSelectedVoice();
+
+      if (!('speechSynthesis' in window)) {
+        engineStatus.textContent = 'SpeechSynthesis não suportado neste navegador.';
+        return;
+      }
+
+      if (!text) {
+        engineStatus.textContent = 'Digite algum texto antes de falar.';
+        return;
+      }
+
+      stopSpeaking();
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      }
+      utterance.rate = Number(rateInput.value);
+      utterance.pitch = Number(pitchInput.value);
+      utterance.volume = Number(volumeInput.value);
+
+      utterance.onstart = () => {
+        engineStatus.textContent = `Falando com: ${voice ? voice.name : 'voz padrão'}`;
+      };
+      utterance.onend = () => {
+        engineStatus.textContent = 'Leitura concluída.';
+      };
+      utterance.onerror = (event) => {
+        engineStatus.textContent = `Erro ao falar: ${event.error || 'desconhecido'}`;
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    function renderVoiceList() {
+      const q = filterInput.value.trim().toLowerCase();
+      const filtered = allVoices
+        .map((voice, index) => ({ voice, index }))
+        .filter(({ voice }) => {
+          const hay = `${voice.name} ${voice.lang} ${voice.voiceURI}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+      voiceCount.textContent = `${filtered.length} voz${filtered.length === 1 ? '' : 'es'} visível${filtered.length === 1 ? '' : 's'} • ${allVoices.length} total`;
+
+      if (!filtered.length) {
+        voiceList.innerHTML = '<div class="bg-slate-950/70 border border-white/5 rounded-2xl p-4 text-slate-400 text-sm">Nenhuma voz bate com o filtro.</div>';
+        return;
+      }
+
+      voiceList.innerHTML = filtered.map(({ voice, index }) => {
+        const selected = Number(voiceSelect.value) === index;
+        return `
+          <button class="voice-row w-full text-left bg-slate-950/60 border ${selected ? 'border-sky-400/40' : 'border-white/5'} rounded-2xl p-4 transition" data-voice-index="${index}">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <div class="text-slate-100 font-semibold">${voice.name}</div>
+                <div class="text-xs text-slate-500 mt-1 mono">${voice.lang || 'sem idioma'} • ${voice.voiceURI || 'sem URI'}</div>
+              </div>
+              <div class="flex flex-wrap gap-2 text-[10px] uppercase tracking-widest font-bold">
+                <span class="px-2 py-1 rounded-full ${voice.localService ? 'bg-emerald-500/15 text-emerald-300' : 'bg-fuchsia-500/15 text-fuchsia-300'}">${voice.localService ? 'local/system' : 'browser/remote'}</span>
+                <span class="px-2 py-1 rounded-full bg-sky-500/15 text-sky-300">${voice.default ? 'default' : 'voice'}</span>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      document.querySelectorAll('[data-voice-index]').forEach((el) => {
+        el.addEventListener('click', () => {
+          voiceSelect.value = el.dataset.voiceIndex;
+          updateVoiceMeta();
+          renderVoiceList();
+        });
+      });
+    }
+
+    function populateVoices() {
+      if (!('speechSynthesis' in window)) {
+        engineStatus.textContent = 'SpeechSynthesis não suportado neste navegador.';
+        engineMeta.textContent = 'Tente Edge, Chrome ou Safari moderno.';
+        voiceSelect.innerHTML = '<option>Navegador sem SpeechSynthesis</option>';
+        return;
+      }
+
+      const voices = speechSynthesis.getVoices()
+        .filter((voice) => (voice.lang || '').toLowerCase().startsWith('pt-br'))
+        .slice()
+        .sort((a, b) => {
+        const byLang = (a.lang || '').localeCompare(b.lang || '');
+        if (byLang !== 0) return byLang;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      allVoices = voices;
+
+      if (!voices.length) {
+        engineStatus.textContent = 'Nenhuma voz pt-BR encontrada ainda. Aguarde o navegador carregar.';
+        engineMeta.textContent = 'No Edge, isso pode levar alguns instantes.';
+        voiceSelect.innerHTML = '<option>Sem vozes pt-BR no momento</option>';
+        renderVoiceList();
+        return;
+      }
+
+      voiceSelect.innerHTML = voices.map((voice, index) => {
+        const label = `${voice.name} (${voice.lang || '—'})${voice.default ? ' • default' : ''}`;
+        return `<option value="${index}">${label}</option>`;
+      }).join('');
+
+      const edgeVoiceIndex = voices.findIndex(v => /microsoft|edge|neural/i.test(`${v.name} ${v.voiceURI}`));
+      voiceSelect.value = String(edgeVoiceIndex >= 0 ? edgeVoiceIndex : 0);
+
+      const microsoftCount = voices.filter(v => /microsoft|edge|neural/i.test(`${v.name} ${v.voiceURI}`)).length;
+      engineStatus.textContent = `${voices.length} vozes detectadas.`;
+      engineMeta.textContent = microsoftCount
+        ? `${microsoftCount} voz(es) Microsoft/Edge/Neural encontradas.`
+        : 'Nenhuma voz Microsoft/Edge/Neural pt-BR foi identificada pelo navegador; só aparecem as vozes pt-BR que o browser expõe.';
+
+      updateVoiceMeta();
+      renderVoiceList();
+    }
+
+    document.getElementById('speakBtn').addEventListener('click', speakText);
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      speechSynthesis.pause();
+      engineStatus.textContent = 'Leitura pausada.';
+    });
+    document.getElementById('resumeBtn').addEventListener('click', () => {
+      speechSynthesis.resume();
+      engineStatus.textContent = 'Leitura retomada.';
+    });
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      stopSpeaking();
+      engineStatus.textContent = 'Leitura interrompida.';
+    });
+    document.getElementById('demoBtn').addEventListener('click', () => {
+      textInput.value = demoText;
+    });
+    voiceSelect.addEventListener('change', () => {
+      updateVoiceMeta();
+      renderVoiceList();
+    });
+    filterInput.addEventListener('input', renderVoiceList);
+    rateInput.addEventListener('input', updateSliders);
+    pitchInput.addEventListener('input', updateSliders);
+    volumeInput.addEventListener('input', updateSliders);
+
+    textInput.value = demoText;
+    updateSliders();
+    populateVoices();
+
+    if ('speechSynthesis' in window) {
+      speechSynthesis.onvoiceschanged = populateVoices;
+      setTimeout(populateVoices, 250);
+      setTimeout(populateVoices, 1000);
+    }
+  </script>
+</body>
+</html>

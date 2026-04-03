@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local AI Explorer (v4.0)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #05070a;
+      color: #e2e8f0;
+      background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%);
+    }
+
+    .chat-container {
+      height: calc(100vh - 320px);
+      min-height: 420px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .glass-morphism {
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.9);
+    }
+
+    .user-msg {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: white;
+      border-radius: 18px 18px 2px 18px;
+    }
+
+    .ai-msg {
+      background: rgba(30, 41, 59, 0.85);
+      color: #e5eefb;
+      border-radius: 18px 18px 18px 2px;
+    }
+
+    .loading-dots::after {
+      content: '.';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60% { content: '...'; }
+      80%, 100% { content: ''; }
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #05070a; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen selection:bg-sky-500/30">
+  <div class="max-w-5xl mx-auto">
+    <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-2">Psico • AI Lab</p>
+        <h1 class="text-3xl font-bold tracking-tight text-white">AI Explorer <span class="text-xs font-mono bg-sky-500/15 text-sky-300 px-2 py-1 rounded border border-sky-400/20">v4.0 Next</span></h1>
+        <p class="text-slate-400 mt-2">Privacidade total: o processamento nunca sai do seu navegador.</p>
+      </div>
+      <div id="device-badge" class="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800 text-slate-300 self-start shadow-sm border border-white/5">
+        Detectando Hardware...
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <aside class="lg:col-span-1 space-y-4">
+        <div class="glass-morphism p-5 rounded-2xl">
+          <label class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide text-[11px]">Modelo</label>
+          <select id="model-select" class="w-full p-2.5 bg-slate-950/80 border border-white/10 rounded-lg text-sm text-slate-100 focus:ring-sky-500 focus:border-sky-500 mb-3 outline-none">
+            <option value="HuggingFaceTB/SmolLM2-135M-Instruct">SmolLM2-135M (Leve)</option>
+            <option value="HuggingFaceTB/SmolLM2-360M-Instruct" selected>SmolLM2-360M (Equilibrado)</option>
+            <option value="onnx-community/Llama-3.2-1B-Instruct">Llama 3.2-1B (Avançado)</option>
+          </select>
+
+          <button id="load-model-btn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95">
+            Carregar Modelo
+          </button>
+        </div>
+
+        <div class="glass-morphism p-5 rounded-2xl overflow-hidden">
+          <h3 class="text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
+            <span id="status-dot" class="w-2 h-2 rounded-full bg-slate-500"></span> Status do Motor
+          </h3>
+          <div id="status-container" class="space-y-3">
+            <div id="status-text" class="text-xs text-slate-400 italic">Aguardando comando...</div>
+            <div id="progress-bar-bg" class="hidden w-full bg-slate-800 rounded-full h-1.5">
+              <div id="progress-bar-fill" class="bg-sky-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="lg:col-span-3 flex flex-col gap-4">
+        <div id="chat-window" class="chat-container glass-morphism p-6 rounded-2xl flex flex-col gap-4">
+          <div class="ai-msg p-4 text-sm max-w-[85%] self-start shadow-sm border border-white/5">
+            Olá! Use o botão ao lado para carregar o motor de IA no seu navegador (via <strong>WebGPU</strong>).
+          </div>
+        </div>
+
+        <div class="relative">
+          <textarea id="user-input" rows="2"
+            class="w-full p-4 pr-16 bg-slate-950/90 text-slate-100 border border-white/10 rounded-2xl shadow-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none resize-none transition-all disabled:opacity-50"
+            placeholder="Carregue o modelo para começar a digitar..." disabled></textarea>
+          <button id="send-btn"
+            class="absolute right-3 bottom-3 p-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-11 11"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+          </button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.0.0-next.7';
+
+    env.allowRemoteModels = true;
+    env.useBrowserCache = true;
+
+    const chatWindow = document.getElementById('chat-window');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const loadBtn = document.getElementById('load-model-btn');
+    const modelSelect = document.getElementById('model-select');
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    const progressBarBg = document.getElementById('progress-bar-bg');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const deviceBadge = document.getElementById('device-badge');
+
+    let generator = null;
+    let currentModelId = '';
+    let chatHistory = [];
+    let isWebGPUAvailable = false;
+
+    async function checkWebGPU() {
+      if (navigator.gpu) {
+        try {
+          const adapter = await navigator.gpu.requestAdapter();
+          if (adapter) {
+            isWebGPUAvailable = true;
+            deviceBadge.textContent = 'Hardware: WebGPU OK';
+            deviceBadge.classList.replace('bg-slate-800', 'bg-emerald-500/15');
+            deviceBadge.classList.replace('text-slate-300', 'text-emerald-300');
+            return true;
+          }
+        } catch (e) {
+          console.warn('Falha ao detectar WebGPU', e);
+        }
+      }
+
+      deviceBadge.textContent = 'Hardware: WASM (Lento)';
+      deviceBadge.classList.replace('bg-slate-800', 'bg-amber-500/15');
+      deviceBadge.classList.replace('text-slate-300', 'text-amber-300');
+      return false;
+    }
+
+    await checkWebGPU();
+
+    async function initModel(forceWasm = false) {
+      const modelId = modelSelect.value;
+
+      loadBtn.disabled = true;
+      loadBtn.textContent = 'Carregando...';
+      statusText.textContent = 'Baixando arquivos...';
+      statusDot.classList.replace('bg-slate-500', 'bg-yellow-400');
+      statusDot.classList.replace('bg-green-500', 'bg-yellow-400');
+      progressBarBg.classList.remove('hidden');
+
+      const device = (isWebGPUAvailable && !forceWasm) ? 'webgpu' : 'wasm';
+      const dtype = device === 'webgpu' ? 'q4' : 'q8';
+
+      try {
+        generator = await pipeline('text-generation', modelId, {
+          device,
+          dtype,
+          progress_callback: (data) => {
+            if (data.status === 'progress') {
+              progressBarFill.style.width = `${data.progress}%`;
+              statusText.textContent = `Baixando: ${Math.round(data.progress)}%`;
+            } else if (data.status === 'ready') {
+              statusText.textContent = `Pronto! (${device.toUpperCase()})`;
+              statusDot.classList.replace('bg-yellow-400', 'bg-green-500');
+              progressBarBg.classList.add('hidden');
+
+              loadBtn.textContent = 'Modelo Carregado';
+              loadBtn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+              loadBtn.classList.replace('hover:bg-indigo-500', 'hover:bg-emerald-500');
+              userInput.disabled = false;
+              userInput.placeholder = 'Envie uma mensagem...';
+              sendBtn.disabled = false;
+              currentModelId = modelId;
+            }
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        if (device === 'webgpu') {
+          statusText.textContent = 'Erro WebGPU. Tentando via CPU...';
+          return await initModel(true);
+        }
+        statusText.textContent = 'Erro crítico ao carregar.';
+        loadBtn.disabled = false;
+        loadBtn.textContent = 'Tentar Novamente';
+      }
+    }
+
+    function addMessage(role, content) {
+      const wrapper = document.createElement('div');
+      wrapper.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+
+      const msg = document.createElement('div');
+      msg.className = `p-4 text-sm max-w-[85%] shadow-sm border ${role === 'user' ? 'user-msg border-sky-400/30' : 'ai-msg border-white/5'}`;
+      msg.textContent = content;
+
+      wrapper.appendChild(msg);
+      chatWindow.appendChild(wrapper);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      return msg;
+    }
+
+    async function handleSend() {
+      const text = userInput.value.trim();
+      if (!text || !generator) return;
+
+      addMessage('user', text);
+      chatHistory.push({ role: 'user', content: text });
+      userInput.value = '';
+
+      const aiMsgEl = addMessage('assistant', '...');
+      aiMsgEl.classList.add('loading-dots');
+      sendBtn.disabled = true;
+      statusText.textContent = 'Gerando resposta...';
+
+      try {
+        const output = await generator(chatHistory, {
+          max_new_tokens: 512,
+          do_sample: true,
+          temperature: 0.7,
+        });
+
+        const botResponse = output[0].generated_text[output[0].generated_text.length - 1].content;
+        aiMsgEl.classList.remove('loading-dots');
+        aiMsgEl.textContent = botResponse;
+        chatHistory.push({ role: 'assistant', content: botResponse });
+        statusText.textContent = `Pronto • ${currentModelId.split('/').pop()}`;
+      } catch (err) {
+        aiMsgEl.classList.remove('loading-dots');
+        aiMsgEl.textContent = 'Erro: ' + err.message;
+        statusText.textContent = 'Falha ao gerar resposta';
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    loadBtn.addEventListener('click', () => initModel());
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !userInput.disabled) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    modelSelect.addEventListener('change', () => {
+      generator = null;
+      chatHistory = [];
+      currentModelId = '';
+      loadBtn.disabled = false;
+      loadBtn.textContent = 'Carregar Novo Modelo';
+      loadBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+      loadBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+      userInput.disabled = true;
+      userInput.placeholder = 'Carregue o modelo para começar a digitar...';
+      sendBtn.disabled = true;
+      statusText.textContent = 'Aguardando comando...';
+      statusDot.classList.remove('bg-green-500', 'bg-yellow-400');
+      statusDot.classList.add('bg-slate-500');
+      progressBarBg.classList.add('hidden');
+      progressBarFill.style.width = '0%';
+      chatWindow.innerHTML = `
+        <div class="ai-msg p-4 text-sm max-w-[85%] self-start shadow-sm border border-white/5">
+          Olá! Use o botão ao lado para carregar o motor de IA no seu navegador (via <strong>WebGPU</strong>).
+        </div>
+      `;
+    });
+  </script>
+</body>
+</html>

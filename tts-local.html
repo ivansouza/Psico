@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Local — Supertonic 2 (ONNX Runtime)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-bar { transition: width 0.3s ease; }
+        textarea { resize: vertical; }
+        .voice-btn.active { box-shadow: 0 0 0 2px #3b82f6; }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+            100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+        .synthesizing { animation: pulse-ring 1.2s infinite; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4">
+    <div class="max-w-xl w-full mt-6 space-y-5">
+        <div class="text-center">
+            <h1 class="text-3xl font-bold mb-1">🔊 TTS Local</h1>
+            <p class="text-slate-400 text-sm">Supertonic 2 — ONNX Runtime Web · PT-BR · WebGPU</p>
+        </div>
+        <div id="setup-card" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
+            <div id="phase-desc" class="text-sm text-slate-300">Carrega modelo ONNX (~260MB) do HF. Cacheia no browser depois.</div>
+            <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden"><div id="progress-bar" class="loading-bar bg-blue-500 h-full" style="width:0%"></div></div>
+            <div id="progress-detail" class="text-xs text-slate-500 font-mono min-h-[1.2em]"></div>
+            <button id="load-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition text-sm">▶ Carregar Modelos</button>
+        </div>
+        <div id="tts-card" class="hidden bg-slate-800/80 rounded-2xl p-5 border border-slate-700 space-y-4">
+            <div id="backend-badge" class="text-[10px] font-mono bg-slate-900 inline-block px-3 py-1 rounded-full uppercase tracking-widest">—</div>
+            <div>
+                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
+                <div id="voice-grid" class="grid grid-cols-5 gap-2"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Steps: <span id="steps-val">5</span></label>
+                    <input id="steps-slider" type="range" min="2" max="15" value="5" class="w-full accent-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Velocidade: <span id="speed-val">1.05</span></label>
+                    <input id="speed-slider" type="range" min="0.5" max="2.0" step="0.05" value="1.05" class="w-full accent-blue-500">
+                </div>
+            </div>
+            <textarea id="text-input" rows="4" lang="pt-BR"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 font-sans text-sm placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                placeholder="Digite o texto..."></textarea>
+            <div class="flex gap-3">
+                <button id="generate-btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition disabled:opacity-40">🔊 Gerar</button>
+                <button id="download-btn" class="hidden px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition text-sm">⬇ WAV</button>
+            </div>
+            <div id="player-wrap" class="hidden"><audio id="audio-player" controls class="w-full"></audio></div>
+            <div id="stats" class="hidden text-xs font-mono text-slate-500 space-y-1 bg-slate-900/50 rounded-xl p-3"></div>
+        </div>
+    </div>
+
+<script>
+// Supertonic 2 TTS — ONNX Runtime Web (pure)
+// Pipeline: duration_predictor → text_encoder → vector_estimator → vocoder
+const MODEL_DIR = 'https://huggingface.co/Supertone/supertonic-2/resolve/main/onnx/';
+const STYLE_DIR = 'https://huggingface.co/Supertone/supertonic-2/resolve/main/voice_styles/';
+const VOICES = ['M1','M2','M3','M4','M5','F1','F2','F3','F4','F5'];
+const SR = 44100;
+const LATENT_SIZE = 3072; // 512 * 6
+const LATENT_DIM = 144;   // 24 * 6
+
+let sessions = {}, unicodeIdx = null, vStyles = {}, selVoice = 'M1', lastBlob = null, loaded = false;
+const el = id => document.getElementById(id);
+
+// Get first output key from inference result
+const outKey = (result) => { const k = Object.keys(result); return k.length > 0 ? k[0] : null; };
+
+function setProgress(pct, txt) {
+    el('progress-bar').style.width = pct + '%';
+    if (txt !== undefined) el('progress-detail').textContent = txt;
+}
+
+// Voice grid
+(function() {
+    const vg = el('voice-grid');
+    for (const v of VOICES) {
+        const b = document.createElement('button');
+        b.className = 'voice-btn py-2 px-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium';
+        b.dataset.voice = v; b.textContent = v;
+        b.onclick = () => {
+            vg.querySelectorAll('.voice-btn').forEach(x => x.classList.remove('active','ring-2','ring-blue-500'));
+            b.classList.add('active','ring-2','ring-blue-500'); selVoice = v;
+        };
+        vg.appendChild(b);
+    }
+    vg.querySelector('[data-voice="M1"]').classList.add('active','ring-2','ring-blue-500');
+})();
+el('steps-slider').addEventListener('input', e => el('steps-val').textContent = e.target.value);
+el('speed-slider').addEventListener('input', e => el('speed-val').textContent = parseFloat(e.target.value).toFixed(2));
+
+// Text normalization → unicode codepoints → token IDs
+function normText(text, lang) {
+    text = text.normalize('NFKD');
+    text = text.replace(/[\u{1F600}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E0}-\u{1F1FF}]+/gu, '');
+    text = text.replace(/–|‑|—/g, '-').replace(/_/g, ' ').replace(/[\u201C\u201D]/g, '"')
+               .replace(/[\u2018\u2019\u00B4\u0060]/g, "'").replace(/[\[\]|\/#→←]/g, ' ')
+               .replace(/[♥☆♡©\\]/g, '').replace(/@/g, ' at ').replace(/e\.g\.,/g, 'for example, ').replace(/i\.e\.,/g, 'that is, ');
+    text = text.replace(/ ,/g, ',').replace(/ \./g, '.').replace(/\s+/g, ' ').trim();
+    if (!/[.!?;,'"')\]}>…。」』】〉》›»]$/.test(text)) text += '.';
+    return '<' + lang + '>' + text + '</' + lang + '>';
+}
+
+function tokenize(text) {
+    const cps = [];
+    for (let i = 0; i < text.length; i++) { let cp = text.codePointAt(i); if (cp > 0xFFFF) i++; cps.push(cp); }
+    return cps.map(cp => (unicodeIdx[cp] !== undefined && unicodeIdx[cp] >= 0) ? unicodeIdx[cp] : -1);
+}
+
+// Flatten nested JSON arrays
+function flat(arr) {
+    const r = []; (function go(x) { if (Array.isArray(x)) x.forEach(go); else r.push(Number(x)); })(arr); return r;
+}
+
+// ── LOAD ──
+el('load-btn').addEventListener('click', async () => {
+    el('load-btn').disabled = true; el('load-btn').textContent = '⏳ Carregando...';
+    setProgress(5, 'Init ORT...');
+
+    try {
+        let backend = 'wasm';
+        if (navigator.gpu) try { if (await navigator.gpu.requestAdapter()) backend = 'webgpu'; } catch {}
+        setProgress(10, 'Backend: ' + backend.toUpperCase());
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+
+        setProgress(15, 'unicode_indexer.json');
+        unicodeIdx = await (await fetch(MODEL_DIR + 'unicode_indexer.json')).json();
+
+        const files = [['duration_predictor','duration_predictor.onnx'],['text_encoder','text_encoder.onnx'],['vector_estimator','vector_estimator.onnx'],['vocoder','vocoder.onnx']];
+        for (let i = 0; i < files.length; i++) {
+            const [name, fname] = files[i];
+            setProgress(20 + i * 15, fname);
+            el('phase-desc').textContent = 'Loading ' + fname + ' (' + (i+1) + '/4)...';
+            const resp = await fetch(MODEL_DIR + fname);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status + ' for ' + fname);
+            const buf = await resp.arrayBuffer();
+            console.log(fname + ': ' + (buf.byteLength / 1e6).toFixed(1) + ' MB');
+            sessions[name] = await ort.InferenceSession.create(buf);
+            console.log(name + ' outputs:', sessions[name].outputNames);
+        }
+
+        for (const v of VOICES) {
+            el('phase-desc').textContent = 'Loading ' + v + '...';
+            const s = await (await fetch(STYLE_DIR + v + '.json')).json();
+            vStyles[v] = {
+                ttl: new Float32Array(flat(s.style_ttl.data)), dp: new Float32Array(flat(s.style_dp.data)),
+                ttlDims: s.style_ttl.dims, dpDims: s.style_dp.dims
+            };
+        }
+
+        setProgress(100); el('phase-desc').textContent = '✅ Pronto — ' + backend.toUpperCase();
+        setTimeout(() => {
+            el('setup-card').classList.add('hidden'); el('tts-card').classList.remove('hidden');
+            el('backend-badge').innerHTML = '<span class="inline-block w-2 h-2 rounded-full mr-1" style="background:#22c55e"></span>' + backend.toUpperCase() + ' · ' + VOICES.length + ' vozes (PT)';
+            loaded = true;
+        }, 500);
+    } catch (err) {
+        console.error(err); el('phase-desc').textContent = '❌ ' + err.message;
+        el('phase-desc').classList.add('text-red-400');
+        el('load-btn').disabled = false; el('load-btn').textContent = '🔄 Tentar novamente';
+    }
+});
+
+// ── GENERATE ──
+el('generate-btn').addEventListener('click', async () => {
+    const text = el('text-input').value.trim();
+    if (!text || !loaded) return;
+    const btn = el('generate-btn');
+    btn.disabled = true; btn.textContent = '⏳ Gerando...'; btn.classList.add('synthesizing');
+    el('stats').classList.add('hidden'); el('download-btn').classList.add('hidden'); el('player-wrap').classList.add('hidden');
+
+    const steps = parseInt(el('steps-slider').value);
+    const speed = parseFloat(el('speed-slider').value);
+    const t0 = performance.now();
+
+    try {
+        const vs = vStyles[selVoice];
+        const processed = normText(text, 'pt');
+        const tids = tokenize(processed);
+        const tlen = tids.length;
+        const paddedLen = Math.max(tlen, 1);
+
+        const textIds = new BigInt64Array(paddedLen);
+        for (let i = 0; i < tlen; i++) textIds[i] = BigInt(tids[i]);
+        const textMask = new Float32Array(paddedLen);
+        textMask.fill(1, 0, tlen);
+
+        console.log('Text:', processed, '| tokens:', tlen);
+        console.log('dur inputs:', JSON.stringify(sessions.duration_predictor.inputNames));
+        console.log('dur outputs:', JSON.stringify(sessions.duration_predictor.outputNames));
+
+        // 2. Duration predictor
+        //    Inputs: text_ids, text_mask, style_dp
+        //    Outputs: duration
+        const durRes = await sessions.duration_predictor.run({
+            text_ids:  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
+            text_mask: new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+            style_dp:  new ort.Tensor('float32', vs.dp, vs.dpDims)
+        });
+        const dk = Object.keys(durRes)[0];
+        console.log('dur_predictor output:', dk, '| data:', durRes[dk].data.length);
+        const duration = durRes[dk].data[0];
+        console.log('Duration:', duration);
+
+        // 3. Text encoder
+        //    Inputs: text_ids, text_mask, style_ttl  
+        //    Outputs: text_emb
+        const embRes = await sessions.text_encoder.run({
+            text_ids:  new ort.Tensor('int64',  textIds,  [1, paddedLen]),
+            text_mask: new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+            style_ttl: new ort.Tensor('float32', vs.ttl, vs.ttlDims)
+        });
+        const ek = Object.keys(embRes)[0];
+        console.log('text_encoder output:', ek, '| dims:', embRes[ek].dims);
+        const textEmb = embRes[ek];
+
+        // 4. Sample noisy latent
+        const wavLen = Math.round(duration * SR);
+        const latentLen = Math.max(1, Math.ceil(wavLen / LATENT_SIZE));
+        const xt = new Float32Array(LATENT_DIM * latentLen);
+        for (let i = 0; i < xt.length; i++) xt[i] = (Math.random() * 2 - 1);
+        const lmask = new Float32Array(latentLen);
+        lmask.fill(1);
+        console.log('Noisy latent: [' + LATENT_DIM + ', ' + latentLen + ']');
+
+        // 5. Denoising loop
+        //    Inputs: noisy_latent, text_emb, style_ttl, text_mask, latent_mask, current_step, total_step
+        //    Outputs: ?
+        const totalStep = new Float32Array([steps]);
+        for (let step = 0; step < steps; step++) {
+            const dnRes = await sessions.vector_estimator.run({
+                noisy_latent: new ort.Tensor('float32', xt, [1, LATENT_DIM, latentLen]),
+                text_emb:     textEmb,
+                style_ttl:    new ort.Tensor('float32', vs.ttl, vs.ttlDims),
+                text_mask:    new ort.Tensor('float32', textMask, [1, 1, paddedLen]),
+                latent_mask:  new ort.Tensor('float32', lmask, [1, 1, latentLen]),
+                current_step: new ort.Tensor('float32', [step], [1]),
+                total_step:   new ort.Tensor('float32', totalStep, [1])
+            });
+            const nk = Object.keys(dnRes)[0];
+            if (step === 0) console.log('vector_estimator output:', nk, '| dims:', dnRes[nk].dims);
+            xt.set(dnRes[nk].data);
+        }
+
+        // 6. Vocoder
+        //    Inputs: latent
+        //    Outputs: audio/wav
+        const vocRes = await sessions.vocoder.run({
+            latent: new ort.Tensor('float32', xt, [1, LATENT_DIM, latentLen])
+        });
+        const vk = Object.keys(vocRes)[0];
+        console.log('vocoder output:', vk, '| dims:', vocRes[vk].dims);
+        const wavData = vocRes[vk].data;
+
+        const audioLen = Math.floor(duration * SR);
+        const nSamples = Math.min(audioLen, wavData.length);
+        console.log('Samples:', nSamples, 'of', wavData.length);
+        const wavBuf = encodeWav(wavData, nSamples, SR);
+        lastBlob = new Blob([wavBuf], { type: 'audio/wav' });
+        const url = URL.createObjectURL(lastBlob);
+        const audioDur = nSamples / SR;
+        const elapsed = (performance.now() - t0) / 1000;
+
+        el('audio-player').src = url; el('player-wrap').classList.remove('hidden'); el('audio-player').play();
+        el('stats').innerHTML = '<div>Voz: <b>' + selVoice + '</b> | Steps: <b>' + steps + '</b></div>' +
+            '<div>Áudio: <b>' + audioDur.toFixed(1) + 's</b> em <b>' + elapsed.toFixed(1) + 's</b> (RTF: ' + (elapsed/audioDur).toFixed(2) + ')</div>';
+        el('stats').classList.remove('hidden'); el('download-btn').classList.remove('hidden');
+        btn.textContent = '🔊 Gerar';
+    } catch (err) {
+        console.error('Generate error:', err); btn.textContent = '❌ ' + err.message.slice(0, 60);
+    }
+    btn.disabled = false; btn.classList.remove('synthesizing');
+});
+
+el('download-btn').addEventListener('click', () => {
+    if (!lastBlob) return;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(lastBlob);
+    a.download = 'tts-' + selVoice + '-' + Date.now() + '.wav'; a.click();
+});
+
+function encodeWav(data, n, sr) {
+    const buf = new ArrayBuffer(44 + n * 2); const v = new DataView(buf);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); ws(8, 'WAVE');
+    ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    ws(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+        const s = Math.max(-1, Math.min(1, data[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return buf;
+}
+</script>
+</body>
+</html>

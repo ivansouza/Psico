@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Duas Circunferências - X Acima</title>
+ <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ <style>
+ body {
+ margin: 0;
+ padding: 10px;
+ background: #f4f4f4;
+ font-family: Arial, sans-serif;
+ }
+ h1 {
+ text-align: center;
+ color: #222;
+ margin: 10px 0;
+ }
+ .canvas-container {
+ background: white;
+ padding: 10px;
+ border-radius: 14px;
+ box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+ margin-bottom: 15px;
+ }
+ canvas {
+ width: 100%;
+ height: auto;
+ border: 3px solid #333;
+ border-radius: 8px;
+ }
+ .controls {
+ background: white;
+ padding: 15px;
+ border-radius: 12px;
+ box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+ margin-bottom: 15px;
+ }
+ label {
+ display: block;
+ margin: 12px 0 6px;
+ font-weight: bold;
+ }
+ input[type="range"] { width: 100%; }
+ .formula {
+ background: white;
+ padding: 18px;
+ border-radius: 12px;
+ box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+ text-align: center;
+ font-size: 1.25em;
+ margin: 10px 0;
+ }
+ .explanation {
+ background: white;
+ padding: 15px;
+ border-radius: 12px;
+ box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+ margin: 10px 0;
+ color: #444;
+ line-height: 1.5;
+ }
+ .result {
+ background: white;
+ padding: 16px;
+ border-radius: 12px;
+ box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+ margin-top: 15px;
+ text-align: center;
+ font-size: 1.1em;
+ color: #222;
+ }
+ .result strong {
+ color: #d32f2f;
+ }
+ </style>
+</head>
+<body>
+ <h1>Duas Circunferências</h1>
+
+ <div class="canvas-container">
+ <canvas id="canvas" width="460" height="460"></canvas>
+ </div>
+
+ <div class="controls">
+ <label>Raio círculo 1 (azul): <span id="r1_val">21.0</span></label>
+ <input type="range" id="r1" min="5" max="50" value="21" step="0.1">
+
+ <label>Raio círculo 2 (laranja): <span id="r2_val">21.0</span></label>
+ <input type="range" id="r2" min="5" max="50" value="21" step="0.1">
+ </div>
+
+ <div class="formula">
+ <strong>Fórmula:</strong><br><br>
+ \( x = \sqrt{(r_1 + r_2)^2 - (r_2 - r_1)^2} \)
+ </div>
+
+ <div class="explanation">
+ Os círculos estão <strong>pousados</strong> no mesmo plano horizontal.<br>
+ A linha do <strong>x</strong> é proporcional à distância entre os centros.
+ </div>
+
+ <div class="result">
+ Comprimento de <strong>x</strong>: <span id="x_val">0.0</span> unidades
+ </div>
+
+ <script>
+ const canvas = document.getElementById('canvas');
+ const ctx = canvas.getContext('2d');
+
+ const r1Slider = document.getElementById('r1');
+ const r2Slider = document.getElementById('r2');
+ const r1Val = document.getElementById('r1_val');
+ const r2Val = document.getElementById('r2_val');
+ const xVal = document.getElementById('x_val');
+
+ function draw() {
+ let r1 = parseFloat(r1Slider.value);
+ let r2 = parseFloat(r2Slider.value);
+
+ r1Val.textContent = r1.toFixed(1);
+ r2Val.textContent = r2.toFixed(1);
+
+ const verticalDiff = Math.abs(r2 - r1);
+ const distanceCenters = r1 + r2;
+ let x = verticalDiff < distanceCenters ? Math.sqrt(distanceCenters**2 - verticalDiff**2) : 0;
+
+ xVal.textContent = x.toFixed(2);
+
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+ const scale = 3.1;
+ const groundY = 370;
+ const centerX = canvas.width / 2;
+ const leftX = centerX - (x * scale / 2);
+ const rightX = centerX + (x * scale / 2);
+
+ // Chão
+ ctx.strokeStyle = '#333';
+ ctx.lineWidth = 8;
+ ctx.beginPath();
+ ctx.moveTo(20, groundY);
+ ctx.lineTo(canvas.width - 20, groundY);
+ ctx.stroke();
+
+ // Círculo 1 (azul)
+ const cy1 = groundY - r1 * scale;
+ ctx.beginPath();
+ ctx.arc(leftX, cy1, r1 * scale, 0, Math.PI * 2);
+ ctx.fillStyle = '#4fc3f7';
+ ctx.fill();
+ ctx.strokeStyle = '#0277bd';
+ ctx.lineWidth = 3;
+ ctx.stroke();
+
+ // Círculo 2 (laranja)
+ const cy2 = groundY - r2 * scale;
+ ctx.beginPath();
+ ctx.arc(rightX, cy2, r2 * scale, 0, Math.PI * 2);
+ ctx.fillStyle = '#ff8a65';
+ ctx.fill();
+ ctx.strokeStyle = '#d84315';
+ ctx.lineWidth = 3;
+ ctx.stroke();
+
+ // Raios horizontais
+ ctx.strokeStyle = '#0277bd';
+ ctx.lineWidth = 3.5;
+ ctx.beginPath();
+ ctx.moveTo(leftX, cy1);
+ ctx.lineTo(leftX + r1 * scale, cy1);
+ ctx.stroke();
+
+ ctx.strokeStyle = '#d84315';
+ ctx.lineWidth = 3.5;
+ ctx.beginPath();
+ ctx.moveTo(rightX, cy2);
+ ctx.lineTo(rightX + r2 * scale, cy2);
+ ctx.stroke();
+
+ // Números acima dos raios
+ ctx.font = 'bold 18px Arial';
+ ctx.textAlign = 'center';
+ ctx.textBaseline = 'bottom';
+
+ ctx.fillStyle = '#0277bd';
+ ctx.fillText(r1.toFixed(1), leftX + (r1 * scale)/2, cy1 - 12);
+
+ ctx.fillStyle = '#d84315';
+ ctx.fillText(r2.toFixed(1), rightX + (r2 * scale)/2, cy2 - 12);
+
+ // === LINHA DO X PROPORCIONAL + TEXTO ACIMA ===
+ if (x > 1) {
+ ctx.strokeStyle = '#d32f2f';
+ ctx.lineWidth = 5;
+ ctx.beginPath();
+ ctx.moveTo(leftX, groundY + 48);
+ ctx.lineTo(rightX, groundY + 48);
+ ctx.stroke();
+
+ // Texto "x" acima da linha vermelha
+ ctx.fillStyle = '#d32f2f';
+ ctx.font = 'bold 32px Arial';
+ ctx.fillText('x', centerX, groundY + 38);
+ }
+ }
+
+ r1Slider.addEventListener('input', draw);
+ r2Slider.addEventListener('input', draw);
+
+ draw();
+ </script>
+</body>
+</html>

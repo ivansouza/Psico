@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Edge TTS Local</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #05070a;
+      color: #e2e8f0;
+      background-image: radial-gradient(circle at 50% 50%, #111827 0%, #05070a 100%);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.9);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-sky-500/30">
+  <main class="max-w-5xl mx-auto px-4 py-8 md:px-6 md:py-10 space-y-6">
+    <header class="glass-card rounded-3xl p-6 md:p-8">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-2">Psico • Microsoft Voice Lab</p>
+      <h1 class="text-3xl md:text-4xl font-black tracking-tight gradient-text">Edge TTS Local</h1>
+      <p class="text-slate-400 mt-3 max-w-2xl">Usa o engine real de voz Microsoft Edge TTS via backend local. Focado em vozes neurais pt-BR.</p>
+    </header>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-1 space-y-6">
+        <div class="glass-card rounded-3xl p-6 space-y-4">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Voz neural pt-BR</label>
+            <select id="voiceSelect" class="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-sky-500"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Rate</label>
+            <select id="rateSelect" class="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="-25%">-25%</option>
+              <option value="-10%">-10%</option>
+              <option value="+0%" selected>+0%</option>
+              <option value="+10%">+10%</option>
+              <option value="+25%">+25%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-2">Pitch</label>
+            <select id="pitchSelect" class="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="-10Hz">-10Hz</option>
+              <option value="-5Hz">-5Hz</option>
+              <option value="+0Hz" selected>+0Hz</option>
+              <option value="+5Hz">+5Hz</option>
+              <option value="+10Hz">+10Hz</option>
+            </select>
+          </div>
+          <div id="statusBox" class="text-sm text-slate-300 bg-slate-950/70 border border-white/5 rounded-2xl p-4">Carregando vozes do backend local...</div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 space-y-6">
+        <div class="glass-card rounded-3xl p-6 space-y-4">
+          <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 class="text-sm font-bold uppercase tracking-[0.25em] text-slate-400">Texto</h2>
+              <p class="text-xs text-slate-500 mt-1">Digite o texto e gere o áudio com as vozes neurais da Microsoft.</p>
+            </div>
+            <button id="demoBtn" class="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">Carregar demo</button>
+          </div>
+          <textarea id="textInput" rows="10" class="w-full bg-slate-950/90 text-slate-100 border border-white/10 rounded-3xl p-4 outline-none focus:ring-2 focus:ring-sky-500 resize-y"></textarea>
+          <div class="flex flex-wrap gap-3">
+            <button id="generateBtn" class="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow-lg shadow-sky-500/20 transition">Gerar áudio</button>
+            <a id="downloadBtn" class="hidden px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition" download>Baixar MP3</a>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-3xl p-6 space-y-4">
+          <h2 class="text-sm font-bold uppercase tracking-[0.25em] text-slate-400">Player</h2>
+          <audio id="audioPlayer" controls class="w-full"></audio>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const apiBase = 'http://localhost:8765/api';
+    const voiceSelect = document.getElementById('voiceSelect');
+    const rateSelect = document.getElementById('rateSelect');
+    const pitchSelect = document.getElementById('pitchSelect');
+    const textInput = document.getElementById('textInput');
+    const statusBox = document.getElementById('statusBox');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const demoText = 'Olá Ivan. Esta página usa o engine real Microsoft Edge TTS em backend local, com vozes neurais em português do Brasil.';
+
+    async function loadVoices() {
+      statusBox.textContent = 'Buscando vozes pt-BR no backend local...';
+      try {
+        const res = await fetch(`${apiBase}/voices`);
+        const voices = await res.json();
+        voiceSelect.innerHTML = voices.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
+        statusBox.textContent = `${voices.length} vozes pt-BR carregadas.`;
+      } catch (err) {
+        statusBox.textContent = 'Não consegui falar com o backend local em http://localhost:8765. Inicie o servidor Python antes de usar esta página.';
+      }
+    }
+
+    async function generateAudio() {
+      const text = textInput.value.trim();
+      if (!text) {
+        statusBox.textContent = 'Digite algum texto primeiro.';
+        return;
+      }
+      statusBox.textContent = 'Gerando áudio com Microsoft Edge TTS...';
+      downloadBtn.classList.add('hidden');
+      try {
+        const res = await fetch(`${apiBase}/synthesize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text,
+            voice: voiceSelect.value,
+            rate: rateSelect.value,
+            pitch: pitchSelect.value,
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Falha ao gerar áudio');
+        audioPlayer.src = `http://localhost:8765${data.audioUrl}`;
+        audioPlayer.play().catch(() => {});
+        downloadBtn.href = `http://localhost:8765${data.downloadUrl}`;
+        downloadBtn.classList.remove('hidden');
+        statusBox.textContent = `Áudio gerado com ${data.voice}.`;
+      } catch (err) {
+        statusBox.textContent = err.message;
+      }
+    }
+
+    document.getElementById('demoBtn').addEventListener('click', () => textInput.value = demoText);
+    document.getElementById('generateBtn').addEventListener('click', generateAudio);
+    textInput.value = demoText;
+    loadVoices();
+  </script>
+</body>
+</html>

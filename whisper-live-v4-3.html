@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Whisper Live v4.3 - Com Progresso</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <style>
+ #output::-webkit-scrollbar {
+ width: 4px;
+ }
+ #output::-webkit-scrollbar-track {
+ background: transparent;
+ }
+ #output::-webkit-scrollbar-thumb {
+ background: #3f3f46;
+ border-radius: 10px;
+ }
+ .progress-transition {
+ transition: width 0.3s ease-in-out;
+ }
+ </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen p-4 font-sans flex flex-col items-center">
+
+ <div class="w-full max-w-lg flex flex-col gap-5">
+ <header class="text-center py-4">
+ <h1 class="text-2xl font-bold text-indigo-400 tracking-tight">Whisper v4.3 <span class="text-xs bg-indigo-900 px-2 py-1 rounded text-white">STREAM</span></h1>
+ <div id="statusTag" class="text-[10px] text-zinc-500 font-mono mt-2 uppercase tracking-widest">Aguardando Carregamento...</div>
+ </header>
+
+ <div id="loadStep" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-4">
+ <p class="text-xs text-zinc-400 text-center">O modelo tem cerca de 150MB e será guardado na cache do navegador.</p>
+ 
+ <button id="loadBtn" class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2">
+ <span>📦</span> Carregar Modelo de IA
+ </button>
+
+ <div id="progressContainer" class="hidden space-y-2">
+ <div class="flex justify-between items-center text-[10px] font-mono text-indigo-300 uppercase tracking-wider">
+ <span id="progressLabel">A descarregar ficheiros...</span>
+ <span id="progressPercent">0%</span>
+ </div>
+ <div class="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+ <div id="progressBar" class="bg-indigo-500 h-full w-0 progress-transition"></div>
+ </div>
+ </div>
+ </div>
+
+ <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl relative">
+ <div id="output" class="text-xl leading-relaxed text-zinc-400 italic h-48 overflow-y-auto pr-2 text-left">
+ O texto acumulado aparecerá aqui...
+ </div>
+ <div class="absolute bottom-4 right-4 flex items-center gap-2 bg-zinc-900/80 pl-2 rounded-lg">
+ <span id="volumeVal" class="text-[10px] font-mono text-zinc-600">VOL: 0</span>
+ <div id="vadCircle" class="w-3 h-3 rounded-full bg-zinc-800 transition-colors"></div>
+ </div>
+ </div>
+
+ <div id="logs" class="bg-black/50 border border-zinc-800 rounded-xl p-3 h-24 overflow-y-auto font-mono text-[9px] text-emerald-500 leading-tight">
+ <div>> Sistema pronto. Carregue o modelo.</div>
+ </div>
+
+ <div class="grid grid-cols-1 gap-4">
+ <button id="mainBtn" disabled class="bg-zinc-800 opacity-50 cursor-not-allowed py-5 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-3">
+ <span id="btnIcon">🎤</span> <span id="btnText">Aguardando IA...</span>
+ </button>
+ <button id="clearBtn" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors underline">Limpar Texto</button>
+ </div>
+
+ <p class="text-[9px] text-center text-zinc-600 uppercase tracking-widest leading-relaxed">
+ Processamento 100% Local via WebGPU/WASM<br>Privacidade Total • Sem Nuvem
+ </p>
+ </div>
+
+ <script type="module">
+ import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.10";
+
+ let pipe = null;
+ let isRunning = false;
+ let audioCtx = null;
+ let mediaRecorder = null;
+ let isProcessing = false;
+
+ const loadBtn = document.getElementById('loadBtn');
+ const loadStep = document.getElementById('loadStep');
+ const progressContainer = document.getElementById('progressContainer');
+ const progressBar = document.getElementById('progressBar');
+ const progressPercent = document.getElementById('progressPercent');
+ const progressLabel = document.getElementById('progressLabel');
+ 
+ const mainBtn = document.getElementById('mainBtn');
+ const btnText = document.getElementById('btnText');
+ const clearBtn = document.getElementById('clearBtn');
+ const output = document.getElementById('output');
+ const logs = document.getElementById('logs');
+ const statusTag = document.getElementById('statusTag');
+ const vadCircle = document.getElementById('vadCircle');
+ const volumeVal = document.getElementById('volumeVal');
+
+ function addLog(msg) {
+ const div = document.createElement('div');
+ div.textContent = `> ${msg}`;
+ logs.appendChild(div);
+ logs.scrollTop = logs.scrollHeight;
+ }
+
+ async function initModel() {
+ loadBtn.classList.add('hidden');
+ progressContainer.classList.remove('hidden');
+ statusTag.textContent = "⚙️ A carregar IA...";
+ addLog("Iniciando download dos pesos do modelo Whisper Tiny...");
+ 
+ try {
+ pipe = await pipeline("automatic-speech-recognition", "onnx-community/whisper-tiny", {
+ device: "webgpu",
+ dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
+ progress_callback: (data) => {
+ if (data.status === 'progress') {
+ const p = Math.round(data.progress);
+ progressBar.style.width = `${p}%`;
+ progressPercent.textContent = `${p}%`;
+ if (data.file) {
+ progressLabel.textContent = `A carregar: ${data.file.split('/').pop()}`;
+ }
+ }
+ }
+ });
+ statusTag.textContent = "✅ GPU Ativa";
+ addLog("WebGPU inicializado.");
+ } catch (e) {
+ addLog("WebGPU falhou. A descarregar para CPU...");
+ pipe = await pipeline("automatic-speech-recognition", "onnx-community/whisper-tiny", { 
+ device: "wasm",
+ progress_callback: (data) => {
+ if (data.status === 'progress') {
+ const p = Math.round(data.progress);
+ progressBar.style.width = `${p}%`;
+ progressPercent.textContent = `${p}%`;
+ }
+ }
+ });
+ statusTag.textContent = "⚠️ Modo CPU";
+ }
+
+ setTimeout(() => {
+ loadStep.classList.add('hidden');
+ mainBtn.disabled = false;
+ mainBtn.classList.replace('bg-zinc-800', 'bg-indigo-600');
+ mainBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+ btnText.textContent = "Iniciar Transcrição";
+ addLog("Modelo pronto para uso.");
+ }, 500);
+ }
+
+ async function processBlob(blob) {
+ if (isProcessing || blob.size < 1000) return;
+ isProcessing = true;
+ try {
+ const arrayBuffer = await blob.arrayBuffer();
+ const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+ const audioData = decoded.getChannelData(0);
+
+ const result = await pipe(audioData, {
+ language: "pt",
+ task: "transcribe"
+ });
+
+ const text = result.text.trim();
+ if (text) {
+ if (output.classList.contains('italic')) {
+ output.textContent = "";
+ output.classList.remove('text-zinc-400', 'italic');
+ output.classList.add('text-white');
+ }
+ output.textContent += (output.textContent ? " " : "") + text;
+ output.scrollTop = output.scrollHeight;
+ addLog(`Transcrito: ${text.substring(0, 15)}...`);
+ }
+ } catch (err) {
+ } finally {
+ isProcessing = false;
+ }
+ }
+
+ async function startSystem() {
+ try {
+ if (!audioCtx) {
+ audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+ } else if (audioCtx.state === 'suspended') {
+ await audioCtx.resume();
+ }
+
+ const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+ 
+ const source = audioCtx.createMediaStreamSource(stream);
+ const analyzer = audioCtx.createAnalyser();
+ source.connect(analyzer);
+ const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+ 
+ function updateVolume() {
+ if (!isRunning) return;
+ analyzer.getByteFrequencyData(dataArray);
+ let sum = 0;
+ for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+ let vol = Math.round(sum / dataArray.length);
+ volumeVal.textContent = `VOL: ${vol}`;
+ vadCircle.style.backgroundColor = vol > 5 ? '#10b981' : '#27272a';
+ requestAnimationFrame(updateVolume);
+ }
+ updateVolume();
+
+ const startRecordingCycle = () => {
+ if (!isRunning) return;
+ mediaRecorder = new MediaRecorder(stream);
+ mediaRecorder.ondataavailable = (e) => {
+ if (e.data.size > 0) processBlob(e.data);
+ };
+ mediaRecorder.onstop = () => {
+ if (isRunning) startRecordingCycle();
+ };
+ mediaRecorder.start();
+ setTimeout(() => {
+ if (mediaRecorder && mediaRecorder.state === "recording") {
+ mediaRecorder.stop();
+ }
+ }, 3000);
+ };
+
+ startRecordingCycle();
+ addLog("Ouvindo microfone...");
+
+ } catch (err) {
+ addLog("Erro Microfone: " + err.message);
+ isRunning = false;
+ }
+ }
+
+ loadBtn.onclick = initModel;
+
+ mainBtn.onclick = async () => {
+ if (!isRunning) {
+ isRunning = true;
+ btnText.textContent = "Parar";
+ mainBtn.classList.replace('bg-indigo-600', 'bg-red-600');
+ if (output.classList.contains('italic')) output.textContent = "Ouvindo...";
+ await startSystem();
+ } else {
+ isRunning = false;
+ if (mediaRecorder) mediaRecorder.stop();
+ btnText.textContent = "Retomar";
+ mainBtn.classList.replace('bg-red-600', 'bg-indigo-600');
+ statusTag.textContent = "⏸ Pausado";
+ addLog("Pausado.");
+ }
+ };
+
+ clearBtn.onclick = () => {
+ output.textContent = "";
+ output.classList.add('text-zinc-400', 'italic');
+ output.textContent = "O texto aparecerá aqui...";
+ addLog("Ecrã limpo.");
+ };
+ </script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Simulador do Sistema Solar 3D</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+ <style>
+ body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Inter', sans-serif; touch-action: none; }
+ canvas { display: block; }
+ 
+ /* Gaveta Retrátil */
+ #drawer {
+ position: absolute;
+ top: 0;
+ left: -320px;
+ width: 280px;
+ height: 100%;
+ background: rgba(0, 0, 0, 0.9);
+ backdrop-filter: blur(15px);
+ border-right: 1px solid rgba(255, 255, 255, 0.1);
+ transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+ z-index: 100;
+ padding: 20px;
+ overflow-y: auto;
+ }
+
+ #drawer.open {
+ left: 0;
+ }
+
+ /* Botão de Toggle */
+ #toggle-drawer {
+ position: absolute;
+ top: 15px;
+ left: 15px;
+ z-index: 60;
+ background: rgba(255, 255, 255, 0.1);
+ border: 1px solid rgba(255, 255, 255, 0.2);
+ color: white;
+ padding: 12px;
+ border-radius: 50%;
+ cursor: pointer;
+ backdrop-filter: blur(5px);
+ transition: all 0.3s;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ }
+
+ .controls {
+ position: absolute;
+ bottom: 15px;
+ right: 15px;
+ left: 15px;
+ background: rgba(0, 0, 0, 0.7);
+ padding: 15px;
+ border-radius: 12px;
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ color: white;
+ backdrop-filter: blur(5px);
+ z-index: 40;
+ max-width: 350px;
+ margin-left: auto;
+ }
+
+ .planet-card {
+ background: rgba(255, 255, 255, 0.05);
+ border-left: 4px solid #fcd34d;
+ padding: 12px;
+ margin-bottom: 10px;
+ transition: all 0.2s;
+ cursor: pointer;
+ border-radius: 0 8px 8px 0;
+ }
+
+ .planet-card:active {
+ background: rgba(255, 255, 255, 0.2);
+ }
+
+ #drawer::-webkit-scrollbar { width: 0px; }
+ </style>
+</head>
+<body>
+
+ <button id="toggle-drawer" aria-label="Abrir Menu">
+ <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+ </button>
+
+ <div id="drawer">
+ <div class="flex justify-between items-center mb-6">
+ <h1 class="text-xl font-bold text-white">Sistema Solar</h1>
+ <button id="close-drawer" class="p-2 text-gray-400">
+ <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+ </button>
+ </div>
+ 
+ <div id="planet-list">
+ <!-- Gerado via JS -->
+ </div>
+ </div>
+
+ <div class="controls">
+ <div class="flex flex-col gap-3">
+ <div class="flex justify-between items-center">
+ <label class="text-xs uppercase text-gray-400 font-bold">Velocidade</label>
+ <span id="speedVal" class="text-xs text-yellow-500">1.0x</span>
+ </div>
+ <input type="range" id="speedRange" min="0" max="5" step="0.1" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500">
+ 
+ <button id="resetCam" class="bg-yellow-500 active:bg-yellow-600 text-black font-bold py-3 px-4 rounded-xl text-sm transition shadow-lg">
+ Resetar Câmera
+ </button>
+ </div>
+ <p class="text-[10px] mt-3 text-gray-500 text-center uppercase tracking-widest">Arraste para girar • Pinça para zoom</p>
+ </div>
+
+ <script>
+ let scene, camera, renderer, sun, stars;
+ let planets = [];
+ let speedMultiplier = 1;
+
+ const planetData = [
+ { name: "Mercúrio", color: 0xA5A5A5, size: 0.8, distance: 15, speed: 0.04 },
+ { name: "Vênus", color: 0xE3BB76, size: 1.5, distance: 22, speed: 0.015 },
+ { name: "Terra", color: 0x2271B3, size: 1.6, distance: 30, speed: 0.01 },
+ { name: "Marte", color: 0xE27B58, size: 1.2, distance: 38, speed: 0.008 },
+ { name: "Júpiter", color: 0xD39C7E, size: 4.5, distance: 55, speed: 0.004 },
+ { name: "Saturno", color: 0xC5AB6E, size: 3.8, distance: 75, speed: 0.002, ring: true },
+ { name: "Urano", color: 0xB5E3E3, size: 2.5, distance: 92, speed: 0.001 },
+ { name: "Netuno", color: 0x6081FF, size: 2.4, distance: 105, speed: 0.0008 }
+ ];
+
+ function init() {
+ scene = new THREE.Scene();
+ camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+ camera.position.set(0, 80, 140);
+ camera.lookAt(0, 0, 0);
+
+ renderer = new THREE.WebGLRenderer({ antialias: true });
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ document.body.appendChild(renderer.domElement);
+
+ scene.add(new THREE.AmbientLight(0x404040, 0.8));
+ const pointLight = new THREE.PointLight(0xffffff, 2.5, 500);
+ scene.add(pointLight);
+
+ const starGeometry = new THREE.BufferGeometry();
+ const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 });
+ const starVertices = [];
+ for (let i = 0; i < 3000; i++) {
+ const x = (Math.random() - 0.5) * 2000;
+ const y = (Math.random() - 0.5) * 2000;
+ const z = (Math.random() - 0.5) * 2000;
+ starVertices.push(x, y, z);
+ }
+ starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+ stars = new THREE.Points(starGeometry, starMaterial);
+ scene.add(stars);
+
+ const sunGeometry = new THREE.SphereGeometry(8, 32, 32);
+ const sunMaterial = new THREE.MeshStandardMaterial({
+ emissive: 0xffd700,
+ emissiveIntensity: 1.5,
+ color: 0xffaa00
+ });
+ sun = new THREE.Mesh(sunGeometry, sunMaterial);
+ scene.add(sun);
+
+ const planetListEl = document.getElementById('planet-list');
+ planetData.forEach((data, index) => {
+ const orbitGroup = new THREE.Group();
+ scene.add(orbitGroup);
+
+ const orbitPath = new THREE.RingGeometry(data.distance - 0.1, data.distance + 0.1, 128);
+ const orbitMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, opacity: 0.1, transparent: true });
+ const orbitCircle = new THREE.Mesh(orbitPath, orbitMat);
+ orbitCircle.rotation.x = Math.PI / 2;
+ scene.add(orbitCircle);
+
+ const planet = new THREE.Mesh(
+ new THREE.SphereGeometry(data.size, 32, 32),
+ new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.8 })
+ );
+ planet.position.x = data.distance;
+ orbitGroup.add(planet);
+
+ if (data.ring) {
+ const ring = new THREE.Mesh(
+ new THREE.RingGeometry(data.size + 1, data.size + 3.5, 64),
+ new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
+ );
+ ring.rotation.x = Math.PI / 2.2;
+ planet.add(ring);
+ }
+
+ planets.push({ mesh: planet, group: orbitGroup, data: data, angle: Math.random() * Math.PI * 2 });
+
+ const card = document.createElement('div');
+ card.className = 'planet-card text-white text-sm';
+ card.innerHTML = `<strong>${data.name}</strong><br><span class="text-[11px] text-gray-400">Distância: ${data.distance} UA</span>`;
+ card.onclick = () => {
+ focusPlanet(index);
+ toggleDrawer();
+ };
+ planetListEl.appendChild(card);
+ });
+
+ // Lógica de Interação Melhorada (Mouse + Touch com Pinch)
+ let isInteracting = false;
+ let prevPos = { x: 0, y: 0 };
+ let initialPinchDist = 0;
+
+ const getDistance = (t1, t2) => {
+ const dx = t1.clientX - t2.clientX;
+ const dy = t1.clientY - t2.clientY;
+ return Math.sqrt(dx * dx + dy * dy);
+ };
+
+ const onStart = (e) => {
+ if (e.target.closest('#drawer') || e.target.closest('.controls') || e.target.closest('#toggle-drawer')) return;
+ 
+ isInteracting = true;
+ if (e.touches && e.touches.length === 2) {
+ initialPinchDist = getDistance(e.touches[0], e.touches[1]);
+ } else {
+ const x = e.touches ? e.touches[0].clientX : e.clientX;
+ const y = e.touches ? e.touches[0].clientY : e.clientY;
+ prevPos = { x, y };
+ }
+ };
+
+ const onMove = (e) => {
+ if (!isInteracting) return;
+ e.preventDefault();
+
+ if (e.touches && e.touches.length === 2) {
+ const currentDist = getDistance(e.touches[0], e.touches[1]);
+ const diff = initialPinchDist - currentDist;
+ camera.position.multiplyScalar(1 + diff * 0.005);
+ camera.lookAt(0, 0, 0);
+ initialPinchDist = currentDist;
+ return;
+ }
+
+ const x = e.touches ? e.touches[0].clientX : e.clientX;
+ const y = e.touches ? e.touches[0].clientY : e.clientY;
+ 
+ const deltaX = x - prevPos.x;
+ const deltaY = y - prevPos.y;
+
+ const rotationSpeed = 0.005;
+ camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -deltaX * rotationSpeed);
+ camera.position.y += deltaY * 0.5;
+ camera.lookAt(0, 0, 0);
+
+ prevPos = { x, y };
+ };
+
+ const onEnd = () => {
+ isInteracting = false;
+ initialPinchDist = 0;
+ };
+
+ window.addEventListener('mousedown', onStart);
+ window.addEventListener('mousemove', onMove);
+ window.addEventListener('mouseup', onEnd);
+
+ window.addEventListener('touchstart', onStart, { passive: false });
+ window.addEventListener('touchmove', onMove, { passive: false });
+ window.addEventListener('touchend', onEnd);
+
+ window.addEventListener('wheel', (e) => {
+ camera.position.multiplyScalar(1 + e.deltaY * 0.001);
+ camera.lookAt(0,0,0);
+ }, { passive: true });
+
+ const drawer = document.getElementById('drawer');
+ const toggleBtn = document.getElementById('toggle-drawer');
+ const closeBtn = document.getElementById('close-drawer');
+
+ function toggleDrawer() {
+ drawer.classList.toggle('open');
+ toggleBtn.style.opacity = drawer.classList.contains('open') ? '0' : '1';
+ }
+
+ toggleBtn.onclick = toggleDrawer;
+ closeBtn.onclick = toggleDrawer;
+
+ document.getElementById('speedRange').oninput = (e) => {
+ speedMultiplier = parseFloat(e.target.value);
+ document.getElementById('speedVal').innerText = speedMultiplier.toFixed(1) + 'x';
+ };
+
+ document.getElementById('resetCam').onclick = () => {
+ camera.position.set(0, 80, 140);
+ camera.lookAt(0, 0, 0);
+ };
+
+ window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ });
+
+ animate();
+ }
+
+ function focusPlanet(index) {
+ const p = planets[index];
+ const targetPos = new THREE.Vector3();
+ p.mesh.getWorldPosition(targetPos);
+ camera.position.set(targetPos.x + 15, targetPos.y + 10, targetPos.z + 15);
+ camera.lookAt(targetPos);
+ }
+
+ function animate() {
+ requestAnimationFrame(animate);
+ sun.rotation.y += 0.002;
+ planets.forEach(p => {
+ p.angle += p.data.speed * speedMultiplier;
+ p.mesh.position.x = Math.cos(p.angle) * p.data.distance;
+ p.mesh.position.z = Math.sin(p.angle) * p.data.distance;
+ p.mesh.rotation.y += 0.01;
+ });
+ stars.rotation.y += 0.0001;
+ renderer.render(scene, camera);
+ }
+
+ window.onload = init;
+ </script>
+</body>
+</html>

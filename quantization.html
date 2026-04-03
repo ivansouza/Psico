@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#5a4300",
+              "surface-container-high": "#2a2a2a",
+              "on-tertiary-container": "#5a001f",
+              "on-error-container": "#ffdad6",
+              "on-primary": "#002f66",
+              "surface-container-lowest": "#0e0e0e",
+              "outline": "#8b919f",
+              "surface-bright": "#393939",
+              "secondary-fixed": "#ffdf99",
+              "secondary-fixed-dim": "#f6bf22",
+              "on-tertiary-fixed-variant": "#8d0f38",
+              "on-secondary-fixed": "#251a00",
+              "inverse-surface": "#e5e2e1",
+              "on-surface-variant": "#c1c6d6",
+              "surface-tint": "#abc7ff",
+              "on-primary-fixed-variant": "#004590",
+              "surface-variant": "#353535",
+              "inverse-on-surface": "#303030",
+              "surface-container-highest": "#353535",
+              "on-secondary": "#3f2e00",
+              "secondary-container": "#e0ac00",
+              "on-tertiary-fixed": "#400014",
+              "tertiary-container": "#f05f7f",
+              "primary-container": "#458fff",
+              "on-surface": "#e5e2e1",
+              "background": "#131313",
+              "on-tertiary": "#670024",
+              "on-secondary-container": "#584200",
+              "primary-fixed-dim": "#abc7ff",
+              "primary-fixed": "#d7e2ff",
+              "tertiary-fixed-dim": "#ffb2bd",
+              "on-primary-container": "#00285a",
+              "outline-variant": "#414753",
+              "error-container": "#93000a",
+              "error": "#ffb4ab",
+              "on-primary-fixed": "#001b3f",
+              "on-error": "#690005",
+              "primary": "#abc7ff",
+              "tertiary": "#ffb2bd",
+              "surface-container-low": "#1b1b1c",
+              "inverse-primary": "#005cbc",
+              "secondary": "#ffc72c",
+              "surface-dim": "#131313",
+              "surface-container": "#202020",
+              "on-background": "#e5e2e1",
+              "tertiary-fixed": "#ffd9dd",
+              "surface": "#131313"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        background-color: #131313;
+        color: #e5e2e1;
+        font-family: 'Inter', sans-serif;
+      }
+      .glass-nav {
+        background: rgba(19, 19, 19, 0.7);
+        backdrop-filter: blur(12px);
+      }
+      .code-block {
+        font-family: 'JetBrains Mono', monospace;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 glass-nav shadow-[0_32px_32px_rgba(171,199,255,0.06)]">
+<div class="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#3080F0] dark:text-[#abc7ff]">terminal</span>
+<span class="text-2xl font-black text-[#e5e2e1] tracking-tighter font-headline">ngrok_blog</span>
+</div>
+<nav class="hidden md:flex items-center gap-8 font-label text-sm uppercase tracking-widest">
+<a class="text-[#abc7ff] border-b-2 border-[#3080F0] pb-1" href="#">Artigos</a>
+<a class="text-[#909090] hover:text-[#e5e2e1] transition-colors" href="#">Guias</a>
+<a class="text-[#909090] hover:text-[#e5e2e1] transition-colors" href="#">OSS</a>
+<a class="text-[#909090] hover:text-[#e5e2e1] transition-colors" href="#">Eventos</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-[#353535] rounded-full transition-all duration-300">
+<span class="material-symbols-outlined text-[#e5e2e1]">search</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-32 pb-20 px-6 max-w-5xl mx-auto">
+<!-- Hero Section -->
+<article>
+<header class="mb-20">
+<div class="flex items-center gap-4 mb-6 font-label text-sm text-primary font-medium tracking-widest uppercase">
+<span class="bg-surface-container-highest px-3 py-1 rounded-sm">Inteligência Artificial</span>
+<span>12 Min de Leitura</span>
+</div>
+<h1 class="text-5xl md:text-7xl font-headline font-bold tracking-tight text-on-surface leading-[1.1] mb-8">
+                    Quantização: A chave para modelos mais rápidos, baratos e menores
+                </h1>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container">person</span>
+</div>
+<div>
+<p class="font-headline font-bold text-on-surface">Joe Damato</p>
+<p class="font-label text-sm text-on-surface-variant font-medium uppercase tracking-tighter">Publicado em 24 de Outubro, 2024</p>
+</div>
+</div>
+</header>
+<!-- Lead Image -->
+<div class="mb-20 overflow-hidden rounded-lg surface-container-low p-1">
+<img alt="Futuristic abstract representation of data compression with glowing blue and gold particles transitioning from sparse to dense clusters" class="w-full aspect-video object-cover rounded-md opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOPCzCqzb3FWPE12aSe_GTlDmrMBG2-wTPew9Mp4fJ8p1jCyElx_zNsyKlHyoUZN7pay8Flc8tgIBengNtZGrnB0tS9VrCgaWvwkgdCR8GHLnZjjZNFVNx0bw5Ai_a8WoOvxbI1QTxggqGdYqZZ37rxfkapvyKwC1v9KMZN2l6IOjrmWsc3qV6snbkFASHFx2Cjj-P55JcKTCn6gxnk5Ozmclnwx0T9jxuJ5UI3yPPmhxxKCFnr3snWpH-jJKJi4egYs_f49FDma4J"/>
+</div>
+<!-- Content -->
+<div class="space-y-12 text-lg leading-relaxed text-on-surface-variant font-body max-w-3xl mx-auto">
+<section>
+<h2 class="text-3xl font-headline font-bold text-on-surface mb-6">O que é quantização?</h2>
+<p class="mb-6">
+                        No mundo do machine learning, a eficiência é tudo. Modelos de linguagem de grande escala (LLMs) são notórios por sua fome de recursos, exigindo hardware de ponta e vastas quantidades de memória. É aqui que entra a <strong>Quantização</strong>.
+                    </p>
+<p class="mb-10">
+                        Em termos simples, a quantização é o processo de reduzir a precisão dos números que representam os parâmetros de um modelo (os "pesos"). Em vez de usar números de ponto flutuante de alta precisão (como FP32), convertemos esses valores para formatos menores, como INT8 ou até mesmo INT4. É como converter um áudio em alta definição para um formato MP3 comprimido: você perde um pouco de detalhe, mas ganha imensamente em portabilidade e velocidade.
+                    </p>
+<!-- Original Graphics: Weight Visualization -->
+<div class="my-12 p-4 bg-surface-container-low rounded-xl">
+<img alt="Visual representation of neural network weights being mapped from 32-bit floating point to 8-bit integer" class="w-full h-auto rounded-lg shadow-xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKPnE6-AQIIbvh1lQ_5PKvPrNysYLwf8bhUX4aSDqUZpR8xsh64iO9Qym8AXRoMUvRhyB3P9Ntva1zNa8mCr8Yuk6dEt1CNWAgdGIrTNyrhUW33Nvb016amaktKAVqxhczTF9M7IFDmwkZYygoyH61PA3gJ_TXgnXFjqlBKMmLersqxbXroh-RTGPCo6S9J2AtUxVetmqClBTmenp-DyT1KefcCZZ6Ivh_e3fyxcKJn2RSlO1ajZdB9PoGP4jrCivf_pXxLZJvokb_"/>
+<p class="mt-4 text-center text-sm font-label text-outline">Fig 1.1: Mapeamento de Pesos FP32 para INT8</p>
+</div>
+</section>
+<!-- Technical Diagram Section -->
+<section class="py-12 bg-surface-container-low -mx-4 md:-mx-20 px-4 md:px-20 rounded-xl">
+<h2 class="text-3xl font-headline font-bold text-on-surface mb-10">Como funciona?</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+<div class="space-y-6">
+<div class="flex gap-4">
+<div class="flex-none w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">1</div>
+<div>
+<h4 class="font-bold text-on-surface mb-2">Mapeamento de Escala</h4>
+<p class="text-sm">Os valores contínuos são mapeados em intervalos discretos dentro de um novo range de precisão.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-none w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold">2</div>
+<div>
+<h4 class="font-bold text-on-surface mb-2">Arredondamento &amp; Clipping</h4>
+<p class="text-sm">Valores fora do limite são ajustados e os pesos são aproximados para o inteiro mais próximo.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-none w-8 h-8 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center font-bold">3</div>
+<div>
+<h4 class="font-bold text-on-surface mb-2">De-quantização</h4>
+<p class="text-sm">Durante a inferência, os valores podem ser escalados de volta para cálculos parciais se necessário.</p>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg flex flex-col items-center justify-center border border-outline-variant/15">
+<!-- Full Precision vs. Reduced Precision flow -->
+<img alt="Full Precision vs Reduced Precision data flow diagram" class="w-full h-auto rounded" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhLPZsodP1UNhfFxXiODACWd0GIsqU4sYHXhDyW34pRVEaJRfxs2KD_pTdZ7K1GfDNWSrOJNmsnA2VLi20noGPGapuNtCCvArdNkPr36o1lJaDv1CeN3J_50Xe7C3b0GlQJpJq9J8KvlxjB_fUZripBv3dzaxHtZJOFoCoU06jS-K-DtYarNlKgIvB8hhLbpYxRKI7kxdEkmYDPQUCnkY2umF3UJy31TXx1e5M9fTEXDCyzVY2dmGGFY47MR7RmCM2RGNuvwDIxjli"/>
+<p class="mt-4 text-xs font-label uppercase tracking-widest text-outline">Fig 1.2: Fluxo de Precisão Reduzida</p>
+</div>
+</div>
+</section>
+<section>
+<h2 class="text-3xl font-headline font-bold text-on-surface mb-6">PTQ vs QAT</h2>
+<p class="mb-8">
+                        Existem dois caminhos principais para implementar a quantização em seus modelos:
+                    </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+<div class="bg-surface-container-high p-8 rounded-lg">
+<h3 class="font-headline font-bold text-primary mb-4">Post-Training Quantization (PTQ)</h3>
+<p class="text-sm">Aplicada após o treinamento do modelo estar completo. É mais rápida e fácil de implementar, ideal para quando você não tem acesso ao dataset original ou recursos para re-treinar.</p>
+</div>
+<div class="bg-surface-container-high p-8 rounded-lg">
+<h3 class="font-headline font-bold text-secondary mb-4">Quantization Aware Training (QAT)</h3>
+<p class="text-sm">O modelo é treinado sabendo que será quantizado. Isso permite que o modelo se adapte à perda de precisão, resultando em uma acurácia muito superior em formatos extremos como 4-bit.</p>
+</div>
+</div>
+<!-- Architecture Diagram for QAT/PTQ -->
+<div class="mb-10 rounded-lg overflow-hidden border border-outline-variant/20">
+<img alt="Diagram comparing PTQ vs QAT architectural workflows" class="w-full h-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABCOnAsJGNTCGfr1sq_2CLcqiGWyDn0XLUvZHKLtwfNwa_RzyJl8e7iMKkYQ4T4ooc1Dn-mbJOdoXkUC3jrL4s-LCB_qXECwVanNMKHE9N-_Y__jwjF2ZnBCGbLF8n8myO9o8NZsvog0qGjBQOzrggu7aSyICltAB7rFsUMURTNMDDZ0iGGSy4SO5VCd1JSQ7SrdwmnWd3MyjdPpH1BRM8tKB9WXita9xgqbDUMRlhjX022m52XNxES1enM7dYY61sQePWUEQlGFmw"/>
+</div>
+<div class="surface-container-lowest p-6 rounded-md code-block text-sm overflow-x-auto">
+<div class="flex justify-between items-center mb-4 text-outline border-b border-outline-variant/20 pb-2">
+<span>example_quantization.py</span>
+<span class="material-symbols-outlined scale-75 cursor-pointer hover:text-on-surface">content_copy</span>
+</div>
+<pre><code><span class="text-primary">import</span> torch
+<span class="text-primary">from</span> neural_compressor <span class="text-primary">import</span> PostTrainingQuant
+
+<span class="text-outline"># Carregar modelo pré-treinado</span>
+model = load_model(<span class="text-secondary">"llama-3-8b"</span>)
+
+<span class="text-outline"># Configuração de Quantização Estática</span>
+conf = PostTrainingQuantConfig(
+    device=<span class="text-secondary">"cpu"</span>,
+    backend=<span class="text-secondary">"ipex"</span>,
+    approach=<span class="text-secondary">"static"</span>
+)
+
+<span class="text-outline"># Executar processo</span>
+q_model = PostTrainingQuant(model, conf)
+q_model.save(<span class="text-secondary">"./quantized_model"</span>)</code></pre>
+</div>
+</section>
+<section>
+<h2 class="text-3xl font-headline font-bold text-on-surface mb-6">Vantagens: Memória, Velocidade e Eficiência</h2>
+<p class="mb-6">
+                        Por que passar pelo trabalho de quantizar um modelo? Os benefícios são tangíveis e imediatos:
+                    </p>
+<!-- Benefits Comparison Chart Placeholder Style -->
+<div class="my-10 bg-surface-container-high p-6 rounded-xl border border-outline-variant/20">
+<img alt="Bar chart showing memory reduction across different precision levels (FP32, FP16, INT8, INT4)" class="w-full h-auto rounded-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBs4t1yMv9S65JenBS1bnvmTjlbYE7tyazvVqlNwEd1ZiUYysVE2Wxs6WxyTu_W2OVMopXfzNJbZj1It3hG7E6JXsjVbaVkuLjn5utugnGZ0lIptPcyE77dDHafDS_UkxY9ZkY9I7ww2-u5UFzUnoavSVdRidGASrW_Q6XPM-HoJ19hEfS4azW2yoT2a7PZtvXHvRSruo9UojTKyhWwzO4t8WYxU5hoFAggQ-ibX3KGqBCrPRU8uf7LiRFfzycF06divQCV8Jiwu0CK"/>
+<p class="mt-4 text-center text-xs text-outline font-label uppercase">Comparação de Requisitos de Memória (Modelo 7B)</p>
+</div>
+<ul class="space-y-4">
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-tertiary mt-1">memory</span>
+<span><strong>Redução de Memória:</strong> Um modelo de 7B parâmetros em FP16 precisa de ~14GB de VRAM. Em INT4, esse mesmo modelo ocupa apenas ~3.5GB, permitindo que rode em hardware doméstico ou dispositivos edge.</span>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-tertiary mt-1">speed</span>
+<span><strong>Aceleração de Inferência:</strong> Cálculos com inteiros são processados muito mais rápido por CPUs e GPUs modernas, resultando em tokens por segundo (TPS) significativamente maiores.</span>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-tertiary mt-1">bolt</span>
+<span><strong>Eficiência Energética:</strong> Menos operações de memória e cálculos simplificados significam menor consumo de bateria e custos reduzidos em infraestrutura de nuvem.</span>
+</li>
+</ul>
+</section>
+<section class="pt-10 border-t border-outline-variant/20">
+<h2 class="text-3xl font-headline font-bold text-on-surface mb-6">Conclusão</h2>
+<p>
+                        A quantização não é apenas uma técnica de otimização; é o que torna a IA generativa acessível. Sem ela, o futuro da IA estaria trancado em data centers massivos. Ao democratizar o acesso a modelos poderosos, permitimos que desenvolvedores em todo o mundo construam aplicações locais, privadas e extremamente rápidas.
+                    </p>
+</section>
+</div>
+</article>
+<!-- Sidebar / TOC Equivalent - Asymmetric Layout logic -->
+<aside class="hidden xl:block fixed top-40 right-[calc(50%-42rem)] w-64">
+<h4 class="font-label text-xs uppercase tracking-[0.2em] text-outline mb-6">Neste Artigo</h4>
+<nav class="space-y-4 text-sm font-medium">
+<a class="block text-primary border-l-2 border-primary pl-4" href="#">O que é quantização?</a>
+<a class="block text-on-surface-variant hover:text-on-surface pl-4 transition-colors" href="#">Como funciona?</a>
+<a class="block text-on-surface-variant hover:text-on-surface pl-4 transition-colors" href="#">PTQ vs QAT</a>
+<a class="block text-on-surface-variant hover:text-on-surface pl-4 transition-colors" href="#">Vantagens Principais</a>
+<a class="block text-on-surface-variant hover:text-on-surface pl-4 transition-colors" href="#">Conclusão</a>
+</nav>
+<div class="mt-12 p-6 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<h5 class="font-headline font-bold text-on-surface mb-2">Newsletter Técnica</h5>
+<p class="text-xs text-on-surface-variant mb-4">Receba análises sobre edge computing e IA diretamente no seu e-mail.</p>
+<input class="w-full bg-surface-container-highest border-none rounded-sm text-xs mb-3 focus:ring-1 focus:ring-primary/40" placeholder="seu@email.com" type="email"/>
+<button class="w-full py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary-container font-bold text-xs rounded-sm hover:opacity-90 transition-opacity">INSCREVER-SE</button>
+</div>
+</aside>
+</main>
+<!-- Footer -->
+<footer class="bg-[#131313] w-full pt-20 pb-10 mt-20 border-t border-outline-variant/10">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10 px-10 max-w-7xl mx-auto">
+<div>
+<span class="text-lg font-bold text-[#e5e2e1] font-headline mb-4 block">ngrok_blog</span>
+<p class="font-['JetBrains_Mono'] text-sm uppercase tracking-widest text-[#909090] mb-6">
+                    © 2024 ngrok Inc. Technical Editorial Excellence.
+                </p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+<div class="space-y-3">
+<a class="block font-['JetBrains_Mono'] text-sm uppercase tracking-widest text-[#909090] hover:text-[#3080F0] transition-colors" href="#">Documentation</a>
+<a class="block font-['JetBrains_Mono'] text-sm uppercase tracking-widest text-[#909090] hover:text-[#3080F0] transition-colors" href="#">Network Edge</a>
+</div>
+<div class="space-y-3">
+<a class="block font-['JetBrains_Mono'] text-sm uppercase tracking-widest text-[#909090] hover:text-[#3080F0] transition-colors" href="#">Pricing</a>
+<a class="block font-['JetBrains_Mono'] text-sm uppercase tracking-widest text-[#909090] hover:text-[#3080F0] transition-colors" href="#">Changelog</a>
+</div>
+<div class="space-y-3">
+<a class="block font-['JetBrains_Mono'] text-sm uppercase tracking-widest text-[#909090] hover:text-[#3080F0] transition-colors" href="#">OSS</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>
