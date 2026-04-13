@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psico Portfolio — Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg: #060816;
+            --bg-soft: #0c1224;
+            --panel: rgba(10, 15, 31, 0.78);
+            --panel-strong: rgba(15, 23, 42, 0.94);
+            --line: rgba(148, 163, 184, 0.14);
+            --text: #e5eefc;
+            --muted: #8b9bb7;
+            --cyan: #38bdf8;
+            --violet: #8b5cf6;
+            --emerald: #34d399;
+            --amber: #f59e0b;
+            --rose: #fb7185;
+            --hero-gradient: radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 28%),
+                             radial-gradient(circle at top right, rgba(139,92,246,0.16), transparent 25%),
+                             radial-gradient(circle at bottom center, rgba(52,211,153,0.10), transparent 30%),
+                             linear-gradient(180deg, #03050d 0%, #070b17 40%, #060816 100%);
+        }
+
+        .light-mode {
+            --bg: #f8fafc;
+            --bg-soft: #f1f5f9;
+            --panel: rgba(255, 255, 255, 0.82);
+            --panel-strong: rgba(241, 245, 249, 0.96);
+            --line: rgba(148, 163, 184, 0.25);
+            --text: #0f172a;
+            --muted: #64748b;
+            --hero-gradient: radial-gradient(circle at top left, rgba(56,189,248,0.1), transparent 35%),
+                             radial-gradient(circle at top right, rgba(139,92,246,0.1), transparent 30%),
+                             linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            background-image: var(--hero-gradient);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* --- EFEITO ELÉTRICO --- */
+        .card-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 28px;
+            z-index: 1;
+        }
+
+        .lightning-canvas {
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            pointer-events: none;
+            z-index: 5;
+            filter: blur(0.4px);
+        }
+
+        .app-shell {
+            width: min(1680px, calc(100vw - 24px));
+            margin: 12px auto;
+        }
+
+        .glass {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .pill-filters {
+            cursor: pointer;
+            height: 40px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(56,189,248,0.28);
+            background: rgba(56,189,248,0.08);
+            color: var(--cyan);
+            font-weight: 800;
+            font-size: 11px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all .18s ease;
+        }
+
+        .filters-shell {
+            position: fixed;
+            top: 0; left: 0;
+            width: min(420px, 92vw);
+            height: 100vh;
+            border-radius: 0 28px 28px 0;
+            padding: 24px;
+            overflow-y: auto;
+            transform: translateX(-105%);
+            transition: transform .32s cubic-bezier(.22,.8,.2,1);
+            z-index: 100;
+        }
+        .filters-shell.open { transform: translateX(0); }
+
+        .filters-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(2, 6, 23, 0.4);
+            backdrop-filter: blur(6px);
+            opacity: 0; pointer-events: none;
+            transition: opacity .28s ease;
+            z-index: 90;
+        }
+        .filters-backdrop.open { opacity: 1; pointer-events: auto; }
+
+        .hero {
+            position: sticky; top: 10px;
+            z-index: 50;
+            border-radius: 28px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+        }
+
+        .hero-title { font-weight: 900; letter-spacing: -.04em; }
+        .gradient-text {
+            background: linear-gradient(135deg, var(--text) 0%, var(--cyan) 50%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            padding-bottom: 40px;
+        }
+
+        .gallery-card {
+            position: relative;
+            z-index: 10;
+            border-radius: 28px;
+            padding: 18px;
+            min-height: 255px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            transition: transform .22s ease, background .22s ease;
+        }
+
+        .card-wrapper:hover .gallery-card {
+            transform: translateY(-5px);
+            background: var(--panel-strong);
+            border-color: var(--cyan);
+        }
+
+        .primary-link {
+            min-height: 46px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--cyan), var(--violet));
+            color: white;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .secondary-link {
+            border: 1px solid var(--line);
+            background: var(--bg-soft);
+            padding: 0 14px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            color: var(--text);
+        }
+
+        .filter-btn {
+            cursor: pointer;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--bg-soft);
+            color: var(--muted);
+            padding: 8px 12px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .filter-btn.active {
+            background: var(--cyan);
+            color: white;
+            border-color: var(--cyan);
+        }
+
+        .eyebrow { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .card-title { font-size: 1.16rem; font-weight: 800; margin: 10px 0; }
+        .card-desc { color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px var(--cyan);
+            border: 2px solid var(--bg);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <main class="content-area">
+            <header id="hero" class="hero glass">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-5">
+                        <img src="psico-logo-final.png" alt="Psico Logo" style="height: 50px; width: auto; filter: drop-shadow(0 0 8px var(--cyan));" class="transition-transform hover:scale-110">
+                        <div>
+                            <div class="eyebrow">Psico Portfolio — <span style="color:var(--cyan)">Creative coding</span></div>
+                            <h1 class="hero-title text-2xl gradient-text">Laboratório de Ivan Souza</h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="mode-pill">
+                            <span id="mode-label" class="mr-2 eyebrow text-[9px]">PRODUÇÃO</span>
+                            <button id="theme-btn" class="theme-toggle" title="Trocar Tema">
+                                <i class="fas fa-moon"></i>
+                            </button>
+                            <button id="filters-open" class="pill-filters"><i class="fas fa-sliders"></i> Filtros</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-8 mt-4 opacity-80">
+                    <div><span id="cards-total" class="font-black text-xl">0</span> <span class="eyebrow text-[9px]">Total</span></div>
+                    <div><span id="visible-total" class="font-black text-xl">0</span> <span class="eyebrow text-[9px]">Visíveis</span></div>
+                </div>
+            </header>
+
+            <div id="filters-backdrop" class="filters-backdrop"></div>
+            <aside id="filters-shell" class="filters-shell glass">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="eyebrow">Configurações</div>
+                    <button id="filters-close" class="text-3xl">&times;</button>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- CONTROLE DE VELOCIDADE NO DRAWER -->
+                    <section>
+                        <div class="eyebrow mb-4 flex justify-between">
+                            <span>Velocidade da Energia</span>
+                            <span id="speed-display" class="mono text-cyan-400">1.0x</span>
+                        </div>
+                        <div class="px-2">
+                            <input id="speed-slider" type="range" min="0.2" max="5" step="0.1" value="1">
+                        </div>
+                    </section>
+
+                    <section>
+                        <div class="eyebrow mb-3">Busca</div>
+                        <input id="search-input" class="w-full h-12 rounded-xl border border-white/10 bg-black/20 px-4 text-sm focus:outline-none focus:border-cyan-500/50" type="text" placeholder="Buscar experimento...">
+                    </section>
+
+                    <section>
+                        <div class="eyebrow mb-3">Categorias</div>
+                        <div id="filters-cat" class="flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <section>
+                        <div class="eyebrow mb-3">Ano</div>
+                        <div id="filters-year" class="flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <button id="mock-toggle" onclick="toggleMockCards()" class="w-full p-4 rounded-2xl border border-dashed border-cyan-500/40 text-xs font-bold uppercase hover:bg-cyan-500/10 transition-colors">
+                        <i class="fas fa-flask mr-2"></i> Modo Laboratório <span id="mock-count"></span>
+                    </button>
+                </div>
+            </aside>
+
+            <div id="gallery" class="gallery"></div>
+        </main>
+    </div>
+
+    <script>
+        // --- ESTADO GLOBAL ---
+        let lightningSpeedMultiplier = 1.0;
+
+        // --- EFEITO ELÉTRICO CONDUCTED ---
+        class LightningEffect {
+            constructor(wrapper) {
+                this.wrapper = wrapper;
+                this.canvas = wrapper.querySelector('.lightning-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.color = wrapper.getAttribute('data-color') || '#38bdf8';
+                this.padding = 20;
+                this.isHovered = false;
+                this.time = Math.random() * 1000;
+                this.active = true;
+                this.init();
+                this.animate();
+            }
+            init() {
+                const rect = this.wrapper.getBoundingClientRect();
+                this.canvas.width = rect.width + (this.padding * 2);
+                this.canvas.height = rect.height + (this.padding * 2);
+                this.w = this.canvas.width;
+                this.h = this.canvas.height;
+                this.wrapper.onmouseenter = () => this.isHovered = true;
+                this.wrapper.onmouseleave = () => this.isHovered = false;
+            }
+            drawFractalLine(x1, y1, x2, y2, displace) {
+                if (displace < 2) {
+                    this.ctx.lineTo(x2, y2);
+                } else {
+                    let mx = (x1 + x2) / 2 + (Math.random() - 0.5) * displace;
+                    let my = (y1 + y2) / 2 + (Math.random() - 0.5) * displace;
+                    this.drawFractalLine(x1, y1, mx, my, displace / 2);
+                    this.drawFractalLine(mx, my, x2, y2, displace / 2);
+                }
+            }
+            getPoint(t) {
+                const p = this.padding;
+                const cw = this.w - p * 2, ch = this.h - p * 2;
+                const total = 2 * (cw + ch);
+                let pos = (t % 1) * total;
+                if (pos < cw) return { x: p + pos, y: p };
+                pos -= cw;
+                if (pos < ch) return { x: p + cw, y: p + pos };
+                pos -= ch;
+                if (pos < cw) return { x: p + cw - pos, y: p + ch };
+                pos -= cw;
+                return { x: p, y: p + ch - pos };
+            }
+            draw() {
+                if (!this.active) return;
+                this.ctx.clearRect(0, 0, this.w, this.h);
+                
+                // Aplicando a velocidade ajustável
+                this.time += (this.isHovered ? 0.028 : 0.008) * lightningSpeedMultiplier;
+                
+                const bolts = this.isHovered ? 2 : 1;
+                for(let b=0; b<bolts; b++) {
+                    const t = this.time + (b * 0.5);
+                    
+                    // Comprimento aumentado para "mais comprido"
+                    const len = this.isHovered ? 0.55 : 0.4;
+                    const start = this.getPoint(t);
+                    
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = this.color;
+                    this.ctx.lineWidth = this.isHovered ? 2.8 : 1.4;
+                    this.ctx.shadowBlur = this.isHovered ? 18 : 8;
+                    this.ctx.shadowColor = this.color;
+                    this.ctx.globalAlpha = this.isHovered ? 0.95 : 0.45;
+                    
+                    this.ctx.moveTo(start.x, start.y);
+                    const steps = 14; // Mais passos para o comprimento maior
+                    for(let i=1; i<=steps; i++) {
+                        const p = this.getPoint(t + (i/steps)*len);
+                        const prev = this.getPoint(t + ((i-1)/steps)*len);
+                        this.drawFractalLine(prev.x, prev.y, p.x, p.y, this.isHovered ? 12 : 6);
+                    }
+                    this.ctx.stroke();
+
+                    // Núcleo central brilhante
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = "#ffffff";
+                    this.ctx.lineWidth = 0.8;
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.shadowBlur = 0;
+                    this.ctx.moveTo(start.x, start.y);
+                    for(let i=1; i<=steps; i++) {
+                        const p = this.getPoint(t + (i/steps)*len);
+                        const prev = this.getPoint(t + ((i-1)/steps)*len);
+                        this.drawFractalLine(prev.x, prev.y, p.x, p.y, this.isHovered ? 12 : 6);
+                    }
+                    this.ctx.stroke();
+                }
+            }
+            animate() {
+                if(!this.active) return;
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+            destroy() { this.active = false; }
+        }
+
+        // --- CORE DATA ---
+        const username = "ivansouza", repo = "Psico";
+        const baseUrl = `https://${username}.github.io/${repo}`;
+        const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
+        
+        let activeCategory = "Todos", activeYear = "Todos", searchQuery = "", showMockCards = false;
+        let lightningInstances = [];
+
+        // Base de experimentos (será estendida pelo Sync)
+        let experiments = [
+            { name: "TTS Local", file: "tts-local.html", cat: "Util", date: "03/04/2026", desc: "Servidor Supertonic 2 local." },
+            { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo." },
+            { name: "BitNet", file: "bitnet.html", cat: "IA", date: "27/03/2026", desc: "Visualização BitNet.", dev: true }
+        ];
+
+        const categoryPalette = {
+            'IA': '#8b5cf6', 'Física': '#38bdf8', 'Matemática': '#34d399', 'Geometria': '#f59e0b', 'Arte': '#fb7185',
+            'Áudio': '#22c55e', 'Shaders': '#60a5fa', 'Fractal': '#a78bfa', 'Util': '#94a3b8', 'Animação': '#f97316'
+        };
+
+        function renderCards() {
+            lightningInstances.forEach(i => i.destroy());
+            lightningInstances = [];
+            
+            const q = searchQuery.toLowerCase();
+            const filtered = experiments.filter(e => {
+                const matchCat = activeCategory === "Todos" || e.cat === activeCategory;
+                const matchYear = activeYear === "Todos" || e.date.includes(activeYear);
+                const matchSearch = !q || e.name.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q);
+                const matchDev = showMockCards ? true : !e.dev;
+                return matchCat && matchYear && matchSearch && matchDev;
+            });
+
+            document.getElementById('cards-total').textContent = experiments.length;
+            document.getElementById('visible-total').textContent = filtered.length;
+            document.getElementById('mock-count').textContent = `(${experiments.filter(e => e.dev).length})`;
+
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = filtered.map(e => {
+                const color = categoryPalette[e.cat] || '#94a3b8';
+                return `
+                    <div class="card-wrapper" data-color="${color}">
+                        <canvas class="lightning-canvas"></canvas>
+                        <article class="gallery-card ${e.dev ? 'border-amber-500/40 border-dashed' : ''}">
+                            <div>
+                                <div class="flex justify-between items-start mb-4">
+                                    <span class="eyebrow text-[10px]" style="color:${color}">${e.cat}</span>
+                                    <span class="mono text-[9px] opacity-40">${e.date.split(' ')[0]}</span>
+                                </div>
+                                <h3 class="card-title">${e.name}</h3>
+                                <p class="card-desc">${e.desc}</p>
+                            </div>
+                            <div class="flex gap-2 mt-6">
+                                <a href="${baseUrl}/${e.file}" target="_blank" class="primary-link flex-1"><i class="fas fa-play text-[10px]"></i> Abrir</a>
+                                <a href="${sourceUrl}/${e.file}" target="_blank" class="secondary-link"><i class="fas fa-code"></i></a>
+                            </div>
+                        </article>
+                    </div>
+                `;
+            }).join('');
+
+            setTimeout(() => {
+                document.querySelectorAll('.card-wrapper').forEach(el => {
+                    lightningInstances.push(new LightningEffect(el));
+                });
+            }, 60);
+        }
+
+        async function syncWithGitHub() {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
+                if (!res.ok) return;
+                const items = await res.json();
+                const files = items.filter(i => i.name.endsWith('.html') && i.name !== 'index.html');
+                const known = new Set(experiments.map(e => e.file));
+                
+                files.forEach(f => {
+                    if (!known.has(f.name)) {
+                        experiments.push({
+                            name: f.name.replace('.html','').replace(/-/g,' '),
+                            file: f.name,
+                            cat: "Util",
+                            date: "01/01/2026",
+                            desc: "Sincronizado via GitHub API."
+                        });
+                    }
+                });
+                initFilters();
+                renderCards();
+            } catch (e) { console.error(e); }
+        }
+
+        function initFilters() {
+            const cats = ['Todos', ...new Set(experiments.map(e => e.cat))];
+            const years = ['Todos', ...new Set(experiments.map(e => e.date.split('/')[2]?.split(' ')[0]))].filter(Boolean).sort();
+            document.getElementById('filters-cat').innerHTML = cats.map(c => `<button onclick="applyFilter('cat', '${c}', this)" class="filter-btn ${c === activeCategory ? 'active' : ''}">${c}</button>`).join('');
+            document.getElementById('filters-year').innerHTML = years.map(y => `<button onclick="applyFilter('year', '${y}', this)" class="filter-btn ${y === activeYear ? 'active' : ''}">${y}</button>`).join('');
+        }
+
+        function applyFilter(type, val, btn) {
+            if (type === 'cat') activeCategory = val;
+            if (type === 'year') activeYear = val;
+            btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderCards();
+        }
+
+        function toggleMockCards() {
+            showMockCards = !showMockCards;
+            document.getElementById('mode-label').textContent = showMockCards ? 'MODO LAB' : 'PRODUÇÃO';
+            renderCards();
+        }
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('speed-slider').oninput = (e) => {
+            lightningSpeedMultiplier = parseFloat(e.target.value);
+            document.getElementById('speed-display').textContent = lightningSpeedMultiplier.toFixed(1) + 'x';
+        };
+
+        document.getElementById('theme-btn').onclick = () => document.documentElement.classList.toggle('light-mode');
+        document.getElementById('filters-open').onclick = () => { document.getElementById('filters-shell').classList.add('open'); document.getElementById('filters-backdrop').classList.add('open'); };
+        document.getElementById('filters-close').onclick = () => { document.getElementById('filters-shell').classList.remove('open'); document.getElementById('filters-backdrop').classList.remove('open'); };
+        document.getElementById('filters-backdrop').onclick = () => document.getElementById('filters-close').click();
+        document.getElementById('search-input').oninput = (e) => { searchQuery = e.target.value; renderCards(); };
+
+        syncWithGitHub();
+        renderCards();
+    </script>
+</body>
+</html>
