@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EML Star Engine 3D - Edição Paramétrica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls para navegação 3D superior -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- KaTeX para renderização de LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; overflow: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Drawer Transition */
+        #param-drawer {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+        }
+
+        .drawer-closed {
+            transform: translateX(-100%);
+        }
+
+        input[type=range] {
+            accent-color: #f59e0b;
+        }
+
+        .math-highlight { color: #fbbf24; font-weight: bold; }
+        
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #020617;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ecrã de Carregamento -->
+    <div id="loading-screen">
+        <div class="relative mb-8">
+            <div class="w-24 h-24 border-t-4 border-amber-500 rounded-full animate-spin"></div>
+            <i data-lucide="box" class="absolute inset-0 m-auto w-8 h-8 text-amber-500"></i>
+        </div>
+        <h2 class="font-mono text-[10px] uppercase tracking-[0.5em] text-amber-400">A processar Kernel Simbólico...</h2>
+    </div>
+
+    <!-- Painel Lateral (Drawer) -->
+    <div id="param-drawer" class="fixed inset-y-0 left-0 w-80 glass m-4 rounded-[2.5rem] p-8 flex flex-col drawer-closed overflow-y-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-amber-500 flex items-center gap-2">
+                <i data-lucide="sliders" class="w-4 h-4"></i> Parâmetros EML
+            </h2>
+            <button id="closeDrawer" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="space-y-8">
+            <!-- Frequência das Pontas -->
+            <div class="space-y-3">
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                    <span>Pontas (Frequência)</span>
+                    <span id="freq-val" class="text-amber-500 font-mono">8</span>
+                </div>
+                <input id="freqRange" type="range" min="2" max="24" step="1" value="8" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <!-- Nitidez (Amplitude) -->
+            <div class="space-y-3">
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                    <span>Nitidez (Amplitude)</span>
+                    <span id="amp-val" class="text-amber-500 font-mono">1.1</span>
+                </div>
+                <input id="ampRange" type="range" min="0.1" max="2.5" step="0.1" value="1.1" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <!-- Detalhe da Malha -->
+            <div class="space-y-3">
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                    <span>Resolução (Vértices)</span>
+                    <span id="res-val" class="text-amber-500 font-mono">100</span>
+                </div>
+                <input id="resRange" type="range" min="40" max="200" step="10" value="100" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <div class="pt-6 border-t border-white/5">
+                <button id="regenerateBtn" class="w-full bg-amber-600 hover:bg-amber-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-white flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Recalcular Estrela
+                </button>
+            </div>
+
+            <div class="bg-black/40 p-5 rounded-3xl border border-white/5">
+                <h4 class="text-[9px] font-bold text-slate-500 mb-3 uppercase tracking-widest text-center">Kernel Ativo</h4>
+                <div class="text-amber-400 font-mono text-center">
+                    $$e^{z_1} - \ln(z_2)$$
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contentor Three.js -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Principal -->
+    <div class="fixed inset-0 pointer-events-none p-8 flex flex-col justify-between">
+        
+        <div class="flex justify-between items-start">
+            <div class="flex items-center gap-4 pointer-events-auto">
+                <button id="openDrawer" class="glass p-5 rounded-3xl hover:bg-amber-500 group transition-all">
+                    <i data-lucide="menu" class="w-6 h-6 text-amber-500 group-hover:text-white"></i>
+                </button>
+                <div class="glass p-5 rounded-3xl">
+                    <h1 class="text-xl font-black italic leading-none uppercase tracking-tighter">EML <span class="text-amber-500 not-italic">Engine</span></h1>
+                </div>
+            </div>
+
+            <div class="glass p-5 rounded-3xl pointer-events-auto flex gap-6 font-mono text-xs">
+                <div class="text-center">
+                    <p class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">FPS</p>
+                    <p id="fps-counter" class="text-emerald-500 font-bold">60</p>
+                </div>
+                <div class="text-center border-l border-white/10 pl-6">
+                    <p class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Zoom</p>
+                    <p id="zoom-val" class="text-amber-500 font-bold">16%</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-end">
+            <div class="glass p-6 rounded-[2.5rem] pointer-events-auto max-w-xs">
+                <p class="text-[10px] text-slate-400 leading-relaxed italic">
+                    Usa o <span class="text-amber-500 font-bold">Scroll</span> para Zoom, o <span class="text-amber-500 font-bold">Clique Esquerdo</span> para Orbitar e o <span class="text-amber-500 font-bold">Direito</span> para Pan.
+                </p>
+            </div>
+            
+            <div class="flex gap-3 pointer-events-auto">
+                <button id="toggleWireBtn" class="glass p-4 rounded-2xl hover:bg-slate-800 transition-colors">
+                    <i data-lucide="grid" class="w-5 h-5 text-amber-500"></i>
+                </button>
+                <button id="resetCamBtn" class="glass p-4 rounded-2xl hover:bg-slate-800 transition-colors" title="Reset Camera">
+                    <i data-lucide="focus" class="w-5 h-5 text-amber-500"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- MOTOR EML PURISTA ---
+        const complex = (re, im = 0) => ({ re, im });
+        
+        const EML = (x, y) => {
+            const r = Math.exp(Math.min(x.re, 25));
+            const ex = complex(r * Math.cos(x.im), r * Math.sin(x.im));
+            const mag = Math.sqrt(y.re * y.re + y.im * y.im);
+            const ly = complex(Math.log(Math.max(mag, 1e-15)), Math.atan2(y.im, y.re));
+            return complex(ex.re - ly.re, ex.im - ly.im);
+        };
+
+        const one = complex(1, 0);
+        const zero = complex(0, 0);
+        const _exp = (z) => EML(z, one);
+        const _ln = (z) => EML(one, EML(EML(one, z), one));
+        const _sub = (a, b) => EML(_ln(a), _exp(b));
+        const _neg = (b) => _sub(zero, b);
+        const _add = (a, b) => _sub(a, _neg(b));
+        const _mul = (a, b) => _exp(_add(_ln(a), _ln(b)));
+        const _div = (a, b) => _exp(_sub(_ln(a), _ln(b)));
+
+        const I = complex(0, 1);
+        const TWO = _add(one, one);
+
+        const _cos = (x) => {
+            const ix = _mul(I, x);
+            const neg_ix = _neg(ix);
+            return _div(_add(_exp(ix), _exp(neg_ix)), TWO);
+        };
+
+        const _sin = (x) => {
+            const ix = _mul(I, x);
+            const neg_ix = _neg(ix);
+            const two_i = _mul(TWO, I);
+            return _div(_sub(_exp(ix), _exp(neg_ix)), two_i);
+        };
+
+        // --- CENA THREE.JS + ORBIT CONTROLS ---
+        let scene, camera, renderer, controls, starMesh, wireframe;
+        let isWireframe = false;
+        
+        // Parâmetros de Estado
+        let params = {
+            freq: 8,
+            amp: 1.1,
+            res: 100
+        };
+
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Zoom Inicial de 16%: 
+            // Distância D tal que (8 / D) * 100 = 16 -> D = 50.
+            camera.position.set(0, 10, 49); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 200; // Aumentado para permitir zoom fora do 16%
+            controls.minDistance = 2;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const p1 = new THREE.PointLight(0xf59e0b, 2, 100);
+            p1.position.set(10, 20, 10);
+            scene.add(p1);
+
+            const p2 = new THREE.PointLight(0x6366f1, 1, 100);
+            p2.position.set(-10, -20, -10);
+            scene.add(p2);
+
+            generateEMLStar();
+            animate();
+            
+            setTimeout(() => {
+                const ls = document.getElementById('loading-screen');
+                if (ls) {
+                    ls.style.opacity = '0';
+                    setTimeout(() => ls.remove(), 800);
+                }
+            }, 1000);
+        }
+
+        function generateEMLStar() {
+            if (starMesh) scene.remove(starMesh);
+            if (wireframe) scene.remove(wireframe);
+
+            const detail = params.res;
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const indices = [];
+            const colors = [];
+
+            const c_freq = complex(params.freq, 0);
+            const c_amp = complex(params.amp, 0);
+            const c_baseR = complex(1.2, 0);
+            const c_phi_freq = complex(4, 0);
+
+            for (let j = 0; j <= detail; j++) {
+                const phi = (j / detail) * Math.PI; 
+                for (let i = 0; i <= detail; i++) {
+                    const theta = (i / detail) * Math.PI * 2; 
+
+                    const c_theta = complex(theta, 0);
+                    const c_phi = complex(phi, 0);
+
+                    // Harmónica EML customizada
+                    const h_theta = _cos(_mul(c_freq, c_theta));
+                    const h_phi = _sin(_mul(c_phi_freq, c_phi));
+                    const energy = _mul(c_amp, _mul(h_theta, h_phi));
+                    
+                    const R_complex = _exp(_add(c_baseR, energy));
+                    const R = R_complex.re;
+
+                    const x = R * Math.sin(phi) * Math.cos(theta);
+                    const y = R * Math.sin(phi) * Math.sin(theta);
+                    const z = R * Math.cos(phi);
+
+                    positions.push(x, y, z);
+                    colors.push(0.96, 0.62 + (R * 0.05), 0.04);
+                }
+            }
+
+            for (let j = 0; j < detail; j++) {
+                for (let i = 0; i < detail; i++) {
+                    const a = j * (detail + 1) + i;
+                    const b = j * (detail + 1) + (i + 1);
+                    const c = (j + 1) * (detail + 1) + i;
+                    const d = (j + 1) * (detail + 1) + (i + 1);
+                    indices.push(a, b, d);
+                    indices.push(a, d, c);
+                }
+            }
+
+            geometry.setIndex(indices);
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshPhongMaterial({
+                vertexColors: true,
+                shininess: 80,
+                specular: 0xffffff,
+                transparent: true,
+                opacity: 0.95,
+                side: THREE.DoubleSide
+            });
+
+            starMesh = new THREE.Mesh(geometry, material);
+            scene.add(starMesh);
+
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.1 });
+            wireframe = new THREE.Mesh(geometry, wireMat);
+            wireframe.visible = isWireframe;
+            scene.add(wireframe);
+        }
+
+        let lastTime = 0;
+        function animate(time) {
+            requestAnimationFrame(animate);
+            
+            // FPS Counter
+            if (time - lastTime > 500) {
+                const fps = Math.round(1000 / (time - lastTime) * 30);
+                document.getElementById('fps-counter').innerText = Math.min(fps, 60);
+                lastTime = time;
+            }
+
+            controls.update();
+            
+            // Zoom Display dinâmico baseado na distância da câmara (Referência D=8 para 100%)
+            const dist = camera.position.length();
+            const zoomPerc = Math.round((8 / dist) * 100);
+            document.getElementById('zoom-val').innerText = zoomPerc + "%";
+
+            if (starMesh) {
+                starMesh.rotation.y += 0.002;
+                wireframe.rotation.y = starMesh.rotation.y;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // --- INTERAÇÕES E UI ---
+        const drawer = document.getElementById('param-drawer');
+        document.getElementById('openDrawer').addEventListener('click', () => drawer.classList.remove('drawer-closed'));
+        document.getElementById('closeDrawer').addEventListener('click', () => drawer.classList.add('drawer-closed'));
+
+        const freqRange = document.getElementById('freqRange');
+        freqRange.addEventListener('input', (e) => {
+            params.freq = parseInt(e.target.value);
+            document.getElementById('freq-val').innerText = params.freq;
+        });
+
+        const ampRange = document.getElementById('ampRange');
+        ampRange.addEventListener('input', (e) => {
+            params.amp = parseFloat(e.target.value);
+            document.getElementById('amp-val').innerText = params.amp;
+        });
+
+        const resRange = document.getElementById('resRange');
+        resRange.addEventListener('input', (e) => {
+            params.res = parseInt(e.target.value);
+            document.getElementById('res-val').innerText = params.res;
+        });
+
+        document.getElementById('regenerateBtn').addEventListener('click', generateEMLStar);
+        
+        document.getElementById('toggleWireBtn').addEventListener('click', () => {
+            isWireframe = !isWireframe;
+            wireframe.visible = isWireframe;
+        });
+
+        document.getElementById('resetCamBtn').addEventListener('click', () => {
+            controls.reset();
+            camera.position.set(0, 10, 49); // Retorna ao zoom de 16%
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        initThree();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
