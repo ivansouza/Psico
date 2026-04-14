@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EML Engine v2.5 - Hipotenusa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700;900&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; margin: 0; 
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        .animate-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <!-- Modal de Informação (Invisível por defeito) -->
+    <div id="infoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-in">
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-3 text-indigo-400">
+                        <i data-lucide="help-circle" class="w-6 h-6"></i>
+                        <h2 class="text-xl font-bold uppercase tracking-tight text-white">O Operador EML</h2>
+                    </div>
+                    <button onclick="toggleInfo()" class="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-6 text-slate-400 leading-relaxed">
+                    <div class="bg-slate-950 border border-slate-800 p-6 rounded-3xl text-center border-indigo-500/20">
+                        <code class="text-2xl font-mono text-indigo-400 font-bold">EML(x, y) = eˣ - ln(y)</code>
+                    </div>
+
+                    <div class="space-y-4">
+                        <p class="text-sm text-justify">
+                            Este operador é o bloco fundamental da <strong>Regressão Simbólica Moderna</strong>. Actua como uma "base universal" que funde duas das mais importantes operações da natureza.
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50">
+                                <h4 class="text-[10px] font-bold text-indigo-300 uppercase mb-2 tracking-widest flex items-center gap-2">
+                                    <i data-lucide="zap" class="w-3 h-3"></i> Crescimento
+                                </h4>
+                                <p class="text-[11px] leading-relaxed">A função exponencial permite modelar comportamentos aditivos e exponenciais.</p>
+                            </div>
+                            <div class="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50">
+                                <h4 class="text-[10px] font-bold text-emerald-300 uppercase mb-2 tracking-widest flex items-center gap-2">
+                                    <i data-lucide="activity" class="w-3 h-3"></i> Compressão
+                                </h4>
+                                <p class="text-[11px] leading-relaxed">O logaritmo natural permite manipular multiplicações como se fossem simples somas.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+                            <p class="text-[11px] text-indigo-300 italic">
+                                "Curiosidade: Com apenas este operador e a constante 1, é possível reconstruir desde o teorema de Pitágoras até à mecânica quântica."
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="toggleInfo()" class="w-full mt-8 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95">
+                    Fechar Explicação
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="w-full max-w-2xl">
+        <header class="mb-8 text-center flex flex-col items-center">
+            <div class="inline-flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-full mb-4">
+                <i data-lucide="triangle" class="text-indigo-500 w-7 h-7"></i>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-3xl font-bold tracking-tight text-white italic underline decoration-indigo-500/30 decoration-4 underline-offset-8">
+                    EML Engine <span class="text-indigo-500 font-mono text-xl not-italic">v2.5 (HTML)</span>
+                </h1>
+                <button onclick="toggleInfo()" class="p-1.5 bg-slate-800 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-400 rounded-lg text-slate-400 hover:text-white transition-all shadow-lg">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <p class="text-slate-500 text-sm mt-6 uppercase tracking-widest font-semibold">Cálculo de Precisão Geométrica</p>
+        </header>
+
+        <div class="space-y-6">
+            <!-- Inputs -->
+            <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-[2rem] backdrop-blur-md shadow-xl">
+                <div class="grid grid-cols-2 gap-6 text-center">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cateto A</label>
+                        <input 
+                            id="sideA" type="number" value="3" 
+                            class="w-full bg-slate-950 border border-slate-800 p-5 rounded-3xl text-3xl font-mono text-center text-white focus:border-indigo-500 outline-none transition-all shadow-inner"
+                        >
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cateto B</label>
+                        <input 
+                            id="sideB" type="number" value="4" 
+                            class="w-full bg-slate-950 border border-slate-800 p-5 rounded-3xl text-3xl font-mono text-center text-white focus:border-indigo-500 outline-none transition-all shadow-inner"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resultado -->
+            <div id="resultCard" class="p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden transition-all duration-500 bg-indigo-600">
+                <div class="relative z-10">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold uppercase tracking-widest opacity-80">Hipotenusa Calculada</span>
+                        <button 
+                            onclick="toggleSteps()"
+                            id="stepsBtn"
+                            class="bg-black/20 hover:bg-black/40 p-2 px-3 rounded-xl transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-tighter"
+                        >
+                            <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                            <span id="stepsText">Mostrar Passos</span>
+                        </button>
+                    </div>
+                    
+                    <div id="finalRes" class="text-7xl font-mono font-black mt-2 tracking-tighter leading-none">5.00000</div>
+                    
+                    <div class="mt-6 flex items-center gap-2 font-mono text-sm bg-black/20 w-fit px-4 py-2 rounded-full border border-white/10">
+                        <span class="opacity-70 font-bold">c =</span>
+                        <span class="flex items-center">
+                            <span class="text-lg leading-none">√</span>
+                            <span class="border-t border-white/50 pt-0.5 px-1 leading-none">
+                                <span id="eqA">3</span>² + <span id="eqB">4</span>²
+                            </span>
+                        </span>
+                        <span class="mx-1 opacity-50">=</span>
+                        <span id="eqRes" class="font-bold text-indigo-200">5.00</span>
+                    </div>
+                </div>
+                <div class="absolute right-[-20px] bottom-[-20px] w-56 h-56 opacity-10 text-white">
+                    <i data-lucide="activity" class="w-full h-full"></i>
+                </div>
+            </div>
+
+            <!-- Passos (Escondido por defeito) -->
+            <div id="stepsPanel" class="bg-slate-900 border border-indigo-500/30 p-6 rounded-[2rem] hidden animate-in">
+                <h3 class="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 mb-6 flex items-center gap-2">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i> Sequência de Execução EML
+                </h3>
+                <div id="stepsList" class="space-y-4">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <!-- Métricas -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col items-center justify-center shadow-lg group hover:border-indigo-500/50 transition-colors">
+                    <i data-lucide="layers" class="text-indigo-400 mb-2 transition-transform group-hover:scale-110"></i>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center leading-tight">Complexidade</span>
+                    <span id="callCount" class="text-3xl font-mono font-bold text-white mt-1">110</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col items-center justify-center shadow-lg text-center group hover:border-emerald-500/50 transition-colors">
+                    <i data-lucide="zap" class="text-emerald-400 mb-2 transition-transform group-hover:scale-110"></i>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">Estado do Kernel</span>
+                    <span class="text-xs font-bold text-emerald-400 mt-2 bg-emerald-500/10 px-3 py-1 rounded-full uppercase tracking-tighter font-mono">STABLE_v2.5</span>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center">
+            <p class="text-slate-800 font-mono text-[9px] uppercase tracking-[0.5em] font-black opacity-40">
+                Symbolic Regression Processor • Stability v2.5
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // --- Números Complexos ---
+        const complex = (re, im = 0) => ({ 
+            re: isFinite(re) ? re : 0, 
+            im: isFinite(im) ? im : 0 
+        });
+        const c_add = (a, b) => complex(a.re + b.re, a.im + b.im);
+        const c_sub = (a, b) => complex(a.re - b.re, a.im - b.im);
+        const c_exp = (z) => {
+            const safeRe = Math.max(Math.min(z.re, 100), -100);
+            const r = Math.exp(safeRe);
+            return complex(r * Math.cos(z.im), r * Math.sin(z.im));
+        };
+        const c_ln = (z) => {
+            const r = Math.sqrt(z.re * z.re + z.im * z.im);
+            if (r < 1e-15) return complex(-30, 0); 
+            return complex(Math.log(r), Math.atan2(z.im, z.re));
+        };
+
+        // --- Variáveis de Estado ---
+        let sideA = 3;
+        let sideB = 4;
+        let showSteps = false;
+
+        // --- Cálculo Principal ---
+        function updateCalculation() {
+            const na = parseFloat(document.getElementById('sideA').value);
+            const nb = parseFloat(document.getElementById('sideB').value);
+            
+            if (isNaN(na) || isNaN(nb)) return;
+
+            let calls = 0;
+            const EML = (x, y) => {
+                calls++;
+                return c_sub(c_exp(x), c_ln(y));
+            };
+
+            const one = complex(1, 0);
+            const _exp = (z) => EML(z, one);
+            const _ln = (z) => EML(one, EML(EML(one, z), one));
+            const _pow = (base, exponent) => {
+                const lnBase = _ln(base);
+                const arg = complex(exponent.re * lnBase.re - exponent.im * lnBase.im, 
+                                    exponent.re * lnBase.im + exponent.im * lnBase.re);
+                return _exp(arg);
+            };
+
+            try {
+                const A = complex(Math.abs(na), 0);
+                const B = complex(Math.abs(nb), 0);
+                const two = complex(2, 0);
+                const half = complex(0.5, 0);
+
+                const a2 = _pow(A, two);
+                const b2 = _pow(B, two);
+                const sum = c_add(a2, b2); // Kernel Assisted Sum
+                const resComplex = _pow(sum, half);
+
+                const error = !isFinite(resComplex.re) || resComplex.re > 1e15;
+
+                // UI Update
+                document.getElementById('finalRes').innerText = error ? "OVERFLOW" : resComplex.re.toFixed(5);
+                document.getElementById('eqA').innerText = na;
+                document.getElementById('eqB').innerText = nb;
+                document.getElementById('eqRes').innerText = resComplex.re.toFixed(2);
+                document.getElementById('callCount').innerText = calls;
+                document.getElementById('resultCard').className = `p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden transition-all duration-500 ${error ? 'bg-red-900/40 border border-red-500/30' : 'bg-indigo-600'}`;
+
+                // Update Steps List
+                renderSteps([
+                    { label: "Normalização", desc: `Catetos convertidos para domínio complexo: A=${na}, B=${nb}` },
+                    { label: "Potência A²", desc: `Calculado via exp(2 * ln(${na})) = ${a2.re.toFixed(2)}` },
+                    { label: "Potência B²", desc: `Calculado via exp(2 * ln(${nb})) = ${b2.re.toFixed(2)}` },
+                    { label: "Soma EML", desc: `Kernel fusion: ${a2.re.toFixed(2)} + ${b2.re.toFixed(2)} = ${sum.re.toFixed(2)}` },
+                    { label: "Raiz Quadrada", desc: `Expansão final: exp(0.5 * ln(${sum.re.toFixed(2)})) = ${resComplex.re.toFixed(5)}` }
+                ]);
+
+            } catch (e) {
+                document.getElementById('finalRes').innerText = "ERRO";
+            }
+        }
+
+        function renderSteps(steps) {
+            const list = document.getElementById('stepsList');
+            list.innerHTML = steps.map((step, idx) => `
+                <div class="flex gap-4 group">
+                    <div class="flex flex-col items-center">
+                        <div class="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-[10px] font-bold text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                            ${idx + 1}
+                        </div>
+                        ${idx < steps.length - 1 ? '<div class="w-px h-full bg-slate-800 my-1"></div>' : ''}
+                    </div>
+                    <div class="pb-4">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">${step.label}</h4>
+                        <p class="text-sm text-slate-500 font-mono mt-1 leading-relaxed">${step.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleSteps() {
+            showSteps = !showSteps;
+            const panel = document.getElementById('stepsPanel');
+            const btnText = document.getElementById('stepsText');
+            const btnIcon = document.querySelector('#stepsBtn i');
+            
+            panel.classList.toggle('hidden', !showSteps);
+            btnText.innerText = showSteps ? "Ocultar Passos" : "Mostrar Passos";
+            
+            // Re-inicializa ícones para o botão
+            lucide.createIcons();
+        }
+
+        function toggleInfo() {
+            const modal = document.getElementById('infoModal');
+            modal.classList.toggle('hidden');
+        }
+
+        // --- Inicialização ---
+        window.onload = () => {
+            lucide.createIcons();
+            updateCalculation();
+            
+            document.getElementById('sideA').addEventListener('input', updateCalculation);
+            document.getElementById('sideB').addEventListener('input', updateCalculation);
+        };
+    </script>
+</body>
+</html>
