@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Master 200: Desafio Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .option-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .timer-circle {
+            transition: stroke-dashoffset 1s linear;
+        }
+
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+        }
+
+        .screen {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white">
+
+    <!-- Ecrã de Início -->
+    <div id="screen-start" class="screen active min-h-screen flex-col items-center justify-center p-6 bg-slate-900">
+        <div class="bg-gradient-to-br from-indigo-500 to-purple-700 p-10 rounded-[2.5rem] shadow-2xl text-center max-w-sm w-full border-4 border-white/20">
+            <div class="flex justify-center mb-6">
+                <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse text-white"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z"/></svg>
+            </div>
+            <h1 class="text-5xl font-black mb-2 uppercase tracking-tight">Quiz 200</h1>
+            <p class="text-white/80 mb-10 font-medium">Desafios Reais Aleatórios</p>
+            <button onclick="startNewGame()" class="bg-white text-purple-700 font-black py-5 px-14 rounded-full text-2xl shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 mx-auto">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg> JOGAR
+            </button>
+        </div>
+    </div>
+
+    <!-- Ecrã de Jogo -->
+    <div id="screen-game" class="screen min-h-screen flex-col items-center p-4 relative overflow-hidden">
+        <!-- Botão Mudo -->
+        <button id="mute-btn" onclick="toggleMute()" class="absolute top-4 right-4 z-50 bg-black/20 p-4 rounded-full text-white backdrop-blur-md">
+            <svg id="volume-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        </button>
+
+        <!-- Elementos de Fundo -->
+        <div class="absolute top-10 left-[-40px] opacity-10 rotate-12 pointer-events-none text-white">
+            <svg width="160" height="160" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z"/></svg>
+        </div>
+
+        <div class="w-full max-w-md flex flex-col h-full items-center justify-center gap-8 relative z-10 py-10">
+            <!-- Pergunta -->
+            <div id="question-box" class="bg-white rounded-[2rem] p-8 w-full shadow-2xl border-4 border-slate-900 relative">
+                <h2 id="question-text" class="text-2xl md:text-3xl font-black text-slate-900 text-center leading-[1.1]"></h2>
+                <div id="question-number" class="absolute -top-5 -right-5 bg-yellow-400 text-slate-900 w-12 h-12 rounded-full flex items-center justify-center font-black border-4 border-slate-900 shadow-xl text-xl">1</div>
+            </div>
+
+            <!-- Timer -->
+            <div class="relative w-32 h-32 flex items-center justify-center">
+                <svg class="absolute w-full h-full -rotate-90">
+                    <circle cx="64" cy="64" r="56" fill="transparent" stroke="rgba(0,0,0,0.15)" strokeWidth="12" />
+                    <circle id="timer-progress" cx="64" cy="64" r="56" fill="transparent" stroke="white" strokeWidth="12" stroke-dasharray="351.8" stroke-dashoffset="0" class="timer-circle" />
+                </svg>
+                <span id="timer-text" class="text-6xl font-black drop-shadow-md">6</span>
+            </div>
+
+            <!-- Opções -->
+            <div id="options-container" class="w-full flex flex-col gap-4">
+                <!-- Inserido via JS -->
+            </div>
+
+            <!-- Botão Próximo -->
+            <div class="h-20 flex items-center justify-center">
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-slate-900 text-white font-black py-4 px-12 rounded-full flex items-center gap-2 shadow-2xl border-4 border-white/20 active:scale-95 animate-bounce">
+                    PRÓXIMO <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ecrã Final -->
+    <div id="screen-final" class="screen min-h-screen flex-col items-center justify-center p-6 bg-slate-900">
+        <div class="bg-white text-slate-900 p-10 rounded-[2.5rem] shadow-2xl text-center max-w-sm w-full border-b-8 border-slate-200">
+            <svg width="90" height="90" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4 drop-shadow-lg"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+            <h2 class="text-4xl font-black mb-2 uppercase tracking-tighter">Fim de Jogo!</h2>
+            <div id="final-score" class="text-6xl font-black text-purple-600 mb-8">0/10</div>
+            <button onclick="startNewGame()" class="bg-purple-600 text-white font-black py-5 px-12 rounded-2xl text-xl w-full flex items-center justify-center gap-3 hover:bg-purple-700 transition-all shadow-xl">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><polyline points="21 3 21 8 16 8"></polyline></svg> NOVA RODADA
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DADOS: 200 QUESTÕES REAIS ---
+        const ALL_QUESTIONS = [
+            { q: "Em qual país não existe Coca-Cola?", o: ["Cuba", "Brasil", "Egito"], c: 0, col: "from-red-500 to-red-800" },
+            { q: "Qual a fruta mais consumida no mundo?", o: ["Maçã", "Laranja", "Banana"], c: 2, col: "from-yellow-400 to-green-500" },
+            { q: "Qual tempero é feito a partir de uma flor?", o: ["Canela", "Pimenta", "Cravo-da-índia"], c: 2, col: "from-orange-500 to-red-700" },
+            { q: "Qual animal marinho muda de cor em segundos?", o: ["Polvo", "Tubarão", "Golfinho"], c: 0, col: "from-blue-500 to-indigo-600" },
+            { q: "Qual o idioma mais falado (nativos) no mundo?", o: ["Inglês", "Mandarim", "Espanhol"], c: 1, col: "from-purple-500 to-pink-600" },
+            { q: "Qual alimento é rico em gordura saudável?", o: ["Açúcar", "Abacate", "Pão"], c: 1, col: "from-green-500 to-teal-600" },
+            { q: "Qual metal é líquido à temperatura ambiente?", o: ["Ouro", "Mercúrio", "Prata"], c: 1, col: "from-gray-400 to-slate-600" },
+            { q: "Qual o maior planeta do sistema solar?", o: ["Saturno", "Neptuno", "Júpiter"], c: 2, col: "from-orange-400 to-yellow-600" },
+            { q: "Quem pintou a Mona Lisa?", o: ["Van Gogh", "Da Vinci", "Dalí"], c: 1, col: "from-amber-600 to-brown-700" },
+            { q: "Em que ano o homem pisou na Lua?", o: ["1969", "1972", "1961"], c: 0, col: "from-slate-700 to-black" },
+            { q: "Qual a capital da Austrália?", o: ["Sydney", "Canberra", "Melbourne"], c: 1, col: "from-blue-600 to-blue-900" },
+            { q: "Quantos ossos tem o corpo humano adulto?", o: ["206", "300", "150"], c: 0, col: "from-stone-300 to-stone-500" },
+            { q: "Qual o maior oceano do mundo?", o: ["Atlântico", "Índico", "Pacífico"], c: 2, col: "from-cyan-500 to-blue-800" },
+            { q: "Qual a cor da 'caixa preta' do avião?", o: ["Preta", "Laranja", "Azul"], c: 1, col: "from-orange-500 to-red-600" },
+            { q: "Quem escreveu 'Os Lusíadas'?", o: ["Camões", "Fernando Pessoa", "Eça de Queirós"], c: 0, col: "from-emerald-600 to-green-800" },
+            { q: "Qual elemento químico tem o símbolo 'Au'?", o: ["Prata", "Cobre", "Ouro"], c: 2, col: "from-yellow-500 to-amber-600" },
+            { q: "Qual o país mais populoso do mundo (2024)?", o: ["China", "Índia", "EUA"], c: 1, col: "from-orange-600 to-red-700" },
+            { q: "Quantos dentes tem um ser humano adulto?", o: ["28", "32", "30"], c: 1, col: "from-slate-100 to-slate-300" },
+            { q: "Qual a montanha mais alta do mundo?", o: ["K2", "Evereste", "Kilimanjaro"], c: 1, col: "from-slate-400 to-slate-800" },
+            { q: "Qual o maior mamífero do mundo?", o: ["Elefante", "Baleia Azul", "Tubarão Baleia"], c: 1, col: "from-blue-400 to-blue-700" },
+            { q: "Quantos segundos tem uma hora?", o: ["3600", "600", "1200"], c: 0, col: "from-indigo-500 to-purple-600" },
+            { q: "Qual a capital do Canadá?", o: ["Toronto", "Vancouver", "Ottawa"], c: 2, col: "from-red-500 to-red-700" },
+            { q: "Qual a velocidade da luz (aprox)?", o: ["300.000 km/s", "150.000 km/s", "500.000 km/s"], c: 0, col: "from-yellow-300 to-yellow-500" },
+            { q: "Qual vitamina é obtida através do Sol?", o: ["Vitamina A", "Vitamina C", "Vitamina D"], c: 2, col: "from-orange-400 to-yellow-500" },
+            { q: "Quem descobriu o Brasil?", o: ["Vasco da Gama", "Cabral", "Colombo"], c: 1, col: "from-green-600 to-yellow-600" },
+            { q: "Quantos minutos tem um dia?", o: ["1440", "1200", "2400"], c: 0, col: "from-sky-400 to-blue-500" },
+            { q: "Qual o maior país do mundo em área?", o: ["Canadá", "EUA", "Rússia"], c: 2, col: "from-blue-700 to-slate-800" },
+            { q: "Qual o deserto mais seco do mundo?", o: ["Saara", "Atacama", "Gobi"], c: 1, col: "from-orange-300 to-orange-500" },
+            { q: "Qual a capital do Japão?", o: ["Quioto", "Osaka", "Tóquio"], c: 2, col: "from-red-600 to-slate-100" },
+            { q: "Quem inventou a lâmpada?", o: ["Edison", "Tesla", "Newton"], c: 0, col: "from-yellow-500 to-orange-400" },
+            { q: "Qual o maior órgão do corpo humano?", o: ["Fígado", "Pele", "Intestino"], c: 1, col: "from-pink-400 to-rose-500" },
+            { q: "Quantos anos durou a Guerra dos 100 Anos?", o: ["100", "116", "99"], c: 1, col: "from-stone-600 to-stone-800" },
+            { q: "Qual a capital de Portugal?", o: ["Porto", "Coimbra", "Lisboa"], c: 2, col: "from-green-700 to-red-600" },
+            { q: "Qual o rio mais extenso do mundo?", o: ["Nilo", "Amazonas", "Mississipi"], c: 1, col: "from-teal-500 to-blue-600" },
+            { q: "Quem proclamou a independência do Brasil?", o: ["D. Pedro I", "D. Pedro II", "Tiradentes"], c: 0, col: "from-green-800 to-yellow-500" },
+            { q: "Qual o planeta mais próximo do Sol?", o: ["Vénus", "Marte", "Mercúrio"], c: 2, col: "from-orange-700 to-red-900" },
+            { q: "Quantas cores tem o arco-íris?", o: ["6", "7", "8"], c: 1, col: "from-indigo-500 via-purple-500 to-pink-500" },
+            { q: "Em que continente fica o Egito?", o: ["Ásia", "África", "Europa"], c: 1, col: "from-amber-500 to-yellow-700" },
+            { q: "Qual o animal terrestre mais rápido?", o: ["Leão", "Guepardo", "Antílope"], c: 1, col: "from-yellow-600 to-amber-800" },
+            { q: "Qual a capital da Alemanha?", o: ["Munique", "Hamburgo", "Berlim"], c: 2, col: "from-gray-800 to-black" },
+            { q: "Quem foi o primeiro homem a orbitar a Terra?", o: ["Neil Armstrong", "Yuri Gagarin", "Buzz Aldrin"], c: 1, col: "from-blue-900 to-slate-900" },
+            { q: "Quantos lados tem um heptágono?", o: ["6", "7", "8"], c: 1, col: "from-emerald-500 to-teal-700" },
+            { q: "Qual a capital da Argentina?", o: ["Rosário", "Córdoba", "Buenos Aires"], c: 2, col: "from-blue-400 to-sky-600" },
+            { q: "Qual gás compõe a maior parte da atmosfera?", o: ["Oxigénio", "Nitrogénio", "Gás Carbónico"], c: 1, col: "from-sky-100 to-sky-300" },
+            { q: "Qual o metal mais caro do mundo?", o: ["Ouro", "Platina", "Ródio"], c: 2, col: "from-slate-400 to-slate-600" },
+            { q: "Quem escreveu 'Dom Quixote'?", o: ["Cervantes", "Shakespeare", "Dante"], c: 0, col: "from-orange-800 to-brown-900" },
+            { q: "Qual o país da Europa com mais vulcões?", o: ["Itália", "Islândia", "Grécia"], c: 1, col: "from-slate-600 to-red-600" },
+            { q: "Quantos anos tem um século?", o: ["10", "100", "1000"], c: 1, col: "from-yellow-400 to-yellow-600" },
+            { q: "Qual a capital da Itália?", o: ["Milão", "Veneza", "Roma"], c: 2, col: "from-green-600 via-slate-100 to-red-600" },
+            { q: "Qual animal é conhecido como o 'Rei da Selva'?", o: ["Tigre", "Elefante", "Leão"], c: 2, col: "from-amber-600 to-orange-700" },
+            { q: "Qual a capital do México?", o: ["Cancun", "Cidade do México", "Guadalajara"], c: 1, col: "from-green-700 to-red-700" },
+            { q: "Quantos jogadores tem uma equipa de futebol?", o: ["10", "11", "12"], c: 1, col: "from-green-500 to-emerald-600" },
+            { q: "Qual a capital da Espanha?", o: ["Barcelona", "Madrid", "Sevilha"], c: 1, col: "from-yellow-500 to-red-600" },
+            { q: "Em que país fica a Torre Pisa?", o: ["França", "Itália", "Espanha"], c: 1, col: "from-stone-400 to-stone-600" },
+            { q: "Quem descobriu a lei da gravidade?", o: ["Einstein", "Newton", "Galileu"], c: 1, col: "from-green-900 to-slate-800" },
+            { q: "Qual a capital da Rússia?", o: ["São Petersburgo", "Kiev", "Moscovo"], c: 2, col: "from-red-700 to-blue-800" },
+            { q: "Qual o menor país do mundo?", o: ["Vaticano", "Mónaco", "Malta"], c: 0, col: "from-yellow-200 to-yellow-400" },
+            { q: "Quantos dentes de leite tem uma criança?", o: ["20", "24", "32"], c: 0, col: "from-blue-200 to-blue-400" },
+            { q: "Qual a capital da Grécia?", o: ["Esparta", "Atenas", "Creta"], c: 1, col: "from-blue-500 to-blue-800" },
+            { q: "Qual o maior felino do mundo?", o: ["Leão", "Tigre Siberiano", "Onça Pintada"], c: 1, col: "from-orange-500 to-amber-700" },
+            { q: "Em que ano começou a 2ª Guerra Mundial?", o: ["1914", "1939", "1945"], c: 1, col: "from-slate-800 to-black" },
+            { q: "Qual o principal ingrediente do chocolate?", o: ["Açúcar", "Cacau", "Leite"], c: 1, col: "from-amber-900 to-orange-900" },
+            { q: "Qual a capital da China?", o: ["Xangai", "Pequim", "Hong Kong"], c: 1, col: "from-red-600 to-yellow-600" },
+            { q: "Quantas patas tem uma aranha?", o: ["6", "8", "10"], c: 1, col: "from-slate-700 to-slate-900" },
+            { q: "Qual a capital da Suíça?", o: ["Genebra", "Zurique", "Berna"], c: 2, col: "from-red-500 to-red-800" },
+            { q: "Quem foi o arquiteto de Brasília?", o: ["Niemeyer", "Lúcio Costa", "Burle Marx"], c: 0, col: "from-slate-300 to-slate-500" },
+            { q: "Qual o osso mais longo do corpo humano?", o: ["Úmero", "Tíbia", "Fémur"], c: 2, col: "from-stone-200 to-stone-400" },
+            { q: "Qual a capital de Angola?", o: ["Benguela", "Luanda", "Lobito"], c: 1, col: "from-red-600 to-black" },
+            { q: "Qual o planeta conhecido como o 'Planeta Vermelho'?", o: ["Vénus", "Marte", "Saturno"], c: 1, col: "from-red-500 to-orange-600" },
+            { q: "Qual a capital da Coreia do Sul?", o: ["Tóquio", "Pequim", "Seul"], c: 2, col: "from-blue-600 to-red-600" },
+            { q: "Qual o elemento químico 'O'?", o: ["Ouro", "Oxigénio", "Osmio"], c: 1, col: "from-sky-300 to-blue-400" },
+            { q: "Qual a capital da Turquia?", o: ["Istambul", "Ancara", "Antália"], c: 1, col: "from-red-600 to-red-800" },
+            { q: "Quem pintou 'O Grito'?", o: ["Munch", "Picasso", "Van Gogh"], c: 0, col: "from-orange-700 to-red-900" },
+            { q: "Qual o oceano que banha o Brasil?", o: ["Pacífico", "Índico", "Atlântico"], c: 2, col: "from-blue-500 to-cyan-600" },
+            { q: "Qual a capital de Moçambique?", o: ["Beira", "Maputo", "Nampula"], c: 1, col: "from-green-700 to-red-700" },
+            { q: "Quantos anos vive uma tartaruga gigante (méd)?", o: ["50", "150", "300"], c: 1, col: "from-emerald-700 to-green-900" },
+            { q: "Qual a capital da Índia?", o: ["Nova Deli", "Bombaim", "Calcutá"], c: 0, col: "from-orange-400 to-green-600" },
+            { q: "Qual a capital de Cabo Verde?", o: ["Mindelo", "Praia", "Sal"], c: 1, col: "from-blue-800 to-blue-900" },
+            { q: "Qual o maior satélite natural da Terra?", o: ["Sol", "Lua", "Marte"], c: 1, col: "from-slate-400 to-slate-600" },
+            { q: "Qual o animal mais alto do mundo?", o: ["Girafa", "Elefante", "Avestruz"], c: 0, col: "from-yellow-500 to-orange-600" },
+            { q: "Qual a capital da Tailândia?", o: ["Phuket", "Banguecoque", "Chiang Mai"], c: 1, col: "from-yellow-400 to-amber-600" },
+            { q: "Qual o país da bota?", o: ["França", "Itália", "Grécia"], c: 1, col: "from-green-600 to-red-600" },
+            { q: "Qual a capital da Colômbia?", o: ["Bogotá", "Medellín", "Cali"], c: 0, col: "from-yellow-500 to-blue-600" },
+            { q: "Quantas cordas tem uma guitarra clássica?", o: ["4", "5", "6"], c: 2, col: "from-amber-700 to-orange-900" },
+            { q: "Qual a capital da Holanda?", o: ["Amesterdão", "Haia", "Roterdão"], c: 0, col: "from-orange-500 to-orange-700" },
+            { q: "Qual o metal que enferruja?", o: ["Ouro", "Alumínio", "Ferro"], c: 2, col: "from-orange-800 to-red-900" },
+            { q: "Qual a capital da Bélgica?", o: ["Bruges", "Bruxelas", "Antuérpia"], c: 1, col: "from-black via-yellow-500 to-red-600" },
+            { q: "Qual a fruta que tem a semente fora?", o: ["Maçã", "Morango", "Pêra"], c: 1, col: "from-red-500 to-red-700" },
+            { q: "Qual a capital de Marrocos?", o: ["Casablanca", "Rabat", "Marraquexe"], c: 1, col: "from-red-800 to-green-900" },
+            { q: "Qual o país do Sol Nascente?", o: ["China", "Japão", "Coreia"], c: 1, col: "from-slate-100 to-red-600" },
+            { q: "Qual a capital da Suécia?", o: ["Oslo", "Estocolmo", "Helsínquia"], c: 1, col: "from-blue-600 to-yellow-500" },
+            { q: "Quantos anéis tem o símbolo olímpico?", o: ["4", "5", "6"], c: 1, col: "from-blue-500 via-green-500 to-red-500" },
+            { q: "Qual a capital da Polónia?", o: ["Varsóvia", "Cracóvia", "Gdansk"], c: 0, col: "from-white to-red-600" },
+            { q: "Qual o maior país da América do Sul?", o: ["Argentina", "Brasil", "Peru"], c: 1, col: "from-green-600 to-yellow-500" },
+            { q: "Qual a capital da Noruega?", o: ["Oslo", "Bergen", "Estocolmo"], c: 0, col: "from-red-600 to-blue-800" },
+            { q: "Qual o animal marinho mais inteligente?", o: ["Golfinho", "Polvo", "Baleia"], c: 0, col: "from-blue-400 to-blue-600" },
+            { q: "Qual a capital da Áustria?", o: ["Salzburgo", "Viena", "Innsbruck"], c: 1, col: "from-red-500 to-white" },
+            { q: "Qual a moeda do Reino Unido?", o: ["Euro", "Dólar", "Libra"], c: 2, col: "from-purple-700 to-indigo-900" },
+            { q: "Qual a capital do Peru?", o: ["Cusco", "Lima", "Arequipa"], c: 1, col: "from-red-600 to-red-800" },
+            { q: "Qual o ponto de ebulição da água?", o: ["90°C", "100°C", "110°C"], c: 1, col: "from-cyan-300 to-blue-500" },
+            { q: "Qual a capital da Irlanda?", o: ["Dublin", "Belfast", "Cork"], c: 0, col: "from-green-500 to-green-800" },
+            { q: "Quem inventou o avião (oficial BR)?", o: ["Irmãos Wright", "Santos Dumont", "Da Vinci"], c: 1, col: "from-blue-400 to-slate-400" },
+            { q: "Qual a capital de Israel?", o: ["Tel Aviv", "Jerusalém", "Haifa"], c: 1, col: "from-blue-500 to-blue-700" },
+            { q: "Qual a capital do Chile?", o: ["Santiago", "Valparaíso", "Concepción"], c: 0, col: "from-red-600 to-blue-800" },
+            { q: "Qual o maior produtor de café do mundo?", o: ["Vietname", "Colômbia", "Brasil"], c: 2, col: "from-amber-800 to-green-900" },
+            { q: "Qual a capital da Finlândia?", o: ["Helsínquia", "Turku", "Tampere"], c: 0, col: "from-blue-400 to-slate-200" },
+            { q: "Quantos planetas tem o Sistema Solar?", o: ["8", "9", "7"], c: 0, col: "from-slate-700 to-indigo-900" },
+            { q: "Qual a capital da Nova Zelândia?", o: ["Auckland", "Wellington", "Christchurch"], c: 1, col: "from-blue-900 to-red-800" },
+            { q: "Qual o país da 'Torre Eiffel'?", o: ["Inglaterra", "França", "Alemanha"], c: 1, col: "from-blue-500 via-slate-100 to-red-600" },
+            { q: "Qual a capital da Arábia Saudita?", o: ["Riade", "Jidá", "Meca"], c: 0, col: "from-green-600 to-green-900" },
+            { q: "Quem foi o Rei do Rock?", o: ["Chuck Berry", "Elvis Presley", "Little Richard"], c: 1, col: "from-pink-600 to-purple-800" },
+            { q: "Qual a capital da Dinamarca?", o: ["Copenhaga", "Aarhus", "Oslo"], c: 0, col: "from-red-600 to-white" },
+            { q: "Qual o animal que dorme em pé?", o: ["Cão", "Cavalo", "Gato"], c: 1, col: "from-amber-700 to-amber-900" },
+            { q: "Qual a capital da Guiné-Bissau?", o: ["Bafatá", "Gabú", "Bissau"], c: 2, col: "from-yellow-500 to-green-700" },
+            { q: "Qual o elemento químico 'Fe'?", o: ["Flúor", "Fósforo", "Ferro"], c: 2, col: "from-stone-600 to-red-900" },
+            { q: "Qual a capital do Egito?", o: ["Alexandria", "Luxor", "Cairo"], c: 2, col: "from-amber-600 to-yellow-700" },
+            { q: "Quantos anos tem um milénio?", o: ["100", "500", "1000"], c: 2, col: "from-yellow-400 to-amber-500" },
+            { q: "Qual a capital do Vietname?", o: ["Hanoi", "Ho Chi Minh", "Da Nang"], c: 0, col: "from-red-600 to-yellow-600" },
+            { q: "Qual a capital da Indonésia (atual)?", o: ["Bali", "Jacarta", "Surabaia"], c: 1, col: "from-red-600 to-white" },
+            { q: "Qual o maior osso da face?", o: ["Mandíbula", "Maxilar", "Nasal"], c: 0, col: "from-slate-200 to-slate-400" },
+            { q: "Qual a capital de Timor-Leste?", o: ["Dili", "Baucau", "Lospalos"], c: 0, col: "from-red-600 to-black" },
+            { q: "Qual o país com mais ilhas no mundo?", o: ["Indonésia", "Suécia", "Filipinas"], c: 1, col: "from-blue-400 to-blue-600" },
+            { q: "Qual a capital de São Tomé e Príncipe?", o: ["Santo António", "São Tomé", "Neves"], c: 1, col: "from-green-600 to-red-600" },
+            { q: "Qual o nome da Galáxia da Terra?", o: ["Andrómeda", "Via Láctea", "Sombrero"], c: 1, col: "from-purple-900 to-black" },
+            { q: "Qual a capital da Coreia do Norte?", o: ["Seul", "Pyongyang", "Busan"], c: 1, col: "from-red-700 to-blue-800" },
+            { q: "Qual a capital de Cuba?", o: ["Santiago", "Havana", "Varadero"], c: 1, col: "from-blue-700 to-red-700" },
+            { q: "Qual o maior réptil do mundo?", o: ["Jacaré", "Crocodilo de Água Salgada", "Dragão de Komodo"], c: 1, col: "from-emerald-800 to-green-900" },
+            { q: "Qual a capital do Paquistão?", o: ["Islamabad", "Karachi", "Lahore"], c: 0, col: "from-green-600 to-green-900" },
+            { q: "Quantos corações tem um polvo?", o: ["1", "2", "3"], c: 2, col: "from-purple-600 to-indigo-800" },
+            { q: "Qual a capital da Nigéria?", o: ["Lagos", "Abuja", "Kano"], c: 1, col: "from-green-600 to-white" },
+            { q: "Quem foi o 'Rei do Pop'?", o: ["Prince", "Michael Jackson", "Freddie Mercury"], c: 1, col: "from-slate-800 to-slate-900" },
+            { q: "Qual a capital da África do Sul (Exec)?", o: ["Cidade do Cabo", "Joanesburgo", "Pretória"], c: 2, col: "from-emerald-600 to-yellow-600" },
+            { q: "Qual a capital da Ucrânia?", o: ["Odessa", "Lviv", "Kiev"], c: 2, col: "from-blue-500 to-yellow-500" },
+            { q: "Qual o país do 'Taj Mahal'?", o: ["Irão", "Índia", "Tailândia"], c: 1, col: "from-orange-500 to-green-600" },
+            { q: "Qual a capital do Quénia?", o: ["Mombaça", "Nairobi", "Nakuru"], c: 1, col: "from-red-700 to-green-800" },
+            { q: "Quantos tentáculos tem uma lula gigante?", o: ["8", "10", "12"], c: 1, col: "from-indigo-700 to-blue-900" },
+            { q: "Qual a capital do Irão?", o: ["Teerão", "Isfahan", "Shiraz"], c: 0, col: "from-green-600 to-red-600" },
+            { q: "Qual a capital do Iraque?", o: ["Bagdade", "Mossul", "Basra"], c: 0, col: "from-orange-700 to-green-800" },
+            { q: "Qual o maior tubarão que existe?", o: ["Tubarão Branco", "Tubarão Baleia", "Tubarão Martelo"], c: 1, col: "from-blue-800 to-slate-700" },
+            { q: "Qual a capital da Síria?", o: ["Aleppo", "Homs", "Damasco"], c: 2, col: "from-red-600 to-green-700" },
+            { q: "Quem pintou a 'Capela Sistina'?", o: ["Rafael", "Michelangelo", "Da Vinci"], c: 1, col: "from-blue-300 to-stone-500" },
+            { q: "Qual a capital da Venezuela?", o: ["Caracas", "Maracaibo", "Valencia"], c: 0, col: "from-yellow-400 to-red-600" },
+            { q: "Qual o maior pássaro do mundo?", o: ["Águia", "Condor", "Avestruz"], c: 2, col: "from-stone-500 to-orange-700" },
+            { q: "Qual a capital da Hungria?", o: ["Bratislava", "Budapeste", "Praga"], c: 1, col: "from-red-600 via-white to-green-700" },
+            { q: "Qual o metal mais abundante na crosta?", o: ["Ferro", "Alumínio", "Cobre"], c: 1, col: "from-stone-300 to-slate-400" },
+            { q: "Qual a capital da Chéquia?", o: ["Praga", "Brno", "Ostrava"], c: 0, col: "from-blue-700 to-red-600" },
+            { q: "Quem inventou o telefone?", o: ["Edison", "Bell", "Marconi"], c: 1, col: "from-amber-700 to-brown-800" },
+            { q: "Qual a capital da Roménia?", o: ["Bucareste", "Cluj", "Timisoara"], c: 0, col: "from-blue-600 to-yellow-500" },
+            { q: "Quantas válvulas tem o coração humano?", o: ["2", "3", "4"], c: 2, col: "from-red-400 to-red-600" },
+            { q: "Qual a capital da Croácia?", o: ["Split", "Zagreb", "Dubrovnik"], c: 1, col: "from-red-600 to-blue-700" },
+            { q: "Qual a capital da Bulgária?", o: ["Sofia", "Plovdiv", "Varna"], c: 0, col: "from-green-600 to-red-600" },
+            { q: "Qual o oceano mais frio?", o: ["Pacífico", "Ártico", "Antártico"], c: 1, col: "from-cyan-100 to-blue-300" },
+            { q: "Qual a capital da Sérvia?", o: ["Belgrado", "Nis", "Novi Sad"], c: 0, col: "from-red-600 to-blue-800" },
+            { q: "Qual o país com mais pirâmides?", o: ["Egito", "México", "Sudão"], c: 2, col: "from-amber-600 to-yellow-800" },
+            { q: "Qual a capital da Eslováquia?", o: ["Praga", "Ljubljana", "Bratislava"], c: 2, col: "from-blue-600 to-red-600" },
+            { q: "Quem foi o mentor de Alexandre o Grande?", o: ["Platão", "Sócrates", "Aristóteles"], c: 2, col: "from-stone-500 to-slate-700" },
+            { q: "Qual a capital da Albânia?", o: ["Tirana", "Durres", "Vlore"], c: 0, col: "from-red-700 to-black" },
+            { q: "Qual o animal que mais mata humanos?", o: ["Tubarão", "Cobra", "Mosquito"], c: 2, col: "from-emerald-600 to-green-800" },
+            { q: "Qual a capital do Uruguai?", o: ["Montevidéu", "Punta del Este", "Salto"], c: 0, col: "from-sky-400 to-yellow-500" },
+            { q: "Qual a capital da Malásia?", o: ["Kuala Lumpur", "Penang", "Johor"], c: 0, col: "from-blue-800 to-red-600" },
+            { q: "Qual o maior arquipélago do mundo?", o: ["Japão", "Indonésia", "Filipinas"], c: 1, col: "from-blue-400 to-teal-500" },
+            { q: "Qual a capital da Líbia?", o: ["Benghazi", "Trípoli", "Misrata"], c: 1, col: "from-green-600 to-black" },
+            { q: "Quem descobriu a Penicilina?", o: ["Pasteur", "Fleming", "Curie"], c: 1, col: "from-blue-200 to-blue-500" },
+            { q: "Qual a capital do Luxemburgo?", o: ["Luxemburgo", "Esch", "Diekirch"], c: 0, col: "from-red-400 to-blue-400" },
+            { q: "Qual o maior deserto de gelo?", o: ["Ártico", "Antártida", "Gronelândia"], c: 1, col: "from-slate-100 to-blue-200" },
+            { q: "Qual a capital da Islândia?", o: ["Reykjavík", "Akureyri", "Keflavík"], c: 0, col: "from-blue-700 to-red-600" },
+            { q: "Qual o planeta com anéis mais visíveis?", o: ["Júpiter", "Saturno", "Urano"], c: 1, col: "from-yellow-600 to-orange-700" },
+            { q: "Qual a capital da Jamaica?", o: ["Kingston", "Montego Bay", "Spanish Town"], c: 0, col: "from-green-600 via-yellow-400 to-black" },
+            { q: "Qual o elemento químico 'Na'?", o: ["Azoto", "Néon", "Sódio"], c: 2, col: "from-slate-300 to-gray-500" },
+            { q: "Qual a capital do Panamá?", o: ["Cidade do Panamá", "Colon", "David"], c: 0, col: "from-blue-600 to-red-600" },
+            { q: "Quantas teclas tem um piano padrão?", o: ["85", "88", "90"], c: 1, col: "from-slate-800 to-black" },
+            { q: "Qual a capital do Líbano?", o: ["Beirute", "Trípoli", "Sídon"], c: 0, col: "from-red-600 to-green-700" },
+            { q: "Qual a capital do Afeganistão?", o: ["Kandahar", "Cabul", "Herat"], c: 1, col: "from-black to-green-800" },
+            { q: "Quem escreveu 'Romeu e Julieta'?", o: ["Cervantes", "Shakespeare", "Dante"], c: 1, col: "from-red-800 to-rose-900" },
+            { q: "Qual a capital do Qatar?", o: ["Doha", "Al Rayyan", "Al Khor"], c: 0, col: "from-red-900 to-slate-100" },
+            { q: "Qual o país da 'Grande Muralha'?", o: ["Índia", "China", "Mongólia"], c: 1, col: "from-red-600 to-yellow-600" },
+            { q: "Qual a capital da Bolívia (Admin)?", o: ["Sucre", "La Paz", "Santa Cruz"], c: 1, col: "from-red-600 via-yellow-500 to-green-700" },
+            { q: "Qual o animal que não consegue saltar?", o: ["Canguru", "Elefante", "Sapo"], c: 1, col: "from-stone-600 to-slate-700" },
+            { q: "Qual a capital da Mongólia?", o: ["Ulaanbaatar", "Astana", "Tashkent"], c: 0, col: "from-blue-700 to-red-600" },
+            { q: "Qual o maior país da África?", o: ["Egito", "Nigéria", "Argélia"], c: 2, col: "from-green-600 to-white" },
+            { q: "Qual a capital do Equador?", o: ["Guayaquil", "Quito", "Cuenca"], c: 1, col: "from-yellow-400 via-blue-600 to-red-600" },
+            { q: "Qual o primeiro metal usado pelo homem?", o: ["Ferro", "Bronze", "Cobre"], c: 2, col: "from-orange-700 to-amber-900" },
+            { q: "Qual a capital do Paraguai?", o: ["Assunção", "Encarnación", "Ciudad del Este"], c: 0, col: "from-red-600 via-white to-blue-700" },
+            { q: "Qual a capital do Azerbaijão?", o: ["Baku", "Ganja", "Sumqayit"], c: 0, col: "from-blue-600 via-red-600 to-green-600" },
+            { q: "Quem pintou a 'Última Ceia'?", o: ["Da Vinci", "Michelangelo", "Rafael"], c: 0, col: "from-brown-600 to-amber-800" },
+            { q: "Qual a capital da Geórgia?", o: ["Tbilisi", "Batumi", "Kutaisi"], c: 0, col: "from-red-600 to-white" },
+            { q: "Qual o país com mais fusos horários?", o: ["Rússia", "EUA", "França"], c: 2, col: "from-blue-600 to-red-600" },
+            { q: "Qual a capital do Cazaquistão?", o: ["Almaty", "Astana", "Shymkent"], c: 1, col: "from-cyan-400 to-yellow-500" },
+            { q: "Qual o animal que muda de sexo?", o: ["Golfinho", "Peixe-Palhaço", "Tubarão"], c: 1, col: "from-orange-400 to-white" },
+            { q: "Qual a capital do Uzbequistão?", o: ["Tashkent", "Samarcanda", "Bukhara"], c: 0, col: "from-blue-500 to-green-500" },
+            { q: "Qual a capital do Sri Lanka (Admin)?", o: ["Colombo", "Kotte", "Kandy"], c: 1, col: "from-amber-600 to-red-800" },
+            { q: "Qual a capital da Bielorrússia?", o: ["Minsk", "Gomel", "Brest"], c: 0, col: "from-red-600 to-green-600" },
+            { q: "Qual a capital da Estónia?", o: ["Tallinn", "Tartu", "Narva"], c: 0, col: "from-blue-500 to-black" },
+            { q: "Qual a capital da Lituânia?", o: ["Vilnius", "Kaunas", "Klaipeda"], c: 0, col: "from-yellow-500 via-green-600 to-red-600" },
+            { q: "Qual a capital da Letónia?", o: ["Riga", "Liepaja", "Ventspils"], c: 0, col: "from-red-900 via-white to-red-900" },
+            { q: "Qual a capital da Moldávia?", o: ["Chisinau", "Tiraspol", "Balti"], c: 0, col: "from-blue-700 via-yellow-500 to-red-700" }
+        ];
+
+        // --- VARIÁVEIS DE ESTADO ---
+        let currentIdx = 0;
+        let score = 0;
+        let timeLeft = 6;
+        let timerInterval;
+        let sessionQuestions = [];
+        let selectedAnswer = null;
+        let isMuted = false;
+        let showCorrect = false;
+        let audioCtx = null;
+
+        // --- SISTEMA DE ÁUDIO ---
+        function playSound(type) {
+            if (isMuted) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            switch(type) {
+                case 'tick':
+                    osc.frequency.setValueAtTime(880, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now); osc.stop(now + 0.05);
+                    break;
+                case 'correct':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.exponentialRampToValueAtTime(1046, now + 0.4);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                    break;
+                case 'wrong':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now); osc.stop(now + 0.4);
+                    break;
+                case 'click':
+                    osc.frequency.setValueAtTime(400, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    osc.start(now); osc.stop(now + 0.1);
+                    break;
+            }
+        }
+
+        // --- LÓGICA DO JOGO ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startNewGame() {
+            playSound('click');
+            score = 0;
+            currentIdx = 0;
+            sessionQuestions = [...ALL_QUESTIONS].sort(() => 0.5 - Math.random()).slice(0, 10);
+            showScreen('screen-game');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const question = sessionQuestions[currentIdx];
+            timeLeft = 6;
+            showCorrect = false;
+            selectedAnswer = null;
+
+            // Atualizar UI
+            document.getElementById('screen-game').className = `screen active min-h-screen flex-col items-center p-4 relative overflow-hidden bg-gradient-to-b ${question.col}`;
+            document.getElementById('question-text').innerText = question.q;
+            document.getElementById('question-number').innerText = currentIdx + 1;
+            document.getElementById('timer-text').innerText = timeLeft;
+            document.getElementById('timer-text').classList.remove('text-red-500', 'animate-ping');
+            document.getElementById('next-btn').classList.add('hidden');
+            
+            // Renderizar opções
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            question.o.forEach((opt, i) => {
+                const letter = ["A", "B", "C"][i];
+                const btn = document.createElement('button');
+                btn.className = "option-btn flex items-center gap-5 p-5 rounded-2xl shadow-xl text-left font-black text-xl border-b-8 bg-white text-slate-900 border-slate-200 w-full";
+                btn.innerHTML = `
+                    <div class="w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-inner font-black bg-red-500">${letter}</div>
+                    <div class="flex-1 uppercase tracking-tight leading-tight">${opt}</div>
+                `;
+                btn.onclick = () => selectOption(i);
+                container.appendChild(btn);
+            });
+
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            updateTimerCircle();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-text').innerText = timeLeft;
+                updateTimerCircle();
+
+                if (timeLeft > 0) playSound('tick');
+                
+                if (timeLeft <= 2) {
+                    document.getElementById('timer-text').classList.add('text-red-500', 'animate-ping');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    revealCorrect(null);
+                }
+            }, 1000);
+        }
+
+        function updateTimerCircle() {
+            const offset = 351.8 - (351.8 * timeLeft) / 6;
+            document.getElementById('timer-progress').style.strokeDashoffset = offset;
+        }
+
+        function selectOption(index) {
+            if (showCorrect) return;
+            clearInterval(timerInterval);
+            selectedAnswer = index;
+            revealCorrect(index);
+        }
+
+        function revealCorrect(userIndex) {
+            showCorrect = true;
+            const question = sessionQuestions[currentIdx];
+            const isCorrect = userIndex === question.c;
+
+            if (isCorrect) {
+                score++;
+                playSound('correct');
+            } else {
+                playSound('wrong');
+            }
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === question.c) {
+                    btn.classList.replace('bg-white', 'bg-green-500');
+                    btn.classList.replace('text-slate-900', 'text-white');
+                    btn.classList.replace('border-slate-200', 'border-green-300');
+                    btn.classList.add('ring-4', 'ring-green-400/50', 'animate-bounce');
+                    btn.querySelector('div').classList.replace('bg-red-500', 'bg-green-600');
+                } else if (i === userIndex) {
+                    btn.classList.replace('bg-white', 'bg-red-500');
+                    btn.classList.replace('text-slate-900', 'text-white');
+                    btn.classList.replace('border-slate-200', 'border-red-700');
+                    btn.classList.add('opacity-80', 'scale-95');
+                } else {
+                    btn.classList.add('bg-white/40', 'text-slate-400', 'scale-90', 'grayscale', 'opacity-50');
+                }
+            });
+
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            if (currentIdx < sessionQuestions.length - 1) {
+                currentIdx++;
+                loadQuestion();
+            } else {
+                finishGame();
+            }
+        }
+
+        function finishGame() {
+            document.getElementById('final-score').innerText = `${score}/10`;
+            showScreen('screen-final');
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('volume-icon');
+            if (isMuted) {
+                icon.innerHTML = '<line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9l-2 2h-2v4h2l2 2v-8z"></path>';
+            } else {
+                icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
+            }
+        }
+    </script>
+</body>
+</html>
