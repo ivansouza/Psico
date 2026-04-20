@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Citações Aleatórias - Quite Random</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .quote-box {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 10px;
+            font-size: 1.4em;
+            line-height: 1.6;
+            color: #444;
+        }
+        
+        .author {
+            font-style: italic;
+            color: #666;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button.secondary {
+            background: #48bb78;
+        }
+        
+        button.secondary:hover {
+            background: #38a169;
+            box-shadow: 0 10px 20px rgba(72, 187, 120, 0.4);
+        }
+        
+        .stats {
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            background: #e9d8fd;
+            color: #553c9a;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerador de Citações Aleatórias</h1>
+        
+        <div class="quote-box" id="quoteDisplay">
+            "A vida é o que acontece enquanto você está ocupado fazendo outros planos."
+        </div>
+        
+        <div class="author" id="authorDisplay">
+            — John Lennon
+        </div>
+        
+        <div class="category-tag" id="categoryDisplay">
+            Filosofia
+        </div>
+        
+        <div class="controls">
+            <button onclick="generateQuote()">Nova Citação</button>
+            <button class="secondary" onclick="copyToClipboard()">Copiar Citação</button>
+            <button onclick="shareQuote()">Compartilhar</button>
+        </div>
+        
+        <div class="stats">
+            <span id="quoteCount">Citações geradas: 0</span> | 
+            <span id="favoritesCount">Favoritas: 0</span>
+        </div>
+    </div>
+
+    <script>
+        // Banco de citações
+        const quotes = [
+            {
+                text: "A única maneira de fazer um ótimo trabalho é amar o que você faz.",
+                author: "Steve Jobs",
+                category: "Motivação"
+            },
+            {
+                text: "A simplicidade é o último grau de sofisticação.",
+                author: "Leonardo da Vinci",
+                category: "Design"
+            },
+            {
+                text: "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+                author: "Robert Collier",
+                category: "Produtividade"
+            },
+            {
+                text: "A mente que se abre a uma nova ideia jamais voltará ao seu tamanho original.",
+                author: "Albert Einstein",
+                category: "Ciência"
+            },
+            {
+                text: "O único modo de fazer um grande trabalho é amar o que se faz.",
+                author: "Steve Jobs",
+                category: "Carreira"
+            },
+            {
+                text: "A criatividade é a inteligência se divertindo.",
+                author: "Albert Einstein",
+                category: "Criatividade"
+            },
+            {
+                text: "O futuro pertence àqueles que acreditam na beleza de seus sonhos.",
+                author: "Eleanor Roosevelt",
+                category: "Inspiração"
+            },
+            {
+                text: "A melhor maneira de prever o futuro é criá-lo.",
+                author: "Peter Drucker",
+                category: "Inovação"
+            }
+        ];
+
+        let quoteCount = 0;
+        let favorites = [];
+
+        function generateQuote() {
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            const quote = quotes[randomIndex];
+            
+            document.getElementById('quoteDisplay').textContent = `"${quote.text}"`;
+            document.getElementById('authorDisplay').textContent = `— ${quote.author}`;
+            document.getElementById('categoryDisplay').textContent = quote.category;
+            
+            quoteCount++;
+            document.getElementById('quoteCount').textContent = `Citações geradas: ${quoteCount}`;
+            
+            // Efeito visual
+            const quoteBox = document.getElementById('quoteDisplay');
+            quoteBox.style.opacity = '0';
+            setTimeout(() => {
+                quoteBox.style.opacity = '1';
+                quoteBox.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    quoteBox.style.transform = 'scale(1)';
+                }, 200);
+            }, 300);
+        }
+
+        function copyToClipboard() {
+            const quote = document.getElementById('quoteDisplay').textContent;
+            const author = document.getElementById('authorDisplay').textContent;
+            const textToCopy = `${quote}\n${author}`;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('Citação copiada para a área de transferência!');
+            });
+        }
+
+        function shareQuote() {
+            const quote = document.getElementById('quoteDisplay').textContent;
+            const author = document.getElementById('authorDisplay').textContent;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Citação Aleatória',
+                    text: `${quote} ${author}`,
+                    url: window.location.href
+                });
+            } else {
+                alert('Compartilhamento não suportado neste navegador. Use a opção de copiar.');
+            }
+        }
+
+        // Gerar primeira citação ao carregar
+        generateQuote();
+    </script>
+</body>
+</html>
