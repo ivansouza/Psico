@@ -654,6 +654,12 @@
 
         let experiments = [
 
+            { name: "Quiz Master 200", file: "quiz.html", cat: "Jogos", date: "20/04/2026", desc: "Quiz interativo com 200 perguntas desafiadoras, múltiplas categorias e sistema de pontuação em tempo real" },
+            { name: "EML Star Engine 3D", file: "eml-estar.html", cat: "3D", date: "20/04/2026", desc: "Motor 3D EML Star com edição paramétrica, visualização em tempo real e exportação de modelos" },
+            { name: "EML Engine v2.5", file: "hipo-eml.html", cat: "Matemática", date: "20/04/2026", desc: "Engine EML v2.5 para cálculo de hipotenusa com visualização geométrica e fórmulas explicadas" },
+            { name: "Psico Dashboard v4", file: "index4.html", cat: "Util", date: "20/04/2026", desc: "Versão 4 do dashboard Psico com interface redesenhada, performance otimizada e novos filtros" },
+            { name: "Psico Neural Dashboard", file: "indexnovo2.html", cat: "IA", date: "20/04/2026", desc: "PSICO LAB Neural Dashboard com visualização de dados em tempo real, analytics e machine learning" },
+            { name: "Psico Neural Dashboard v3", file: "indexnovo3.html", cat: "IA", date: "20/04/2026", desc: "PSICO LAB Neural Dashboard v3 com machine learning integrado, predições e interface neural" },
             { name: "TTS Local", file: "tts-local.html", pick: true, cat: "Util", date: "03/04/2026", desc: "Utilitário prático para tts local com interface intuitiva, múltiplos formatos e processamento rápido." },
             { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
             { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
@@ -1124,8 +1130,61 @@
             } catch { return null; }
         }
 
-        function prettyNameFromFile(file) {
-            return file.replace(/\.html$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\w/g, c => c.toUpperCase());
+                function prettyNameFromFile(file) {
+            const base = file.replace(/\.html$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            // Mapeamento de nomes para versões mais amigáveis
+            const nameMap = {
+                'quiz': 'Quiz Master 200',
+                'tts local': 'TTS Local',
+                'rsvp': 'RSVP Reader',
+                'ascii': 'ASCII Art',
+                'binet': 'Binet Formula',
+                'tusi': 'Tusi Couple',
+                'faraday 3d': 'Faraday 3D',
+                'art sky': 'Art Sky',
+                'ascii studio': 'ASCII Studio',
+                'back in black': 'Back in Black',
+                'binaural bpm': 'Binaural BPM',
+                'voice ai webgpu': 'Voice AI WebGPU',
+                'whisper live v4 3': 'Whisper Live v4.3',
+                'solidos platonicos': 'Sólidos Platónicos',
+                'sacred dodecahedron': 'Sacred Dodecahedron',
+                'truchet tiles': 'Truchet Tiles',
+                'a lorenz': 'A-lorenz',
+                '3d water 1': '3D Water 1',
+                '3d water 2': '3D Water 2',
+                '3d water 3': '3D Water 3',
+                'audio visualizer': 'Audio Visualizer',
+                'aqua shader': 'Aqua Shader',
+                'wu square': 'WuSquare',
+                'aizawa neon': 'Aizawa Neon',
+                'laser no triangulo': 'Laser no Triângulo',
+                'tusi minimal': 'Tusi Minimal',
+                'tusi lines': 'Tusi Lines',
+                'arvore primos': 'Árvore Primos',
+                'espiral de primos': 'Espiral de Primos',
+                'duas circunferencias': 'Duas Circunferências',
+                'two circles': 'Two Circles',
+                'fractal dance': 'Fractal Dance',
+                'balls v1': 'Balls v1',
+                'balls v2': 'Balls v2',
+                'balls v3': 'Balls v3',
+                'biblia quote': 'Bíblia Quote',
+                'binaurais base': 'Binaurais Base',
+                'binaurais 2': 'Binaurais 2',
+                'binaurais 3': 'Binaurais 3',
+                'binaurais 4': 'Binaurais 4',
+                'binaurais 5': 'Binaurais 5',
+                'binaurais 6': 'Binaurais 6',
+                'bitnet': 'BitNet',
+                'bitnet 2': 'BitNet 2',
+                'bitnet 3': 'BitNet 3',
+                'bpmn': 'BPMN',
+            };
+            
+            const lower = base.toLowerCase();
+            return nameMap[lower] || base.replace(/\b\w/g, c => c.toUpperCase());
         }
 
         function classifyByFileName(file) {
@@ -1141,7 +1200,48 @@
             return 'Util';
         }
 
-        async function syncMissingCardsFromGitHub() {
+        
+        function generateDescription(name, category, fileName) {
+            // Templates por categoria
+            const templates = {
+                'IA': `Ferramenta de IA para ${name.toLowerCase()} com modelos modernos, explicações interativas e casos de uso práticos.`,
+                'Util': `Utilitário prático para ${name.toLowerCase()} com interface intuitiva, múltiplas funcionalidades e processamento eficiente.`,
+                'Física': `Simulação interativa de ${name.toLowerCase()} com física realista, controles ajustáveis e visualização científica.`,
+                'Matemática': `Demonstração visual de ${name.toLowerCase()} com fórmulas explicadas, interatividade e aplicações práticas.`,
+                'Geometria': `Visualizador 3D/2D de ${name.toLowerCase()} com rotação livre, medidas precisas e análise geométrica.`,
+                'Áudio': `Processador de áudio para ${name.toLowerCase()} com equalização, efeitos em tempo real e análise espectral.`,
+                'Shaders': `Shader WebGL para ${name.toLowerCase()} com performance otimizada, parâmetros editáveis e efeitos visuais.`,
+                'Arte': `Ferramenta criativa para ${name.toLowerCase()} com brushes variados, layers, blend modes e exportação.`,
+                'Animação': `Animação interativa de ${name.toLowerCase()} com controles de tempo, efeitos visuais e exportação.`,
+                'Fractal': `Explorador de fractal ${name.toLowerCase()} com zoom infinito, paletas personalizáveis e análise matemática.`,
+                'Efeitos': `Aplicador de efeitos visuais para ${name.toLowerCase()} com ajustes finos, preview em tempo real e resultados criativos.`,
+                'Eraser': `Motor de desenho e apagamento para ${name.toLowerCase()} com ferramentas essenciais e interface intuitiva.`,
+                'Especial': `Aplicativo especial para ${name.toLowerCase()} com tema personalizado, funcionalidades exclusivas e design único.`,
+            };
+            
+            // Descrições específicas para nomes conhecidos
+            const specificDescriptions = {
+                'Quiz Master 200': 'Quiz interativo com 200 perguntas desafiadoras, múltiplas categorias e sistema de pontuação',
+                'TTS Local': 'Servidor local de síntese de voz offline que converte texto em áudio em português',
+                'RSVP Reader': 'Leitor de velocidade de leitura RSVP com ajuste de velocidade, tamanho de fonte e timer',
+                'ASCII Art': 'Editor ASCII art com importação de imagens, múltiplos caracteres e exportação como texto',
+                'Binet Formula': 'Explorador da sequência de Fibonacci usando a fórmula de Binet com visualização espiral',
+                'Tusi Couple': 'Demonstração do teorema de Tusi com círculos em movimento e explicações matemáticas',
+                'Faraday 3D': 'Simulação 3D de uma gaiola de Faraday bloqueando campos eletromagnéticos',
+                'Art Sky': 'Gerador de céus artísticos com paletas de cores, nuvens procedural e efeitos atmosféricos',
+                'ASCII Studio': 'Estúdio avançado de ASCII art com múltiplos efeitos, layers e exportação em alta resolução',
+                'Binaural BPM': 'Gerador de frequências binaurais sincronizadas com BPM para meditação e foco',
+                'Voice AI WebGPU': 'Sistema de transcrição de voz em tempo real usando Whisper e WebGPU',
+                'Sólidos Platónicos': 'Visualizador interativo dos 5 sólidos platônicos perfeitos com rotação 3D',
+                'Sacred Dodecahedron': 'Exploração interativa de geometria sagrada usando o dodecaedro platônico',
+                'Truchet Tiles': 'Gerador de padrões Truchet tiles com múltiplos algoritmos e simetrias',
+                'A-lorenz': 'Simulação do atrator de Lorenz, sistema caótico com parâmetros ajustáveis',
+            };
+            
+            // Retornar descrição específica se existir, senão usar template da categoria
+            return specificDescriptions[name] || templates[category] || `Ferramenta ${category.toLowerCase()} para ${name.toLowerCase()} com funcionalidades específicas e interface amigável.`;
+        }
+async function syncMissingCardsFromGitHub() {
             try {
                 const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
                 if (!res.ok) return;
@@ -1157,7 +1257,7 @@
                         file,
                         cat: classifyByFileName(file),
                         date: formatDateBR(commitDate || new Date()),
-                        desc: 'Card gerado automaticamente a partir dos arquivos do repositório.'
+                        desc: generateDescription(prettyNameFromFile(file), classifyByFileName(file), file),
                     };
                 }));
                 experiments = [...generated, ...experiments];
