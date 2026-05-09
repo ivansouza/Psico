@@ -64,6 +64,53 @@ footer a { color: #58a6ff; }
 
 <div class="grid" id="grid"></div>
 
+
+<!-- Fullscreen Modal -->
+<div id="fullscreenModal" style="display:none;position:fixed;inset:0;background:#0d1117;z-index:1000;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#161b22;border-bottom:1px solid #30363d;">
+    <h2 id="modalTitle" style="font-size:16px;color:#58a6ff;font-weight:700;"></h2>
+    <div style="display:flex;gap:8px;">
+      <button onclick="copyAndEdit()" style="padding:6px 16px;border:1px solid #2ea043;border-radius:6px;background:#238636;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">✏️ Editar no ASCIIFlow</button>
+      <button onclick="closeFullscreen()" style="padding:6px 16px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#c9d1d9;cursor:pointer;font-size:12px;">✕ Fechar</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:20px;display:flex;justify-content:center;">
+    <pre id="modalContent" style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;font-size:11px;line-height:1.3;color:#c9d1d9;font-family:'Consolas','Courier New',monospace;white-space:pre;overflow:auto;"></pre>
+  </div>
+</div>
+
+<script>
+let currentKey = null;
+
+function showFullscreen(key) {
+  currentKey = key;
+  const tpl = TEMPLATES[key];
+  if (!tpl) return;
+  document.getElementById('modalTitle').textContent = tpl.title;
+  document.getElementById('modalContent').textContent = tpl.content.trim();
+  document.getElementById('fullscreenModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFullscreen() {
+  document.getElementById('fullscreenModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function copyAndEdit() {
+  if (!currentKey) return;
+  const tpl = TEMPLATES[currentKey];
+  navigator.clipboard.writeText(tpl.content.trim()).then(() => {
+    window.open('https://asciiflow.com', '_blank');
+  });
+}
+
+// Fechar com ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeFullscreen();
+});
+</script>
+
 <footer>
   Baseado no <a href="https://github.com/lewish/asciiflow">ASCIIFlow</a> · Use o botão "Copy" no ASCIIFlow para colar
 </footer>
@@ -361,11 +408,7 @@ for (const [key, tpl] of Object.entries(TEMPLATES)) {
   const card = document.createElement('div');
   card.className = 'card';
   card.onclick = () => {
-    navigator.clipboard.writeText(tpl.content.trim()).then(() => {
-      // Abre o ASCIIFlow
-      window.open('https://asciiflow.com', '_blank');
-      alert('✅ Template copiado!\n\nCole no ASCIIFlow com Ctrl+V');
-    });
+    showFullscreen(key);
   };
   
   let tagsHtml = tpl.tags.map(t => `<span class="tag">${t}</span>`).join('');
