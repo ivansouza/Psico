@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suíta Cambita e Valentina Valita</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #1a1a2e;
+    font-family: 'Gochi Hand', cursive, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .book {
+    max-width: 900px;
+    width: 100%;
+  }
+  
+  .page {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    position: relative;
+    aspect-ratio: 842 / 595;
+  }
+  
+  .page img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  
+  .page .text-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 30px 40px 25px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.6) 30%);
+  }
+  
+  .page .text-overlay p {
+    color: white;
+    font-size: 1.4rem;
+    line-height: 1.5;
+    text-shadow: 
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+       0   -2px 0 #000,
+       0    2px 0 #000,
+      -2px  0   0 #000,
+       2px  0   0 #000;
+  }
+  
+  .cover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    aspect-ratio: 842 / 595;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  
+  .cover h1 {
+    color: #ffd700;
+    font-size: 3rem;
+    margin-bottom: 10px;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+  }
+  
+  .cover p {
+    color: white;
+    font-size: 1.3rem;
+    opacity: 0.9;
+  }
+  
+  .nav {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .nav button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Gochi Hand', cursive;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .nav button:hover {
+    transform: scale(1.05);
+    background: #764ba2;
+  }
+  
+  .nav button:disabled {
+    opacity: 0.5;
+    cursor: default;
+    transform: none;
+  }
+  
+  .page-indicator {
+    color: rgba(255,255,255,0.6);
+    font-size: 1rem;
+    margin: 10px 0;
+    font-family: 'Gochi Hand', cursive;
+  }
+  
+  @media (max-width: 600px) {
+    .cover h1 { font-size: 2rem; }
+    .page .text-overlay p { font-size: 1rem; }
+    .page .text-overlay { padding: 20px 20px 15px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book" id="book">
+  <!-- Cover -->
+  <div class="cover" id="page-0">
+    <h1>Suíta Cambita e<br>Valentina Valita</h1>
+    <p>— Uma história de amizade verdadeira —</p>
+  </div>
+  
+  <!-- Pages -->
+  <div class="page" id="page-1" style="display:none">
+    <img src="suita-valentina/livro-pag2.jpg" alt="Página 2">
+    <div class="text-overlay">
+      <p>Suíta Cambita era uma vira-lata caramelo de orelhas em pé e olhos espertos. Ela morava na rua, mas tinha um coração enorme.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-2" style="display:none">
+    <img src="suita-valentina/livro-pag3.jpg" alt="Página 3">
+    <div class="text-overlay">
+      <p>Valentina Valita era uma Yorkshire mestiça, pequenina, com pelagem cinza e dourada e orelhinhas caídas. Ela morava em uma casa com jardim.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-3" style="display:none">
+    <img src="suita-valentina/livro-pag4.jpg" alt="Página 4">
+    <div class="text-overlay">
+      <p>Um dia, Valentina escapou pelo portão e saiu correndo rua abaixo. Ela nunca tinha ido tão longe!</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-4" style="display:none">
+    <img src="suita-valentina/livro-pag5.jpg" alt="Página 5">
+    <div class="text-overlay">
+      <p>Foi quando ela esbarrou em Suíta Cambita, que estava descansando perto da praça.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-5" style="display:none">
+    <img src="suita-valentina/livro-pag6.jpg" alt="Página 6">
+    <div class="text-overlay">
+      <p>"Oi! Você está perdida?" perguntou Suíta, abanando o rabo. Valentina balançou a cabeça: "Estou explorando!"</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-6" style="display:none">
+    <img src="suita-valentina/livro-pag7.jpg" alt="Página 7">
+    <div class="text-overlay">
+      <p>Suíta riu. "Então vou com você! Conheço cada cantinho desta cidade."</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-7" style="display:none">
+    <img src="suita-valentina/livro-pag8.jpg" alt="Página 8">
+    <div class="text-overlay">
+      <p>Elas passaram pela padaria, onde o padeiro jogou um biscoito para elas. "Obrigada, seu padeiro!"</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-8" style="display:none">
+    <img src="suita-valentina/livro-pag9.jpg" alt="Página 9">
+    <div class="text-overlay">
+      <p>Depois foram ao parque. Suíta mostrou para Valentina o melhor lugar para cavar buracos.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-9" style="display:none">
+    <img src="suita-valentina/livro-pag10.jpg" alt="Página 10">
+    <div class="text-overlay">
+      <p>Valentina nunca tinha cavado antes. Ela colocou as patinhas na terra e cavou um buraquinho bem pequeno.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-10" style="display:none">
+    <img src="suita-valentina/livro-pag11.jpg" alt="Página 11">
+    <div class="text-overlay">
+      <p>"Você é uma cavadora nata!" disse Suíta. Valentina latiu de felicidade: "Au au!"</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-11" style="display:none">
+    <img src="suita-valentina/livro-pag12.jpg" alt="Página 12">
+    <div class="text-overlay">
+      <p>No fim da tarde, Valentina lembrou que precisava voltar para casa. "Será que vou encontrar o caminho?"</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-12" style="display:none">
+    <img src="suita-valentina/livro-pag13.jpg" alt="Página 13">
+    <div class="text-overlay">
+      <p>"Claro que sim! Eu te acompanho," disse Suíta. E as duas foram juntas, virando cada esquina.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-13" style="display:none">
+    <img src="suita-valentina/livro-pag14.jpg" alt="Página 14">
+    <div class="text-overlay">
+      <p>Quando chegaram na casa de Valentina, a porta estava aberta e uma senhora chamava: "Valentina!"</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-14" style="display:none">
+    <img src="suita-valentina/livro-pag15.jpg" alt="Página 15">
+    <div class="text-overlay">
+      <p>"Mamãe! Eu fiz uma amiga!" latiu Valentina, pulando no colo da dona. A senhora sorriu e fez carinho nas duas.</p>
+    </div>
+  </div>
+  
+  <div class="page" id="page-15" style="display:none">
+    <img src="suita-valentina/livro-pag16.jpg" alt="Página 16">
+    <div class="text-overlay">
+      <p>Desde aquele dia, Suíta Cambita e Valentina Valita se encontraram todos os dias no parque. Amizade verdadeira não tem raça nem tamanho.</p>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prevBtn" disabled>◀ Anterior</button>
+  <button id="nextBtn">Próxima ▶</button>
+</div>
+<div class="page-indicator" id="pageIndicator">Capa</div>
+
+<script>
+  let currentPage = 0;
+  const totalPages = 16; // 0 = cover, 1-15 = pages
+  
+  function showPage(n) {
+    // Hide all pages
+    for (let i = 0; i < totalPages; i++) {
+      const el = document.getElementById('page-' + i);
+      if (el) el.style.display = 'none';
+    }
+    document.getElementById('page-0').style.display = (n === 0) ? 'flex' : 'none';
+    if (n > 0) {
+      const el = document.getElementById('page-' + n);
+      if (el) el.style.display = 'block';
+    }
+    
+    currentPage = n;
+    document.getElementById('prevBtn').disabled = (n === 0);
+    document.getElementById('nextBtn').disabled = (n === totalPages - 1);
+    
+    const indicator = document.getElementById('pageIndicator');
+    if (n === 0) indicator.textContent = '📖 Capa';
+    else indicator.textContent = '📖 Página ' + (n + 1) + ' de ' + totalPages;
+  }
+  
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (currentPage > 0) showPage(currentPage - 1);
+  });
+  
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (currentPage < totalPages - 1) showPage(currentPage + 1);
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      if (currentPage < totalPages - 1) showPage(currentPage + 1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (currentPage > 0) showPage(currentPage - 1);
+    }
+  });
+  
+  // Touch navigation
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentPage < totalPages - 1) showPage(currentPage + 1);
+      else if (diff < 0 && currentPage > 0) showPage(currentPage - 1);
+    }
+  });
+  
+  showPage(0);
+</script>
+
+</body>
+</html>
