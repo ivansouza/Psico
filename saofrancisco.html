@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ivanzinho em São Francisco</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a2e;
+    font-family: 'Gochi Hand', cursive;
+    overflow-x: hidden;
+  }
+
+  .book {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .page {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 842 / 595;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    background: #000;
+  }
+
+  .page img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .page-text {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 30px 40px 25px;
+    background: transparent;
+    text-shadow:
+      -2px -2px 0 #fff,
+       2px -2px 0 #fff,
+      -2px  2px 0 #fff,
+       2px  2px 0 #fff,
+      -1px -1px 0 #fff,
+       1px -1px 0 #fff,
+      -1px  1px 0 #fff,
+       1px  1px 0 #fff;
+    color: #000;
+    font-size: clamp(16px, 2.2vw, 28px);
+    line-height: 1.4;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .page-text p {
+    max-width: 90%;
+    margin: 0 auto;
+  }
+
+  /* Capa especial */
+  .page.capa .page-text {
+    text-shadow: none;
+    bottom: auto;
+    top: 55%;
+    transform: translateY(-50%);
+  }
+
+  .page.capa .title {
+    font-size: clamp(32px, 5vw, 64px);
+    color: #d4a017;
+    text-shadow:
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000;
+    line-height: 1.2;
+  }
+
+  .page.capa .subtitle {
+    font-size: clamp(18px, 2.5vw, 32px);
+    color: #fff;
+    text-shadow:
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000;
+    margin-top: 10px;
+  }
+
+  .nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    flex-wrap: wrap;
+  }
+
+  .nav button {
+    font-family: 'Gochi Hand', cursive;
+    font-size: 20px;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 30px;
+    background: #d4a017;
+    color: #1a1a2e;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(212,160,23,0.3);
+  }
+
+  .nav button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(212,160,23,0.5);
+  }
+
+  .nav button:disabled {
+    opacity: 0.4;
+    cursor: default;
+    transform: none;
+  }
+
+  .page-counter {
+    text-align: center;
+    font-family: 'Gochi Hand', cursive;
+    color: #d4a017;
+    font-size: 18px;
+    padding: 10px;
+  }
+
+  @media (max-width: 600px) {
+    .page-text { padding: 15px 20px 15px; }
+    .page.capa .page-text { top: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book" id="book">
+  <!-- As páginas serão inseridas via JS -->
+</div>
+
+<div class="page-counter" id="counter">Página 1 de 17</div>
+
+<div class="nav">
+  <button id="prevBtn" disabled>⬅ Anterior</button>
+  <button id="nextBtn">Próxima ➡</button>
+</div>
+
+<script>
+const pages = [
+  {
+    img: 'saofrancisco/ivanzinho-capa.jpg',
+    text: '',
+    capa: true,
+    title: 'IVANZINHO EM<br>SÃO FRANCISCO',
+    subtitle: 'Uma aventura de persistência'
+  },
+  { img: 'saofrancisco/ivanzinho-pag1.jpg', text: 'Ivanzinho sempre sonhou em conhecer São Francisco. Ele olhava para o mapa todos os dias e dizia: "Um dia eu vou atravessar aquela ponte!"' },
+  { img: 'saofrancisco/ivanzinho-pag2.jpg', text: 'O grande dia chegou! Com sua mala e seu sorriso de orelha a orelha — e olha que as orelhas dele são enormes! — Ivanzinho embarcou rumo ao seu sonho.' },
+  { img: 'saofrancisco/ivanzinho-pag3.jpg', text: 'Mas São Francisco era maior do que ele imaginava. As ruas subiam e desciam que nem montanha-russa! Ivanzinho se perdeu na primeira hora.' },
+  { img: 'saofrancisco/ivanzinho-pag4.jpg', text: '"Será que eu devia ter ficado em casa?", pensou Ivanzinho, sentindo o vento frio da baía. Foi quando uma pombinha curiosa pousou ao seu lado.' },
+  { img: 'saofrancisco/ivanzinho-pag5.jpg', text: 'Ivanzinho levantou a cabeça, endireitou a gravata azul e apontou para o alto: "Desistir? Não é comigo! Eu vou encontrar o caminho, mesmo que pergunte para cada pomba da cidade!"' },
+  { img: 'saofrancisco/ivanzinho-pag6.jpg', text: 'Ele descobriu os bondinhos! Subindo as ladeiras mais íngremes, Ivanzinho sentiu o vento no rosto e pensou: "Toda ladeira tem um topo. E todo topo tem uma vista linda."' },
+  { img: 'saofrancisco/ivanzinho-pag7.jpg', text: 'No Pier 39, Ivanzinho encontrou os leões-marinhos mais bagunceiros do mundo. Eles dormiam empilhados e roncavam tão alto que pareciam uma orquestra desafinada!' },
+  { img: 'saofrancisco/ivanzinho-pag8.jpg', text: '"Um sorvete de massa de cookie com baunilha, por favor!" Mas o sorvete era tão grande que uma bola escapou e — ploft! — foi parar no chão. Nem tudo sai como a gente planeja.' },
+  { img: 'saofrancisco/ivanzinho-pag9.jpg', text: 'A chuva fina começou. O mapa ficou todo borrado. "Agora sim, Ivanzinho, como é que você vai se virar?", ele se perguntou em voz alta.' },
+  { img: 'saofrancisco/ivanzinho-pag10.jpg', text: 'Foi aí que Ivanzinho fez o que faz de melhor: apontou para o alto e disse: "Se o mapa molhou, eu vou criar meu próprio caminho!" A persistência dele brilhava mais que o sol encoberto.' },
+  { img: 'saofrancisco/ivanzinho-pag11.jpg', text: 'E então ele viu. A ponte mais famosa do mundo, pintada de vermelho, se estendendo sobre a baía como um abraço gigante. Ivanzinho parou, emocionado.' },
+  { img: 'saofrancisco/ivanzinho-pag12.jpg', text: '"Eu consegui", ele sussurrou. Cada passo, cada pergunta, cada ladeira, cada gota de chuva — tudo valeu a pena por este momento.' },
+  { img: 'saofrancisco/ivanzinho-pag13.jpg', text: 'Um menino sentou ao seu lado. "Você é daqui?", perguntou. "Não", riu Ivanzinho, "vim de muito longe. Sabe qual é o segredo para chegar onde você quer?"' },
+  { img: 'saofrancisco/ivanzinho-pag14.jpg', text: '"Nunca, jamais, em hipótese alguma, desista!", disse Ivanzinho, apontando para o céu. O menino apontou junto. Os dois riram. Uma amizade nasceu ali.' },
+  { img: 'saofrancisco/ivanzinho-pag15.jpg', text: 'De volta ao lar, Ivanzinho pendurou as fotos na parede. São Francisco agora era memória. Mas no mapa, novos círculos já apareciam. "Para onde será a próxima viagem?"' },
+  { img: 'saofrancisco/ivanzinho-pag16.jpg', text: 'Porque Ivanzinho aprendeu que persistência não é sobre nunca cair. É sobre sempre se levantar, apontar para o alto e seguir em frente. E você? Para onde vai apontar hoje?' }
+];
+
+let current = 0;
+const book = document.getElementById('book');
+const counter = document.getElementById('counter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function renderPage(index) {
+  book.innerHTML = '';
+  const p = pages[index];
+  const div = document.createElement('div');
+  div.className = 'page' + (p.capa ? ' capa' : '');
+
+  const img = document.createElement('img');
+  img.src = p.img;
+  img.alt = 'Página ' + (index + 1);
+  img.loading = 'eager';
+  div.appendChild(img);
+
+  if (p.capa) {
+    const textDiv = document.createElement('div');
+    textDiv.className = 'page-text';
+    textDiv.innerHTML = `<div class="title">${p.title}</div><div class="subtitle">${p.subtitle}</div>`;
+    div.appendChild(textDiv);
+  } else if (p.text) {
+    const textDiv = document.createElement('div');
+    textDiv.className = 'page-text';
+    textDiv.innerHTML = `<p>${p.text}</p>`;
+    div.appendChild(textDiv);
+  }
+
+  book.appendChild(div);
+  counter.textContent = `Página ${index + 1} de ${pages.length}`;
+  prevBtn.disabled = index === 0;
+  nextBtn.disabled = index === pages.length - 1;
+}
+
+prevBtn.addEventListener('click', () => {
+  if (current > 0) { current--; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (current < pages.length - 1) { current++; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+
+// Teclado
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevBtn.click();
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); nextBtn.click(); }
+});
+
+renderPage(0);
+</script>
+</body>
+</html>
