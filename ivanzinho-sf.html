@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ivanzinho em São Francisco - Vídeos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    font-family: 'Gochi Hand', cursive;
+    min-height: 100vh;
+  }
+
+  .header {
+    text-align: center;
+    padding: 40px 20px 20px;
+  }
+
+  .header h1 {
+    font-size: clamp(28px, 5vw, 56px);
+    color: #d4a017;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    line-height: 1.2;
+  }
+
+  .header p {
+    font-size: clamp(16px, 2.5vw, 28px);
+    color: #fff;
+    margin-top: 8px;
+    opacity: 0.9;
+  }
+
+  .book {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .page {
+    margin-bottom: 30px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    background: #000;
+  }
+
+  .page video {
+    width: 100%;
+    display: block;
+    aspect-ratio: 842 / 595;
+    object-fit: cover;
+  }
+
+  .page-label {
+    background: rgba(212, 160, 23, 0.15);
+    padding: 12px 20px;
+    text-align: center;
+    border-top: 2px solid rgba(212, 160, 23, 0.3);
+  }
+
+  .page-label span {
+    font-size: clamp(14px, 1.8vw, 22px);
+    color: #d4a017;
+  }
+
+  .page-label .text {
+    display: block;
+    color: #fff;
+    font-size: clamp(13px, 1.5vw, 18px);
+    margin-top: 4px;
+    opacity: 0.85;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    flex-wrap: wrap;
+  }
+
+  .nav button {
+    font-family: 'Gochi Hand', cursive;
+    font-size: 20px;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 30px;
+    background: #d4a017;
+    color: #1a1a2e;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(212,160,23,0.3);
+  }
+
+  .nav button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(212,160,23,0.5);
+  }
+
+  .nav button:disabled {
+    opacity: 0.4;
+    cursor: default;
+    transform: none;
+  }
+
+  .page-counter {
+    text-align: center;
+    color: #d4a017;
+    font-size: 18px;
+    padding: 10px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 30px;
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .book { padding: 10px; }
+    .page-label { padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>IVANZINHO EM<br>SÃO FRANCISCO</h1>
+  <p>Uma aventura de persistência 🎬</p>
+</div>
+
+<div class="book" id="book"></div>
+
+<div class="page-counter" id="counter">Página 1 de 17</div>
+
+<div class="nav">
+  <button id="prevBtn" disabled>⬅ Anterior</button>
+  <button id="nextBtn">Próxima ➡</button>
+</div>
+
+<div class="footer">Feito com ❤️ por Ivanzinho</div>
+
+<script>
+const pages = [
+  {
+    video: 'saofrancisco/ivanzinho-video-capa.mp4',
+    label: 'CAPA',
+    text: 'Ivanzinho na Golden Gate Bridge'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag1.mp4',
+    label: 'PÁGINA 1',
+    text: 'Ivanzinho sempre sonhou em conhecer São Francisco. Ele olhava para o mapa todos os dias e dizia: "Um dia eu vou atravessar aquela ponte!"'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag2.mp4',
+    label: 'PÁGINA 2',
+    text: 'O grande dia chegou! Com sua mala e seu sorriso de orelha a orelha — e olha que as orelhas dele são enormes! — Ivanzinho embarcou rumo ao seu sonho.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag3.mp4',
+    label: 'PÁGINA 3',
+    text: 'Mas São Francisco era maior do que ele imaginava. As ruas subiam e desciam que nem montanha-russa! Ivanzinho se perdeu na primeira hora.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag4.mp4',
+    label: 'PÁGINA 4',
+    text: '"Será que eu devia ter ficado em casa?", pensou Ivanzinho, sentindo o vento frio da baía. Foi quando uma pombinha curiosa pousou ao seu lado.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag5.mp4',
+    label: 'PÁGINA 5',
+    text: 'Ivanzinho levantou a cabeça, endireitou a gravata azul e apontou para o alto: "Desistir? Não é comigo! Eu vou encontrar o caminho, mesmo que pergunte para cada pomba da cidade!"'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag6.mp4',
+    label: 'PÁGINA 6',
+    text: 'Ele descobriu os bondinhos! Subindo as ladeiras mais íngremes, Ivanzinho sentiu o vento no rosto e pensou: "Toda ladeira tem um topo. E todo topo tem uma vista linda."'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag7.mp4',
+    label: 'PÁGINA 7',
+    text: 'No Pier 39, Ivanzinho encontrou os leões-marinhos mais bagunceiros do mundo. Eles dormiam empilhados e roncavam tão alto que pareciam uma orquestra desafinada!'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag8.mp4',
+    label: 'PÁGINA 8',
+    text: '"Um sorvete de massa de cookie com baunilha, por favor!" Mas o sorvete era tão grande que uma bola escapou e — ploft! — foi parar no chão. Nem tudo sai como a gente planeja.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag9.mp4',
+    label: 'PÁGINA 9',
+    text: 'A chuva fina começou. O mapa ficou todo borrado. "Agora sim, Ivanzinho, como é que você vai se virar?", ele se perguntou em voz alta.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag10.mp4',
+    label: 'PÁGINA 10',
+    text: 'Foi aí que Ivanzinho fez o que faz de melhor: apontou para o alto e disse: "Se o mapa molhou, eu vou criar meu próprio caminho!" A persistência dele brilhava mais que o sol encoberto.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag11.mp4',
+    label: 'PÁGINA 11',
+    text: 'E então ele viu. A ponte mais famosa do mundo, pintada de vermelho, se estendendo sobre a baía como um abraço gigante. Ivanzinho parou, emocionado.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag12.mp4',
+    label: 'PÁGINA 12',
+    text: '"Eu consegui", ele sussurrou. Cada passo, cada pergunta, cada ladeira, cada gota de chuva — tudo valeu a pena por este momento.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag13.mp4',
+    label: 'PÁGINA 13',
+    text: 'Um menino sentou ao seu lado. "Você é daqui?", perguntou. "Não", riu Ivanzinho, "vim de muito longe. Sabe qual é o segredo para chegar onde você quer?"'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag14.mp4',
+    label: 'PÁGINA 14',
+    text: '"Nunca, jamais, em hipótese alguma, desista!", disse Ivanzinho, apontando para o céu. O menino apontou junto. Os dois riram. Uma amizade nasceu ali.'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag15.mp4',
+    label: 'PÁGINA 15',
+    text: 'De volta ao lar, Ivanzinho pendurou as fotos na parede. São Francisco agora era memória. Mas no mapa, novos círculos já apareciam. "Para onde será a próxima viagem?"'
+  },
+  {
+    video: 'saofrancisco/ivanzinho-video-pag16.mp4',
+    label: 'PÁGINA 16',
+    text: 'Porque Ivanzinho aprendeu que persistência não é sobre nunca cair. É sobre sempre se levantar, apontar para o alto e seguir em frente. E você? Para onde vai apontar hoje?'
+  }
+];
+
+let current = 0;
+const book = document.getElementById('book');
+const counter = document.getElementById('counter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function renderPage(index) {
+  book.innerHTML = '';
+  const p = pages[index];
+
+  const div = document.createElement('div');
+  div.className = 'page';
+
+  const video = document.createElement('video');
+  video.src = p.video;
+  video.controls = true;
+  video.autoplay = false;
+  video.preload = 'metadata';
+  video.playsInline = true;
+  div.appendChild(video);
+
+  const label = document.createElement('div');
+  label.className = 'page-label';
+  label.innerHTML = `<span>${p.label}</span><span class="text">${p.text}</span>`;
+  div.appendChild(label);
+
+  book.appendChild(div);
+  counter.textContent = `Página ${index + 1} de ${pages.length}`;
+  prevBtn.disabled = index === 0;
+  nextBtn.disabled = index === pages.length - 1;
+}
+
+prevBtn.addEventListener('click', () => {
+  if (current > 0) { current--; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (current < pages.length - 1) { current++; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevBtn.click();
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); nextBtn.click(); }
+});
+
+renderPage(0);
+</script>
+</body>
+</html>
