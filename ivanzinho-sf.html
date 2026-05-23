@@ -110,6 +110,27 @@
     transform: none;
   }
 
+  .auto-btn {
+    background: #2ecc71 !important;
+  }
+
+  .auto-btn.active {
+    background: #e74c3c !important;
+  }
+
+  .auto-indicator {
+    text-align: center;
+    color: #2ecc71;
+    font-size: 16px;
+    padding: 5px;
+    min-height: 28px;
+    transition: all 0.3s;
+  }
+
+  .auto-indicator.active {
+    color: #e74c3c;
+  }
+
   .page-counter {
     text-align: center;
     color: #d4a017;
@@ -144,7 +165,9 @@
 <div class="nav">
   <button id="prevBtn" disabled>⬅ Anterior</button>
   <button id="nextBtn">Próxima ➡</button>
+  <button id="autoBtn" class="auto-btn">▶ Reproduzir Tudo</button>
 </div>
+<div class="auto-indicator" id="autoIndicator"></div>
 
 <div class="footer">Feito com ❤️ por Ivanzinho</div>
 
@@ -238,12 +261,16 @@ const pages = [
 ];
 
 let current = 0;
+let autoPlaying = false;
+let autoTimer = null;
 const book = document.getElementById('book');
 const counter = document.getElementById('counter');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const autoBtn = document.getElementById('autoBtn');
+const autoIndicator = document.getElementById('autoIndicator');
 
-function renderPage(index) {
+function renderPage(index, autoStart = false) {
   book.innerHTML = '';
   const p = pages[index];
 
@@ -252,10 +279,24 @@ function renderPage(index) {
 
   const video = document.createElement('video');
   video.src = p.video;
-  video.controls = true;
-  video.autoplay = false;
-  video.preload = 'metadata';
+  video.controls = !autoPlaying;
+  video.autoplay = autoStart;
+  video.preload = 'auto';
   video.playsInline = true;
+
+  // Quando o vídeo terminar, avança
+  video.addEventListener('ended', () => {
+    if (autoPlaying && current < pages.length - 1) {
+      current++;
+      renderPage(current, true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (autoPlaying && current === pages.length - 1) {
+      // Último vídeo acabou
+      stopAutoPlay();
+      autoIndicator.textContent = '🎉 Livro completo! ❤️';
+    }
+  });
+
   div.appendChild(video);
 
   const label = document.createElement('div');
@@ -265,19 +306,49 @@ function renderPage(index) {
 
   book.appendChild(div);
   counter.textContent = `Página ${index + 1} de ${pages.length}`;
-  prevBtn.disabled = index === 0;
-  nextBtn.disabled = index === pages.length - 1;
+  prevBtn.disabled = index === 0 || autoPlaying;
+  nextBtn.disabled = index === pages.length - 1 || autoPlaying;
+}
+
+function startAutoPlay() {
+  autoPlaying = true;
+  autoBtn.textContent = '⏹ Parar';
+  autoBtn.classList.add('active');
+  autoIndicator.textContent = '▶ Reprodução automática...';
+  autoIndicator.classList.add('active');
+  current = 0;
+  renderPage(0, true);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function stopAutoPlay() {
+  autoPlaying = false;
+  autoBtn.textContent = '▶ Reproduzir Tudo';
+  autoBtn.classList.remove('active');
+  autoIndicator.textContent = '';
+  autoIndicator.classList.remove('active');
+  // Re-render current page sem autoplay
+  renderPage(current, false);
 }
 
 prevBtn.addEventListener('click', () => {
-  if (current > 0) { current--; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (current > 0 && !autoPlaying) { current--; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 });
 
 nextBtn.addEventListener('click', () => {
-  if (current < pages.length - 1) { current++; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (current < pages.length - 1 && !autoPlaying) { current++; renderPage(current); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+
+autoBtn.addEventListener('click', () => {
+  if (autoPlaying) {
+    stopAutoPlay();
+  } else {
+    startAutoPlay();
+  }
 });
 
 document.addEventListener('keydown', (e) => {
+  if (autoPlaying) return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevBtn.click();
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); nextBtn.click(); }
 });
