@@ -118,6 +118,14 @@
     background: #e74c3c !important;
   }
 
+  .pause-btn {
+    background: #f39c12 !important;
+  }
+
+  .pause-btn.active {
+    background: #2ecc71 !important;
+  }
+
   .auto-indicator {
     text-align: center;
     color: #2ecc71;
@@ -166,6 +174,7 @@
   <button id="prevBtn" disabled>⬅ Anterior</button>
   <button id="nextBtn">Próxima ➡</button>
   <button id="autoBtn" class="auto-btn">▶ Reproduzir Tudo</button>
+  <button id="pauseBtn" class="pause-btn" disabled style="display:none">⏸ Pausar</button>
 </div>
 <div class="auto-indicator" id="autoIndicator"></div>
 
@@ -262,12 +271,15 @@ const pages = [
 
 let current = 0;
 let autoPlaying = false;
+let paused = false;
 let autoTimer = null;
+let currentVideo = null;
 const book = document.getElementById('book');
 const counter = document.getElementById('counter');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const autoBtn = document.getElementById('autoBtn');
+const pauseBtn = document.getElementById('pauseBtn');
 const autoIndicator = document.getElementById('autoIndicator');
 
 function renderPage(index, autoStart = false) {
@@ -284,14 +296,15 @@ function renderPage(index, autoStart = false) {
   video.preload = 'auto';
   video.playsInline = true;
 
+  currentVideo = video;
+
   // Quando o vídeo terminar, avança
   video.addEventListener('ended', () => {
-    if (autoPlaying && current < pages.length - 1) {
+    if (autoPlaying && !paused && current < pages.length - 1) {
       current++;
       renderPage(current, true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (autoPlaying && current === pages.length - 1) {
-      // Último vídeo acabou
+    } else if (autoPlaying && !paused && current === pages.length - 1) {
       stopAutoPlay();
       autoIndicator.textContent = '🎉 Livro completo! ❤️';
     }
@@ -312,8 +325,13 @@ function renderPage(index, autoStart = false) {
 
 function startAutoPlay() {
   autoPlaying = true;
+  paused = false;
   autoBtn.textContent = '⏹ Parar';
   autoBtn.classList.add('active');
+  pauseBtn.style.display = 'inline-block';
+  pauseBtn.disabled = false;
+  pauseBtn.textContent = '⏸ Pausar';
+  pauseBtn.classList.remove('active');
   autoIndicator.textContent = '▶ Reprodução automática...';
   autoIndicator.classList.add('active');
   current = 0;
@@ -323,11 +341,14 @@ function startAutoPlay() {
 
 function stopAutoPlay() {
   autoPlaying = false;
+  paused = false;
+  if (currentVideo) { currentVideo.pause(); }
   autoBtn.textContent = '▶ Reproduzir Tudo';
   autoBtn.classList.remove('active');
+  pauseBtn.style.display = 'none';
+  pauseBtn.disabled = true;
   autoIndicator.textContent = '';
   autoIndicator.classList.remove('active');
-  // Re-render current page sem autoplay
   renderPage(current, false);
 }
 
@@ -344,6 +365,25 @@ autoBtn.addEventListener('click', () => {
     stopAutoPlay();
   } else {
     startAutoPlay();
+  }
+});
+
+pauseBtn.addEventListener('click', () => {
+  if (!autoPlaying || !currentVideo) return;
+  if (paused) {
+    // Continuar
+    paused = false;
+    currentVideo.play();
+    pauseBtn.textContent = '⏸ Pausar';
+    pauseBtn.classList.remove('active');
+    autoIndicator.textContent = '▶ Reproduzindo...';
+  } else {
+    // Pausar
+    paused = true;
+    currentVideo.pause();
+    pauseBtn.textContent = '▶ Continuar';
+    pauseBtn.classList.add('active');
+    autoIndicator.textContent = '⏸ Pausado. Clique em "Continuar" para retomar.';
   }
 });
 
