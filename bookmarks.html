@@ -13,11 +13,44 @@
     color: #fff;
     -webkit-font-smoothing: antialiased;
     font-size: 34px;
+    transition: font-size 0.2s;
+  }
+
+  /* === Toggle de tamanho === */
+  .size-toggle {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: #111;
+    border-bottom: 1px solid #262626;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 24px;
+  }
+  .size-toggle label {
+    color: #888;
+    cursor: pointer;
+    padding: 4px 16px;
+    border-radius: 20px;
+    border: 1px solid #333;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .size-toggle label.active {
+    color: #fff;
+    border-color: #d4a017;
+    background: #d4a01722;
+  }
+  .size-toggle label:hover {
+    border-color: #666;
   }
 
   .header {
     position: sticky;
-    top: 0;
+    top: 52px;
     z-index: 100;
     background: #000;
     border-bottom: 2px solid #262626;
@@ -140,9 +173,66 @@
     font-size: 28px;
   }
   .footer .brand { color: #d4a017; font-weight: 700; }
+
+  /* === Modo compacto === */
+  body.compact { font-size: 20px; }
+  body.compact .header h1 { font-size: 28px; }
+  body.compact .header .logo-icon { font-size: 32px; }
+  body.compact .header .header-actions span { font-size: 28px; }
+  body.compact .post-header .avatar { width: 44px; height: 44px; }
+  body.compact .post-header .avatar-placeholder { width: 44px; height: 44px; font-size: 18px; }
+  body.compact .post-header .name { font-size: 20px; }
+  body.compact .post-header .handle { font-size: 16px; }
+  body.compact .post-header .more { font-size: 24px; }
+  body.compact .post-actions span { font-size: 30px; }
+  body.compact .post-metrics { font-size: 18px; }
+  body.compact .post-content .username { font-size: 20px; }
+  body.compact .post-content .text { font-size: 20px; }
+  body.compact .post-x-link a { font-size: 18px; }
+  body.compact .post-time { font-size: 14px; }
+  body.compact .footer { font-size: 16px; }
+  body.compact .size-toggle { font-size: 16px; }
+  body.compact .header { top: 44px; padding: 14px 20px; }
+  body.compact .size-toggle { padding: 8px 20px; }
+  body.compact .post-header { padding: 14px 20px 10px; }
+  body.compact .post-actions { padding: 10px 20px 6px; }
+  body.compact .post-content { padding: 2px 20px 8px; }
+  body.compact .post-time { padding: 0 20px 14px; }
+  body.compact .post-metrics { padding: 2px 20px 4px; }
+  body.compact .footer { padding: 28px 20px 60px; }
+
+  /* === Modo médio === */
+  body.medium { font-size: 26px; }
+  body.medium .header h1 { font-size: 36px; }
+  body.medium .header .logo-icon { font-size: 42px; }
+  body.medium .header .header-actions span { font-size: 36px; }
+  body.medium .post-header .avatar { width: 56px; height: 56px; }
+  body.medium .post-header .avatar-placeholder { width: 56px; height: 56px; font-size: 24px; }
+  body.medium .post-header .name { font-size: 26px; }
+  body.medium .post-header .handle { font-size: 20px; }
+  body.medium .post-header .more { font-size: 30px; }
+  body.medium .post-actions span { font-size: 40px; }
+  body.medium .post-metrics { font-size: 24px; }
+  body.medium .post-content .username { font-size: 26px; }
+  body.medium .post-content .text { font-size: 26px; }
+  body.medium .post-x-link a { font-size: 22px; }
+  body.medium .post-time { font-size: 18px; }
+  body.medium .footer { font-size: 22px; }
+  body.medium .size-toggle { font-size: 20px; }
+  body.medium .header { top: 48px; }
+  body.medium .post-header { padding: 18px 20px 12px; }
+  body.medium .post-actions { padding: 12px 20px 8px; }
+  body.medium .post-time { padding: 0 20px 18px; }
+  body.medium .footer { padding: 36px 20px 70px; }
 </style>
 </head>
 <body>
+
+<div class="size-toggle" id="sizeToggle">
+  <label data-size="compact">🔤 Normal</label>
+  <label data-size="medium">📏 Médio</label>
+  <label data-size="large" class="active">🐶 Grande</label>
+</div>
 
 <div class="header">
   <div class="logo-icon">🐶</div>
@@ -646,6 +736,25 @@ Leva 90 SEGUNDOS PARA CONSERTAR. Aqui está exatamente como ⤵️</span></div>
 <div class="footer">
   <span class="brand">Ze Pequeno News</span> — Bookmarks salvos por @ivantsouza 🐶
 </div>
+
+<script>
+(function() {
+  const labels = document.querySelectorAll('.size-toggle label');
+  const saved = localStorage.getItem('zp-bookmark-size') || 'large';
+  
+  function setSize(size) {
+    document.body.className = size === 'large' ? '' : size;
+    labels.forEach(l => l.classList.toggle('active', l.dataset.size === size));
+    localStorage.setItem('zp-bookmark-size', size);
+  }
+  
+  labels.forEach(l => {
+    l.addEventListener('click', () => setSize(l.dataset.size));
+  });
+  
+  setSize(saved);
+})();
+</script>
 
 </body>
 </html>
