@@ -1,118 +1,376 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>Ze Pequeno News</title><style>
-    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Inter, sans-serif; background: #000; color: #fff; font-size: 34px; }
-    .header { position: sticky; top: 0; background: #000; border-bottom: 2px solid #262626; padding: 24px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
-    .header h1 { font-size: 48px; font-weight: 700; font-style: italic; color: #fff; }
-    .header .logo-icon { font-size: 56px; }
-    .post { border-bottom: 2px solid #262626; }
-    .post-header { display: flex; align-items: center; gap: 16px; padding: 24px 20px 16px; }
-    .post-header .avatar-placeholder { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #d4a01744, #ffd70044); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 30px; color: #d4a017; flex-shrink: 0; }
-    .post-header .info { flex: 1; min-width: 0; }
-    .post-header .name { font-weight: 700; font-size: 34px; color: #fff; }
-    .post-header .handle { font-size: 28px; color: #888; }
-    .post-media { margin: 0; background: #0a0a0a; }
-    .post-media img { width: 100%; height: auto; max-height: 600px; object-fit: cover; display: block; }
-    .post-media video { width: 100%; max-height: 600px; display: block; }
-    .post-content { padding: 4px 20px 12px; line-height: 1.6; }
-    .post-content .text { font-size: 34px; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; }
-    .post-content .text a { color: #d4a017; text-decoration: none; font-size: 28px; }
-    .post-content .original { font-size: 22px; color: #555; margin-top: 8px; padding-top: 8px; border-top: 1px solid #1a1a1a; white-space: pre-wrap; word-wrap: break-word; }
-    .post-time { padding: 0 20px 24px; font-size: 24px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-    .footer { text-align: center; padding: 48px 20px 80px; color: #333; font-size: 28px; }
-    .footer .brand { color: #d4a017; font-weight: 700; }
-    .footer .update-time { color: #555; font-size: 22px; margin-top: 8px; }
-    .translate-badge { display: inline-block; background: #d4a01722; color: #d4a017; font-size: 20px; padding: 2px 10px; border-radius: 12px; margin-bottom: 6px; }
-</style></head><body><div class="header"><div class="logo-icon">🐶</div><h1>Ze Pequeno News</h1></div><div class="feed"><div class="post"><div class="post-header"><div class="avatar-placeholder">J</div><div class="info"><div class="name">johnAGI168</div><div class="handle">@johnAGI168</div></div></div><div class="post-media"><video controls poster="https://pbs.twimg.com/amplify_video_thumb/2058092307992244224/img/G3ymPyaF105tIIXQ.jpg" preload="none"><source src="https://video.twimg.com/amplify_video/2058092307992244224/vid/avc1/2160x1440/6vCdVxsMUnmi9x46.mp4" type="video/mp4"></video></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">GPT- image 2 ➕Nano banana 📷 Agora você pode gerar dezenas de imagens ou até vídeos de uma só vez com o novo Agent do Google Flow. Não precisa mais fazer grade de storyboards e extrair imagem por imagem! Basta clicar no botão Agent e fazer upload no GPT image <a href="https://t.co/tSGo6oqVCq" target="_blank" rel="noopener">🔗</a></div><div class="original">GPT- image 2 ➕Nano banana 📷
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ze Pequeno News</title>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, sans-serif; background: #000; color: #fff; font-size: 34px; }
+  .header { position: sticky; top: 0; background: #000; border-bottom: 2px solid #262626; padding: 24px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 48px; font-weight: 700; font-style: italic; color: #fff; }
+  .header .logo-icon { font-size: 56px; }
+  .header .header-actions span { font-size: 48px; margin-left: 20px; }
+  .post { border-bottom: 2px solid #262626; }
+  .post-header { display: flex; align-items: center; gap: 16px; padding: 24px 20px 16px; }
+  .post-header .avatar { width: 72px; height: 72px; border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
+  .post-header .avatar-placeholder { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #d4a01744, #ffd70044); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 30px; color: #d4a017; flex-shrink: 0; }
+  .post-header .info { flex: 1; }
+  .post-header .name { font-weight: 700; font-size: 34px; color: #fff; }
+  .post-header .handle { font-size: 28px; color: #888; }
+  .post-header .more { color: #fff; font-size: 40px; font-weight: 700; }
+  .post-media { margin: 0; background: #0a0a0a; }
+  .post-media a { display: block; }
+  .post-media img { width: 100%; height: auto; max-height: 600px; object-fit: cover; display: block; }
+  .post-actions { display: flex; align-items: center; gap: 28px; padding: 16px 20px 10px; }
+  .post-actions span { font-size: 52px; }
+  .post-actions .save { margin-left: auto; }
+  .post-metrics { padding: 4px 20px 8px; font-size: 32px; font-weight: 700; color: #fff; }
+  .post-content { padding: 4px 20px 12px; line-height: 1.6; }
+  .post-content .username { font-weight: 700; font-size: 34px; color: #fff; margin-right: 12px; }
+  .post-content .text { font-size: 34px; color: #e0e0e0; }
+  .post-time { padding: 0 20px 24px; font-size: 24px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .footer { text-align: center; padding: 48px 20px 80px; color: #333; font-size: 28px; }
+  .footer .brand { color: #d4a017; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="header"><div class="logo-icon">🐶</div><h1>Ze Pequeno News</h1><div class="header-actions"><span>💬</span><span>🔔</span></div></div>
+<div class="feed">
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1876241989068353536/n67QYkh4_normal.jpg)"></div>
+      <div class="info"><div class="name">Alan Daitch</div><div class="handle">@AlanDaitch</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057930129947402387" target="_blank"><img src="https://pbs.twimg.com/media/HI88blEWgAACpID.png" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">350 curtidas</div>
+    <div class="post-content"><span class="username">Alan Daitch</span><span class="text">Isso é FANTÁSTICO
 
-实现出图自由，谷歌 flow 新增的 Agent 智能体还有智能指令实现了一次性生成十几张图片甚至视频，大大提高了生成效率，再也不用就是生成九宫格分镜，然后再一格一格去提取图片了！
+Um usuário postou uma pintura de Monet no X, disse que a tinha gerado com inteligência artificial e pediu ajuda para entender por que ela é pior que uma real.
 
-使用方法也很简单。点击 Agent 按钮上传在 GPT image <a href="https://t.co/tSGo6oqVCq" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">23 de mai., 04:53</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">E</div><div class="info"><div class="name">ErickSky</div><div class="handle">@ErickSky</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI9j9ZaXgAArqBV.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Este repositório open source remove marcas d'água das suas imagens criadas com IA. • Remove a marca d'água visível do Gemini por reverse alpha blending • Destrói marcas d'água invisíveis com difusão • Limpa metadados <a href="https://t.co/ZLbhvGumHZ" target="_blank" rel="noopener">🔗</a></div><div class="original">Este repo open source los elimina los watermark de tus imágenes creadas con IA.
+Encheu-se de comentários como estes: "Me decepciona ter que mencionar isso. Não há coerência no https://t.co/bk0hujwX2h</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1919353130182959104/Jy1MsO1c_normal.jpg)"></div>
+      <div class="info"><div class="name">PA13L0</div><div class="handle">@Fluyeporlaweb</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">383 curtidas</div>
+    <div class="post-content"><span class="username">PA13L0</span><span class="text">CapCut, Canva e Adobe estão suando
 
-• Remueve el watermark visible de Gemini por reverse alpha blending 
-• Destruye watermarks invisibles con difusión (derrota SynthID v2) 
-• Limpia toda la metadata que delata procedencia 
-• <a href="https://t.co/ZLbhvGumHZ" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 21:00</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">A</div><div class="info"><div class="name">AlanDaitch</div><div class="handle">@AlanDaitch</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI88blEWgAACpID.png" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Isso é FANTÁSTICO. Um usuário postou uma pintura de Monet no X, disse que foi gerada por IA e pediu ajuda pra entender por que é pior que uma original. A thread encheu de comentários incríveis <a href="https://t.co/bk0hujwX2h" target="_blank" rel="noopener">🔗</a></div><div class="original">Esto es FANTÁSTICO
+Alguém acabou de publicar um editor de vídeo open source com IA integrada que faz concorrência direta a eles
 
-Un usuario subió una pintura de Monet a X, dijo que la había generado con inteligencia artificial y pidió que le ayuden a entender por qué es peor que una real.
+Chama-se Kimu e é o copiloto criativo para edição de vídeo que ninguém esperava
 
-Se llenó de comentarios como estos: "Me decepciona tener que mencionarlo. No hay coherencia en la <a href="https://t.co/bk0hujwX2h" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 18:02</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">T</div><div class="info"><div class="name">tom_doerr</div><div class="handle">@tom_doerr</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI85IElWAAAUSlJ.png" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Gera imagens e vídeos direto do terminal usando mais de 30 modelos <a href="https://t.co/JmL4sbvkCw" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/JdVy284tXn" target="_blank" rel="noopener">🔗</a></div><div class="original">Generates images and videos from terminal using 30+ models
+Sem assinaturas. Sem marcas d'água. Sem seus dados https://t.co/BDlnBQifMU</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905090420142379008/Ydq5So7B_normal.jpg)"></div>
+      <div class="info"><div class="name">Tom Dörr</div><div class="handle">@tom_doerr</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057926368139063418" target="_blank"><img src="https://pbs.twimg.com/media/HI85IElWAAAUSlJ.png" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">310 curtidas</div>
+    <div class="post-content"><span class="username">Tom Dörr</span><span class="text">Gera imagens e vídeos a partir do terminal usando mais de 30 modelos
 
-<a href="https://t.co/JmL4sbvkCw" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/JdVy284tXn" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 17:47</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">F</div><div class="info"><div class="name">Fluyeporlaweb</div><div class="handle">@Fluyeporlaweb</div></div></div><div class="post-media"><video controls poster="https://pbs.twimg.com/ext_tw_video_thumb/2057884473342005248/pu/img/588D6s2udjkIkZYm.jpg" preload="none"><source src="https://video.twimg.com/ext_tw_video/2057884473342005248/pu/vid/avc1/1494x720/1cWweJx_o9YuavDj.mp4?tag=12" type="video/mp4"></video></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">CapCut, Canva e Adobe estão suando. Alguém lançou um editor de vídeo open source com IA integrada que é concorrência direta. Chama Kimu — o copiloto criativo pra edição de vídeo. Sem assinatura, sem marca d'água <a href="https://t.co/BDlnBQifMU" target="_blank" rel="noopener">🔗</a></div><div class="original">CapCut, Canva y Adobe están sudando
+https://t.co/JmL4sbvkCw https://t.co/JdVy284tXn</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2005965715426451456/DKY-kNqK_normal.jpg)"></div>
+      <div class="info"><div class="name">知识分享官</div><div class="handle">@knowledgefxg</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057816609084018988" target="_blank"><img src="https://pbs.twimg.com/media/HI7VPURbwAAVdnb.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">328 curtidas</div>
+    <div class="post-content"><span class="username">知识分享官</span><span class="text">Recomendação de ferramenta open source útil: pdf-inspector
+Resolve um problema muito real: nem todo PDF precisa de OCR.
+Por exemplo, você joga um PDF nele, ele primeiro determina que tipo de PDF é — se é um texto normal (como do Word https://t.co/kHZzEZR6st</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905589492867854336/UBUMmQ1h_normal.jpg)"></div>
+      <div class="info"><div class="name">John</div><div class="handle">@johnAGI168</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">248 curtidas</div>
+    <div class="post-content"><span class="username">John</span><span class="text">GPT-image 2 ➕ Nano banana 📷
 
-Alguien acaba de publicar un editor de video open source con IA integrada que les hace competencia directa
+Liberdade total para gerar imagens, o novo Agent inteligente do Google Flow e comandos inteligentes permitem gerar dezenas de imagens ou até vídeos de uma só vez, aumentando muito a eficiência. Não precisa mais gerar storyboards de 9 quadros e extrair imagem por imagem!
 
-Se llama Kimu y es el copiloto creativo para edición de video que nadie esperaba
+O uso também é simples. Clique no botão Agent e faça upload no GPT image https://t.co/tSGo6oqVCq</span></div>
+    <div class="post-time">2026-05-23</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2014382652866887681/ou6iKZw5_normal.jpg)"></div>
+      <div class="info"><div class="name">Erick</div><div class="handle">@ErickSky</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057975009306386873" target="_blank"><img src="https://pbs.twimg.com/media/HI9j9ZaXgAArqBV.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">118 curtidas</div>
+    <div class="post-content"><span class="username">Erick</span><span class="text">Este repositório open source remove as marcas d'água das suas imagens criadas com IA.
 
-Sin suscripciones. Sin marcas de agua. Sin tus datos <a href="https://t.co/BDlnBQifMU" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 15:01</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">T</div><div class="info"><div class="name">tom_doerr</div><div class="handle">@tom_doerr</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI7dbN7WUAAgrE0.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Acesse as APIs do GPT, Claude e Grok sem cartão de crédito <a href="https://t.co/DaC1mIMivk" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/TbpgRjlMQ3" target="_blank" rel="noopener">🔗</a></div><div class="original">Access GPT, Claude, and Grok APIs without a credit card
+• Remove a marca d'água visível do Gemini por reverse alpha blending
+• Destrói marcas d'água invisíveis com difusão (derrota o SynthID v2)
+• Limpa todos os metadados que delatam a origem
+• https://t.co/ZLbhvGumHZ</span></div>
+    <div class="post-time">2026-05-23</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2008933207606018049/AQV9Ocq3_normal.jpg)"></div>
+      <div class="info"><div class="name">Felipe Lupion</div><div class="handle">@FelipeLupion</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">28987 curtidas</div>
+    <div class="post-content"><span class="username">Felipe Lupion</span><span class="text">O CEO da Bolt demitiu todo o departamento de RH da empresa, dizendo que eles criavam problemas que não existiam.
 
-<a href="https://t.co/DaC1mIMivk" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/TbpgRjlMQ3" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 11:06</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">K</div><div class="info"><div class="name">knowledgefxg</div><div class="handle">@knowledgefxg</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI7VPURbwAAVdnb.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Ferramenta open source útil: pdf-inspector resolve um problema prático — nem todo PDF precisa de OCR. Ele primeiro detecta o tipo do PDF antes de processar <a href="https://t.co/kHZzEZR6st" target="_blank" rel="noopener">🔗</a></div><div class="original">实用开源小工具推荐：pdf-inspector
-解决的是一个很实际的问题：并不是所有 PDF 都需要 OCR。
-比方说你扔给它一个 PDF，它先判断这个 PDF 到底是什么类型——是正常的文字版（比如用 Word <a href="https://t.co/kHZzEZR6st" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 10:31</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">F</div><div class="info"><div class="name">FelipeLupion</div><div class="handle">@FelipeLupion</div></div></div><div class="post-media"><video controls poster="https://pbs.twimg.com/amplify_video_thumb/2057804255034056704/img/1eN4VySbibJSJ5YW.jpg" preload="none"><source src="https://video.twimg.com/amplify_video/2057804255034056704/vid/avc1/886x496/k8KsuiXXJFou1G7d.mp4" type="video/mp4"></video></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">O CEO da Bolt demitiu todo o RH, dizendo que eles criavam problemas que não existiam. Depois disse que os problemas desapareceram quando essa galera foi embora. Substituiu por uma equipe pequena de "People Ops" focada só em operações <a href="https://t.co/lGQz6RagR0" target="_blank" rel="noopener">🔗</a></div><div class="original">O CEO da Bolt demitiu todo o departamento de RH da empresa, dizendo que eles criavam problemas que não existiam. 
+Depois, disse que os problemas desapareceram quando essa galera foi embora.
 
-Depois, disse que os problemas desapareceram quando essa galera foi embora. 
+Ele substituiu o RH por uma pequena equipe de "People Ops" focada apenas em operações https://t.co/lGQz6RagR0 https://t.co/JLYdKNN1UJ</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2004028412730789892/4IFUGOl2_normal.jpg)"></div>
+      <div class="info"><div class="name">Geek Lite</div><div class="handle">@QingQ77</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">438 curtidas</div>
+    <div class="post-content"><span class="username">Geek Lite</span><span class="text">Ao gerar modelos 3D com IA, cada componente pode ser selecionado, renomeado, movido ou ter seu material alterado individualmente, sem precisar regenerar o modelo inteiro.
 
-Ele substituiu o RH por uma equipe pequena de “People Ops” focada apenas em operações <a href="https://t.co/lGQz6RagR0" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/JLYdKNN1UJ" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 09:42</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">Q</div><div class="info"><div class="name">QingQ77</div><div class="handle">@QingQ77</div></div></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Ao gerar modelos 3D com IA, cada peça pode ser selecionada, renomeada, movida ou ter material alterado sem regenerar tudo. Nova3D gera scripts Python do Blender a partir de prompts, não um arquivo mesh único. Cada parte no GLB tem nome e hierarquia <a href="https://t.co/fm2fHCwnKO" target="_blank" rel="noopener">🔗</a></div><div class="original">用 AI 生成 3D 模型时，每个部件都能单独选中、改名、移动或修改材质，不用重新生成整个模型。
+https://t.co/fm2fHCwnKO
 
-<a href="https://t.co/fm2fHCwnKO" target="_blank" rel="noopener">🔗</a>
+Nova3D usa prompts para gerar scripts Python do Blender, em vez de cuspir diretamente um arquivo de malha mesclado. O arquivo GLB gerado tem cada peça com nome e hierarquia, permitindo edição individual.</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1769261588807344128/KonwHRlC_normal.jpg)"></div>
+      <div class="info"><div class="name">Kanika</div><div class="handle">@KanikaBK</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">666 curtidas</div>
+    <div class="post-content"><span class="username">Kanika</span><span class="text">A Universidade de Hong Kong acabou de lançar uma FERRAMENTA DE IA GRATUITA que transforma uma ideia de uma linha em um curta-metragem completo. Sem necessidade de edição. 100% OPEN SOURCE.
 
-Nova3D 用提示词生成 Blender Python 脚本，而不是直接吐出一个合并后的网格文件。生成的 GLB 里每个零件都有名字和层级，可以单独编辑。</div></div><div class="post-time">22 de mai., 04:24</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">C</div><div class="info"><div class="name">cyrilXBT</div><div class="handle">@cyrilXBT</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI5gUgUaoAA9zFi.png" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">UM DEV ANÔNIMO CRIOU UMA BIBLIOTECA TÃO GRANDE QUE FEZ O TIME JURÍDICO DA ELSEVIER CHORAR. 99 milhões de livros e artigos. Todas as shadow libraries espelhadas e buscáveis num só lugar. E é impossível de derrubar <a href="https://t.co/byvCFHVfxC" target="_blank" rel="noopener">🔗</a></div><div class="original">AN ANONYMOUS DEVELOPER JUST BUILT A LIBRARY SO BIG IT MADE ELSEVIER'S LEGAL TEAM CRY.
+Chama-se ViMax
 
-99 million books and papers.
+Você digita um prompt. Ou cola um romance. Ela faz o resto.
+Diretor. Roteirista. Produtor. Gerador de vídeo. Um sistema só. https://t.co/DNJlPzHGA5</span></div>
+    <div class="post-time">2026-05-21</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905090420142379008/Ydq5So7B_normal.jpg)"></div>
+      <div class="info"><div class="name">Tom Dörr</div><div class="handle">@tom_doerr</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2043436530157461643" target="_blank"><img src="https://pbs.twimg.com/media/HFu-siSXQAAFNJN.png" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">10 curtidas</div>
+    <div class="post-content"><span class="username">Tom Dörr</span><span class="text">Layout de texto com várias linhas sem medições do DOM
 
-Every shadow library on earth mirrored and searchable in one place.
+https://t.co/MbS2Fo9e3l https://t.co/QlH1U9K53i</span></div>
+    <div class="post-time">2026-04-12</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2035229727414534145/aWap3Jbq_normal.jpg)"></div>
+      <div class="info"><div class="name">CyrilXBT</div><div class="handle">@cyrilXBT</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057687988176621997" target="_blank"><img src="https://pbs.twimg.com/media/HI5gUgUaoAA9zFi.png" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">335 curtidas</div>
+    <div class="post-content"><span class="username">CyrilXBT</span><span class="text">UM DESENVOLVEDOR ANÔNIMO ACABOU DE CONSTRUIR UMA BIBLIOTECA TÃO GRANDE QUE FEZ O TIME JURÍDICO DA ELSEVIER CHORAR.
 
-And it is completely unkillable.
+99 milhões de livros e artigos.
 
-Here is the full story.
+Todas as bibliotecas sombra da terra espelhadas e pesquisáveis em um só lugar.
 
-In November 2022 US law enforcement <a href="https://t.co/byvCFHVfxC" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">22 de mai., 02:00</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">G</div><div class="info"><div class="name">GitHub_Daily</div><div class="handle">@GitHub_Daily</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HI4bnOSbUAAq9Fr.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Textos escritos por IA sempre têm aquele "cheiro de IA" — frases muito certinhas, vocabulário repetitivo. Achei uma ferramenta open source (AI Humanize Text) que reescreve o texto gerado por IA num estilo mais humano e natural <a href="https://t.co/D2p9IZJB6u" target="_blank" rel="noopener">🔗</a></div><div class="original">用 AI 写的文章，读起来总有一股 AI 味，句式工整、用词重复，发布或提交后总担心被检测到。
+E é completamente impossível de matar.
 
-最近偶然找到了 AI Humanize Text 这个开源工具，专门把 AI 生成的文本改写成更自然的人类写作风格。 <a href="https://t.co/D2p9IZJB6u" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">21 de mai., 21:00</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">J</div><div class="info"><div class="name">jiqizhixin</div><div class="handle">@jiqizhixin</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HIRFV1wbkAAG8GZ.png" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">E se seu celular pudesse gerar ou editar imagens em menos de 1 segundo? ByteDance apresenta DreamLite, um modelo compacto de 0.39B parâmetros que unifica geração e edição de imagens <a href="https://t.co/scvlVvkoD5" target="_blank" rel="noopener">🔗</a></div><div class="original">What if your phone could generate or edit images in under a second? 
+Aqui está a história completa.
 
-ByteDance’s Intelligent Creation Lab presents DreamLite, a compact 0.39B parameter model that unifies text-to-image generation and editing in one network. It uses a simple trick: concatenating images <a href="https://t.co/scvlVvkoD5" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">21 de mai., 11:37</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">K</div><div class="info"><div class="name">KanikaBK</div><div class="handle">@KanikaBK</div></div></div><div class="post-media"><video controls poster="https://pbs.twimg.com/amplify_video_thumb/2057446070691692544/img/iOv20Wp7cd7K84JJ.jpg" preload="none"><source src="https://video.twimg.com/amplify_video/2057446070691692544/vid/avc1/720x1060/qcp61KdYxA3A6IZy.mp4?tag=14" type="video/mp4"></video></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Universidade de Hong Kong lançou uma ferramenta de IA GRÁTIS que transforma uma ideia de uma linha num curta-metragem completo. Sem edição necessária. 100% OPEN SOURCE. Chama ViMax — digite um prompt ou cole um romance e pronto <a href="https://t.co/DNJlPzHGA5" target="_blank" rel="noopener">🔗</a></div><div class="original">Hong Kong University just released a FREE AI TOOL that  turns a one-line idea into a full short film. No editing required. 100% OPEN SOURCE.
+Em novembro de 2022, a aplicação da lei dos EUA https://t.co/byvCFHVfxC</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1660876795347111937/EIo6fIr4_normal.jpg)"></div>
+      <div class="info"><div class="name">GitHubDaily</div><div class="handle">@GitHub_Daily</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057612448971268097" target="_blank"><img src="https://pbs.twimg.com/media/HI4bnOSbUAAq9Fr.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">188 curtidas</div>
+    <div class="post-content"><span class="username">GitHubDaily</span><span class="text">Artigos escritos com IA sempre têm um gosto de IA, frases padronizadas, vocabulário repetitivo, e sempre dá medo de ser pego ao publicar ou entregar.
 
-It's called ViMax
+Recentemente encontrei por acaso a ferramenta open source AI Humanize Text, especializada em reescrever textos gerados por IA em um estilo de escrita humana mais natural. https://t.co/D2p9IZJB6u</span></div>
+    <div class="post-time">2026-05-22</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/895029477192851456/7dh0KKva_normal.jpg)"></div>
+      <div class="info"><div class="name">机器之心 JIQIZHIXIN</div><div class="handle">@jiqizhixin</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057470720553234641" target="_blank"><img src="https://pbs.twimg.com/media/HIRFV1wbkAAG8GZ.png" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">201 curtidas</div>
+    <div class="post-content"><span class="username">机器之心 JIQIZHIXIN</span><span class="text">E se o seu celular pudesse gerar ou editar imagens em menos de um segundo?
 
-You type a prompt. Or paste a novel. It does the rest.
-Director. Screenwriter. Producer. Video generator. One system. <a href="https://t.co/DNJlPzHGA5" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">21 de mai., 09:59</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">M</div><div class="info"><div class="name">minchoi</div><div class="handle">@minchoi</div></div></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Menos de 34 horas atrás, Google lançou o Gemini Omni. Mentes explodindo. E as pessoas já estão criando casos de uso insanos. 10 exemplos:</div><div class="original">Less than 34 hours ago, Google dropped Gemini Omni.
+O Intelligent Creation Lab da ByteDance apresenta o DreamLite, um modelo compacto de 0,39B parâmetros que unifica geração e edição de texto para imagem em uma única rede. Ele usa um truque simples: concatenar imagens https://t.co/scvlVvkoD5</span></div>
+    <div class="post-time">2026-05-21</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1638359113221517312/CBZaJFyA_normal.jpg)"></div>
+      <div class="info"><div class="name">Min Choi</div><div class="handle">@minchoi</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">2358 curtidas</div>
+    <div class="post-content"><span class="username">Min Choi</span><span class="text">Há menos de 34 horas, o Google lançou o Gemini Omni.
 
-Minds are blown.  And people are already coming up with wild use cases.
+Mentes estão explodindo. E as pessoas já estão inventando casos de uso loucos.
 
-10 examples:</div></div><div class="post-time">21 de mai., 00:55</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">N</div><div class="info"><div class="name">nett0eth</div><div class="handle">@nett0eth</div></div></div><div class="post-media"><video controls poster="https://pbs.twimg.com/amplify_video_thumb/2057284736569974784/img/Q_F0F0a0Xk7s4lzj.jpg" preload="none"><source src="https://video.twimg.com/amplify_video/2057284736569974784/vid/avc1/1678x1080/UNKu0rV3Cog3h1rw.mp4" type="video/mp4"></video></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Cara, alguém criou o Pinterest dos prompts de IA. E de graça. MeiGen é uma biblioteca enorme com prompts virais do GPT Image 2, Midjourney, Veo 3.1. Tudo catalogado e pronto pra usar <a href="https://t.co/Ns1t52qzTQ" target="_blank" rel="noopener">🔗</a></div><div class="original">Cara, alguém criou o Pinterest dos prompts de IA. E disponibilizou tudo de graça.
+10 exemplos:</span></div>
+    <div class="post-time">2026-05-21</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1947335831905095680/nB05raUq_normal.jpg)"></div>
+      <div class="info"><div class="name">Nett0</div><div class="handle">@nett0eth</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">678 curtidas</div>
+    <div class="post-content"><span class="username">Nett0</span><span class="text">Cara, alguém criou o Pinterest dos prompts de IA. E disponibilizou tudo de graça.
 
 MeiGen é uma biblioteca enorme com os prompts virais do GPT Image 2, Midjourney, Veo 3.1. Tudo num lugar só, tudo catalogado, tudo pronto pra usar.
 
-E o que me impressionou foi o que tem por baixo: <a href="https://t.co/Ns1t52qzTQ" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">20 de mai., 23:18</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">M</div><div class="info"><div class="name">Michaelzsguo</div><div class="handle">@Michaelzsguo</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HIxZjdbW0AAT8Hs.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Quem usa LLM local conhece: você finalmente faz o modelo rodar rápido, os tokens voam, a configuração está ajustada. E de repente parece errado que só seu laptop possa usar. Dá pra construir algo maior...</div><div class="original">Local LLM people know this feeling:
+E o que me impressionou foi o que tem por baixo: https://t.co/Ns1t52qzTQ</span></div>
+    <div class="post-time">2026-05-21</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1680024477906931712/WjjEpXIB_normal.jpg)"></div>
+      <div class="info"><div class="name">Saidul</div><div class="handle">@saidul_dev</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057060156371030127" target="_blank"><img src="https://pbs.twimg.com/media/HIwlT8YawAAqjYs.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">5376 curtidas</div>
+    <div class="post-content"><span class="username">Saidul</span><span class="text">SEU ANDROID ESTÁ LENTO POR CAUSA DE UMA CONFIGURAÇÃO PADRÃO.
 
-You finally get the model running fast.
-The tokens are flying.
-The setup is tuned.
-And suddenly it feels wrong that only your own laptop can use it.
-You can build a whole web server stack for sharing it...
-Or, if you already use Tailscale: <a href="https://t.co/f9tpzOZXt2" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">20 de mai., 12:14</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">S</div><div class="info"><div class="name">saidul_dev</div><div class="handle">@saidul_dev</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HIwlT8YawAAqjYs.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">SEU ANDROID É LENTO POR CAUSA DE UMA CONFIGURAÇÃO PADRÃO. Não é hardware velho. A maioria compra um celular novo antes de descobrir isso. Leva 90 SEGUNDOS PRA CONSERTAR. Veja como ⤵️ <a href="https://t.co/2ocqy" target="_blank" rel="noopener">🔗</a></div><div class="original">YOUR ANDROID PHONE IS SLOW BECAUSE OF A DEFAULT SETTING.
+Não é hardware antigo.
 
-Not old hardware.
+A maioria das pessoas compra um telefone novo antes de descobrir isso:
 
-Most people buy a new phone before they ever find this:
-
-Takes 90 SECONDS TO FIX. Here is exactly how ⤵️ <a href="https://t.co/2ocqyQf2jI" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">20 de mai., 08:25</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">A</div><div class="info"><div class="name">ai_explorer25</div><div class="handle">@ai_explorer25</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HIusmvPbQAADAym.jpg" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Aprenda IA de graça direto das grandes empresas. 1 - Anthropic 2 - Google 3 - Meta 4 - NVIDIA 5 - OpenAI 6 - Microsoft Links completos no tweet original</div><div class="original">Learn AI for free directly from top companies.
+Leva 90 SEGUNDOS PARA CONSERTAR. Aqui está exatamente como ⤵️ https://t.co/2ocqyQf2jI</span></div>
+    <div class="post-time">2026-05-20</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2022344365251911680/VTRlBO9__normal.jpg)"></div>
+      <div class="info"><div class="name">AI_Explorer</div><div class="handle">@ai_explorer25</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057004649048113158" target="_blank"><img src="https://pbs.twimg.com/media/HIusmvPbQAADAym.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">1836 curtidas</div>
+    <div class="post-content"><span class="username">AI_Explorer</span><span class="text">Aprenda IA de graça diretamente das melhores empresas.
 
 1 - Anthropic:  
-<a href="https://t.co/fpDdTcYNku" target="_blank" rel="noopener">🔗</a>
+https://t.co/fpDdTcYNku
 
 2 - Google:  
-<a href="https://t.co/vB7scS9QA9" target="_blank" rel="noopener">🔗</a>
+https://t.co/vB7scS9QA9
 
 3 - Meta:  
-<a href="https://t.co/X4tJwNvY8c" target="_blank" rel="noopener">🔗</a>
+https://t.co/X4tJwNvY8c
 
 4 - NVIDIA:  
-<a href="https://t.co/xSFsbx4isw" target="_blank" rel="noopener">🔗</a>
+https://t.co/xSFsbx4isw
 
 5 - Microsoft:  
-<a href="https://t.co/EO6T7kjNpl" target="_blank" rel="noopener">🔗</a>
+https://t.co/EO6T7kjNpl
 
-6 - OpenAI: <a href="https://t.co/eFiyLhdoQ2" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">20 de mai., 04:45</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">V</div><div class="info"><div class="name">vincent_hus</div><div class="handle">@vincent_hus</div></div></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Procurando contribuidores open source. Apache 2.0.</div><div class="original">Looking for open-source contributors. Apache 2.0.</div></div><div class="post-time">24 de abr., 06:30</div></div><div class="post"><div class="post-header"><div class="avatar-placeholder">T</div><div class="info"><div class="name">tom_doerr</div><div class="handle">@tom_doerr</div></div></div><div class="post-media"><img src="https://pbs.twimg.com/media/HFu-siSXQAAFNJN.png" loading="lazy" alt=""></div><div class="post-content"><div class="translate-badge">🌐 Traduzido</div><div class="text">Layout de texto multilinha sem medições de DOM <a href="https://t.co/MbS2Fo9e3l" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/QlH1U9K53i" target="_blank" rel="noopener">🔗</a></div><div class="original">Multiline text layout without DOM measurements
+6 - OpenAI: https://t.co/eFiyLhdoQ2</span></div>
+    <div class="post-time">2026-05-20</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1616376017106489348/rdC_I36v_normal.jpg)"></div>
+      <div class="info"><div class="name">Vincent Hus</div><div class="handle">@vincent_hus</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">10962 curtidas</div>
+    <div class="post-content"><span class="username">Vincent Hus</span><span class="text">Procurando contribuidores open source. Apache 2.0.</span></div>
+    <div class="post-time">2026-04-24</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1484637162108825608/755rQsty_normal.jpg)"></div>
+      <div class="info"><div class="name">Michael Guo</div><div class="handle">@Michaelzsguo</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057117647607632081" target="_blank"><img src="https://pbs.twimg.com/media/HIxZjdbW0AAT8Hs.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">109 curtidas</div>
+    <div class="post-content"><span class="username">Michael Guo</span><span class="text">Quem usa LLM local conhece esse sentimento:
 
-<a href="https://t.co/MbS2Fo9e3l" target="_blank" rel="noopener">🔗</a> <a href="https://t.co/QlH1U9K53i" target="_blank" rel="noopener">🔗</a></div></div><div class="post-time">12 de abr., 18:10</div></div><div class="footer"><p>🐶 <span class="brand">Ze Pequeno News</span></p><p class="update-time">Última atualização: 24/05/2026, 12:15:09 • Traduzido por Raimundo 🧱</p></div></div></body></html>
+Você finalmente consegue fazer o modelo rodar rápido.
+Os tokens estão voando.
+A configuração está ajustada.
+E de repente parece errado que só seu próprio laptop possa usar isso.
+Você pode montar uma stack inteira de servidor web para compartilhar...
+Ou, se você já usa Tailscale: https://t.co/f9tpzOZXt2</span></div>
+    <div class="post-time">2026-05-20</div>
+  </div>
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2014382652866887681/ou6iKZw5_normal.jpg)"></div>
+      <div class="info"><div class="name">Erick</div><div class="handle">@ErickSky</div></div>
+      <div class="more">···</div>
+    </div>
+    <div class="post-media"><a href="https://x.com/i/status/2057201436815954128" target="_blank"><img src="https://pbs.twimg.com/media/HIyS8CkWQAAooTX.jpg" loading="lazy"></a></div>
+    <div class="post-actions"><span>❤️</span><span>💬</span><span>↗️</span><span class="save">🔖</span></div>
+    <div class="post-metrics">198 curtidas</div>
+    <div class="post-content"><span class="username">Erick</span><span class="text">Todos amamos ILovePDF, pero es que esto es OOOTRA COSA
+
+[VERT] 
+
+Convierte TODO 100% local en tu navegador con WebAssembly.
+
++250 formatos, sin límites, open source y gratis forever.
+
+Casi 15k⭐
+
+REPOOO👇 https://t.co/rETxcSpzrb</span></div>
+    <div class="post-time">2026-05-20</div>
+  </div>
+  <div class="footer"><p>🐶 <span class="brand">Ze Pequeno News</span></p><p style="margin-top:4px">Atualizado via Birdclaw + DeepSeek • 24/05/2026 12:17</p></div>
+</div>
+</body>
+</html>
