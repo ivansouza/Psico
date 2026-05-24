@@ -38,13 +38,6 @@
   }
   .stat .value { font-size: 1.4em; font-weight: 700; color: #d4a017; }
   .stat .label { font-size: 0.75em; color: #666; margin-top: 2px; }
-  .category { margin-bottom: 32px; }
-  .category h2 {
-    font-size: 1.1em; font-weight: 600; color: #d4a017;
-    margin-bottom: 12px; padding-bottom: 8px;
-    border-bottom: 1px solid #1e1e3a;
-  }
-  .category .count { color: #666; font-weight: 400; font-size: 0.85em; }
   .bookmark {
     background: #12122a;
     border: 1px solid #1e1e3a;
@@ -71,16 +64,33 @@
   .bookmark .author .avatar {
     width: 36px; height: 36px;
     border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+  }
+  .bookmark .author .avatar-placeholder {
+    width: 36px; height: 36px;
+    border-radius: 50%;
     background: linear-gradient(135deg, #d4a01744, #ffd70044);
     display: flex; align-items: center; justify-content: center;
     font-weight: 600; font-size: 0.9em; color: #d4a017;
+    flex-shrink: 0;
   }
   .bookmark .author .info { flex: 1; }
   .bookmark .author .name { font-weight: 600; color: #fff; font-size: 0.9em; }
   .bookmark .author .handle { color: #888; font-size: 0.8em; }
-  .bookmark .titulo {
-    font-weight: 600; color: #ffd700; font-size: 0.95em;
-    margin-bottom: 6px;
+  .bookmark .media {
+    margin: 10px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 400px;
+  }
+  .bookmark .media img {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: cover;
+    display: block;
   }
   .bookmark .resumo { color: #ccc; font-size: 0.9em; margin-bottom: 10px; line-height: 1.5; white-space: pre-wrap; }
   .bookmark .meta {
@@ -107,279 +117,298 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1>📌 Meus Bookmarks</h1>
-    <p>Os últimos 20 tweets que salvei no X — traduzidos para o português</p>
-    <div class="date">23/05/2026 às 22:24</div>
+    <h1>Meus Bookmarks</h1>
+    <p>Os ultimos 20 tweets que salvei no X — traduzidos para o portugues</p>
   </div>
-
   <div class="stats">
     <div class="stat"><div class="value">20</div><div class="label">Bookmarks</div></div>
-    <div class="stat"><div class="value">1</div><div class="label">Categorias</div></div>
-    <div class="stat"><div class="value">54790</div><div class="label">Total Likes</div></div>
+    <div class="stat"><div class="value">17</div><div class="label">Midias</div></div>
+    <div class="stat"><div class="value">54819</div><div class="label">Total Likes</div></div>
   </div>
 
-  <div class="category">
-    <h2>📌 Outro <span class="count">(20)</span></h2>
 
-    <div class="bookmark">
-      <div class="num">#1</div>
-      <div class="author">
-        <div class="avatar">A</div>
-        <div class="info">
-          <div class="name">Alan Daitch</div>
-          <div class="handle">AlanDaitch</div>
-        </div>
+  <div class="bookmark">
+    <div class="num">#1</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1876241989068353536/n67QYkh4_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Alan Daitch</div>
+        <div class="handle">@AlanDaitch</div>
       </div>
-      <div class="resumo">Isso é FANTÁSTICO
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI88blEWgAACpID.png" loading="lazy"></div>
+    <div class="resumo">Isso é FANTÁSTICO
 
 Um usuário postou uma pintura de Monet no X, disse que a tinha gerado com inteligência artificial e pediu ajuda para entender por que ela é pior que uma real.
 
 Encheu-se de comentários como estes: "Me decepciona ter que mencionar isso. Não há coerência no https://t.co/bk0hujwX2h</div>
-      <div class="meta">
-        <span>❤️ 350</span>
-        <span>🔄 48</span>
-        <span>💬 20</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057930129947402387" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 350</span>
+      <span>🔄 48</span>
+      <span>💬 20</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057930129947402387" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#2</div>
-      <div class="author">
-        <div class="avatar">P</div>
-        <div class="info">
-          <div class="name">PA13L0</div>
-          <div class="handle">Fluyeporlaweb</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#2</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1919353130182959104/Jy1MsO1c_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">PA13L0</div>
+        <div class="handle">@Fluyeporlaweb</div>
       </div>
-      <div class="resumo">CapCut, Canva e Adobe estão suando
+    </div>
+    
+    <div class="resumo">CapCut, Canva e Adobe estão suando
 
 Alguém acabou de publicar um editor de vídeo open source com IA integrada que faz concorrência direta a eles
 
 Chama-se Kimu e é o copiloto criativo para edição de vídeo que ninguém esperava
 
 Sem assinaturas. Sem marcas d'água. Sem seus dados https://t.co/BDlnBQifMU</div>
-      <div class="meta">
-        <span>❤️ 383</span>
-        <span>🔄 49</span>
-        <span>💬 9</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057884494351221021" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 383</span>
+      <span>🔄 49</span>
+      <span>💬 9</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057884494351221021" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#3</div>
-      <div class="author">
-        <div class="avatar">T</div>
-        <div class="info">
-          <div class="name">Tom Dörr</div>
-          <div class="handle">tom_doerr</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#3</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905090420142379008/Ydq5So7B_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Tom Dörr</div>
+        <div class="handle">@tom_doerr</div>
       </div>
-      <div class="resumo">Gera imagens e vídeos a partir do terminal usando mais de 30 modelos
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI85IElWAAAUSlJ.png" loading="lazy"></div>
+    <div class="resumo">Gera imagens e vídeos a partir do terminal usando mais de 30 modelos
 
 https://t.co/JmL4sbvkCw https://t.co/JdVy284tXn</div>
-      <div class="meta">
-        <span>❤️ 309</span>
-        <span>🔄 42</span>
-        <span>💬 2</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057926368139063418" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 310</span>
+      <span>🔄 43</span>
+      <span>💬 2</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057926368139063418" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#4</div>
-      <div class="author">
-        <div class="avatar">知</div>
-        <div class="info">
-          <div class="name">知识分享官</div>
-          <div class="handle">knowledgefxg</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#4</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2005965715426451456/DKY-kNqK_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">知识分享官</div>
+        <div class="handle">@knowledgefxg</div>
       </div>
-      <div class="resumo">Recomendação de ferramenta open source útil: pdf-inspector
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI7VPURbwAAVdnb.jpg" loading="lazy"></div>
+    <div class="resumo">Recomendação de ferramenta open source útil: pdf-inspector
 Resolve um problema muito real: nem todo PDF precisa de OCR.
 Por exemplo, você joga um PDF nele, ele primeiro determina que tipo de PDF é — se é um texto normal (como do Word https://t.co/kHZzEZR6st</div>
-      <div class="meta">
-        <span>❤️ 320</span>
-        <span>🔄 84</span>
-        <span>💬 68</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057816609084018988" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 323</span>
+      <span>🔄 85</span>
+      <span>💬 68</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057816609084018988" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#5</div>
-      <div class="author">
-        <div class="avatar">J</div>
-        <div class="info">
-          <div class="name">John</div>
-          <div class="handle">johnAGI168</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#5</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905589492867854336/UBUMmQ1h_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">John</div>
+        <div class="handle">@johnAGI168</div>
       </div>
-      <div class="resumo">GPT-image 2 ➕ Nano banana 📷
+    </div>
+    
+    <div class="resumo">GPT-image 2 ➕ Nano banana 📷
 
 Liberdade total para gerar imagens, o novo Agent inteligente do Google Flow e comandos inteligentes permitem gerar dezenas de imagens ou até vídeos de uma só vez, aumentando muito a eficiência. Não precisa mais gerar storyboards de 9 quadros e extrair imagem por imagem!
 
 O uso também é simples. Clique no botão Agent e faça upload no GPT image https://t.co/tSGo6oqVCq</div>
-      <div class="meta">
-        <span>❤️ 244</span>
-        <span>🔄 40</span>
-        <span>💬 6</span>
-        <span>📅 2026-05-23</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2058093893581729875" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 244</span>
+      <span>🔄 40</span>
+      <span>💬 6</span>
+      <span>📅 2026-05-23</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2058093893581729875" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#6</div>
-      <div class="author">
-        <div class="avatar">E</div>
-        <div class="info">
-          <div class="name">Erick</div>
-          <div class="handle">ErickSky</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#6</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2014382652866887681/ou6iKZw5_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Erick</div>
+        <div class="handle">@ErickSky</div>
       </div>
-      <div class="resumo">Este repositório open source remove as marcas d'água das suas imagens criadas com IA.
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI9j9ZaXgAArqBV.jpg" loading="lazy"></div>
+    <div class="resumo">Este repositório open source remove as marcas d'água das suas imagens criadas com IA.
 
 • Remove a marca d'água visível do Gemini por reverse alpha blending
 • Destrói marcas d'água invisíveis com difusão (derrota o SynthID v2)
 • Limpa todos os metadados que delatam a origem
 • https://t.co/ZLbhvGumHZ</div>
-      <div class="meta">
-        <span>❤️ 118</span>
-        <span>🔄 12</span>
-        <span>💬 3</span>
-        <span>📅 2026-05-23</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057975009306386873" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 118</span>
+      <span>🔄 12</span>
+      <span>💬 3</span>
+      <span>📅 2026-05-23</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057975009306386873" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#7</div>
-      <div class="author">
-        <div class="avatar">F</div>
-        <div class="info">
-          <div class="name">Felipe Lupion</div>
-          <div class="handle">FelipeLupion</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#7</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2008933207606018049/AQV9Ocq3_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Felipe Lupion</div>
+        <div class="handle">@FelipeLupion</div>
       </div>
-      <div class="resumo">O CEO da Bolt demitiu todo o departamento de RH da empresa, dizendo que eles criavam problemas que não existiam.
+    </div>
+    
+    <div class="resumo">O CEO da Bolt demitiu todo o departamento de RH da empresa, dizendo que eles criavam problemas que não existiam.
 
 Depois, disse que os problemas desapareceram quando essa galera foi embora.
 
 Ele substituiu o RH por uma pequena equipe de "People Ops" focada apenas em operações https://t.co/lGQz6RagR0 https://t.co/JLYdKNN1UJ</div>
-      <div class="meta">
-        <span>❤️ 28957</span>
-        <span>🔄 1682</span>
-        <span>💬 232</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057804321396310300" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 28976</span>
+      <span>🔄 1683</span>
+      <span>💬 232</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057804321396310300" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#8</div>
-      <div class="author">
-        <div class="avatar">T</div>
-        <div class="info">
-          <div class="name">Tom Dörr</div>
-          <div class="handle">tom_doerr</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#8</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905090420142379008/Ydq5So7B_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Tom Dörr</div>
+        <div class="handle">@tom_doerr</div>
       </div>
-      <div class="resumo">Acesse as APIs do GPT, Claude e Grok sem cartão de crédito
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI7dbN7WUAAgrE0.jpg" loading="lazy"></div>
+    <div class="resumo">Acesse as APIs do GPT, Claude e Grok sem cartão de crédito
 
 https://t.co/DaC1mIMivk https://t.co/TbpgRjlMQ3</div>
-      <div class="meta">
-        <span>❤️ 961</span>
-        <span>🔄 114</span>
-        <span>💬 13</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057825541479100769" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 962</span>
+      <span>🔄 114</span>
+      <span>💬 13</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057825541479100769" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#9</div>
-      <div class="author">
-        <div class="avatar">G</div>
-        <div class="info">
-          <div class="name">Geek Lite</div>
-          <div class="handle">QingQ77</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#9</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2004028412730789892/4IFUGOl2_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Geek Lite</div>
+        <div class="handle">@QingQ77</div>
       </div>
-      <div class="resumo">Ao gerar modelos 3D com IA, cada componente pode ser selecionado, renomeado, movido ou ter seu material alterado individualmente, sem precisar regenerar o modelo inteiro.
+    </div>
+    
+    <div class="resumo">Ao gerar modelos 3D com IA, cada componente pode ser selecionado, renomeado, movido ou ter seu material alterado individualmente, sem precisar regenerar o modelo inteiro.
 
 https://t.co/fm2fHCwnKO
 
 Nova3D usa prompts para gerar scripts Python do Blender, em vez de cuspir diretamente um arquivo de malha mesclado. O arquivo GLB gerado tem cada peça com nome e hierarquia, permitindo edição individual.</div>
-      <div class="meta">
-        <span>❤️ 437</span>
-        <span>🔄 51</span>
-        <span>💬 17</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057724139603972463" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 438</span>
+      <span>🔄 51</span>
+      <span>💬 17</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057724139603972463" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#10</div>
-      <div class="author">
-        <div class="avatar">K</div>
-        <div class="info">
-          <div class="name">Kanika</div>
-          <div class="handle">KanikaBK</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#10</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1769261588807344128/KonwHRlC_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Kanika</div>
+        <div class="handle">@KanikaBK</div>
       </div>
-      <div class="resumo">A Universidade de Hong Kong acabou de lançar uma FERRAMENTA DE IA GRATUITA que transforma uma ideia de uma linha em um curta-metragem completo. Sem necessidade de edição. 100% OPEN SOURCE.
+    </div>
+    
+    <div class="resumo">A Universidade de Hong Kong acabou de lançar uma FERRAMENTA DE IA GRATUITA que transforma uma ideia de uma linha em um curta-metragem completo. Sem necessidade de edição. 100% OPEN SOURCE.
 
 Chama-se ViMax
 
 Você digita um prompt. Ou cola um romance. Ela faz o resto.
 Diretor. Roteirista. Produtor. Gerador de vídeo. Um sistema só. https://t.co/DNJlPzHGA5</div>
-      <div class="meta">
-        <span>❤️ 666</span>
-        <span>🔄 140</span>
-        <span>💬 28</span>
-        <span>📅 2026-05-21</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057446142150066607" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 666</span>
+      <span>🔄 140</span>
+      <span>💬 28</span>
+      <span>📅 2026-05-21</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057446142150066607" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#11</div>
-      <div class="author">
-        <div class="avatar">T</div>
-        <div class="info">
-          <div class="name">Tom Dörr</div>
-          <div class="handle">tom_doerr</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#11</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1905090420142379008/Ydq5So7B_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Tom Dörr</div>
+        <div class="handle">@tom_doerr</div>
       </div>
-      <div class="resumo">Layout de texto com várias linhas sem medições do DOM
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HFu-siSXQAAFNJN.png" loading="lazy"></div>
+    <div class="resumo">Layout de texto com várias linhas sem medições do DOM
 
 https://t.co/MbS2Fo9e3l https://t.co/QlH1U9K53i</div>
-      <div class="meta">
-        <span>❤️ 10</span>
-        <span>🔄 1</span>
-        <span>💬 0</span>
-        <span>📅 2026-04-12</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2043436530157461643" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 10</span>
+      <span>🔄 1</span>
+      <span>💬 0</span>
+      <span>📅 2026-04-12</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2043436530157461643" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#12</div>
-      <div class="author">
-        <div class="avatar">C</div>
-        <div class="info">
-          <div class="name">CyrilXBT</div>
-          <div class="handle">cyrilXBT</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#12</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2035229727414534145/aWap3Jbq_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">CyrilXBT</div>
+        <div class="handle">@cyrilXBT</div>
       </div>
-      <div class="resumo">UM DESENVOLVEDOR ANÔNIMO ACABOU DE CONSTRUIR UMA BIBLIOTECA TÃO GRANDE QUE FEZ O TIME JURÍDICO DA ELSEVIER CHORAR.
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI5gUgUaoAA9zFi.png" loading="lazy"></div>
+    <div class="resumo">UM DESENVOLVEDOR ANÔNIMO ACABOU DE CONSTRUIR UMA BIBLIOTECA TÃO GRANDE QUE FEZ O TIME JURÍDICO DA ELSEVIER CHORAR.
 
 99 milhões de livros e artigos.
 
@@ -390,138 +419,150 @@ E é completamente impossível de matar.
 Aqui está a história completa.
 
 Em novembro de 2022, a aplicação da lei dos EUA https://t.co/byvCFHVfxC</div>
-      <div class="meta">
-        <span>❤️ 335</span>
-        <span>🔄 56</span>
-        <span>💬 21</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057687988176621997" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 335</span>
+      <span>🔄 56</span>
+      <span>💬 21</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057687988176621997" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#13</div>
-      <div class="author">
-        <div class="avatar">G</div>
-        <div class="info">
-          <div class="name">GitHubDaily</div>
-          <div class="handle">GitHub_Daily</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#13</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1660876795347111937/EIo6fIr4_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">GitHubDaily</div>
+        <div class="handle">@GitHub_Daily</div>
       </div>
-      <div class="resumo">Artigos escritos com IA sempre têm um gosto de IA, frases padronizadas, vocabulário repetitivo, e sempre dá medo de ser pego ao publicar ou entregar.
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HI4bnOSbUAAq9Fr.jpg" loading="lazy"></div>
+    <div class="resumo">Artigos escritos com IA sempre têm um gosto de IA, frases padronizadas, vocabulário repetitivo, e sempre dá medo de ser pego ao publicar ou entregar.
 
 Recentemente encontrei por acaso a ferramenta open source AI Humanize Text, especializada em reescrever textos gerados por IA em um estilo de escrita humana mais natural. https://t.co/D2p9IZJB6u</div>
-      <div class="meta">
-        <span>❤️ 188</span>
-        <span>🔄 33</span>
-        <span>💬 26</span>
-        <span>📅 2026-05-22</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057612448971268097" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 188</span>
+      <span>🔄 33</span>
+      <span>💬 26</span>
+      <span>📅 2026-05-22</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057612448971268097" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#14</div>
-      <div class="author">
-        <div class="avatar">机</div>
-        <div class="info">
-          <div class="name">机器之心 JIQIZHIXIN</div>
-          <div class="handle">jiqizhixin</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#14</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/895029477192851456/7dh0KKva_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">机器之心 JIQIZHIXIN</div>
+        <div class="handle">@jiqizhixin</div>
       </div>
-      <div class="resumo">E se o seu celular pudesse gerar ou editar imagens em menos de um segundo?
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HIRFV1wbkAAG8GZ.png" loading="lazy"></div>
+    <div class="resumo">E se o seu celular pudesse gerar ou editar imagens em menos de um segundo?
 
 O Intelligent Creation Lab da ByteDance apresenta o DreamLite, um modelo compacto de 0,39B parâmetros que unifica geração e edição de texto para imagem em uma única rede. Ele usa um truque simples: concatenar imagens https://t.co/scvlVvkoD5</div>
-      <div class="meta">
-        <span>❤️ 201</span>
-        <span>🔄 27</span>
-        <span>💬 3</span>
-        <span>📅 2026-05-21</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057470720553234641" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 201</span>
+      <span>🔄 27</span>
+      <span>💬 3</span>
+      <span>📅 2026-05-21</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057470720553234641" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#15</div>
-      <div class="author">
-        <div class="avatar">M</div>
-        <div class="info">
-          <div class="name">Min Choi</div>
-          <div class="handle">minchoi</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#15</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1638359113221517312/CBZaJFyA_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Min Choi</div>
+        <div class="handle">@minchoi</div>
       </div>
-      <div class="resumo">Há menos de 34 horas, o Google lançou o Gemini Omni.
+    </div>
+    
+    <div class="resumo">Há menos de 34 horas, o Google lançou o Gemini Omni.
 
 Mentes estão explodindo. E as pessoas já estão inventando casos de uso loucos.
 
 10 exemplos:</div>
-      <div class="meta">
-        <span>❤️ 2358</span>
-        <span>🔄 204</span>
-        <span>💬 81</span>
-        <span>📅 2026-05-21</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057309170391724246" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 2358</span>
+      <span>🔄 204</span>
+      <span>💬 81</span>
+      <span>📅 2026-05-21</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057309170391724246" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#16</div>
-      <div class="author">
-        <div class="avatar">N</div>
-        <div class="info">
-          <div class="name">Nett0</div>
-          <div class="handle">nett0eth</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#16</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1947335831905095680/nB05raUq_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Nett0</div>
+        <div class="handle">@nett0eth</div>
       </div>
-      <div class="resumo">Cara, alguém criou o Pinterest dos prompts de IA. E disponibilizou tudo de graça.
+    </div>
+    
+    <div class="resumo">Cara, alguém criou o Pinterest dos prompts de IA. E disponibilizou tudo de graça.
 
 MeiGen é uma biblioteca enorme com os prompts virais do GPT Image 2, Midjourney, Veo 3.1. Tudo num lugar só, tudo catalogado, tudo pronto pra usar.
 
 E o que me impressionou foi o que tem por baixo: https://t.co/Ns1t52qzTQ</div>
-      <div class="meta">
-        <span>❤️ 678</span>
-        <span>🔄 60</span>
-        <span>💬 17</span>
-        <span>📅 2026-05-21</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057284818283495811" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 678</span>
+      <span>🔄 60</span>
+      <span>💬 17</span>
+      <span>📅 2026-05-21</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057284818283495811" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#17</div>
-      <div class="author">
-        <div class="avatar">S</div>
-        <div class="info">
-          <div class="name">Saidul</div>
-          <div class="handle">saidul_dev</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#17</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1680024477906931712/WjjEpXIB_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Saidul</div>
+        <div class="handle">@saidul_dev</div>
       </div>
-      <div class="resumo">SEU ANDROID ESTÁ LENTO POR CAUSA DE UMA CONFIGURAÇÃO PADRÃO.
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HIwlT8YawAAqjYs.jpg" loading="lazy"></div>
+    <div class="resumo">SEU ANDROID ESTÁ LENTO POR CAUSA DE UMA CONFIGURAÇÃO PADRÃO.
 
 Não é hardware antigo.
 
 A maioria das pessoas compra um telefone novo antes de descobrir isso:
 
 Leva 90 SEGUNDOS PARA CONSERTAR. Aqui está exatamente como ⤵️ https://t.co/2ocqyQf2jI</div>
-      <div class="meta">
-        <span>❤️ 5376</span>
-        <span>🔄 1382</span>
-        <span>💬 117</span>
-        <span>📅 2026-05-20</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057060156371030127" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 5376</span>
+      <span>🔄 1381</span>
+      <span>💬 117</span>
+      <span>📅 2026-05-20</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057060156371030127" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#18</div>
-      <div class="author">
-        <div class="avatar">A</div>
-        <div class="info">
-          <div class="name">AI_Explorer</div>
-          <div class="handle">ai_explorer25</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#18</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/2022344365251911680/VTRlBO9__normal.jpg)"></div>
+      <div class="info">
+        <div class="name">AI_Explorer</div>
+        <div class="handle">@ai_explorer25</div>
       </div>
-      <div class="resumo">Aprenda IA de graça diretamente das melhores empresas.
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HIusmvPbQAADAym.jpg" loading="lazy"></div>
+    <div class="resumo">Aprenda IA de graça diretamente das melhores empresas.
 
 1 - Anthropic:  
 https://t.co/fpDdTcYNku
@@ -539,44 +580,48 @@ https://t.co/xSFsbx4isw
 https://t.co/EO6T7kjNpl
 
 6 - OpenAI: https://t.co/eFiyLhdoQ2</div>
-      <div class="meta">
-        <span>❤️ 1836</span>
-        <span>🔄 504</span>
-        <span>💬 24</span>
-        <span>📅 2026-05-20</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057004649048113158" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 1836</span>
+      <span>🔄 504</span>
+      <span>💬 24</span>
+      <span>📅 2026-05-20</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057004649048113158" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#19</div>
-      <div class="author">
-        <div class="avatar">V</div>
-        <div class="info">
-          <div class="name">Vincent Hus</div>
-          <div class="handle">vincent_hus</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#19</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1616376017106489348/rdC_I36v_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Vincent Hus</div>
+        <div class="handle">@vincent_hus</div>
       </div>
-      <div class="resumo">Procurando contribuidores open source. Apache 2.0.</div>
-      <div class="meta">
-        <span>❤️ 10954</span>
-        <span>🔄 609</span>
-        <span>💬 0</span>
-        <span>📅 2026-04-24</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2047609211702382703" target="_blank">🔗 Ver no X →</a>
     </div>
+    
+    <div class="resumo">Procurando contribuidores open source. Apache 2.0.</div>
+    <div class="meta">
+      <span>❤️ 10958</span>
+      <span>🔄 610</span>
+      <span>💬 0</span>
+      <span>📅 2026-04-24</span>
+    </div>
+    <a class="tweet-link" href="https://x.com/i/status/2047609211702382703" target="_blank">🔗 Ver no X →</a>
+  </div>
 
-    <div class="bookmark">
-      <div class="num">#20</div>
-      <div class="author">
-        <div class="avatar">M</div>
-        <div class="info">
-          <div class="name">Michael Guo</div>
-          <div class="handle">Michaelzsguo</div>
-        </div>
+
+  <div class="bookmark">
+    <div class="num">#20</div>
+    <div class="author">
+      <div class="avatar" style="background-image: url(https://pbs.twimg.com/profile_images/1484637162108825608/755rQsty_normal.jpg)"></div>
+      <div class="info">
+        <div class="name">Michael Guo</div>
+        <div class="handle">@Michaelzsguo</div>
       </div>
-      <div class="resumo">Quem usa LLM local conhece esse sentimento:
+    </div>
+    <div class="media"><img src="https://pbs.twimg.com/media/HIxZjdbW0AAT8Hs.jpg" loading="lazy"></div>
+    <div class="resumo">Quem usa LLM local conhece esse sentimento:
 
 Você finalmente consegue fazer o modelo rodar rápido.
 Os tokens estão voando.
@@ -584,15 +629,15 @@ A configuração está ajustada.
 E de repente parece errado que só seu próprio laptop possa usar isso.
 Você pode montar uma stack inteira de servidor web para compartilhar...
 Ou, se você já usa Tailscale: https://t.co/f9tpzOZXt2</div>
-      <div class="meta">
-        <span>❤️ 109</span>
-        <span>🔄 9</span>
-        <span>💬 5</span>
-        <span>📅 2026-05-20</span>
-      </div>
-      <a class="tweet-link" href="https://x.com/i/status/2057117647607632081" target="_blank">🔗 Ver no X →</a>
+    <div class="meta">
+      <span>❤️ 109</span>
+      <span>🔄 9</span>
+      <span>💬 5</span>
+      <span>📅 2026-05-20</span>
     </div>
+    <a class="tweet-link" href="https://x.com/i/status/2057117647607632081" target="_blank">🔗 Ver no X →</a>
   </div>
+
 
   <div class="footer">
     <p>🐶 Gerado por ZePequeno via Birdclaw + DeepSeek</p>
