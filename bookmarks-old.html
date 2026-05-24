@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meus Bookmarks — Ivanzinho</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a1a;
+    color: #e0e0e0;
+    line-height: 1.6;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
+  .header { text-align: center; margin-bottom: 48px; }
+  .header h1 {
+    font-size: 2.2em; font-weight: 700;
+    background: linear-gradient(135deg, #d4a017, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { color: #888; margin-top: 8px; font-size: 0.95em; }
+  .header .date { color: #666; font-size: 0.85em; margin-top: 4px; }
+  .stats {
+    display: flex; justify-content: center; gap: 24px;
+    margin-bottom: 32px; flex-wrap: wrap;
+  }
+  .stat {
+    text-align: center;
+    background: #12122a;
+    border: 1px solid #1e1e3a;
+    border-radius: 8px;
+    padding: 12px 20px;
+    min-width: 100px;
+  }
+  .stat .value { font-size: 1.4em; font-weight: 700; color: #d4a017; }
+  .stat .label { font-size: 0.75em; color: #666; margin-top: 2px; }
+  .category { margin-bottom: 32px; }
+  .category h2 {
+    font-size: 1.1em; font-weight: 600; color: #d4a017;
+    margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid #1e1e3a;
+  }
+  .category .count { color: #666; font-weight: 400; font-size: 0.85em; }
+  .bookmark {
+    background: #12122a;
+    border: 1px solid #1e1e3a;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+  }
+  .bookmark:hover { border-color: #d4a01733; background: #16163a; }
+  .bookmark .num {
+    display: inline-block;
+    background: #d4a017;
+    color: #0a0a1a;
+    font-weight: 700;
+    font-size: 0.75em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .bookmark .author {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .bookmark .author .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #d4a01744, #ffd70044);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.9em; color: #d4a017;
+  }
+  .bookmark .author .info { flex: 1; }
+  .bookmark .author .name { font-weight: 600; color: #fff; font-size: 0.9em; }
+  .bookmark .author .handle { color: #888; font-size: 0.8em; }
+  .bookmark .titulo {
+    font-weight: 600; color: #ffd700; font-size: 0.95em;
+    margin-bottom: 6px;
+  }
+  .bookmark .resumo { color: #ccc; font-size: 0.9em; margin-bottom: 10px; line-height: 1.5; white-space: pre-wrap; }
+  .bookmark .meta {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    color: #666; font-size: 0.8em;
+  }
+  .bookmark .meta span { display: flex; align-items: center; gap: 4px; }
+  .bookmark .tweet-link {
+    display: inline-block; margin-top: 8px;
+    color: #d4a017; font-size: 0.8em; text-decoration: none;
+  }
+  .bookmark .tweet-link:hover { text-decoration: underline; }
+  .footer {
+    text-align: center; padding: 40px 0;
+    color: #444; font-size: 0.8em;
+  }
+  @media (max-width: 600px) {
+    .container { padding: 20px 12px; }
+    .header h1 { font-size: 1.6em; }
+    .bookmark { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📌 Meus Bookmarks</h1>
+    <p>Os últimos 20 tweets que salvei no X</p>
+    <div class="date">23/05/2026 às 22:12</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="value">20</div><div class="label">Bookmarks</div></div>
+    <div class="stat"><div class="value">7</div><div class="label">Categorias</div></div>
+    <div class="stat"><div class="value">54790</div><div class="label">Total Likes</div></div>
+  </div>
+
+  <div class="category">
+    <h2>🤖 Inteligência Artificial <span class="count">(11)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">A</div>
+        <div class="info">
+          <div class="name">Alan Daitch</div>
+          <div class="handle">AlanDaitch</div>
+        </div>
+      </div>
+      <div class="titulo">Pintura de Monet ou IA? O debate</div>
+      <div class="resumo">Esto es FANTÁSTICO
+
+Un usuario subió una pintura de Monet a X, dijo que la había generado con inteligencia artificial y pidió que le ayuden a entender por qué es peor que una real.
+
+Se llenó de comentarios como estos: "Me decepciona tener que mencionarlo. No hay coherencia en la https://t.co/bk0hujwX2h</div>
+      <div class="meta">
+        <span>❤️ 350</span>
+        <span>🔄 48</span>
+        <span>💬 20</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057930129947402387" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#2</div>
+      <div class="author">
+        <div class="avatar">T</div>
+        <div class="info">
+          <div class="name">Tom Dörr</div>
+          <div class="handle">tom_doerr</div>
+        </div>
+      </div>
+      <div class="titulo">Gere imagens e vídeos pelo terminal</div>
+      <div class="resumo">Generates images and videos from terminal using 30+ models
+
+https://t.co/JmL4sbvkCw https://t.co/JdVy284tXn</div>
+      <div class="meta">
+        <span>❤️ 309</span>
+        <span>🔄 42</span>
+        <span>💬 2</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057926368139063418" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#3</div>
+      <div class="author">
+        <div class="avatar">J</div>
+        <div class="info">
+          <div class="name">John</div>
+          <div class="handle">johnAGI168</div>
+        </div>
+      </div>
+      <div class="titulo">Geração em massa de imagens com Google Flow</div>
+      <div class="resumo">GPT- image 2 ➕Nano banana 📷
+
+实现出图自由，谷歌 flow 新增的 Agent 智能体还有智能指令实现了一次性生成十几张图片甚至视频，大大提高了生成效率，再也不用就是生成九宫格分镜，然后再一格一格去提取图片了！
+
+使用方法也很简单。点击 Agent 按钮上传在 GPT image https://t.co/tSGo6oqVCq</div>
+      <div class="meta">
+        <span>❤️ 244</span>
+        <span>🔄 40</span>
+        <span>💬 6</span>
+        <span>📅 2026-05-23</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2058093893581729875" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#4</div>
+      <div class="author">
+        <div class="avatar">T</div>
+        <div class="info">
+          <div class="name">Tom Dörr</div>
+          <div class="handle">tom_doerr</div>
+        </div>
+      </div>
+      <div class="titulo">Acesse APIs de IA sem cartão de crédito</div>
+      <div class="resumo">Access GPT, Claude, and Grok APIs without a credit card
+
+https://t.co/DaC1mIMivk https://t.co/TbpgRjlMQ3</div>
+      <div class="meta">
+        <span>❤️ 961</span>
+        <span>🔄 114</span>
+        <span>💬 13</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057825541479100769" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#5</div>
+      <div class="author">
+        <div class="avatar">G</div>
+        <div class="info">
+          <div class="name">Geek Lite</div>
+          <div class="handle">QingQ77</div>
+        </div>
+      </div>
+      <div class="titulo">Modelos 3D editáveis com IA (Nova3D)</div>
+      <div class="resumo">用 AI 生成 3D 模型时，每个部件都能单独选中、改名、移动或修改材质，不用重新生成整个模型。
+
+https://t.co/fm2fHCwnKO
+
+Nova3D 用提示词生成 Blender Python 脚本，而不是直接吐出一个合并后的网格文件。生成的 GLB 里每个零件都有名字和层级，可以单独编辑。</div>
+      <div class="meta">
+        <span>❤️ 437</span>
+        <span>🔄 51</span>
+        <span>💬 17</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057724139603972463" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#6</div>
+      <div class="author">
+        <div class="avatar">K</div>
+        <div class="info">
+          <div class="name">Kanika</div>
+          <div class="handle">KanikaBK</div>
+        </div>
+      </div>
+      <div class="titulo">Universidade de Hong Kong lança ferramenta gratuita de filme com IA</div>
+      <div class="resumo">Hong Kong University just released a FREE AI TOOL that  turns a one-line idea into a full short film. No editing required. 100% OPEN SOURCE.
+
+It's called ViMax
+
+You type a prompt. Or paste a novel. It does the rest.
+Director. Screenwriter. Producer. Video generator. One system. https://t.co/DNJlPzHGA5</div>
+      <div class="meta">
+        <span>❤️ 666</span>
+        <span>🔄 140</span>
+        <span>💬 28</span>
+        <span>📅 2026-05-21</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057446142150066607" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#7</div>
+      <div class="author">
+        <div class="avatar">G</div>
+        <div class="info">
+          <div class="name">GitHubDaily</div>
+          <div class="handle">GitHub_Daily</div>
+        </div>
+      </div>
+      <div class="titulo">Ferramenta para ‘humanizar’ texto gerado por IA</div>
+      <div class="resumo">用 AI 写的文章，读起来总有一股 AI 味，句式工整、用词重复，发布或提交后总担心被检测到。
+
+最近偶然找到了 AI Humanize Text 这个开源工具，专门把 AI 生成的文本改写成更自然的人类写作风格。 https://t.co/D2p9IZJB6u</div>
+      <div class="meta">
+        <span>❤️ 188</span>
+        <span>🔄 33</span>
+        <span>💬 26</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057612448971268097" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#8</div>
+      <div class="author">
+        <div class="avatar">机</div>
+        <div class="info">
+          <div class="name">机器之心 JIQIZHIXIN</div>
+          <div class="handle">jiqizhixin</div>
+        </div>
+      </div>
+      <div class="titulo">DreamLite: modelo compacto da ByteDance para imagens</div>
+      <div class="resumo">What if your phone could generate or edit images in under a second? 
+
+ByteDance’s Intelligent Creation Lab presents DreamLite, a compact 0.39B parameter model that unifies text-to-image generation and editing in one network. It uses a simple trick: concatenating images https://t.co/scvlVvkoD5</div>
+      <div class="meta">
+        <span>❤️ 201</span>
+        <span>🔄 27</span>
+        <span>💬 3</span>
+        <span>📅 2026-05-21</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057470720553234641" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#9</div>
+      <div class="author">
+        <div class="avatar">M</div>
+        <div class="info">
+          <div class="name">Min Choi</div>
+          <div class="handle">minchoi</div>
+        </div>
+      </div>
+      <div class="titulo">Google Gemini Omni impressiona em menos de 34h</div>
+      <div class="resumo">Less than 34 hours ago, Google dropped Gemini Omni.
+
+Minds are blown.  And people are already coming up with wild use cases.
+
+10 examples:</div>
+      <div class="meta">
+        <span>❤️ 2358</span>
+        <span>🔄 204</span>
+        <span>💬 81</span>
+        <span>📅 2026-05-21</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057309170391724246" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#10</div>
+      <div class="author">
+        <div class="avatar">N</div>
+        <div class="info">
+          <div class="name">Nett0</div>
+          <div class="handle">nett0eth</div>
+        </div>
+      </div>
+      <div class="titulo">Pinterest de prompts de IA (MeiGen)</div>
+      <div class="resumo">Cara, alguém criou o Pinterest dos prompts de IA. E disponibilizou tudo de graça.
+
+MeiGen é uma biblioteca enorme com os prompts virais do GPT Image 2, Midjourney, Veo 3.1. Tudo num lugar só, tudo catalogado, tudo pronto pra usar.
+
+E o que me impressionou foi o que tem por baixo: https://t.co/Ns1t52qzTQ</div>
+      <div class="meta">
+        <span>❤️ 678</span>
+        <span>🔄 60</span>
+        <span>💬 17</span>
+        <span>📅 2026-05-21</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057284818283495811" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#11</div>
+      <div class="author">
+        <div class="avatar">M</div>
+        <div class="info">
+          <div class="name">Michael Guo</div>
+          <div class="handle">Michaelzsguo</div>
+        </div>
+      </div>
+      <div class="titulo">Compartilhando LLM local com Tailscale</div>
+      <div class="resumo">Local LLM people know this feeling:
+
+You finally get the model running fast.
+The tokens are flying.
+The setup is tuned.
+And suddenly it feels wrong that only your own laptop can use it.
+You can build a whole web server stack for sharing it...
+Or, if you already use Tailscale: https://t.co/f9tpzOZXt2</div>
+      <div class="meta">
+        <span>❤️ 109</span>
+        <span>🔄 9</span>
+        <span>💬 5</span>
+        <span>📅 2026-05-20</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057117647607632081" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="category">
+    <h2>🔧 Ferramentas e Software <span class="count">(3)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">P</div>
+        <div class="info">
+          <div class="name">PA13L0</div>
+          <div class="handle">Fluyeporlaweb</div>
+        </div>
+      </div>
+      <div class="titulo">Editor de vídeo open source com IA</div>
+      <div class="resumo">CapCut, Canva y Adobe están sudando
+
+Alguien acaba de publicar un editor de video open source con IA integrada que les hace competencia directa
+
+Se llama Kimu y es el copiloto creativo para edición de video que nadie esperaba
+
+Sin suscripciones. Sin marcas de agua. Sin tus datos https://t.co/BDlnBQifMU</div>
+      <div class="meta">
+        <span>❤️ 383</span>
+        <span>🔄 49</span>
+        <span>💬 9</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057884494351221021" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#2</div>
+      <div class="author">
+        <div class="avatar">知</div>
+        <div class="info">
+          <div class="name">知识分享官</div>
+          <div class="handle">knowledgefxg</div>
+        </div>
+      </div>
+      <div class="titulo">Ferramenta PDF inteligente (OCR)</div>
+      <div class="resumo">实用开源小工具推荐：pdf-inspector
+解决的是一个很实际的问题：并不是所有 PDF 都需要 OCR。
+比方说你扔给它一个 PDF，它先判断这个 PDF 到底是什么类型——是正常的文字版（比如用 Word https://t.co/kHZzEZR6st</div>
+      <div class="meta">
+        <span>❤️ 320</span>
+        <span>🔄 84</span>
+        <span>💬 68</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057816609084018988" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#3</div>
+      <div class="author">
+        <div class="avatar">E</div>
+        <div class="info">
+          <div class="name">Erick</div>
+          <div class="handle">ErickSky</div>
+        </div>
+      </div>
+      <div class="titulo">Removedor de marcas d'água de IA</div>
+      <div class="resumo">Este repo open source los elimina los watermark de tus imágenes creadas con IA.
+
+• Remueve el watermark visible de Gemini por reverse alpha blending 
+• Destruye watermarks invisibles con difusión (derrota SynthID v2) 
+• Limpia toda la metadata que delata procedencia 
+• https://t.co/ZLbhvGumHZ</div>
+      <div class="meta">
+        <span>❤️ 118</span>
+        <span>🔄 12</span>
+        <span>💬 3</span>
+        <span>📅 2026-05-23</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057975009306386873" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="category">
+    <h2>💼 Negócios e Startups <span class="count">(1)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">F</div>
+        <div class="info">
+          <div class="name">Felipe Lupion</div>
+          <div class="handle">FelipeLupion</div>
+        </div>
+      </div>
+      <div class="titulo">CEO da Bolt demite RH e cria 'People Ops'</div>
+      <div class="resumo">O CEO da Bolt demitiu todo o departamento de RH da empresa, dizendo que eles criavam problemas que não existiam. 
+
+Depois, disse que os problemas desapareceram quando essa galera foi embora. 
+
+Ele substituiu o RH por uma equipe pequena de “People Ops” focada apenas em operações https://t.co/lGQz6RagR0 https://t.co/JLYdKNN1UJ</div>
+      <div class="meta">
+        <span>❤️ 28957</span>
+        <span>🔄 1682</span>
+        <span>💬 232</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057804321396310300" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="category">
+    <h2>👨‍💻 Desenvolvimento e Programação <span class="count">(1)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">T</div>
+        <div class="info">
+          <div class="name">Tom Dörr</div>
+          <div class="handle">tom_doerr</div>
+        </div>
+      </div>
+      <div class="titulo">Layout de texto multilinha sem DOM</div>
+      <div class="resumo">Multiline text layout without DOM measurements
+
+https://t.co/MbS2Fo9e3l https://t.co/QlH1U9K53i</div>
+      <div class="meta">
+        <span>❤️ 10</span>
+        <span>🔄 1</span>
+        <span>💬 0</span>
+        <span>📅 2026-04-12</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2043436530157461643" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="category">
+    <h2>📂 Open Source e Projetos <span class="count">(2)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">C</div>
+        <div class="info">
+          <div class="name">CyrilXBT</div>
+          <div class="handle">cyrilXBT</div>
+        </div>
+      </div>
+      <div class="titulo">Biblioteca que desafia a Elsevier com 99 milhões de livros</div>
+      <div class="resumo">AN ANONYMOUS DEVELOPER JUST BUILT A LIBRARY SO BIG IT MADE ELSEVIER'S LEGAL TEAM CRY.
+
+99 million books and papers.
+
+Every shadow library on earth mirrored and searchable in one place.
+
+And it is completely unkillable.
+
+Here is the full story.
+
+In November 2022 US law enforcement https://t.co/byvCFHVfxC</div>
+      <div class="meta">
+        <span>❤️ 335</span>
+        <span>🔄 56</span>
+        <span>💬 21</span>
+        <span>📅 2026-05-22</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057687988176621997" target="_blank">🔗 Ver no X →</a>
+    </div>
+
+    <div class="bookmark">
+      <div class="num">#2</div>
+      <div class="author">
+        <div class="avatar">V</div>
+        <div class="info">
+          <div class="name">Vincent Hus</div>
+          <div class="handle">vincent_hus</div>
+        </div>
+      </div>
+      <div class="titulo">Chamada para contribuidores open source</div>
+      <div class="resumo">Looking for open-source contributors. Apache 2.0.</div>
+      <div class="meta">
+        <span>❤️ 10954</span>
+        <span>🔄 609</span>
+        <span>💬 0</span>
+        <span>📅 2026-04-24</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2047609211702382703" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="category">
+    <h2>💻 Tecnologia e Dispositivos <span class="count">(1)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">S</div>
+        <div class="info">
+          <div class="name">Saidul</div>
+          <div class="handle">saidul_dev</div>
+        </div>
+      </div>
+      <div class="titulo">Dica para acelerar Android (configuração padrão)</div>
+      <div class="resumo">YOUR ANDROID PHONE IS SLOW BECAUSE OF A DEFAULT SETTING.
+
+Not old hardware.
+
+Most people buy a new phone before they ever find this:
+
+Takes 90 SECONDS TO FIX. Here is exactly how ⤵️ https://t.co/2ocqyQf2jI</div>
+      <div class="meta">
+        <span>❤️ 5376</span>
+        <span>🔄 1382</span>
+        <span>💬 117</span>
+        <span>📅 2026-05-20</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057060156371030127" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="category">
+    <h2>📚 Educação e Carreira <span class="count">(1)</span></h2>
+
+    <div class="bookmark">
+      <div class="num">#1</div>
+      <div class="author">
+        <div class="avatar">A</div>
+        <div class="info">
+          <div class="name">AI_Explorer</div>
+          <div class="handle">ai_explorer25</div>
+        </div>
+      </div>
+      <div class="titulo">Aprenda IA de graça com as big techs</div>
+      <div class="resumo">Learn AI for free directly from top companies.
+
+1 - Anthropic:  
+https://t.co/fpDdTcYNku
+
+2 - Google:  
+https://t.co/vB7scS9QA9
+
+3 - Meta:  
+https://t.co/X4tJwNvY8c
+
+4 - NVIDIA:  
+https://t.co/xSFsbx4isw
+
+5 - Microsoft:  
+https://t.co/EO6T7kjNpl
+
+6 - OpenAI: https://t.co/eFiyLhdoQ2</div>
+      <div class="meta">
+        <span>❤️ 1836</span>
+        <span>🔄 504</span>
+        <span>💬 24</span>
+        <span>📅 2026-05-20</span>
+      </div>
+      <a class="tweet-link" href="https://x.com/i/status/2057004649048113158" target="_blank">🔗 Ver no X →</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>🐶 Gerado por ZePequeno via Birdclaw + DeepSeek</p>
+    <p style="margin-top:4px">github.com/ivansouza</p>
+  </div>
+</div>
+</body>
+</html>
