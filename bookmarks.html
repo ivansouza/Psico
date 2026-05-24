@@ -12,87 +12,49 @@
     background: #000;
     color: #fff;
     -webkit-font-smoothing: antialiased;
+    font-size: 14px;
   }
 
-  /* Header estilo Instagram */
   .header {
     position: sticky;
     top: 0;
     z-index: 100;
     background: #000;
-    border-bottom: 1px solid #1a1a1a;
-    padding: 12px 16px;
+    border-bottom: 1px solid #262626;
+    padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
   .header h1 {
-    font-size: 20px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #d4a017, #ffd700);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.5px;
-  }
-  .header .logo-icon {
-    font-size: 24px;
-  }
-  .header .header-actions {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-  }
-  .header .header-actions span {
     font-size: 22px;
-    cursor: default;
-  }
-
-  /* Stats bar */
-  .stats-bar {
-    display: flex;
-    justify-content: space-around;
-    padding: 12px 16px;
-    border-bottom: 1px solid #1a1a1a;
-    background: #000;
-  }
-  .stat-item {
-    text-align: center;
-  }
-  .stat-item .value {
-    font-size: 16px;
     font-weight: 700;
-    color: #d4a017;
+    font-style: italic;
+    letter-spacing: -0.5px;
+    color: #fff;
   }
-  .stat-item .label {
-    font-size: 11px;
-    color: #666;
-    margin-top: 2px;
-  }
+  .header .logo-icon { font-size: 26px; }
+  .header .header-actions { display: flex; gap: 18px; align-items: center; }
+  .header .header-actions span { font-size: 24px; }
 
-  /* Feed estilo Instagram */
   .feed { padding: 0; }
 
   .post {
-    border-bottom: 1px solid #1a1a1a;
-    padding-bottom: 0;
+    border-bottom: 1px solid #262626;
   }
 
-  /* Header do post (avatar + nome) */
   .post-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 16px 8px;
+    padding: 14px 16px 10px;
   }
   .post-header .avatar {
-    width: 36px;
-    height: 36px;
+    width: 36px; height: 36px;
     border-radius: 50%;
     background-size: cover;
     background-position: center;
     flex-shrink: 0;
-    border: 2px solid #d4a01733;
   }
   .post-header .avatar-placeholder {
     width: 36px; height: 36px;
@@ -101,26 +63,21 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 14px; color: #d4a017;
     flex-shrink: 0;
-    border: 2px solid #d4a01733;
   }
   .post-header .info { flex: 1; }
   .post-header .name {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     color: #fff;
   }
   .post-header .handle {
-    font-size: 11px;
-    color: #666;
+    font-size: 12px;
+    color: #888;
   }
-  .post-header .more {
-    color: #666;
-    font-size: 18px;
-  }
+  .post-header .more { color: #fff; font-size: 20px; font-weight: 700; }
 
-  /* Imagem do post */
   .post-media {
-    margin: 4px 0;
+    margin: 0;
     background: #0a0a0a;
   }
   .post-media img {
@@ -130,136 +87,74 @@
     object-fit: cover;
     display: block;
   }
-  .post-media .no-image {
-    display: none;
-  }
 
-  /* Acoes do post (like, comment, share) */
   .post-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 8px 16px 4px;
+    gap: 18px;
+    padding: 10px 16px 4px;
   }
-  .post-actions span {
-    font-size: 22px;
-    cursor: default;
-  }
-  .post-actions .save {
-    margin-left: auto;
-  }
+  .post-actions span { font-size: 26px; cursor: default; }
+  .post-actions .save { margin-left: auto; }
 
-  /* Metricas */
   .post-metrics {
-    padding: 0 16px;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 2px 16px 4px;
+    font-size: 14px;
+    font-weight: 700;
     color: #fff;
   }
-  .post-metrics .likes {
-    margin-bottom: 4px;
-  }
 
-  /* Texto do post */
   .post-content {
-    padding: 4px 16px 12px;
+    padding: 2px 16px 6px;
+    line-height: 1.5;
   }
   .post-content .username {
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 700;
+    font-size: 14px;
     color: #fff;
     margin-right: 6px;
   }
   .post-content .text {
-    font-size: 13px;
+    font-size: 14px;
     color: #e0e0e0;
-    line-height: 1.5;
-    display: inline;
   }
-  .post-content .text a {
-    color: #d4a017;
-    text-decoration: none;
-  }
+  .post-content .text a { color: #d4a017; text-decoration: none; }
 
-  /* Link pro X */
   .post-x-link {
-    padding: 0 16px 12px;
+    padding: 0 16px 4px;
   }
   .post-x-link a {
-    color: #d4a017;
-    font-size: 12px;
+    color: #3897f0;
+    font-size: 13px;
     text-decoration: none;
-    opacity: 0.7;
+    font-weight: 500;
   }
-  .post-x-link a:hover { opacity: 1; }
 
-  /* Timestamp */
   .post-time {
-    padding: 0 16px 12px;
-    font-size: 10px;
-    color: #555;
+    padding: 0 16px 14px;
+    font-size: 11px;
+    color: #666;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
-  /* Footer */
   .footer {
     text-align: center;
-    padding: 24px 16px 40px;
+    padding: 30px 16px 50px;
     color: #333;
-    font-size: 12px;
+    font-size: 13px;
   }
-  .footer .brand {
-    color: #d4a017;
-    font-weight: 700;
-  }
-
-  /* Loading state */
-  .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    color: #333;
-  }
-  .loading .spinner {
-    font-size: 40px;
-    margin-bottom: 12px;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
-  }
-  .loading .text {
-    font-size: 14px;
-  }
+  .footer .brand { color: #d4a017; font-weight: 700; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="logo-icon">🐶</div>
-  <h1>Ze Pequeno News</h1>
+  <h1>Zé Pequeno News</h1>
   <div class="header-actions">
     <span>💬</span>
     <span>🔔</span>
-  </div>
-</div>
-
-<div class="stats-bar">
-  <div class="stat-item">
-    <div class="value">20</div>
-    <div class="label">Posts</div>
-  </div>
-  <div class="stat-item">
-    <div class="value">17</div>
-    <div class="label">Midias</div>
-  </div>
-  <div class="stat-item">
-    <div class="value">54819</div>
-    <div class="label">Likes</div>
   </div>
 </div>
 
@@ -281,8 +176,7 @@
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">350 curtidas</div></div>
+    <div class="post-metrics">350 curtidas</div>
     <div class="post-content">
       <span class="username">Alan Daitch</span>
       <span class="text">Isso é FANTÁSTICO
@@ -292,7 +186,7 @@ Um usuário postou uma pintura de Monet no X, disse que a tinha gerado com intel
 Encheu-se de comentários como estes: "Me decepciona ter que mencionar isso. Não há coerência no https://t.co/bk0hujwX2h</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057930129947402387" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057930129947402387" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -312,8 +206,7 @@ Encheu-se de comentários como estes: "Me decepciona ter que mencionar isso. Nã
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">383 curtidas</div></div>
+    <div class="post-metrics">383 curtidas</div>
     <div class="post-content">
       <span class="username">PA13L0</span>
       <span class="text">CapCut, Canva e Adobe estão suando
@@ -325,7 +218,7 @@ Chama-se Kimu e é o copiloto criativo para edição de vídeo que ninguém espe
 Sem assinaturas. Sem marcas d'água. Sem seus dados https://t.co/BDlnBQifMU</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057884494351221021" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057884494351221021" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -346,8 +239,7 @@ Sem assinaturas. Sem marcas d'água. Sem seus dados https://t.co/BDlnBQifMU</spa
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">310 curtidas</div></div>
+    <div class="post-metrics">310 curtidas</div>
     <div class="post-content">
       <span class="username">Tom Dörr</span>
       <span class="text">Gera imagens e vídeos a partir do terminal usando mais de 30 modelos
@@ -355,7 +247,7 @@ Sem assinaturas. Sem marcas d'água. Sem seus dados https://t.co/BDlnBQifMU</spa
 https://t.co/JmL4sbvkCw https://t.co/JdVy284tXn</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057926368139063418" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057926368139063418" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -376,8 +268,7 @@ https://t.co/JmL4sbvkCw https://t.co/JdVy284tXn</span>
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">323 curtidas</div></div>
+    <div class="post-metrics">323 curtidas</div>
     <div class="post-content">
       <span class="username">知识分享官</span>
       <span class="text">Recomendação de ferramenta open source útil: pdf-inspector
@@ -385,7 +276,7 @@ Resolve um problema muito real: nem todo PDF precisa de OCR.
 Por exemplo, você joga um PDF nele, ele primeiro determina que tipo de PDF é — se é um texto normal (como do Word https://t.co/kHZzEZR6st</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057816609084018988" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057816609084018988" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -405,8 +296,7 @@ Por exemplo, você joga um PDF nele, ele primeiro determina que tipo de PDF é �
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">244 curtidas</div></div>
+    <div class="post-metrics">244 curtidas</div>
     <div class="post-content">
       <span class="username">John</span>
       <span class="text">GPT-image 2 ➕ Nano banana 📷
@@ -416,7 +306,7 @@ Liberdade total para gerar imagens, o novo Agent inteligente do Google Flow e co
 O uso também é simples. Clique no botão Agent e faça upload no GPT image https://t.co/tSGo6oqVCq</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2058093893581729875" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2058093893581729875" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-23</div>
   </div>
@@ -437,8 +327,7 @@ O uso também é simples. Clique no botão Agent e faça upload no GPT image htt
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">118 curtidas</div></div>
+    <div class="post-metrics">118 curtidas</div>
     <div class="post-content">
       <span class="username">Erick</span>
       <span class="text">Este repositório open source remove as marcas d'água das suas imagens criadas com IA.
@@ -449,7 +338,7 @@ O uso também é simples. Clique no botão Agent e faça upload no GPT image htt
 • https://t.co/ZLbhvGumHZ</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057975009306386873" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057975009306386873" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-23</div>
   </div>
@@ -469,8 +358,7 @@ O uso também é simples. Clique no botão Agent e faça upload no GPT image htt
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">28976 curtidas</div></div>
+    <div class="post-metrics">28976 curtidas</div>
     <div class="post-content">
       <span class="username">Felipe Lupion</span>
       <span class="text">O CEO da Bolt demitiu todo o departamento de RH da empresa, dizendo que eles criavam problemas que não existiam.
@@ -480,7 +368,7 @@ Depois, disse que os problemas desapareceram quando essa galera foi embora.
 Ele substituiu o RH por uma pequena equipe de "People Ops" focada apenas em operações https://t.co/lGQz6RagR0 https://t.co/JLYdKNN1UJ</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057804321396310300" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057804321396310300" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -501,8 +389,7 @@ Ele substituiu o RH por uma pequena equipe de "People Ops" focada apenas em oper
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">962 curtidas</div></div>
+    <div class="post-metrics">962 curtidas</div>
     <div class="post-content">
       <span class="username">Tom Dörr</span>
       <span class="text">Acesse as APIs do GPT, Claude e Grok sem cartão de crédito
@@ -510,7 +397,7 @@ Ele substituiu o RH por uma pequena equipe de "People Ops" focada apenas em oper
 https://t.co/DaC1mIMivk https://t.co/TbpgRjlMQ3</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057825541479100769" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057825541479100769" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -530,8 +417,7 @@ https://t.co/DaC1mIMivk https://t.co/TbpgRjlMQ3</span>
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">438 curtidas</div></div>
+    <div class="post-metrics">438 curtidas</div>
     <div class="post-content">
       <span class="username">Geek Lite</span>
       <span class="text">Ao gerar modelos 3D com IA, cada componente pode ser selecionado, renomeado, movido ou ter seu material alterado individualmente, sem precisar regenerar o modelo inteiro.
@@ -541,7 +427,7 @@ https://t.co/fm2fHCwnKO
 Nova3D usa prompts para gerar scripts Python do Blender, em vez de cuspir diretamente um arquivo de malha mesclado. O arquivo GLB gerado tem cada peça com nome e hierarquia, permitindo edição individual.</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057724139603972463" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057724139603972463" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -561,8 +447,7 @@ Nova3D usa prompts para gerar scripts Python do Blender, em vez de cuspir direta
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">666 curtidas</div></div>
+    <div class="post-metrics">666 curtidas</div>
     <div class="post-content">
       <span class="username">Kanika</span>
       <span class="text">A Universidade de Hong Kong acabou de lançar uma FERRAMENTA DE IA GRATUITA que transforma uma ideia de uma linha em um curta-metragem completo. Sem necessidade de edição. 100% OPEN SOURCE.
@@ -573,7 +458,7 @@ Você digita um prompt. Ou cola um romance. Ela faz o resto.
 Diretor. Roteirista. Produtor. Gerador de vídeo. Um sistema só. https://t.co/DNJlPzHGA5</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057446142150066607" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057446142150066607" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-21</div>
   </div>
@@ -594,8 +479,7 @@ Diretor. Roteirista. Produtor. Gerador de vídeo. Um sistema só. https://t.co/D
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">10 curtidas</div></div>
+    <div class="post-metrics">10 curtidas</div>
     <div class="post-content">
       <span class="username">Tom Dörr</span>
       <span class="text">Layout de texto com várias linhas sem medições do DOM
@@ -603,7 +487,7 @@ Diretor. Roteirista. Produtor. Gerador de vídeo. Um sistema só. https://t.co/D
 https://t.co/MbS2Fo9e3l https://t.co/QlH1U9K53i</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2043436530157461643" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2043436530157461643" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-04-12</div>
   </div>
@@ -624,8 +508,7 @@ https://t.co/MbS2Fo9e3l https://t.co/QlH1U9K53i</span>
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">335 curtidas</div></div>
+    <div class="post-metrics">335 curtidas</div>
     <div class="post-content">
       <span class="username">CyrilXBT</span>
       <span class="text">UM DESENVOLVEDOR ANÔNIMO ACABOU DE CONSTRUIR UMA BIBLIOTECA TÃO GRANDE QUE FEZ O TIME JURÍDICO DA ELSEVIER CHORAR.
@@ -641,7 +524,7 @@ Aqui está a história completa.
 Em novembro de 2022, a aplicação da lei dos EUA https://t.co/byvCFHVfxC</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057687988176621997" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057687988176621997" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -662,8 +545,7 @@ Em novembro de 2022, a aplicação da lei dos EUA https://t.co/byvCFHVfxC</span>
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">188 curtidas</div></div>
+    <div class="post-metrics">188 curtidas</div>
     <div class="post-content">
       <span class="username">GitHubDaily</span>
       <span class="text">Artigos escritos com IA sempre têm um gosto de IA, frases padronizadas, vocabulário repetitivo, e sempre dá medo de ser pego ao publicar ou entregar.
@@ -671,7 +553,7 @@ Em novembro de 2022, a aplicação da lei dos EUA https://t.co/byvCFHVfxC</span>
 Recentemente encontrei por acaso a ferramenta open source AI Humanize Text, especializada em reescrever textos gerados por IA em um estilo de escrita humana mais natural. https://t.co/D2p9IZJB6u</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057612448971268097" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057612448971268097" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-22</div>
   </div>
@@ -692,8 +574,7 @@ Recentemente encontrei por acaso a ferramenta open source AI Humanize Text, espe
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">201 curtidas</div></div>
+    <div class="post-metrics">201 curtidas</div>
     <div class="post-content">
       <span class="username">机器之心 JIQIZHIXIN</span>
       <span class="text">E se o seu celular pudesse gerar ou editar imagens em menos de um segundo?
@@ -701,7 +582,7 @@ Recentemente encontrei por acaso a ferramenta open source AI Humanize Text, espe
 O Intelligent Creation Lab da ByteDance apresenta o DreamLite, um modelo compacto de 0,39B parâmetros que unifica geração e edição de texto para imagem em uma única rede. Ele usa um truque simples: concatenar imagens https://t.co/scvlVvkoD5</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057470720553234641" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057470720553234641" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-21</div>
   </div>
@@ -721,8 +602,7 @@ O Intelligent Creation Lab da ByteDance apresenta o DreamLite, um modelo compact
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">2358 curtidas</div></div>
+    <div class="post-metrics">2358 curtidas</div>
     <div class="post-content">
       <span class="username">Min Choi</span>
       <span class="text">Há menos de 34 horas, o Google lançou o Gemini Omni.
@@ -732,7 +612,7 @@ Mentes estão explodindo. E as pessoas já estão inventando casos de uso loucos
 10 exemplos:</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057309170391724246" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057309170391724246" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-21</div>
   </div>
@@ -752,8 +632,7 @@ Mentes estão explodindo. E as pessoas já estão inventando casos de uso loucos
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">678 curtidas</div></div>
+    <div class="post-metrics">678 curtidas</div>
     <div class="post-content">
       <span class="username">Nett0</span>
       <span class="text">Cara, alguém criou o Pinterest dos prompts de IA. E disponibilizou tudo de graça.
@@ -763,7 +642,7 @@ MeiGen é uma biblioteca enorme com os prompts virais do GPT Image 2, Midjourney
 E o que me impressionou foi o que tem por baixo: https://t.co/Ns1t52qzTQ</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057284818283495811" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057284818283495811" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-21</div>
   </div>
@@ -784,8 +663,7 @@ E o que me impressionou foi o que tem por baixo: https://t.co/Ns1t52qzTQ</span>
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">5376 curtidas</div></div>
+    <div class="post-metrics">5376 curtidas</div>
     <div class="post-content">
       <span class="username">Saidul</span>
       <span class="text">SEU ANDROID ESTÁ LENTO POR CAUSA DE UMA CONFIGURAÇÃO PADRÃO.
@@ -797,7 +675,7 @@ A maioria das pessoas compra um telefone novo antes de descobrir isso:
 Leva 90 SEGUNDOS PARA CONSERTAR. Aqui está exatamente como ⤵️ https://t.co/2ocqyQf2jI</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057060156371030127" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057060156371030127" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-20</div>
   </div>
@@ -818,8 +696,7 @@ Leva 90 SEGUNDOS PARA CONSERTAR. Aqui está exatamente como ⤵️ https://t.co/
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">1836 curtidas</div></div>
+    <div class="post-metrics">1836 curtidas</div>
     <div class="post-content">
       <span class="username">AI_Explorer</span>
       <span class="text">Aprenda IA de graça diretamente das melhores empresas.
@@ -842,7 +719,7 @@ https://t.co/EO6T7kjNpl
 6 - OpenAI: https://t.co/eFiyLhdoQ2</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057004649048113158" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057004649048113158" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-20</div>
   </div>
@@ -862,14 +739,13 @@ https://t.co/EO6T7kjNpl
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">10958 curtidas</div></div>
+    <div class="post-metrics">10958 curtidas</div>
     <div class="post-content">
       <span class="username">Vincent Hus</span>
       <span class="text">Procurando contribuidores open source. Apache 2.0.</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2047609211702382703" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2047609211702382703" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-04-24</div>
   </div>
@@ -890,8 +766,7 @@ https://t.co/EO6T7kjNpl
       <span>↗️</span>
       <span class="save">🔖</span>
     </div>
-    <div class="post-metrics">
-      <div class="likes">109 curtidas</div></div>
+    <div class="post-metrics">109 curtidas</div>
     <div class="post-content">
       <span class="username">Michael Guo</span>
       <span class="text">Quem usa LLM local conhece esse sentimento:
@@ -904,7 +779,7 @@ Você pode montar uma stack inteira de servidor web para compartilhar...
 Ou, se você já usa Tailscale: https://t.co/f9tpzOZXt2</span>
     </div>
     <div class="post-x-link">
-      <a href="https://x.com/i/status/2057117647607632081" target="_blank">Ver no X →</a>
+      <a href="https://x.com/i/status/2057117647607632081" target="_blank">Ver no X</a>
     </div>
     <div class="post-time">2026-05-20</div>
   </div>
