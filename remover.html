@@ -37,8 +37,6 @@
     width: 100%;
     max-width: 720px;
   }
-
-  /* Header */
   .header {
     text-align: center;
     padding: 20px 0 12px;
@@ -56,8 +54,6 @@
     color: var(--text2);
     margin-top: 4px;
   }
-
-  /* Drop Zone */
   .drop-zone {
     border: 2px dashed var(--border);
     border-radius: var(--radius);
@@ -67,42 +63,18 @@
     transition: all 0.3s;
     background: var(--surface);
     margin: 12px 0;
-    position: relative;
   }
   .drop-zone:hover, .drop-zone.dragover {
     border-color: var(--accent);
     background: var(--surface2);
   }
-  .drop-zone .icon {
-    font-size: 48px;
-    margin-bottom: 8px;
-  }
-  .drop-zone .label {
-    font-size: 15px;
-    color: var(--text2);
-  }
-  .drop-zone .sub {
-    font-size: 12px;
-    color: var(--text2);
-    opacity: 0.6;
-    margin-top: 4px;
-  }
-  .drop-zone input[type="file"] {
-    display: none;
-  }
-
-  /* Preview Area */
-  .preview-area {
-    display: none;
-    margin: 12px 0;
-  }
+  .drop-zone .icon { font-size: 48px; margin-bottom: 8px; }
+  .drop-zone .label { font-size: 15px; color: var(--text2); }
+  .drop-zone .sub { font-size: 12px; color: var(--text2); opacity: 0.6; margin-top: 4px; }
+  .drop-zone input[type="file"] { display: none; }
+  .preview-area { display: none; margin: 12px 0; }
   .preview-area.visible { display: block; }
-
-  .image-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
+  .image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .image-card {
     background: var(--surface);
     border-radius: var(--radius);
@@ -119,10 +91,7 @@
     justify-content: space-between;
     align-items: center;
   }
-  .image-card .card-header .size {
-    font-weight: 400;
-    font-size: 11px;
-  }
+  .image-card .card-header .size { font-weight: 400; font-size: 11px; }
   .image-card .img-wrap {
     display: flex;
     align-items: center;
@@ -137,16 +106,8 @@
     max-height: 300px;
     object-fit: contain;
   }
-
-  /* Controls */
-  .controls {
-    display: none;
-    margin: 12px 0;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  .controls { display: none; margin: 12px 0; gap: 8px; flex-wrap: wrap; }
   .controls.visible { display: flex; }
-
   .btn {
     padding: 10px 20px;
     border: none;
@@ -160,41 +121,23 @@
     text-align: center;
   }
   .btn:active { transform: scale(0.97); }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: white;
-  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
   .btn-primary:hover { opacity: 0.9; }
-  .btn-primary:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .btn-success {
-    background: var(--success);
-    color: white;
-  }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-success { background: var(--success); color: white; }
   .btn-success:hover { opacity: 0.9; }
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .btn-outline:hover { background: var(--surface2); }
-
-  /* Status */
-  .status {
-    display: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin: 8px 0;
-  }
+  .status { display: none; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin: 8px 0; }
   .status.visible { display: block; }
   .status.info { background: rgba(79, 195, 247, 0.15); border: 1px solid rgba(79, 195, 247, 0.3); }
   .status.success { background: rgba(102, 187, 106, 0.15); border: 1px solid rgba(102, 187, 106, 0.3); }
   .status.error { background: rgba(239, 83, 80, 0.15); border: 1px solid rgba(239, 83, 80, 0.3); }
-
-  /* Info Box */
+  .progress-wrap { display: none; margin: 8px 0; }
+  .progress-wrap.visible { display: block; }
+  .progress-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.3s; }
+  .progress-text { font-size: 11px; color: var(--text2); margin-top: 4px; text-align: center; }
   .info-box {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -206,57 +149,38 @@
     line-height: 1.6;
   }
   .info-box strong { color: var(--text); }
-
-  /* Progress */
-  .progress-wrap {
-    display: none;
-    margin: 8px 0;
-  }
-  .progress-wrap.visible { display: block; }
-  .progress-bar {
-    height: 4px;
+  .footer { text-align: center; padding: 20px 0; font-size: 11px; color: var(--text2); opacity: 0.5; }
+  .detection-info {
+    font-size: 11px;
+    color: var(--text2);
+    padding: 6px 12px;
     background: var(--surface2);
-    border-radius: 2px;
-    overflow: hidden;
+    border-radius: 6px;
+    margin-top: 6px;
+    display: none;
   }
-  .progress-bar .fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 2px;
-    transition: width 0.3s;
-  }
-  .progress-text {
-    font-size: 11px;
-    color: var(--text2);
-    margin-top: 4px;
-    text-align: center;
-  }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    padding: 20px 0;
-    font-size: 11px;
-    color: var(--text2);
-    opacity: 0.5;
-  }
-
-  @media (max-width: 480px) {
-    .image-grid { grid-template-columns: 1fr; }
-    .btn { min-width: 100%; }
-  }
+  .detection-info.visible { display: block; }
+  @media (max-width: 480px) { .image-grid { grid-template-columns: 1fr; } .btn { min-width: 100%; } }
 </style>
 </head>
 <body>
 
+<script type="importmap">
+{
+  "imports": {
+    "@pilio/gemini-watermark-remover/browser": "https://cdn.jsdelivr.net/gh/GargantuaX/gemini-watermark-remover@main/src/sdk/browser.js",
+    "@pilio/gemini-watermark-remover/image-data": "https://cdn.jsdelivr.net/gh/GargantuaX/gemini-watermark-remover@main/src/sdk/image-data.js",
+    "@pilio/gemini-watermark-remover": "https://cdn.jsdelivr.net/gh/GargantuaX/gemini-watermark-remover@main/src/sdk/index.js"
+  }
+}
+</script>
+
 <div class="container">
   <div class="header">
     <h1>🧹 Remover Watermark Gemini</h1>
-    <p>100% local — nada sai do seu navegador</p>
+    <p>100% local — nada sai do seu navegador • Engine oficial</p>
   </div>
 
-  <!-- Drop Zone -->
   <div class="drop-zone" id="dropZone">
     <div class="icon">🖼️</div>
     <div class="label">Arraste uma imagem ou clique para selecionar</div>
@@ -264,16 +188,13 @@
     <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
   </div>
 
-  <!-- Status -->
   <div class="status" id="status"></div>
 
-  <!-- Progress -->
   <div class="progress-wrap" id="progressWrap">
     <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
-    <div class="progress-text" id="progressText">Processando...</div>
+    <div class="progress-text" id="progressText">Preparando...</div>
   </div>
 
-  <!-- Preview -->
   <div class="preview-area" id="previewArea">
     <div class="image-grid">
       <div class="image-card">
@@ -285,196 +206,25 @@
         <div class="img-wrap"><canvas id="resultCanvas"></canvas></div>
       </div>
     </div>
+    <div class="detection-info" id="detectionInfo"></div>
   </div>
 
-  <!-- Controls -->
   <div class="controls" id="controls">
     <button class="btn btn-primary" id="btnProcess">🧹 Remover Watermark</button>
     <button class="btn btn-success" id="btnDownload" style="display:none">⬇️ Download</button>
     <button class="btn btn-outline" id="btnReset">🔄 Nova Imagem</button>
   </div>
 
-  <!-- Info -->
   <div class="info-box">
-    <strong>🧠 Como funciona:</strong> Usa <strong>Reverse Alpha Blending</strong> — um algoritmo matematicamente exato que reverte a composição alfa da watermark. Não usa IA, não faz upload, não alucina. Funciona com imagens geradas pelo <strong>Gemini</strong> (Google), <strong>Imagen</strong> e modelos que usam watermark semelhante.
-    <br><br>
-    <strong>⚠️</strong> Funciona melhor com watermarks <strong>semitransparentes</strong> no canto inferior direito. Se a imagem não tiver watermark compatível, o resultado pode não ser perfeito.
+    <strong>🧠 Engine oficial do <a href="https://github.com/GargantuaX/gemini-watermark-remover" target="_blank" style="color:var(--accent)">Gemini Watermark Remover</a></strong><br>
+    Usa <strong>Reverse Alpha Blending</strong> com catálogo de watermarks conhecidas do Gemini, detecção adaptativa e multi-passes. 100% local, sem upload.
   </div>
 
-  <div class="footer">
-    Feito por ZePequeno 🐶 • Baseado no algoritmo de Reverse Alpha Blending
-  </div>
+  <div class="footer">Feito por ZePequeno 🐶 • Engine: @pilio/gemini-watermark-remover</div>
 </div>
 
-<script>
-'use strict';
-
-// ─── Reverse Alpha Blending Engine ───────────────────────────────────────
-
-const WM = {
-  // Tamanhos conhecidos de watermark Gemini (largura, altura)
-  knownSizes: [
-    [130, 32], [150, 37], [160, 40], [180, 45], [200, 50],
-    [220, 55], [240, 60], [260, 65], [280, 70], [300, 75],
-    [320, 80], [100, 25], [120, 30], [140, 35]
-  ],
-
-  // Cores esperadas da watermark (RGBA) — Gemini usa branco semi-transparente
-  expectedColors: [
-    { r: 255, g: 255, b: 255, a: 0.5 },
-    { r: 255, g: 255, b: 255, a: 0.45 },
-    { r: 255, g: 255, b: 255, a: 0.55 },
-    { r: 255, g: 255, b: 255, a: 0.4 },
-    { r: 255, g: 255, b: 255, a: 0.6 },
-  ],
-
-  // Tolerância para matching de cor
-  colorTolerance: 40,
-  alphaTolerance: 0.15,
-
-  detect(inputData) {
-    const w = inputData.width, h = inputData.height;
-    const data = inputData.data;
-
-    // Procura no canto inferior direito
-    const marginX = Math.floor(w * 0.02);
-    const marginY = Math.floor(h * 0.02);
-    const searchW = Math.floor(w * 0.35);
-    const searchH = Math.floor(h * 0.15);
-    const startX = w - searchW - marginX;
-    const startY = h - searchH - marginY;
-
-    let bestScore = 0;
-    let bestRect = null;
-
-    for (const [sw, sh] of WM.knownSizes) {
-      if (sw > searchW || sh > searchH) continue;
-      // Varre a região de busca
-      for (let dx = 0; dx <= searchW - sw; dx += 4) {
-        for (let dy = 0; dy <= searchH - sh; dy += 4) {
-          const rx = startX + dx;
-          const ry = startY + dy;
-          let matchCount = 0, totalPixels = 0;
-
-          // Amostra pixels na região
-          for (let py = ry; py < ry + sh && py < h; py += 2) {
-            for (let px = rx; px < rx + sw && px < w; px += 2) {
-              const idx = (py * w + px) * 4;
-              const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3] / 255;
-              totalPixels++;
-
-              // Verifica se parece branco semi-transparente
-              const brightness = (r + g + b) / 3;
-              const isLight = brightness > 255 - WM.colorTolerance;
-              const isSemi = a > 0.2 && a < 0.8;
-
-              if (isLight && isSemi) matchCount++;
-            }
-          }
-
-          const score = totalPixels > 0 ? matchCount / totalPixels : 0;
-          if (score > bestScore) {
-            bestScore = score;
-            bestRect = { x: rx, y: ry, w: sw, h: sh };
-          }
-        }
-      }
-    }
-
-    if (bestScore > 0.15 && bestRect) {
-      return { found: true, rect: bestRect, confidence: bestScore };
-    }
-
-    // Fallback: posição padrão
-    return {
-      found: true,
-      rect: { x: w - 160 - marginX, y: h - 40 - marginY, w: 160, h: 40 },
-      confidence: 0.5
-    };
-  },
-
-  remove(inputData, rect) {
-    const w = inputData.width, h = inputData.height;
-    const output = new ImageData(new Uint8ClampedArray(inputData.data), w, h);
-    const data = output.data;
-
-    const { x, y, w: rw, h: rh } = rect;
-
-    // Reverse Alpha Blending: para cada pixel na região da watermark,
-    // estima a cor original assumindo que a watermark é branca (255,255,255)
-    // com alpha conhecido.
-    // Fórmula: C_out = C_over / A_over - C_wm * (1 - A_over) / A_over
-    // Simplificando para watermark branca: tenta vários alphas e escolhe o melhor
-
-    for (let py = y; py < y + rh && py < h; py++) {
-      for (let px = x; px < x + rw && px < w; px++) {
-        const idx = (py * w + px) * 4;
-        const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3] / 255;
-
-        if (a < 0.05) continue; // totalmente transparente
-
-        // Tenta vários alphas de watermark
-        let bestAlpha = 0.5;
-        let bestDiff = Infinity;
-
-        for (const wc of WM.expectedColors) {
-          const wa = wc.a;
-          if (wa >= a) continue; // watermark não pode ser mais opaca que o resultado
-
-          // Reverse blend: C_original = (C_result - C_wm * (1 - wa)) / wa
-          const invWa = 1 - wa;
-          const or = (r - wc.r * invWa) / wa;
-          const og = (g - wc.g * invWa) / wa;
-          const ob = (b - wc.b * invWa) / wa;
-
-          // Verifica se a cor original parece plausível (0-255)
-          if (or < 0 || or > 255 || og < 0 || og > 255 || ob < 0 || ob > 255) continue;
-
-          // Prefere alphas maiores (watermark mais opaca = mais correção)
-          const diff = Math.abs(wa - 0.5);
-          if (diff < bestDiff) {
-            bestDiff = diff;
-            bestAlpha = wa;
-          }
-        }
-
-        // Aplica reverse blend com o melhor alpha encontrado
-        const wa = bestAlpha;
-        const invWa = 1 - wa;
-        const or = Math.round(Math.min(255, Math.max(0, (r - 255 * invWa) / wa)));
-        const og = Math.round(Math.min(255, Math.max(0, (g - 255 * invWa) / wa)));
-        const ob = Math.round(Math.min(255, Math.max(0, (b - 255 * invWa) / wa)));
-
-        data[idx] = or;
-        data[idx+1] = og;
-        data[idx+2] = ob;
-        data[idx+3] = 255; // opaco
-      }
-    }
-
-    return output;
-  },
-
-  // Processo completo: detecta + remove
-  process(imageData, onProgress) {
-    const detection = WM.detect(imageData);
-    if (onProgress) onProgress(50, 'Watermark detectada — removendo...');
-
-    const result = WM.remove(imageData, detection.rect);
-    if (onProgress) onProgress(100, 'Pronto!');
-
-    return {
-      result,
-      detection: {
-        found: detection.found,
-        rect: detection.rect,
-        confidence: detection.confidence
-      }
-    };
-  }
-};
-
-// ─── UI ──────────────────────────────────────────────────────────────────
+<script type="module">
+import { removeWatermarkFromImage, createWatermarkEngine } from '@pilio/gemini-watermark-remover/browser';
 
 const $ = id => document.getElementById(id);
 const dropZone = $('dropZone');
@@ -492,29 +242,24 @@ const resultSize = $('resultSize');
 const progressWrap = $('progressWrap');
 const progressFill = $('progressFill');
 const progressText = $('progressText');
+const detectionInfo = $('detectionInfo');
 
 let currentFile = null;
-let currentImageData = null;
+let currentImage = null;
 let currentResult = null;
+let engine = null;
 
 function showStatus(msg, type = 'info') {
   status.className = `status visible ${type}`;
   status.textContent = msg;
 }
-
-function hideStatus() {
-  status.className = 'status';
-}
-
+function hideStatus() { status.className = 'status'; }
 function showProgress(pct, text) {
   progressWrap.classList.add('visible');
   progressFill.style.width = pct + '%';
   progressText.textContent = text || `${pct}%`;
 }
-
-function hideProgress() {
-  progressWrap.classList.remove('visible');
-}
+function hideProgress() { progressWrap.classList.remove('visible'); }
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + 'B';
@@ -536,30 +281,11 @@ function loadImage(file) {
   });
 }
 
-function imageToImageData(img) {
-  const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-  return ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
-
-function imageDataToCanvas(imageData) {
-  const canvas = document.createElement('canvas');
-  canvas.width = imageData.width;
-  canvas.height = imageData.height;
-  const ctx = canvas.getContext('2d');
-  ctx.putImageData(imageData, 0, 0);
-  return canvas;
-}
-
 async function handleFile(file) {
   if (!file || !file.type.startsWith('image/')) {
     showStatus('Selecione uma imagem válida (PNG, JPEG, WebP)', 'error');
     return;
   }
-
   if (file.size > 20 * 1024 * 1024) {
     showStatus('Imagem muito grande. Máximo 20MB.', 'error');
     return;
@@ -568,16 +294,17 @@ async function handleFile(file) {
   currentFile = file;
   hideStatus();
   hideProgress();
+  detectionInfo.classList.remove('visible');
 
   try {
     showProgress(10, 'Carregando imagem...');
     const img = await loadImage(file);
-    showProgress(30, 'Analisando...');
+    showProgress(30, 'Preparando...');
 
     origPreview.src = img.src;
     origSize.textContent = `${img.naturalWidth}×${img.naturalHeight} (${formatSize(file.size)})`;
 
-    currentImageData = imageToImageData(img);
+    currentImage = img;
     currentResult = null;
 
     previewArea.classList.add('visible');
@@ -586,57 +313,69 @@ async function handleFile(file) {
     btnDownload.style.display = 'none';
     resultCanvas.style.display = 'none';
 
-    showProgress(100, 'Imagem carregada');
+    // Inicializa engine se necessário
+    if (!engine) {
+      showProgress(50, 'Inicializando engine...');
+      engine = await createWatermarkEngine();
+    }
+
+    showProgress(100, 'Pronto!');
     setTimeout(hideProgress, 500);
+    showStatus('Imagem carregada. Clique em "Remover Watermark"', 'info');
   } catch (err) {
-    showStatus('Erro ao carregar imagem: ' + err.message, 'error');
+    showStatus('Erro ao carregar: ' + err.message, 'error');
+    hideProgress();
   }
 }
 
-function processImage() {
-  if (!currentImageData) return;
+async function processImage() {
+  if (!currentImage || !engine) return;
 
   btnProcess.disabled = true;
   showProgress(0, 'Detectando watermark...');
   hideStatus();
+  detectionInfo.classList.remove('visible');
 
-  // Processa em setTimeout pra não travar a UI
-  setTimeout(() => {
-    try {
-      const result = WM.process(currentImageData, (pct, msg) => {
-        showProgress(pct, msg);
-      });
+  try {
+    const result = await removeWatermarkFromImage(currentImage, { engine });
 
-      currentResult = result;
+    currentResult = result;
 
-      // Mostra resultado
-      const canvas = imageDataToCanvas(result.result);
-      resultCanvas.width = result.result.width;
-      resultCanvas.height = result.result.height;
-      const ctx = resultCanvas.getContext('2d');
-      ctx.putImageData(result.result, 0, 0);
-      resultCanvas.style.display = 'block';
+    // Mostra resultado
+    const canvas = result.canvas;
+    resultCanvas.width = canvas.width;
+    resultCanvas.height = canvas.height;
+    const ctx = resultCanvas.getContext('2d');
+    ctx.drawImage(canvas, 0, 0);
+    resultCanvas.style.display = 'block';
 
-      resultSize.textContent = `${result.result.width}×${result.result.height}`;
+    resultSize.textContent = `${canvas.width}×${canvas.height}`;
+    btnDownload.style.display = 'block';
 
-      btnDownload.style.display = 'block';
-
-      const conf = (result.detection.confidence * 100).toFixed(0);
-      showStatus(`✅ Watermark removida! (confiança: ${conf}%)`, 'success');
-      hideProgress();
-      btnProcess.disabled = false;
-    } catch (err) {
-      showStatus('Erro ao processar: ' + err.message, 'error');
-      hideProgress();
-      btnProcess.disabled = false;
+    // Info de detecção
+    if (result.meta) {
+      const meta = result.meta;
+      let info = `✅ Watermark removida`;
+      if (meta.decisionTier) info += ` | Tier: ${meta.decisionTier}`;
+      if (meta.applied !== undefined) info += ` | Passes: ${meta.applied}`;
+      if (meta.confidence) info += ` | Confiança: ${(meta.confidence * 100).toFixed(0)}%`;
+      detectionInfo.textContent = info;
+      detectionInfo.classList.add('visible');
     }
-  }, 100);
+
+    showStatus('✅ Watermark removida com sucesso!', 'success');
+    hideProgress();
+    btnProcess.disabled = false;
+  } catch (err) {
+    showStatus('Erro ao processar: ' + err.message, 'error');
+    hideProgress();
+    btnProcess.disabled = false;
+  }
 }
 
 function downloadResult() {
   if (!currentResult) return;
-
-  const canvas = imageDataToCanvas(currentResult.result);
+  const canvas = currentResult.canvas;
   const link = document.createElement('a');
   link.download = 'sem-watermark-' + (currentFile ? currentFile.name : 'imagem.png');
   link.href = canvas.toDataURL('image/png');
@@ -645,54 +384,41 @@ function downloadResult() {
 
 function resetAll() {
   currentFile = null;
-  currentImageData = null;
+  currentImage = null;
   currentResult = null;
   previewArea.classList.remove('visible');
   controls.classList.remove('visible');
   hideStatus();
   hideProgress();
+  detectionInfo.classList.remove('visible');
   fileInput.value = '';
   origPreview.src = '';
   resultCanvas.style.display = 'none';
   btnDownload.style.display = 'none';
 }
 
-// ─── Eventos ─────────────────────────────────────────────────────────────
-
+// Eventos
 dropZone.addEventListener('click', () => fileInput.click());
-
-dropZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
-
-dropZone.addEventListener('dragleave', () => {
-  dropZone.classList.remove('dragover');
-});
-
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
-  const files = e.dataTransfer.files;
-  if (files.length > 0) handleFile(files[0]);
+  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
 });
-
 fileInput.addEventListener('change', () => {
   if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
 });
-
 btnProcess.addEventListener('click', processImage);
 btnDownload.addEventListener('click', downloadResult);
 btnReset.addEventListener('click', resetAll);
 
-// ─── Service Worker (PWA) ────────────────────────────────────────────────
-
+// Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-console.log('🧹 Remover Watermark Gemini — 100% local');
-console.log('Baseado no algoritmo de Reverse Alpha Blending');
+console.log('🧹 Gemini Watermark Remover — Engine oficial carregada');
 </script>
 </body>
 </html>
