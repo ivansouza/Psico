@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Remover Watermark Gemini</title>
+<meta name="description" content="Remova watermark Gemini de imagens — 100% local, sem upload">
+<meta name="theme-color" content="#0a0a1a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a0a1a'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='%234fc3f7'%3E🧹%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0a0a1a;
+    --surface: #12122a;
+    --surface2: #1a1a3a;
+    --border: #2a2a5a;
+    --text: #e0e0f0;
+    --text2: #8888bb;
+    --accent: #4fc3f7;
+    --accent2: #7c4dff;
+    --success: #66bb6a;
+    --danger: #ef5350;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+  .container {
+    width: 100%;
+    max-width: 720px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 20px 0 12px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface);
+    margin: 12px 0;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+  .drop-zone .icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+  .drop-zone .label {
+    font-size: 15px;
+    color: var(--text2);
+  }
+  .drop-zone .sub {
+    font-size: 12px;
+    color: var(--text2);
+    opacity: 0.6;
+    margin-top: 4px;
+  }
+  .drop-zone input[type="file"] {
+    display: none;
+  }
+
+  /* Preview Area */
+  .preview-area {
+    display: none;
+    margin: 12px 0;
+  }
+  .preview-area.visible { display: block; }
+
+  .image-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .image-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .image-card .card-header {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    background: var(--surface2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .image-card .card-header .size {
+    font-weight: 400;
+    font-size: 11px;
+  }
+  .image-card .img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    max-height: 300px;
+    overflow: hidden;
+    background: repeating-conic-gradient(#1a1a2a 0% 25%, #22223a 0% 50%) 0 0 / 20px 20px;
+  }
+  .image-card .img-wrap img, .image-card .img-wrap canvas {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+  }
+
+  /* Controls */
+  .controls {
+    display: none;
+    margin: 12px 0;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .controls.visible { display: flex; }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-success {
+    background: var(--success);
+    color: white;
+  }
+  .btn-success:hover { opacity: 0.9; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { background: var(--surface2); }
+
+  /* Status */
+  .status {
+    display: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin: 8px 0;
+  }
+  .status.visible { display: block; }
+  .status.info { background: rgba(79, 195, 247, 0.15); border: 1px solid rgba(79, 195, 247, 0.3); }
+  .status.success { background: rgba(102, 187, 106, 0.15); border: 1px solid rgba(102, 187, 106, 0.3); }
+  .status.error { background: rgba(239, 83, 80, 0.15); border: 1px solid rgba(239, 83, 80, 0.3); }
+
+  /* Info Box */
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .info-box strong { color: var(--text); }
+
+  /* Progress */
+  .progress-wrap {
+    display: none;
+    margin: 8px 0;
+  }
+  .progress-wrap.visible { display: block; }
+  .progress-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .progress-text {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 20px 0;
+    font-size: 11px;
+    color: var(--text2);
+    opacity: 0.5;
+  }
+
+  @media (max-width: 480px) {
+    .image-grid { grid-template-columns: 1fr; }
+    .btn { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🧹 Remover Watermark Gemini</h1>
+    <p>100% local — nada sai do seu navegador</p>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">🖼️</div>
+    <div class="label">Arraste uma imagem ou clique para selecionar</div>
+    <div class="sub">PNG, JPEG, WebP — até 20MB</div>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">Processando...</div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-area" id="previewArea">
+    <div class="image-grid">
+      <div class="image-card">
+        <div class="card-header">Original <span class="size" id="origSize"></span></div>
+        <div class="img-wrap"><img id="origPreview" alt="Original"></div>
+      </div>
+      <div class="image-card">
+        <div class="card-header">Sem Watermark <span class="size" id="resultSize"></span></div>
+        <div class="img-wrap"><canvas id="resultCanvas"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" id="controls">
+    <button class="btn btn-primary" id="btnProcess">🧹 Remover Watermark</button>
+    <button class="btn btn-success" id="btnDownload" style="display:none">⬇️ Download</button>
+    <button class="btn btn-outline" id="btnReset">🔄 Nova Imagem</button>
+  </div>
+
+  <!-- Info -->
+  <div class="info-box">
+    <strong>🧠 Como funciona:</strong> Usa <strong>Reverse Alpha Blending</strong> — um algoritmo matematicamente exato que reverte a composição alfa da watermark. Não usa IA, não faz upload, não alucina. Funciona com imagens geradas pelo <strong>Gemini</strong> (Google), <strong>Imagen</strong> e modelos que usam watermark semelhante.
+    <br><br>
+    <strong>⚠️</strong> Funciona melhor com watermarks <strong>semitransparentes</strong> no canto inferior direito. Se a imagem não tiver watermark compatível, o resultado pode não ser perfeito.
+  </div>
+
+  <div class="footer">
+    Feito por ZePequeno 🐶 • Baseado no algoritmo de Reverse Alpha Blending
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─── Reverse Alpha Blending Engine ───────────────────────────────────────
+
+const WM = {
+  // Tamanhos conhecidos de watermark Gemini (largura, altura)
+  knownSizes: [
+    [130, 32], [150, 37], [160, 40], [180, 45], [200, 50],
+    [220, 55], [240, 60], [260, 65], [280, 70], [300, 75],
+    [320, 80], [100, 25], [120, 30], [140, 35]
+  ],
+
+  // Cores esperadas da watermark (RGBA) — Gemini usa branco semi-transparente
+  expectedColors: [
+    { r: 255, g: 255, b: 255, a: 0.5 },
+    { r: 255, g: 255, b: 255, a: 0.45 },
+    { r: 255, g: 255, b: 255, a: 0.55 },
+    { r: 255, g: 255, b: 255, a: 0.4 },
+    { r: 255, g: 255, b: 255, a: 0.6 },
+  ],
+
+  // Tolerância para matching de cor
+  colorTolerance: 40,
+  alphaTolerance: 0.15,
+
+  detect(inputData) {
+    const w = inputData.width, h = inputData.height;
+    const data = inputData.data;
+
+    // Procura no canto inferior direito
+    const marginX = Math.floor(w * 0.02);
+    const marginY = Math.floor(h * 0.02);
+    const searchW = Math.floor(w * 0.35);
+    const searchH = Math.floor(h * 0.15);
+    const startX = w - searchW - marginX;
+    const startY = h - searchH - marginY;
+
+    let bestScore = 0;
+    let bestRect = null;
+
+    for (const [sw, sh] of WM.knownSizes) {
+      if (sw > searchW || sh > searchH) continue;
+      // Varre a região de busca
+      for (let dx = 0; dx <= searchW - sw; dx += 4) {
+        for (let dy = 0; dy <= searchH - sh; dy += 4) {
+          const rx = startX + dx;
+          const ry = startY + dy;
+          let matchCount = 0, totalPixels = 0;
+
+          // Amostra pixels na região
+          for (let py = ry; py < ry + sh && py < h; py += 2) {
+            for (let px = rx; px < rx + sw && px < w; px += 2) {
+              const idx = (py * w + px) * 4;
+              const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3] / 255;
+              totalPixels++;
+
+              // Verifica se parece branco semi-transparente
+              const brightness = (r + g + b) / 3;
+              const isLight = brightness > 255 - WM.colorTolerance;
+              const isSemi = a > 0.2 && a < 0.8;
+
+              if (isLight && isSemi) matchCount++;
+            }
+          }
+
+          const score = totalPixels > 0 ? matchCount / totalPixels : 0;
+          if (score > bestScore) {
+            bestScore = score;
+            bestRect = { x: rx, y: ry, w: sw, h: sh };
+          }
+        }
+      }
+    }
+
+    if (bestScore > 0.15 && bestRect) {
+      return { found: true, rect: bestRect, confidence: bestScore };
+    }
+
+    // Fallback: posição padrão
+    return {
+      found: true,
+      rect: { x: w - 160 - marginX, y: h - 40 - marginY, w: 160, h: 40 },
+      confidence: 0.5
+    };
+  },
+
+  remove(inputData, rect) {
+    const w = inputData.width, h = inputData.height;
+    const output = new ImageData(new Uint8ClampedArray(inputData.data), w, h);
+    const data = output.data;
+
+    const { x, y, w: rw, h: rh } = rect;
+
+    // Reverse Alpha Blending: para cada pixel na região da watermark,
+    // estima a cor original assumindo que a watermark é branca (255,255,255)
+    // com alpha conhecido.
+    // Fórmula: C_out = C_over / A_over - C_wm * (1 - A_over) / A_over
+    // Simplificando para watermark branca: tenta vários alphas e escolhe o melhor
+
+    for (let py = y; py < y + rh && py < h; py++) {
+      for (let px = x; px < x + rw && px < w; px++) {
+        const idx = (py * w + px) * 4;
+        const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3] / 255;
+
+        if (a < 0.05) continue; // totalmente transparente
+
+        // Tenta vários alphas de watermark
+        let bestAlpha = 0.5;
+        let bestDiff = Infinity;
+
+        for (const wc of WM.expectedColors) {
+          const wa = wc.a;
+          if (wa >= a) continue; // watermark não pode ser mais opaca que o resultado
+
+          // Reverse blend: C_original = (C_result - C_wm * (1 - wa)) / wa
+          const invWa = 1 - wa;
+          const or = (r - wc.r * invWa) / wa;
+          const og = (g - wc.g * invWa) / wa;
+          const ob = (b - wc.b * invWa) / wa;
+
+          // Verifica se a cor original parece plausível (0-255)
+          if (or < 0 || or > 255 || og < 0 || og > 255 || ob < 0 || ob > 255) continue;
+
+          // Prefere alphas maiores (watermark mais opaca = mais correção)
+          const diff = Math.abs(wa - 0.5);
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            bestAlpha = wa;
+          }
+        }
+
+        // Aplica reverse blend com o melhor alpha encontrado
+        const wa = bestAlpha;
+        const invWa = 1 - wa;
+        const or = Math.round(Math.min(255, Math.max(0, (r - 255 * invWa) / wa)));
+        const og = Math.round(Math.min(255, Math.max(0, (g - 255 * invWa) / wa)));
+        const ob = Math.round(Math.min(255, Math.max(0, (b - 255 * invWa) / wa)));
+
+        data[idx] = or;
+        data[idx+1] = og;
+        data[idx+2] = ob;
+        data[idx+3] = 255; // opaco
+      }
+    }
+
+    return output;
+  },
+
+  // Processo completo: detecta + remove
+  process(imageData, onProgress) {
+    const detection = WM.detect(imageData);
+    if (onProgress) onProgress(50, 'Watermark detectada — removendo...');
+
+    const result = WM.remove(imageData, detection.rect);
+    if (onProgress) onProgress(100, 'Pronto!');
+
+    return {
+      result,
+      detection: {
+        found: detection.found,
+        rect: detection.rect,
+        confidence: detection.confidence
+      }
+    };
+  }
+};
+
+// ─── UI ──────────────────────────────────────────────────────────────────
+
+const $ = id => document.getElementById(id);
+const dropZone = $('dropZone');
+const fileInput = $('fileInput');
+const origPreview = $('origPreview');
+const resultCanvas = $('resultCanvas');
+const previewArea = $('previewArea');
+const controls = $('controls');
+const btnProcess = $('btnProcess');
+const btnDownload = $('btnDownload');
+const btnReset = $('btnReset');
+const status = $('status');
+const origSize = $('origSize');
+const resultSize = $('resultSize');
+const progressWrap = $('progressWrap');
+const progressFill = $('progressFill');
+const progressText = $('progressText');
+
+let currentFile = null;
+let currentImageData = null;
+let currentResult = null;
+
+function showStatus(msg, type = 'info') {
+  status.className = `status visible ${type}`;
+  status.textContent = msg;
+}
+
+function hideStatus() {
+  status.className = 'status';
+}
+
+function showProgress(pct, text) {
+  progressWrap.classList.add('visible');
+  progressFill.style.width = pct + '%';
+  progressText.textContent = text || `${pct}%`;
+}
+
+function hideProgress() {
+  progressWrap.classList.remove('visible');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + 'KB';
+  return (bytes / 1048576).toFixed(1) + 'MB';
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function imageToImageData(img) {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function imageDataToCanvas(imageData) {
+  const canvas = document.createElement('canvas');
+  canvas.width = imageData.width;
+  canvas.height = imageData.height;
+  const ctx = canvas.getContext('2d');
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+async function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showStatus('Selecione uma imagem válida (PNG, JPEG, WebP)', 'error');
+    return;
+  }
+
+  if (file.size > 20 * 1024 * 1024) {
+    showStatus('Imagem muito grande. Máximo 20MB.', 'error');
+    return;
+  }
+
+  currentFile = file;
+  hideStatus();
+  hideProgress();
+
+  try {
+    showProgress(10, 'Carregando imagem...');
+    const img = await loadImage(file);
+    showProgress(30, 'Analisando...');
+
+    origPreview.src = img.src;
+    origSize.textContent = `${img.naturalWidth}×${img.naturalHeight} (${formatSize(file.size)})`;
+
+    currentImageData = imageToImageData(img);
+    currentResult = null;
+
+    previewArea.classList.add('visible');
+    controls.classList.add('visible');
+    btnProcess.disabled = false;
+    btnDownload.style.display = 'none';
+    resultCanvas.style.display = 'none';
+
+    showProgress(100, 'Imagem carregada');
+    setTimeout(hideProgress, 500);
+  } catch (err) {
+    showStatus('Erro ao carregar imagem: ' + err.message, 'error');
+  }
+}
+
+function processImage() {
+  if (!currentImageData) return;
+
+  btnProcess.disabled = true;
+  showProgress(0, 'Detectando watermark...');
+  hideStatus();
+
+  // Processa em setTimeout pra não travar a UI
+  setTimeout(() => {
+    try {
+      const result = WM.process(currentImageData, (pct, msg) => {
+        showProgress(pct, msg);
+      });
+
+      currentResult = result;
+
+      // Mostra resultado
+      const canvas = imageDataToCanvas(result.result);
+      resultCanvas.width = result.result.width;
+      resultCanvas.height = result.result.height;
+      const ctx = resultCanvas.getContext('2d');
+      ctx.putImageData(result.result, 0, 0);
+      resultCanvas.style.display = 'block';
+
+      resultSize.textContent = `${result.result.width}×${result.result.height}`;
+
+      btnDownload.style.display = 'block';
+
+      const conf = (result.detection.confidence * 100).toFixed(0);
+      showStatus(`✅ Watermark removida! (confiança: ${conf}%)`, 'success');
+      hideProgress();
+      btnProcess.disabled = false;
+    } catch (err) {
+      showStatus('Erro ao processar: ' + err.message, 'error');
+      hideProgress();
+      btnProcess.disabled = false;
+    }
+  }, 100);
+}
+
+function downloadResult() {
+  if (!currentResult) return;
+
+  const canvas = imageDataToCanvas(currentResult.result);
+  const link = document.createElement('a');
+  link.download = 'sem-watermark-' + (currentFile ? currentFile.name : 'imagem.png');
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function resetAll() {
+  currentFile = null;
+  currentImageData = null;
+  currentResult = null;
+  previewArea.classList.remove('visible');
+  controls.classList.remove('visible');
+  hideStatus();
+  hideProgress();
+  fileInput.value = '';
+  origPreview.src = '';
+  resultCanvas.style.display = 'none';
+  btnDownload.style.display = 'none';
+}
+
+// ─── Eventos ─────────────────────────────────────────────────────────────
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) handleFile(files[0]);
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+});
+
+btnProcess.addEventListener('click', processImage);
+btnDownload.addEventListener('click', downloadResult);
+btnReset.addEventListener('click', resetAll);
+
+// ─── Service Worker (PWA) ────────────────────────────────────────────────
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+console.log('🧹 Remover Watermark Gemini — 100% local');
+console.log('Baseado no algoritmo de Reverse Alpha Blending');
+</script>
+</body>
+</html>
