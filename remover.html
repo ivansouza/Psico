@@ -380,10 +380,13 @@ async function processImage() {
 function downloadResult() {
   if (!currentResult) return;
   const canvas = currentResult.canvas;
-  const link = document.createElement('a');
-  link.download = 'sem-watermark-' + (currentFile ? currentFile.name : 'imagem.png');
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  canvas.toBlob(function(blob) {
+    const link = document.createElement('a');
+    link.download = 'sem-watermark-' + (currentFile ? currentFile.name : 'imagem.png');
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }, 'image/png');
 }
 
 function resetAll() {
