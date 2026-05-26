@@ -378,8 +378,10 @@ async function processImage() {
 }
 
 function downloadResult() {
-  if (!currentResult) return;
-  const canvas = currentResult.canvas;
+  if (!currentResult && !resultCanvas) return;
+  // O canvas retornado pelo engine pode ser OffscreenCanvas (sem toBlob),
+  // então usamos o resultCanvas da página que já tem o resultado desenhado
+  const canvas = resultCanvas;
   canvas.toBlob(function(blob) {
     const link = document.createElement('a');
     link.download = 'sem-watermark-' + (currentFile ? currentFile.name : 'imagem.png');
