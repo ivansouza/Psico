@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo-Gothic Abyss - Procedural Storm Shader & Audio</title>
+    <!-- Tailwind CSS for modern premium UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for dark gothic-style vector icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Gothic/Medieval modern aesthetic pairing -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030305;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        .gothic-title {
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.15em;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.6);
+        }
+        /* Glassmorphism overlays */
+        .gothic-panel {
+            background: rgba(8, 8, 12, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+        .gothic-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .gothic-btn:hover {
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+        /* Glowing states */
+        .glow-violet {
+            text-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+        }
+        .glow-lightning {
+            box-shadow: 0 0 40px rgba(165, 243, 252, 0.25) inset;
+        }
+    </style>
+</head>
+<body class="relative w-full h-full select-none">
+
+    <!-- Canvas container for the GLSL WebGL scene -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Screen-space overlay lightning flash component -->
+    <div id="lightning-flash" class="absolute inset-0 w-full h-full bg-cyan-100 opacity-0 pointer-events-none z-10 transition-opacity duration-75"></div>
+
+    <!-- UI Overlays -->
+    <div class="absolute inset-0 w-full h-full flex flex-col justify-between pointer-events-none p-4 md:p-6 z-20">
+        
+        <!-- Header Panel -->
+        <header class="w-full flex justify-between items-start pointer-events-auto">
+            <div class="gothic-panel p-4 rounded-lg flex flex-col gap-1 max-w-sm md:max-w-md">
+                <div class="flex items-center gap-3">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
+                    <h1 class="gothic-title text-lg md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-300 to-indigo-200">
+                        NEO-GOTHIC ABYSS
+                    </h1>
+                </div>
+                <p class="text-[10px] md:text-xs text-slate-400 font-light">
+                    An infinite procedural city of drowned spires, stormy Gerstner oceans, & synthesized acoustics.
+                </p>
+            </div>
+
+            <!-- Cinematic Auto-Pan / Camera Control HUD -->
+            <div class="flex items-center gap-2">
+                <button id="btn-cinematic" class="gothic-panel p-3 rounded-lg text-slate-300 hover:text-white pointer-events-auto gothic-btn flex items-center gap-2 text-xs">
+                    <i id="cinematic-icon" class="fa-solid fa-clapperboard text-purple-400 animate-pulse"></i>
+                    <span id="cinematic-text">CINEMATIC: ON</span>
+                </button>
+                <button id="btn-fullscreen" class="gothic-panel p-3 rounded-lg text-slate-300 hover:text-white pointer-events-auto gothic-btn text-xs">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace (Center Left Customizer, Center Right Spectrogram / Audio HUD) -->
+        <main class="w-full h-full my-4 flex flex-col md:flex-row gap-4 items-end justify-between overflow-hidden">
+            
+            <!-- Parameters Sidebar Controls (Left) -->
+            <section id="sidebar" class="gothic-panel w-full md:w-[320px] max-h-[60vh] md:max-h-[75vh] p-4 rounded-xl flex flex-col gap-4 pointer-events-auto overflow-y-auto transform transition-transform duration-300">
+                <div class="flex items-center justify-between border-b border-purple-900/40 pb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-purple-400"></i> Altar of Parameters
+                    </span>
+                    <span id="fps-counter" class="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/30">60 FPS</span>
+                </div>
+
+                <!-- Custom Aesthetic Presets -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] uppercase font-bold tracking-widest text-slate-400">Aesthetic Preset</label>
+                    <div class="grid grid-cols-2 gap-1">
+                        <button onclick="applyPreset('electric')" class="text-[10px] bg-slate-900/60 hover:bg-violet-950/40 border border-slate-800 hover:border-violet-700/50 p-1.5 rounded transition font-semibold text-violet-300 text-left px-2">
+                            <i class="fa-solid fa-bolt mr-1"></i> Electric Tempest
+                        </button>
+                        <button onclick="applyPreset('crimson')" class="text-[10px] bg-slate-900/60 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-700/50 p-1.5 rounded transition font-semibold text-rose-300 text-left px-2">
+                            <i class="fa-solid fa-moon mr-1"></i> Blood Eclipse
+                        </button>
+                        <button onclick="applyPreset('toxic')" class="text-[10px] bg-slate-900/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-700/50 p-1.5 rounded transition font-semibold text-emerald-300 text-left px-2">
+                            <i class="fa-solid fa-skull mr-1"></i> Sunken Plague
+                        </button>
+                        <button onclick="applyPreset('ethereal')" class="text-[10px] bg-slate-900/60 hover:bg-cyan-950/40 border border-slate-800 hover:border-cyan-700/50 p-1.5 rounded transition font-semibold text-cyan-300 text-left px-2">
+                            <i class="fa-solid fa-ghost mr-1"></i> Spectral Calm
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Storm & Ocean Section -->
+                <div class="flex flex-col gap-2.5">
+                    <h3 class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 border-b border-slate-800 pb-1">
+                        <i class="fa-solid fa-water text-cyan-400"></i> Storm & Oceans
+                    </h3>
+                    
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400">Gerstner Wave Height</span>
+                            <span id="val-wave-height" class="text-cyan-300 font-mono">1.2m</span>
+                        </div>
+                        <input id="slider-wave-height" type="range" min="0.2" max="3.5" step="0.1" value="1.5" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400">Wind/Wave Velocity</span>
+                            <span id="val-wave-speed" class="text-cyan-300 font-mono">1.0x</span>
+                        </div>
+                        <input id="slider-wave-speed" type="range" min="0.1" max="2.5" step="0.1" value="1.0" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Gothic Architecture Parameters -->
+                <div class="flex flex-col gap-2.5">
+                    <h3 class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 border-b border-slate-800 pb-1">
+                        <i class="fa-solid fa-church text-purple-400"></i> Spire Architecture
+                    </h3>
+
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400">Gothic Spire Height</span>
+                            <span id="val-spire-height" class="text-purple-300 font-mono">1.2x</span>
+                        </div>
+                        <input id="slider-spire-height" type="range" min="0.5" max="2.5" step="0.1" value="1.2" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400">Rose Traceries Intensity</span>
+                            <span id="val-glow-intensity" class="text-purple-300 font-mono">1.2x</span>
+                        </div>
+                        <input id="slider-glow-intensity" type="range" min="0.0" max="3.0" step="0.1" value="1.5" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] uppercase font-bold tracking-widest text-slate-400">Rose Glow Color</label>
+                        <div class="flex gap-2">
+                            <button onclick="setGlowColor(139, 92, 246)" class="w-6 h-6 rounded-full bg-violet-600 border border-violet-400 cursor-pointer"></button>
+                            <button onclick="setGlowColor(239, 68, 68)" class="w-6 h-6 rounded-full bg-red-600 border border-red-400 cursor-pointer"></button>
+                            <button onclick="setGlowColor(16, 185, 129)" class="w-6 h-6 rounded-full bg-emerald-600 border border-emerald-400 cursor-pointer"></button>
+                            <button onclick="setGlowColor(245, 158, 11)" class="w-6 h-6 rounded-full bg-amber-500 border border-amber-300 cursor-pointer"></button>
+                            <button onclick="setGlowColor(6, 182, 212)" class="w-6 h-6 rounded-full bg-cyan-500 border border-cyan-300 cursor-pointer"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Panel -->
+                <div class="flex flex-col gap-2">
+                    <h3 class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 border-b border-slate-800 pb-1">
+                        <i class="fa-solid fa-gauge-high text-amber-500"></i> Render Engine
+                    </h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400">Resolution Scale</span>
+                        <div class="flex bg-slate-900/80 p-0.5 rounded border border-slate-800">
+                            <button onclick="setResolutionScale(0.5)" class="res-btn text-[10px] px-2 py-0.5 rounded text-slate-400 hover:text-white transition">0.5x</button>
+                            <button onclick="setResolutionScale(0.75)" class="res-btn text-[10px] px-2 py-0.5 rounded text-slate-400 hover:text-white transition bg-purple-950/60 border border-purple-800/40 text-purple-300">0.75x</button>
+                            <button onclick="setResolutionScale(1.0)" class="res-btn text-[10px] px-2 py-0.5 rounded text-slate-400 hover:text-white transition">1.0x</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Acoustical & Ambient Controller Dashboard (Right) -->
+            <section id="audio-panel" class="gothic-panel w-full md:w-[280px] p-4 rounded-xl flex flex-col gap-3.5 pointer-events-auto">
+                <div class="flex items-center justify-between border-b border-purple-900/40 pb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-2">
+                        <i class="fa-solid fa-volume-high text-purple-400"></i> Synthesized Acoustics
+                    </span>
+                    <button id="btn-audio-toggle" class="text-slate-400 hover:text-white text-xs flex items-center gap-1 bg-slate-900/60 px-2 py-1 rounded border border-slate-800/60 transition">
+                        <i id="audio-mute-icon" class="fa-solid fa-volume-xmark text-red-400"></i>
+                        <span id="audio-status-txt">INIT AUDIO</span>
+                    </button>
+                </div>
+
+                <div class="text-[10px] text-slate-400 italic">
+                    All sounds are procedurally generated inside your browser using the Web Audio API. No external files are downloaded.
+                </div>
+
+                <!-- Custom Audio Volume Sliders -->
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400 flex items-center gap-1">
+                                <i class="fa-solid fa-wind text-sky-400 w-3"></i> Dark Wind Howl
+                            </span>
+                            <span id="val-vol-wind" class="text-purple-300 font-mono">50%</span>
+                        </div>
+                        <input id="slider-vol-wind" type="range" min="0" max="1" step="0.05" value="0.5" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400 flex items-center gap-1">
+                                <i class="fa-solid fa-cloud-showers-heavy text-slate-400 w-3"></i> Torrential Rain
+                            </span>
+                            <span id="val-vol-rain" class="text-purple-300 font-mono">30%</span>
+                        </div>
+                        <input id="slider-vol-rain" type="range" min="0" max="1" step="0.05" value="0.3" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400 flex items-center gap-1">
+                                <i class="fa-solid fa-bolt-lightning text-amber-400 w-3"></i> Thunder Rumbler
+                            </span>
+                            <span id="val-vol-thunder" class="text-purple-300 font-mono">80%</span>
+                        </div>
+                        <input id="slider-vol-thunder" type="range" min="0" max="1" step="0.05" value="0.8" class="w-full accent-purple-500 cursor-pointer bg-slate-900/80 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Lightning manual strike generator -->
+                <div class="pt-1.5 flex flex-col gap-2">
+                    <button id="btn-manual-lightning" class="w-full bg-gradient-to-r from-cyan-900/40 to-indigo-950/50 border border-cyan-800/40 hover:border-cyan-400/60 py-2 rounded-lg text-xs font-semibold tracking-wider text-cyan-300 gothic-btn uppercase">
+                        <i class="fa-solid fa-cloud-bolt text-cyan-400 animate-pulse mr-1"></i> Conjure Lightning
+                    </button>
+                    <div class="text-[9px] text-center text-slate-500 italic">
+                        Spontaneous strikes trigger thunder sound with physical distance delay.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer containing state and controls help -->
+        <footer class="w-full flex flex-col md:flex-row justify-between items-center text-slate-500 text-[10px] pointer-events-auto">
+            <div class="gothic-panel px-3 py-1.5 rounded-md flex gap-4">
+                <span><i class="fa-solid fa-circle-info text-purple-400 mr-1"></i> Drag to Look Around</span>
+                <span><i class="fa-solid fa-circle-exclamation text-cyan-400 mr-1"></i> Storm Intensity triggers procedural Thunder</span>
+            </div>
+            <div class="mt-2 md:mt-0 font-mono">
+                Procedural WebGL & Web Audio &copy; 2026
+            </div>
+        </footer>
+    </div>
+
+    <!-- Three.js Library CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Main JS Implementation: Render, Control Logic, Shader compilation -->
+    <script>
+        // Set environment constants
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gothic-abyss-default';
+
+        // Custom lerp helper
+        const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+
+        // --- Web Audio Synthesis Engine ---
+        class StormAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.windGain = null;
+                this.thunderGain = null;
+                this.rainGain = null;
+                this.initialized = false;
+                this.masterGain = null;
+                this.muted = true;
+            }
+
+            init() {
+                if (this.initialized) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+
+                // Master channel
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime); // fade-in
+                this.masterGain.connect(this.ctx.destination);
+
+                // Wind (Brownian noise + Bandpass filtered modulation)
+                const windNoise = this.createNoiseBufferNode(true); 
+                const windFilter = this.ctx.createBiquadFilter();
+                windFilter.type = 'bandpass';
+                windFilter.Q.value = 4.0;
+                windFilter.frequency.value = 350;
+
+                this.windGain = this.ctx.createGain();
+                this.windGain.gain.value = 0.35;
+
+                windNoise.connect(windFilter);
+                windFilter.connect(this.windGain);
+                this.windGain.connect(this.masterGain);
+                windNoise.start();
+
+                // Wind LFO to simulate dark howling gusts
+                const windLFO = this.ctx.createOscillator();
+                windLFO.frequency.value = 0.05; 
+                const lfoGain = this.ctx.createGain();
+                lfoGain.gain.value = 200; 
+
+                windLFO.connect(lfoGain);
+                lfoGain.connect(windFilter.frequency);
+                windLFO.start();
+
+                // Wind Amplitude gust modulation
+                const windGustLFO = this.ctx.createOscillator();
+                windGustLFO.frequency.value = 0.08;
+                const gustGain = this.ctx.createGain();
+                gustGain.gain.value = 0.15;
+                windGustLFO.connect(gustGain);
+                gustGain.connect(this.windGain.gain);
+                windGustLFO.start();
+
+                // Rain sound (White noise + Highpass filter + rapid amplitude chatter)
+                const rainNoise = this.createNoiseBufferNode(false); 
+                const rainFilter = this.ctx.createBiquadFilter();
+                rainFilter.type = 'highpass';
+                rainFilter.frequency.value = 1200;
+
+                this.rainGain = this.ctx.createGain();
+                this.rainGain.gain.value = 0.15;
+
+                rainNoise.connect(rainFilter);
+                rainFilter.connect(this.rainGain);
+                this.rainGain.connect(this.masterGain);
+                rainNoise.start();
+
+                // Thunder channel Setup
+                this.thunderGain = this.ctx.createGain();
+                this.thunderGain.gain.value = 0.8;
+                this.thunderGain.connect(this.masterGain);
+
+                this.initialized = true;
+                this.muted = false;
+                this.masterGain.gain.exponentialRampToValueAtTime(1.0, this.ctx.currentTime + 1.5);
+            }
+
+            createNoiseBufferNode(isBrown) {
+                const bufferSize = 2 * this.ctx.sampleRate;
+                const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                let lastOut = 0.0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    if (isBrown) {
+                        output[i] = (lastOut + (0.02 * white)) / 1.02;
+                        lastOut = output[i];
+                        output[i] *= 3.5; 
+                    } else {
+                        output[i] = white;
+                    }
+                }
+                const noiseNode = this.ctx.createBufferSource();
+                noiseNode.buffer = noiseBuffer;
+                noiseNode.loop = true;
+                return noiseNode;
+            }
+
+            triggerThunder(distanceFactor) {
+                if (!this.initialized || this.muted || this.ctx.state === 'suspended') return;
+
+                // Emulate physical sound delay depending on flash proximity (0 to 3.5 seconds)
+                const delay = distanceFactor * 3.5;
+                setTimeout(() => {
+                    this.playThunderSound(distanceFactor);
+                }, delay * 1000);
+            }
+
+            playThunderSound(distanceFactor) {
+                if (!this.initialized || this.muted) return;
+                
+                const noise = this.createNoiseBufferNode(true);
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+
+                const startFreq = lerp(480, 120, distanceFactor);
+                filter.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(25, this.ctx.currentTime + 4.0);
+
+                const gainNode = this.ctx.createGain();
+                const maxVol = lerp(1.2, 0.15, distanceFactor);
+                
+                gainNode.gain.setValueAtTime(0.001, this.ctx.currentTime);
+                // Lightning Crack (Faster attack if closer)
+                gainNode.gain.linearRampToValueAtTime(maxVol, this.ctx.currentTime + lerp(0.02, 0.2, distanceFactor));
+                // Rumble Decay
+                gainNode.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + lerp(4.0, 7.5, distanceFactor));
+
+                noise.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.thunderGain);
+
+                noise.start();
+                noise.stop(this.ctx.currentTime + 8.0);
+            }
+
+            setVolume(type, val) {
+                if (!this.initialized) return;
+                if (type === 'wind' && this.windGain) this.windGain.gain.setValueAtTime(val * 0.35, this.ctx.currentTime);
+                if (type === 'rain' && this.rainGain) this.rainGain.gain.setValueAtTime(val * 0.15, this.ctx.currentTime);
+                if (type === 'thunder' && this.thunderGain) this.thunderGain.gain.setValueAtTime(val * 0.8, this.ctx.currentTime);
+            }
+
+            toggleMute() {
+                if (!this.initialized) {
+                    this.init();
+                    return false; 
+                }
+                if (this.muted) {
+                    this.ctx.resume();
+                    this.masterGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+                    this.masterGain.gain.exponentialRampToValueAtTime(1.0, this.ctx.currentTime + 0.5);
+                    this.muted = false;
+                } else {
+                    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, this.ctx.currentTime);
+                    this.masterGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+                    setTimeout(() => {
+                        if (this.muted) this.ctx.suspend();
+                    }, 500);
+                    this.muted = true;
+                }
+                return this.muted;
+            }
+        }
+
+        const audioEngine = new StormAudioEngine();
+
+        // --- GLSL Shaders ---
+
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        // Deep Gothic Abyss Raymarching Shader
+        const fragmentShader = `
+            uniform float u_time;
+            uniform vec2 u_resolution;
+            uniform vec2 u_mouse;
+            
+            // Controller Parameters
+            uniform float u_wave_height;
+            uniform float u_wave_speed;
+            uniform float u_spire_height;
+            uniform float u_glow_intensity;
+            uniform vec3 u_glow_color;
+            uniform float u_lightning_flash;
+            
+            // Camera position/direction
+            uniform vec3 u_cam_pos;
+            uniform vec3 u_cam_target;
+
+            varying vec2 vUv;
+
+            // Math Constants
+            #define PI 3.14159265359
+            #define MAX_STEPS 80
+            #define MAX_DIST 140.0
+            #define SURF_DIST 0.01
+
+            // Custom Pseudo-Random Hashes
+            float hash21(vec2 p) {
+                p = fract(p * vec2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y);
+            }
+
+            float hash31(vec3 p) {
+                p = fract(p * vec3(123.34, 456.21, 789.31));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y * p.z);
+            }
+
+            // Fast procedural noise approximation for clouds & storm distortion
+            float noise(in vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(hash21(i + vec2(0.0,0.0)), hash21(i + vec2(1.0,0.0)), u.x),
+                           mix(hash21(i + vec2(0.0,1.0)), hash21(i + vec2(1.0,1.0)), u.x), u.y);
+            }
+
+            float fbm(in vec2 p) {
+                float v = 0.0;
+                float a = 0.5;
+                vec2 shift = vec2(100.0);
+                // Rotate to reduce axial bias
+                mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+                for (int i = 0; i < 4; ++i) {
+                    v += a * noise(p);
+                    p = rot * p * 2.0 + shift;
+                    a *= 0.5;
+                }
+                return v;
+            }
+
+            // Gerstner Wave generator
+            float gerstner(vec2 p, vec2 dir, float steepness, float wavelength, float speed) {
+                float k = 2.0 * PI / wavelength;
+                float c = sqrt(9.81 / k);
+                float proj = dot(dir, p);
+                float phase = k * (proj - speed * u_time * u_wave_speed);
+                return steepness * sin(phase);
+            }
+
+            // Summed stormy waves
+            float getWaterHeight(vec3 p) {
+                float h = 0.0;
+                h += gerstner(p.xz, normalize(vec2(1.0, 0.4)), 1.4 * u_wave_height, 22.0, 2.5);
+                h += gerstner(p.xz, normalize(vec2(-0.8, 0.8)), 0.8 * u_wave_height, 12.0, 3.8);
+                h += gerstner(p.xz, normalize(vec2(0.3, -1.0)), 0.4 * u_wave_height, 6.0, 5.0);
+                h += gerstner(p.xz, normalize(vec2(1.2, -0.6)), 0.25 * u_wave_height, 3.0, 7.0);
+                return h;
+            }
+
+            // Standard SDF Primitives
+            float sdBox(vec3 p, vec3 b) {
+                vec3 q = abs(p) - b;
+                return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+            }
+
+            // Raymarched Scene Mapping Output Structure
+            struct SceneResult {
+                float dist;
+                float matID; // 1: Tower, 2: Water, 3: Spires/Ribs
+                vec2 cellID;
+                vec3 localP;
+                float baseH;
+            };
+
+            // Global/Local Infinite Tower calculations
+            SceneResult map(vec3 p) {
+                SceneResult res;
+                res.dist = MAX_DIST;
+                res.matID = 0.0;
+                res.cellID = vec2(0.0);
+                res.localP = p;
+                res.baseH = 0.0;
+
+                // 1. Stormy Ocean Plane Intersection (Conservative Bound check)
+                float waterY = getWaterHeight(p);
+                float dWater = p.y - waterY;
+                res.dist = dWater;
+                res.matID = 2.0;
+
+                // 2. Infinite Gothic Spire repetition
+                // Grid scale parameters
+                float gridSz = 24.0;
+                vec2 cell = floor((p.xz + gridSz * 0.5) / gridSz);
+                vec3 localP = p;
+                localP.xz = mod(p.xz + gridSz * 0.5, gridSz) - gridSz * 0.5;
+
+                // Procedural variation based on cellular hash coordinates
+                float hSeed = hash21(cell);
+                
+                // Set architectural heights
+                float towerHeight = (18.0 + 26.0 * hSeed) * u_spire_height;
+                res.baseH = towerHeight;
+
+                // Structural parameters
+                float w = 3.2 + 0.6 * hSeed; // Base width
+                
+                // Main Pillar Box (descending infinitely to bottom abyss)
+                vec3 boxP = localP;
+                boxP.y -= (towerHeight * 0.5 - 20.0);
+                float dBox = sdBox(boxP, vec3(w, towerHeight * 0.5 + 20.0, w));
+
+                // Gothic Corner Pillars / Vertical Buttress Ribs
+                float dRibs = MAX_DIST;
+                float ribW = 0.5;
+                vec3 rP = abs(localP);
+                rP.y -= (towerHeight * 0.5 - 20.0);
+                dRibs = sdBox(rP - vec3(w, 0.0, w), vec3(ribW, towerHeight * 0.5 + 20.0, ribW));
+                dBox = min(dBox, dRibs);
+
+                // Pointed Spire top (Pyramid coordinate scaling trick)
+                vec3 spireP = localP - vec3(0.0, towerHeight, 0.0);
+                float spireHeight = 12.0 + 8.0 * hSeed;
+                float factor = max(0.02, 1.0 - spireP.y / spireHeight);
+                float dSpire = MAX_DIST;
+                
+                if (spireP.y >= 0.0 && spireP.y <= spireHeight) {
+                    vec3 scaledP = spireP;
+                    scaledP.xz /= factor;
+                    dSpire = sdBox(scaledP, vec3(w, 0.1, w)) * factor;
+                    
+                    // Tiny decorative spires on corners
+                    vec3 scP = abs(scaledP) - vec3(w, 0.0, w);
+                    float dCornerSpires = sdBox(scP, vec3(0.2, 0.05, 0.2)) * factor;
+                    dSpire = min(dSpire, dCornerSpires);
+                }
+
+                float dTower = min(dBox, dSpire);
+
+                // Merge Tower and Water
+                if (dTower < res.dist) {
+                    res.dist = dTower;
+                    res.matID = (dSpire < dBox) ? 3.0 : 1.0;
+                    res.cellID = cell;
+                    res.localP = localP;
+                }
+
+                return res;
+            }
+
+            // Standard Raymarching execution loop
+            SceneResult raymarch(vec3 ro, vec3 rd) {
+                SceneResult res;
+                res.dist = 0.0;
+                res.matID = 0.0;
+                res.cellID = vec2(0.0);
+                res.localP = vec3(0.0);
+                res.baseH = 0.0;
+
+                for (int i = 0; i < MAX_STEPS; i++) {
+                    vec3 p = ro + rd * res.dist;
+                    SceneResult current = map(p);
+                    res.dist += current.dist * 0.85; // Slightly conservative steps for heavy wave normals
+                    res.matID = current.matID;
+                    res.cellID = current.cellID;
+                    res.localP = current.localP;
+                    res.baseH = current.baseH;
+
+                    if (res.dist > MAX_DIST || abs(current.dist) < SURF_DIST) break;
+                }
+                return res;
+            }
+
+            // Normal vectors calculation
+            vec3 getNormal(vec3 p, float matID) {
+                if (matID == 2.0) {
+                    // Finite difference ocean waves normal for crisp high-speed computing
+                    float eps = 0.03;
+                    float h = getWaterHeight(p);
+                    float hX = getWaterHeight(p + vec3(eps, 0.0, 0.0));
+                    float hZ = getWaterHeight(p + vec3(0.0, 0.0, eps));
+                    vec3 tangentX = vec3(eps, hX - h, 0.0);
+                    vec3 tangentZ = vec3(0.0, hZ - h, eps);
+                    return normalize(cross(tangentZ, tangentX));
+                } else {
+                    // Mesh finite differences for spires
+                    vec2 e = vec2(0.01, 0.0);
+                    float d = map(p).dist;
+                    vec3 n = d - vec3(
+                        map(p - e.xyy).dist,
+                        map(p - e.yxy).dist,
+                        map(p - e.yyx).dist
+                    );
+                    return normalize(n);
+                }
+            }
+
+            // Detailed pointed gothic arch traceries mapped onto tower faces
+            float getGothicArchWindows(vec3 localP, vec3 n, float towerH, float cellSeed) {
+                // Determine face projection (X or Z side)
+                vec3 absN = abs(n);
+                vec2 uv = vec2(0.0);
+                if (absN.x > 0.8) {
+                    uv = vec2(localP.z, localP.y);
+                } else if (absN.z > 0.8) {
+                    uv = vec2(localP.x, localP.y);
+                } else {
+                    return 0.0; // Top faces don't hold cathedral traceries
+                }
+
+                // Disallow windows at lower submerged structures or high above spires
+                if (uv.y < -15.0 || uv.y > towerH - 6.0) return 0.0;
+
+                // Vertical window segment repeating logic
+                float winSpacingY = 8.5;
+                float winLocalY = mod(uv.y, winSpacingY) - winSpacingY * 0.5;
+
+                // Dual window column repeat on tower facade
+                float winSpacingX = 1.4;
+                float wx = mod(uv.x + 0.7, winSpacingX) - winSpacingX * 0.5;
+
+                // Outer Pointed Gothic Arch SDF in 2D (intersection of offset circles)
+                float r = 0.65;
+                float archL = length(vec2(wx + r * 0.4, winLocalY)) - r;
+                float archR = length(vec2(wx - r * 0.4, winLocalY)) - r;
+                float arch = max(archL, archR);
+                
+                // Arch window base boundary
+                float winSDF = max(arch, winLocalY + winSpacingY * 0.25);
+                float inside = step(winSDF, 0.0);
+
+                if (inside < 0.5) return 0.0;
+
+                // Build Rose & Lancet glass patterns/traceries
+                float tracery = 1.0;
+                float frame = step(abs(winSDF), 0.04);
+                
+                // Lancet Vertical bar
+                float barV = step(abs(wx), 0.05);
+                
+                // Lancet horizontal cross tier
+                float barH = step(abs(winLocalY - r * 0.25), 0.04);
+                
+                // Circle element
+                float circle = step(abs(length(vec2(wx, winLocalY - r * 0.75)) - r * 0.28), 0.04);
+                tracery = max(frame, max(barV, max(barH, circle)));
+
+                // Gothic window emissive factor
+                return (1.0 - tracery) * u_glow_intensity;
+            }
+
+            // Screen-space diagonal wind rain overlay
+            vec3 applyRainStreaks(vec3 col, vec2 uv) {
+                float rainTime = u_time * 7.5;
+                // Skew UVs to create slanted wind direction
+                vec2 rUV = uv * vec2(12.0, 1.2) + vec2(uv.y * 3.5, 0.0);
+                rUV.y -= rainTime;
+                
+                float h = hash21(floor(rUV));
+                float streak = step(0.985, h);
+                float fade = smoothstep(0.0, 0.1, mod(rUV.y, 1.0)) * smoothstep(1.0, 0.9, mod(rUV.y, 1.0));
+                
+                float lightningMod = 0.25 + 0.75 * u_lightning_flash;
+                col += vec3(0.32, 0.4, 0.52) * streak * fade * lightningMod * 0.35;
+                return col;
+            }
+
+            void main() {
+                // Correct coordinate ratios
+                vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+
+                // Setup cinematic ray direction
+                vec3 ro = u_cam_pos;
+                vec3 ta = u_cam_target;
+                
+                vec3 fwd = normalize(ta - ro);
+                vec3 rgt = normalize(cross(vec3(0.0, 1.0, 0.0), fwd));
+                vec3 up = cross(fwd, rgt);
+                vec3 rd = normalize(fwd + uv.x * rgt + uv.y * up);
+
+                // Run WebGL Raymarcher
+                SceneResult sr = raymarch(ro, rd);
+
+                // Initial sky background
+                vec3 col = vec3(0.015, 0.02, 0.035);
+                
+                // Distant stormy cloud patterns
+                float cloudCover = fbm(rd.xz * 3.5 + vec2(u_time * 0.03));
+                vec3 cloudCol = mix(vec3(0.01, 0.015, 0.025), vec3(0.08, 0.1, 0.15), cloudCover);
+                
+                // Lightning flash ambient sky illumination
+                if (u_lightning_flash > 0.0) {
+                    float lightningSkyGlow = pow(max(0.0, dot(rd, normalize(vec3(0.3, 0.8, -0.5)))), 3.0);
+                    cloudCol += vec3(0.65, 0.8, 1.0) * u_lightning_flash * (0.35 + 0.65 * lightningSkyGlow);
+                }
+                
+                col = cloudCol;
+
+                if (sr.dist < MAX_DIST) {
+                    vec3 p = ro + rd * sr.dist;
+                    vec3 n = getNormal(p, sr.matID);
+                    vec3 ref = reflect(rd, n);
+
+                    // Multi-source Storm light
+                    vec3 stormLightDir = normalize(vec3(0.4, 1.0, -0.6));
+                    float diff = max(0.0, dot(n, stormLightDir));
+                    float spec = pow(max(0.0, dot(ref, stormLightDir)), 16.0);
+
+                    // Lightning flash instantaneous key light
+                    float lDiff = 0.0;
+                    float lSpec = 0.0;
+                    if (u_lightning_flash > 0.0) {
+                        vec3 lDir = normalize(vec3(-0.2, 0.9, 0.3));
+                        lDiff = max(0.0, dot(n, lDir)) * u_lightning_flash;
+                        lSpec = pow(max(0.0, dot(reflect(rd, n), lDir)), 32.0) * u_lightning_flash;
+                    }
+
+                    // Material Classification
+                    if (sr.matID == 2.0) { // Stormy Ocean Waves
+                        // Ocean depth absorption
+                        vec3 waterBase = vec3(0.02, 0.05, 0.08);
+                        col = waterBase * (diff * 0.4 + 0.15);
+                        
+                        // Specular stormy crest highlights
+                        col += vec3(0.4, 0.48, 0.55) * spec * 0.5;
+                        col += vec3(0.7, 0.85, 1.0) * lSpec * 1.5; // Lightning reflective flare
+
+                        // Procedural Foam lines on cresting slopes
+                        float foamThreshold = 1.3 * u_wave_height;
+                        if (p.y > foamThreshold) {
+                            float foam = smoothstep(foamThreshold, foamThreshold + 0.8, p.y + noise(p.xz * 1.5) * 0.4);
+                            col = mix(col, vec3(0.65, 0.72, 0.8) * (0.4 + 0.6 * u_lightning_flash), foam * 0.45);
+                        }
+
+                        // Localized Splash foam ringing when waves hit tower walls
+                        float dTowerBounds = map(p).dist; // distance back to solid structure
+                        float contactSplash = smoothstep(1.5, 0.0, dTowerBounds);
+                        col = mix(col, vec3(0.5, 0.58, 0.65) * (0.3 + 0.7 * u_lightning_flash), contactSplash * 0.4);
+
+                    } else { // Gothic Spires & Buttresses
+                        // Obsidian wet stone cathedral material
+                        vec3 stoneCol = vec3(0.03, 0.035, 0.045);
+                        float cellSeed = hash21(sr.cellID);
+                        
+                        col = stoneCol * (diff * 0.3 + 0.1);
+                        col += vec3(0.3, 0.35, 0.4) * spec * 0.15; // Wet stone specularity
+
+                        // Direct flash illumination
+                        col += stoneCol * lDiff * 2.0;
+                        col += vec3(0.8, 0.9, 1.0) * lSpec * 0.4;
+
+                        // Retrieve dynamic glowing stained arch windows
+                        float windowGlow = getGothicArchWindows(sr.localP, n, sr.baseH, cellSeed);
+                        if (windowGlow > 0.0) {
+                            vec3 glowColor = u_glow_color * windowGlow;
+                            // Attenuate slightly in heavy lightning to simulate contrast blinding
+                            glowColor *= (1.0 - 0.2 * u_lightning_flash);
+                            col += glowColor;
+                        }
+                    }
+
+                    // Exponential Storm fog density calculation
+                    float fogDensity = 0.007;
+                    float fogFactor = 1.0 - exp(-sr.dist * fogDensity);
+                    vec3 fogColor = mix(vec3(0.015, 0.02, 0.03), vec3(0.35, 0.45, 0.55) * (0.2 + 0.8 * u_lightning_flash), 0.45);
+                    col = mix(col, fogColor, fogFactor);
+                }
+
+                // Post-processing: Screen Vignette
+                vec2 d = abs(vUv - 0.5) * 1.8;
+                float vignette = 1.0 - dot(d, d) * 0.25;
+                col *= vignette;
+
+                // Render dynamic rain streaks overlay
+                col = applyRainStreaks(col, vUv);
+
+                // Tonemap gamma correction
+                col = pow(col, vec3(1.0 / 2.2));
+
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        // --- Three.js Scene Initialization ---
+        let scene, camera, renderer, material, mesh;
+        let clock = new THREE.Clock();
+        let mouseX = 0, mouseY = 0;
+        let targetMouseX = 0, targetMouseY = 0;
+        let isMouseDown = false;
+        
+        // Settings configuration with visualizer link variables
+        let renderSettings = {
+            waveHeight: 1.5,
+            waveSpeed: 1.0,
+            spireHeight: 1.2,
+            glowIntensity: 1.5,
+            glowColor: new THREE.Vector3(139/255, 92/255, 246/255), // Violet default
+            lightningFlash: 0.0,
+            resolutionScale: 0.75,
+            cinematic: true
+        };
+
+        // Custom lightning controller trigger
+        let lightningTimer = 0.0;
+        let nextLightningTime = 4.0; 
+
+        // Camera coordinate calculations
+        let camRadius = 45.0;
+        let camAngleX = 1.2; 
+        let camAngleY = 0.25; 
+
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+            // WebGL2 Renderer options
+            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+            renderer.setPixelRatio(window.devicePixelRatio * renderSettings.resolutionScale);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // Create Shader quad material
+            material = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    u_time: { value: 0.0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth * renderSettings.resolutionScale, window.innerHeight * renderSettings.resolutionScale) },
+                    u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+                    u_wave_height: { value: renderSettings.waveHeight },
+                    u_wave_speed: { value: renderSettings.waveSpeed },
+                    u_spire_height: { value: renderSettings.spireHeight },
+                    u_glow_intensity: { value: renderSettings.glowIntensity },
+                    u_glow_color: { value: renderSettings.glowColor },
+                    u_lightning_flash: { value: 0.0 },
+                    u_cam_pos: { value: new THREE.Vector3() },
+                    u_cam_target: { value: new THREE.Vector3() }
+                },
+                depthWrite: false,
+                depthTest: false
+            });
+
+            const geometry = new THREE.PlaneGeometry(2, 2);
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            // Setup Event Handlers
+            window.addEventListener('resize', onWindowResize);
+            
+            // Pointer & Mouse Look around controls
+            document.addEventListener('pointerdown', (e) => {
+                // Ignore drag if clicking interactive panels
+                if (e.target.closest('section') || e.target.closest('header') || e.target.closest('footer')) return;
+                isMouseDown = true;
+                targetMouseX = e.clientX;
+                targetMouseY = e.clientY;
+            });
+
+            document.addEventListener('pointermove', (e) => {
+                if (!isMouseDown) return;
+                
+                // Disable auto-cinematic mode once manual interact triggers
+                if (renderSettings.cinematic) {
+                    toggleCinematic(false);
+                }
+
+                let deltaX = e.clientX - targetMouseX;
+                let deltaY = e.clientY - targetMouseY;
+
+                camAngleX -= deltaX * 0.005;
+                camAngleY = Math.max(-0.2, Math.min(0.65, camAngleY + deltaY * 0.005));
+
+                targetMouseX = e.clientX;
+                targetMouseY = e.clientY;
+            });
+
+            document.addEventListener('pointerup', () => { isMouseDown = false; });
+            
+            // Wheel zoom control
+            document.addEventListener('wheel', (e) => {
+                if (e.target.closest('section')) return;
+                camRadius = Math.max(25.0, Math.min(85.0, camRadius + e.deltaY * 0.05));
+            });
+
+            // Initialize UI slider listeners
+            setupControls();
+            
+            // Trigger loop rendering
+            animate();
+        }
+
+        // Setup DOM visual element controls
+        function setupControls() {
+            // Wave Height slider
+            const sliderWH = document.getElementById('slider-wave-height');
+            sliderWH.addEventListener('input', (e) => {
+                renderSettings.waveHeight = parseFloat(e.target.value);
+                document.getElementById('val-wave-height').innerText = renderSettings.waveHeight.toFixed(1) + 'm';
+                material.uniforms.u_wave_height.value = renderSettings.waveHeight;
+            });
+
+            // Wave Speed slider
+            const sliderWS = document.getElementById('slider-wave-speed');
+            sliderWS.addEventListener('input', (e) => {
+                renderSettings.waveSpeed = parseFloat(e.target.value);
+                document.getElementById('val-wave-speed').innerText = renderSettings.waveSpeed.toFixed(1) + 'x';
+                material.uniforms.u_wave_speed.value = renderSettings.waveSpeed;
+            });
+
+            // Spire Height slider
+            const sliderSH = document.getElementById('slider-spire-height');
+            sliderSH.addEventListener('input', (e) => {
+                renderSettings.spireHeight = parseFloat(e.target.value);
+                document.getElementById('val-spire-height').innerText = renderSettings.spireHeight.toFixed(1) + 'x';
+                material.uniforms.u_spire_height.value = renderSettings.spireHeight;
+            });
+
+            // Rose Glow Slider
+            const sliderGI = document.getElementById('slider-glow-intensity');
+            sliderGI.addEventListener('input', (e) => {
+                renderSettings.glowIntensity = parseFloat(e.target.value);
+                document.getElementById('val-glow-intensity').innerText = renderSettings.glowIntensity.toFixed(1) + 'x';
+                material.uniforms.u_glow_intensity.value = renderSettings.glowIntensity;
+            });
+
+            // Cinematic Toggle button
+            const btnCinematic = document.getElementById('btn-cinematic');
+            btnCinematic.addEventListener('click', () => {
+                toggleCinematic(!renderSettings.cinematic);
+            });
+
+            // Fullscreen Toggle
+            const btnFullscreen = document.getElementById('btn-fullscreen');
+            btnFullscreen.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {});
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+
+            // Audio Activation toggler
+            const btnAudioToggle = document.getElementById('btn-audio-toggle');
+            btnAudioToggle.addEventListener('click', () => {
+                const isMuted = audioEngine.toggleMute();
+                const icon = document.getElementById('audio-mute-icon');
+                const text = document.getElementById('audio-status-txt');
+                
+                if (isMuted) {
+                    icon.className = 'fa-solid fa-volume-xmark text-red-400';
+                    text.innerText = "SOUND: MUTED";
+                } else {
+                    icon.className = 'fa-solid fa-volume-high text-green-400 animate-pulse';
+                    text.innerText = "SOUND: ON";
+                }
+            });
+
+            // Realtime audio channel mixing listeners
+            document.getElementById('slider-vol-wind').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById('val-vol-wind').innerText = Math.round(val * 100) + '%';
+                audioEngine.setVolume('wind', val);
+            });
+            document.getElementById('slider-vol-rain').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById('val-vol-rain').innerText = Math.round(val * 100) + '%';
+                audioEngine.setVolume('rain', val);
+            });
+            document.getElementById('slider-vol-thunder').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById('val-vol-thunder').innerText = Math.round(val * 100) + '%';
+                audioEngine.setVolume('thunder', val);
+            });
+
+            // Manual Lightning strike
+            document.getElementById('btn-manual-lightning').addEventListener('click', () => {
+                triggerLightningStrike();
+            });
+        }
+
+        // Unified cinematic controller toggler
+        function toggleCinematic(val) {
+            renderSettings.cinematic = val;
+            const btn = document.getElementById('btn-cinematic');
+            const icon = document.getElementById('cinematic-icon');
+            const txt = document.getElementById('cinematic-text');
+            if (val) {
+                icon.className = 'fa-solid fa-clapperboard text-purple-400 animate-pulse';
+                txt.innerText = 'CINEMATIC: ON';
+            } else {
+                icon.className = 'fa-solid fa-circle text-slate-500';
+                txt.innerText = 'CINEMATIC: OFF';
+            }
+        }
+
+        // Apply Aesthetic Preset States
+        function applyPreset(presetType) {
+            const presets = {
+                electric: {
+                    waveHeight: 1.8,
+                    waveSpeed: 1.4,
+                    spireHeight: 1.3,
+                    glowIntensity: 2.2,
+                    glowColor: new THREE.Vector3(6/255, 182/255, 212/255) // Cyan
+                },
+                crimson: {
+                    waveHeight: 1.2,
+                    waveSpeed: 0.8,
+                    spireHeight: 1.5,
+                    glowIntensity: 2.5,
+                    glowColor: new THREE.Vector3(239/255, 68/255, 68/255) // Red
+                },
+                toxic: {
+                    waveHeight: 2.5,
+                    waveSpeed: 1.6,
+                    spireHeight: 1.0,
+                    glowIntensity: 1.8,
+                    glowColor: new THREE.Vector3(16/255, 185/255, 129/255) // Emerald Green
+                },
+                ethereal: {
+                    waveHeight: 0.6,
+                    waveSpeed: 0.5,
+                    spireHeight: 1.8,
+                    glowIntensity: 1.2,
+                    glowColor: new THREE.Vector3(245/255, 158/255, 11/255) // Amber
+                }
+            };
+
+            const config = presets[presetType];
+            if (!config) return;
+
+            // Interpolate/Update settings and UI components
+            renderSettings.waveHeight = config.waveHeight;
+            renderSettings.waveSpeed = config.waveSpeed;
+            renderSettings.spireHeight = config.spireHeight;
+            renderSettings.glowIntensity = config.glowIntensity;
+            renderSettings.glowColor = config.glowColor;
+
+            // Sync Slider elements
+            document.getElementById('slider-wave-height').value = config.waveHeight;
+            document.getElementById('slider-wave-speed').value = config.waveSpeed;
+            document.getElementById('slider-spire-height').value = config.spireHeight;
+            document.getElementById('slider-glow-intensity').value = config.glowIntensity;
+
+            document.getElementById('val-wave-height').innerText = config.waveHeight.toFixed(1) + 'm';
+            document.getElementById('val-wave-speed').innerText = config.waveSpeed.toFixed(1) + 'x';
+            document.getElementById('val-spire-height').innerText = config.spireHeight.toFixed(1) + 'x';
+            document.getElementById('val-glow-intensity').innerText = config.glowIntensity.toFixed(1) + 'x';
+
+            // Sync uniforms directly
+            material.uniforms.u_wave_height.value = config.waveHeight;
+            material.uniforms.u_wave_speed.value = config.waveSpeed;
+            material.uniforms.u_spire_height.value = config.spireHeight;
+            material.uniforms.u_glow_intensity.value = config.glowIntensity;
+            material.uniforms.u_glow_color.value = config.glowColor;
+        }
+
+        // Setting window color from color dot buttons
+        function setGlowColor(r, g, b) {
+            renderSettings.glowColor.set(r/255, g/255, b/255);
+            material.uniforms.u_glow_color.value = renderSettings.glowColor;
+        }
+
+        // Performance / Resolution scaler adjustment
+        function setResolutionScale(scale) {
+            renderSettings.resolutionScale = scale;
+            
+            // Adjust renderer target
+            renderer.setPixelRatio(window.devicePixelRatio * scale);
+            material.uniforms.u_resolution.value.set(window.innerWidth * scale, window.innerHeight * scale);
+            
+            // Update UI classes
+            const btns = document.querySelectorAll('.res-btn');
+            btns.forEach(btn => {
+                btn.className = "res-btn text-[10px] px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
+                if (btn.innerText === scale + 'x') {
+                    btn.className = "res-btn text-[10px] px-2 py-0.5 rounded text-slate-400 hover:text-white transition bg-purple-950/60 border border-purple-800/40 text-purple-300";
+                }
+            });
+        }
+
+        // Re-calculate view dimensions
+        function onWindowResize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            material.uniforms.u_resolution.value.set(width * renderSettings.resolutionScale, height * renderSettings.resolutionScale);
+        }
+
+        // Core dynamic lightning trigger sequence
+        function triggerLightningStrike() {
+            // Screen flash overlay pulse
+            const flashDiv = document.getElementById('lightning-flash');
+            
+            // Generate lightning strike data
+            renderSettings.lightningFlash = 1.6 + Math.random() * 0.8;
+            flashDiv.style.opacity = '0.7';
+
+            // Fast double strike illusion
+            setTimeout(() => {
+                flashDiv.style.opacity = '0.0';
+                setTimeout(() => {
+                    flashDiv.style.opacity = '0.4';
+                    setTimeout(() => {
+                        flashDiv.style.opacity = '0.0';
+                    }, 80);
+                }, 100);
+            }, 60);
+
+            // Compute virtual distance (determines volume and physical travel time delay)
+            const distance = 0.1 + Math.random() * 0.9; // 0 (near, loud) to 1 (far, quiet rumble)
+            audioEngine.triggerThunder(distance);
+        }
+
+        // FPS measurement variables
+        let lastTime = 0;
+        let frameCount = 0;
+        const fpsCounter = document.getElementById('fps-counter');
+
+        // Infinite Render Engine Tick Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsed = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            // Calculate Frame Rates
+            frameCount++;
+            if (Date.now() - lastTime >= 1000) {
+                fpsCounter.innerText = frameCount + ' FPS';
+                frameCount = 0;
+                lastTime = Date.now();
+            }
+
+            // Exponential Decay Lightning Flash Uniform
+            if (renderSettings.lightningFlash > 0.0) {
+                renderSettings.lightningFlash -= delta * 3.8;
+                if (renderSettings.lightningFlash < 0.0) renderSettings.lightningFlash = 0.0;
+            }
+            material.uniforms.u_lightning_flash.value = renderSettings.lightningFlash;
+
+            // Spontaneous Lightning Timer
+            lightningTimer += 0.016; 
+            if (lightningTimer >= nextLightningTime) {
+                triggerLightningStrike();
+                lightningTimer = 0.0;
+                nextLightningTime = 6.0 + Math.random() * 10.0; // Random recurrence bounds
+            }
+
+            // Camera movement system (Orbit or Cinematic auto-pan)
+            if (renderSettings.cinematic) {
+                camAngleX = elapsed * 0.12; 
+                camAngleY = 0.12 + Math.sin(elapsed * 0.2) * 0.08; 
+                camRadius = 45.0 + Math.sin(elapsed * 0.1) * 8.0;
+            }
+
+            // Trigonometric orbital coordinates positioning
+            const camX = camRadius * Math.cos(camAngleX) * Math.cos(camAngleY);
+            const camZ = camRadius * Math.sin(camAngleX) * Math.cos(camAngleY);
+            const camY = camRadius * Math.sin(camAngleY) + 12.0; // Offset camera baseline so we look down onto the ocean
+
+            // Smooth cam target movement
+            const targetX = Math.sin(elapsed * 0.05) * 5.0;
+            const targetY = 8.0 + Math.cos(elapsed * 0.08) * 4.0;
+            const targetZ = Math.cos(elapsed * 0.05) * 5.0;
+
+            // Bind Uniform Camera Matrices
+            material.uniforms.u_time.value = elapsed;
+            material.uniforms.u_cam_pos.value.set(camX, camY, camZ);
+            material.uniforms.u_cam_target.value.set(targetX, targetY, targetZ);
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize App on Document Ready
+        window.onload = function() {
+            initScene();
+        };
+    </script>
+</body>
+</html>
