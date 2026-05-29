@@ -2,15 +2,21 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>5000 Dias - Contagem Regressiva · O Fim do Trabalho Como Conhecemos</title>
     <style>
+        @font-face {
+            font-family: 'DS-Digital';
+            src: url('https://ivansouza.github.io/Psico/DS-DIGI.TTF') format('truetype');
+            font-display: swap;
+        }
+
         * { box-sizing: border-box; }
 
         body {
             background-color: #000;
             color: #fff;
-            font-family: 'Courier New', monospace;
+            font-family: Arial, Helvetica, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
@@ -71,10 +77,9 @@
         }
 
         .time-display {
-            font-size: 2.5em;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            letter-spacing: 2px;
+            font-size: 2.8em;
+            font-family: 'DS-Digital', monospace;
+            letter-spacing: 3px;
             white-space: nowrap;
             overflow: hidden;
         }
@@ -112,7 +117,7 @@
         @media (max-width: 480px) {
             h1 { font-size: 1.3em; }
             #container { padding: 12px; max-width: 98vw; }
-            .time-display { font-size: 1.0em; letter-spacing: 1px; }
+            .time-display { font-size: 1.3em; letter-spacing: 1px; }
             .time-label { font-size: 0.8em; letter-spacing: 1px; }
             #flux-label { font-size: 0.65em; top: -14px; padding: 3px 8px; }
             #article-link { font-size: 0.7em; }
