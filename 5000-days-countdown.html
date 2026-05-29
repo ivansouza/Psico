@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5000 Days Countdown - End of Work As We Know It</title>
+    <link href="https://fonts.googleapis.com/css2?family=Digital-7&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Digital-7', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #container {
+            text-align: center;
+            padding: 30px;
+            border: 4px solid #333;
+            border-radius: 5px;
+            background: #111;
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.3), inset 0 0 10px #000;
+            max-width: 600px;
+            position: relative;
+        }
+
+        #flux-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1em;
+            color: #ffff00;
+            text-shadow: 0 0 5px #ffff00;
+            background: #222;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #ffcc00;
+            text-shadow: 0 0 10px #ff0000;
+            margin-bottom: 20px;
+        }
+
+        .time-row {
+            margin-bottom: 20px;
+            text-align: left;
+            padding: 10px;
+            background: #000;
+            border-radius: 5px;
+            box-shadow: inset 0 0 10px #333;
+        }
+
+        .time-label {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .time-display {
+            font-size: 2.5em;
+            font-family: 'Digital-7', monospace;
+            letter-spacing: 4px;
+        }
+
+        #destination .time-label { color: #ff0000; }
+        #destination .time-display { color: #ff0000; text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000; }
+
+        #present .time-label { color: #00ff00; }
+        #present .time-display { color: #00ff00; text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00; }
+
+        #departed .time-label { color: #ffff00; }
+        #departed .time-display { color: #ffff00; text-shadow: 0 0 5px #ffff00, 0 0 10px #ffff00; }
+
+        #article-link {
+            margin-top: 30px;
+            font-size: 1em;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        a { color: inherit; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(45deg, #111, #111 5px, #222 5px, #222 10px);
+            opacity: 0.2;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="flux-label">Flux Capacitor Activated</div>
+        <h1>5000 Days Time Circuits</h1>
+        <div class="time-row" id="destination">
+            <div class="time-label">Destination Time</div>
+            <div class="time-display">SEP 03 2039 12:00 AM</div>
+        </div>
+        <div class="time-row" id="present">
+            <div class="time-label">Time Remaining</div>
+            <div class="time-display" id="countdown-display">0000 : 00 : 00 : 00</div>
+        </div>
+        <div class="time-row" id="departed">
+            <div class="time-label">Last Time Departed</div>
+            <div class="time-display">DEC 25 2025 12:00 AM</div>
+        </div>
+        <div id="article-link">Based on the article: <a href="https://readmultiplex.com/2025/12/24/you-have-5000-days-how-to-navigate-the-end-of-work-as-we-know-it-part-1/" target="_blank">You Have 5000 Days: How To Navigate The End Of Work As We Know It - Part 1</a></div>
+    </div>
+
+    <script>
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const targetDate = new Date('2039-09-03T00:00:00').getTime();
+            const difference = targetDate - now;
+
+            if (difference < 0) {
+                document.getElementById('countdown-display').innerText = '0000 : 00 : 00 : 00';
+                return;
+            }
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24)).toString().padStart(4, '0');
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0');
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+            document.getElementById('countdown-display').innerText = `${days} : ${hours} : ${minutes} : ${seconds}`;
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+</body>
+</html>
