@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>5000 Dias - Contagem Regressiva · O Fim do Trabalho Como Conhecemos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing: border-box; }
+
         body {
             background-color: #000;
             color: #fff;
-            font-family: 'Orbitron', monospace;
+            font-family: 'Courier New', monospace;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             overflow: hidden;
         }
 
@@ -27,6 +28,7 @@
             background: #111;
             box-shadow: 0 0 20px rgba(255, 255, 0, 0.3), inset 0 0 10px #000;
             max-width: 600px;
+            width: 100%;
             position: relative;
         }
 
@@ -41,6 +43,7 @@
             background: #222;
             padding: 5px 10px;
             border-radius: 5px;
+            white-space: nowrap;
         }
 
         h1 {
@@ -48,15 +51,7 @@
             color: #ffcc00;
             text-shadow: 0 0 10px #ff0000;
             margin-bottom: 20px;
-        }
-
-        @media (max-width: 480px) {
-            h1 { font-size: 1.4em; }
-            #container { padding: 15px; max-width: 95vw; }
-            .time-display { font-size: 1.1em; letter-spacing: 1px; }
-            .time-label { font-size: 0.9em; }
-            #flux-label { font-size: 0.75em; top: -15px; padding: 3px 8px; }
-            #article-link { font-size: 0.75em; }
+            line-height: 1.2;
         }
 
         .time-row {
@@ -77,10 +72,11 @@
 
         .time-display {
             font-size: 2.5em;
-            font-family: 'Orbitron', monospace;
-            letter-spacing: 4px;
-            display: block;
-            width: 100%;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         #destination .time-label { color: #ff0000; }
@@ -110,6 +106,17 @@
             background: repeating-linear-gradient(45deg, #111, #111 5px, #222 5px, #222 10px);
             opacity: 0.2;
             pointer-events: none;
+        }
+
+        /* Mobile portrait */
+        @media (max-width: 480px) {
+            h1 { font-size: 1.3em; }
+            #container { padding: 12px; max-width: 98vw; }
+            .time-display { font-size: 1.0em; letter-spacing: 1px; }
+            .time-label { font-size: 0.8em; letter-spacing: 1px; }
+            #flux-label { font-size: 0.65em; top: -14px; padding: 3px 8px; }
+            #article-link { font-size: 0.7em; }
+            .time-row { padding: 8px; margin-bottom: 12px; }
         }
     </style>
 </head>
