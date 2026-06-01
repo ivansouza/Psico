@@ -120,8 +120,8 @@
 
 <script>
   const map = L.map('map', {
-    center: [-15.8482, -48.0121],
-    zoom: 16,
+    center: [-15.8675, -48.0163],
+    zoom: 17,
     zoomControl: true
   });
 
@@ -138,11 +138,11 @@
 
   // ---- Farmácias ----
   const farmacias = [
-    { name: 'Drogaria Rosário (Filial 466)', lat: -15.8475, lng: -48.0130, addr: 'SHA Conjunto 4' },
-    { name: 'Drogaria Rosário (Filial 345)', lat: -15.8490, lng: -48.0110, addr: 'SHA Conjunto 4' },
-    { name: 'Drogasil Arniqueira', lat: -15.8488, lng: -48.0135, addr: 'SHA Conjunto 4' },
-    { name: 'Drogaria Rina', lat: -15.8465, lng: -48.0120, addr: 'SHA Conjunto 4' },
-    { name: 'Drogaria Unicom', lat: -15.8495, lng: -48.0115, addr: 'SHA Conjunto 4' },
+    { name: 'Drogaria Rosário (Filial 466)', lat: -15.8665, lng: -48.0170, addr: 'Próx. Chácaras 58-60' },
+    { name: 'Drogaria Rosário (Filial 345)', lat: -15.8680, lng: -48.0150, addr: 'Próx. Chácara 75' },
+    { name: 'Drogasil Arniqueira', lat: -15.8678, lng: -48.0180, addr: 'Próx. Chácara 77' },
+    { name: 'Drogaria Rina', lat: -15.8660, lng: -48.0155, addr: 'Próx. Chácara 58' },
+    { name: 'Drogaria Unicom', lat: -15.8685, lng: -48.0160, addr: 'Próx. Chácara 76' },
   ];
   farmacias.forEach(f => {
     L.marker([f.lat, f.lng], { icon: iconPharmacy })
@@ -152,10 +152,10 @@
 
   // ---- Comércio ----
   const comercios = [
-    { name: 'Mercado do Conjunto 4', lat: -15.8480, lng: -48.0125, desc: 'Supermercado local' },
-    { name: 'Padaria Arniqueira', lat: -15.8478, lng: -48.0115, desc: 'Padaria e conveniência' },
-    { name: 'Academia Fit', lat: -15.8492, lng: -48.0130, desc: 'Academia do bairro' },
-    { name: 'Feira do Areal', lat: -15.8505, lng: -48.0095, desc: 'Feira permanente' },
+    { name: 'Mercado Local', lat: -15.8670, lng: -48.0175, desc: 'Supermercado — Chácaras 59/60' },
+    { name: 'Padaria Arniqueira', lat: -15.8682, lng: -48.0155, desc: 'Padaria e conveniência' },
+    { name: 'Academia Fit', lat: -15.8668, lng: -48.0185, desc: 'Academia do bairro' },
+    { name: 'Feira do Areal', lat: -15.8695, lng: -48.0140, desc: 'Feira permanente' },
   ];
   comercios.forEach(c => {
     L.marker([c.lat, c.lng], { icon: iconCommerce })
@@ -165,10 +165,12 @@
 
   // ---- Pontos de Interesse ----
   const pontos = [
-    { name: 'SHA Conjunto 4 (Centro)', lat: -15.8482, lng: -48.0121, desc: 'Ponto central do conjunto (Google Maps)' },
-    { name: 'Associação de Moradores', lat: -15.8470, lng: -48.0130, desc: 'Chácaras 59/60' },
-    { name: 'Administração Regional', lat: -15.8460, lng: -48.0145, desc: 'RA XXXIII — Arniqueira' },
-    { name: 'Ponto de Encontro Comunitário', lat: -15.8498, lng: -48.0105, desc: 'PEC — Área de convivência' },
+    { name: 'Chácaras 58-60 (Centro)', lat: -15.8675, lng: -48.0163, desc: 'Núcleo residencial do SHA Conjunto 4' },
+    { name: 'Chácara 59', lat: -15.8670, lng: -48.0170, desc: 'Residencial' },
+    { name: 'Chácara 60', lat: -15.8665, lng: -48.0160, desc: 'Residencial' },
+    { name: 'Chácara 75/76/77', lat: -15.8685, lng: -48.0175, desc: 'Conjunto de chácaras' },
+    { name: 'Condomínio Oásis', lat: -15.8660, lng: -48.0150, desc: 'Condomínio residencial' },
+    { name: 'Igreja Local', lat: -15.8680, lng: -48.0180, desc: 'Igreja da comunidade' },
   ];
   pontos.forEach(p => {
     L.marker([p.lat, p.lng], { icon: iconInterest })
@@ -178,8 +180,8 @@
 
   // ---- Áreas Verdes ----
   const parques = [
-    { name: 'Praça do Conjunto 4', lat: -15.8485, lng: -48.0115, desc: 'Área de lazer' },
-    { name: 'Parque Ecológico Areal', lat: -15.8510, lng: -48.0085, desc: 'Pista de caminhada e ciclovia' },
+    { name: 'Área Verde Chácaras', lat: -15.8678, lng: -48.0158, desc: 'Espaço aberto do conjunto' },
+    { name: 'Parque Ecológico Areal', lat: -15.8710, lng: -48.0120, desc: 'Pista de caminhada e ciclovia' },
   ];
   parques.forEach(p => {
     L.marker([p.lat, p.lng], { icon: iconPark })
@@ -189,10 +191,10 @@
 
   // ---- Educação / Saúde ----
   const educacao = [
-    { name: 'Escola Classe Vila Areal', lat: -15.8500, lng: -48.0100, desc: 'Escola pública' },
-    { name: 'Centro de Educação Infantil', lat: -15.8475, lng: -48.0140, desc: 'CEI' },
-    { name: 'UBS Arniqueira', lat: -15.8482, lng: -48.0118, desc: 'Unidade Básica de Saúde' },
-    { name: 'Clínica da Família', lat: -15.8468, lng: -48.0135, desc: 'Atendimento familiar' },
+    { name: 'Escola Local', lat: -15.8690, lng: -48.0155, desc: 'Escola pública' },
+    { name: 'Centro de Educação Infantil', lat: -15.8665, lng: -48.0180, desc: 'CEI' },
+    { name: 'UBS Arniqueira', lat: -15.8672, lng: -48.0168, desc: 'Unidade Básica de Saúde' },
+    { name: 'Clínica da Família', lat: -15.8660, lng: -48.0175, desc: 'Atendimento familiar' },
   ];
   educacao.forEach(e => {
     L.marker([e.lat, e.lng], { icon: iconEdu })
@@ -202,8 +204,8 @@
 
   // ---- Limite SHA Conjunto 4 ----
   const bounds = [
-    [-15.851, -48.016],
-    [-15.845, -48.008]
+    [-15.870, -48.020],
+    [-15.864, -48.012]
   ];
   L.rectangle(bounds, {
     color: '#3b82f6',
