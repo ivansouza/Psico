@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mapa Arniqueira DF — Guia Local</title>
+<title>Mapa Arniqueira DF — Guia do Bairro</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -98,8 +98,8 @@
 <body>
 
 <div class="header">
-  <h1>🗺️ Arniqueira — Guia Local</h1>
-  <p>RA XXXIII · Distrito Federal · Pontos de referência, comércio e serviços</p>
+  <h1>🏘️ Setor Habitacional Arniqueira</h1>
+  <p>Brasília · DF · Comércio, farmácias e pontos de interesse</p>
 </div>
 
 <div class="map-container">
@@ -109,19 +109,19 @@
     <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Farmácias</div>
     <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span> Comércio</div>
     <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span> Pontos de Interesse</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> Áreas Verdes / Parques</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> Áreas Verdes</div>
     <div class="legend-item"><span class="legend-dot" style="background:#a855f7"></span> Educação / Saúde</div>
   </div>
 </div>
 
 <div class="footer">
-  Dados: OpenStreetMap · Mapa interativo · Arniqueira DF · 2026
+  Dados: OpenStreetMap · Setor Habitacional Arniqueira · Brasília/DF · 2026
 </div>
 
 <script>
   const map = L.map('map', {
-    center: [-15.8367, -48.0171],
-    zoom: 14,
+    center: [-15.830, -48.015],
+    zoom: 15,
     zoomControl: true
   });
 
@@ -131,18 +131,19 @@
   }).addTo(map);
 
   // ---- Ícones customizados ----
-  const iconPharmacy = L.divIcon({ className: '', html: '<div style="background:#ef4444;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:bold">💊</div>', iconSize: [20,20], iconAnchor: [10,10] });
-  const iconCommerce = L.divIcon({ className: '', html: '<div style="background:#f59e0b;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px">🏪</div>', iconSize: [20,20], iconAnchor: [10,10] });
-  const iconInterest = L.divIcon({ className: '', html: '<div style="background:#3b82f6;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px">📍</div>', iconSize: [20,20], iconAnchor: [10,10] });
-  const iconPark = L.divIcon({ className: '', html: '<div style="background:#22c55e;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px">🌳</div>', iconSize: [20,20], iconAnchor: [10,10] });
-  const iconEdu = L.divIcon({ className: '', html: '<div style="background:#a855f7;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:10px">🏫</div>', iconSize: [20,20], iconAnchor: [10,10] });
+  const iconPharmacy = L.divIcon({ className: '', html: '<div style="background:#ef4444;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">💊</div>', iconSize: [22,22], iconAnchor: [11,11] });
+  const iconCommerce = L.divIcon({ className: '', html: '<div style="background:#f59e0b;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px">🏪</div>', iconSize: [22,22], iconAnchor: [11,11] });
+  const iconInterest = L.divIcon({ className: '', html: '<div style="background:#3b82f6;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px">📍</div>', iconSize: [22,22], iconAnchor: [11,11] });
+  const iconPark = L.divIcon({ className: '', html: '<div style="background:#22c55e;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px">🌳</div>', iconSize: [22,22], iconAnchor: [11,11] });
+  const iconEdu = L.divIcon({ className: '', html: '<div style="background:#a855f7;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px">🏫</div>', iconSize: [22,22], iconAnchor: [11,11] });
 
   // ---- Farmácias ----
   const farmacias = [
-    { name: 'Drogasil Arniqueira', lat: -15.8342, lng: -48.0195, addr: 'SHA Conjunto 4' },
-    { name: 'Drogaria Rosário', lat: -15.8378, lng: -48.0152, addr: 'QD 10, CJ 38, LT 1' },
-    { name: 'Drogaria Camac', lat: -15.8400, lng: -48.0130, addr: 'QS 11, Conjunto G' },
-    { name: 'Drogaria Rina', lat: -15.8355, lng: -48.0205, addr: 'Av. Águas Claras' },
+    { name: 'Drogaria Rosário (Filial 466)', lat: -15.8285, lng: -48.0160, addr: 'SH Arniqueira QD 10, CJ 38, LT 1' },
+    { name: 'Drogaria Rosário (Filial 345)', lat: -15.8295, lng: -48.0145, addr: 'SH Arniqueira' },
+    { name: 'Drogasil Arniqueira', lat: -15.8302, lng: -48.0155, addr: 'SHA Conjunto 4' },
+    { name: 'Drogaria Rina', lat: -15.8310, lng: -48.0170, addr: 'Av. Águas Claras, Arniqueira' },
+    { name: 'Drogaria Unicom', lat: -15.8290, lng: -48.0180, addr: 'SH Arniqueira' },
   ];
   farmacias.forEach(f => {
     L.marker([f.lat, f.lng], { icon: iconPharmacy })
@@ -152,10 +153,10 @@
 
   // ---- Comércio ----
   const comercios = [
-    { name: 'Areal — Centro Comercial', lat: -15.8385, lng: -48.0140, desc: 'Principal centro comercial da região' },
-    { name: 'Feira Permanente Arniqueira', lat: -15.8360, lng: -48.0180, desc: 'Feira local com alimentos e artesanato' },
-    { name: 'ADE — Indústrias', lat: -15.8420, lng: -48.0250, desc: 'Área de Desenvolvimento Econômico' },
-    { name: 'Supermercado Local', lat: -15.8370, lng: -48.0165, desc: 'Comércio de alimentos e utilidades' },
+    { name: 'Mercado Local', lat: -15.8292, lng: -48.0158, desc: 'Supermercado de bairro' },
+    { name: 'Padaria Arniqueira', lat: -15.8305, lng: -48.0140, desc: 'Padaria e conveniência' },
+    { name: 'Academia Fit', lat: -15.8288, lng: -48.0165, desc: 'Academia do bairro' },
+    { name: 'Feira do Areal', lat: -15.8320, lng: -48.0130, desc: 'Feira permanente' },
   ];
   comercios.forEach(c => {
     L.marker([c.lat, c.lng], { icon: iconCommerce })
@@ -165,10 +166,10 @@
 
   // ---- Pontos de Interesse ----
   const pontos = [
-    { name: 'Estação Arniqueiras (Metrô)', lat: -15.8367, lng: -48.0171, desc: 'Linhas Verde e Laranja' },
-    { name: 'Administração Regional', lat: -15.8350, lng: -48.0190, desc: 'RA XXXIII — Arniqueira' },
-    { name: 'Delegacia de Polícia Civil', lat: -15.8380, lng: -48.0155, desc: 'Segurança pública' },
-    { name: 'CRAS Arniqueira', lat: -15.8390, lng: -48.0145, desc: 'Centro de Referência de Assistência Social — QS 09' },
+    { name: 'Administração Regional', lat: -15.8275, lng: -48.0150, desc: 'RA XXXIII — Arniqueira' },
+    { name: 'Delegacia de Polícia Civil', lat: -15.8280, lng: -48.0168, desc: 'Segurança pública' },
+    { name: 'CRAS Arniqueira', lat: -15.8308, lng: -48.0148, desc: 'Centro de Referência de Assistência Social' },
+    { name: 'Ponto de Encontro Comunitário', lat: -15.8315, lng: -48.0155, desc: 'PEC — Área de convivência' },
   ];
   pontos.forEach(p => {
     L.marker([p.lat, p.lng], { icon: iconInterest })
@@ -176,10 +177,10 @@
       .bindPopup(`<b>📍 ${p.name}</b><br>${p.desc}`);
   });
 
-  // ---- Parques / Áreas Verdes ----
+  // ---- Áreas Verdes ----
   const parques = [
-    { name: 'Parque Ecológico Areal', lat: -15.8405, lng: -48.0120, desc: 'Pista de caminhada, ciclovia, campo society' },
-    { name: 'Parque Urbano Pistão Sul', lat: -15.8430, lng: -48.0220, desc: 'Área de lazer e esportes' },
+    { name: 'Praça Central Arniqueira', lat: -15.8298, lng: -48.0152, desc: 'Área de lazer do bairro' },
+    { name: 'Parque Ecológico Areal', lat: -15.8330, lng: -48.0120, desc: 'Pista de caminhada e ciclovia' },
   ];
   parques.forEach(p => {
     L.marker([p.lat, p.lng], { icon: iconPark })
@@ -189,10 +190,10 @@
 
   // ---- Educação / Saúde ----
   const educacao = [
-    { name: 'Escola Técnica de Brasília', lat: -15.8395, lng: -48.0135, desc: 'Única escola técnica pública do DF — QS 07' },
-    { name: 'UBS QS 08', lat: -15.8408, lng: -48.0148, desc: 'Unidade Básica de Saúde' },
-    { name: 'Clínica da Família', lat: -15.8375, lng: -48.0175, desc: 'QS 05 — Atendimento familiar' },
-    { name: 'CAIC Arniqueira', lat: -15.8388, lng: -48.0160, desc: 'Escola pública' },
+    { name: 'Escola Classe Vila Areal', lat: -15.8312, lng: -48.0135, desc: 'Escola pública' },
+    { name: 'Centro de Educação Infantil', lat: -15.8300, lng: -48.0165, desc: 'CEI — QS 11' },
+    { name: 'UBS Arniqueira', lat: -15.8306, lng: -48.0142, desc: 'Unidade Básica de Saúde' },
+    { name: 'Clínica da Família', lat: -15.8295, lng: -48.0175, desc: 'Atendimento familiar — QS 05' },
   ];
   educacao.forEach(e => {
     L.marker([e.lat, e.lng], { icon: iconEdu })
@@ -200,10 +201,10 @@
       .bindPopup(`<b>🏫 ${e.name}</b><br>${e.desc}`);
   });
 
-  // ---- Limites aproximados da região ----
+  // ---- Limite aproximado do Setor Habitacional Arniqueira ----
   const bounds = [
-    [-15.845, -48.028],
-    [-15.830, -48.008]
+    [-15.834, -48.020],
+    [-15.826, -48.010]
   ];
   L.rectangle(bounds, {
     color: '#3b82f6',
@@ -211,7 +212,7 @@
     fill: false,
     dashArray: '6,6',
     opacity: 0.5
-  }).addTo(map).bindPopup('Limite aproximado da RA Arniqueira');
+  }).addTo(map).bindPopup('Limite aproximado do Setor Habitacional Arniqueira');
 </script>
 </body>
 </html>
