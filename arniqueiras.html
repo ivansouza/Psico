@@ -120,8 +120,8 @@
 
 <script>
   const map = L.map('map', {
-    center: [-15.8586, -48.0086],
-    zoom: 15,
+    center: [-15.8554, -48.0068],
+    zoom: 16,
     zoomControl: true
   });
 
@@ -139,11 +139,11 @@
 
   // ---- Farmácias ----
   const farmacias = [
-    { name: 'Drogaria Rosário (Filial 466)', lat: -15.8580, lng: -48.0090, addr: 'SH Arniqueira QD 10, CJ 38, LT 1' },
-    { name: 'Drogaria Rosário (Filial 345)', lat: -15.8595, lng: -48.0075, addr: 'SH Arniqueira' },
-    { name: 'Drogasil Arniqueira', lat: -15.8575, lng: -48.0100, addr: 'SHA Conjunto 4' },
-    { name: 'Drogaria Rina', lat: -15.8600, lng: -48.0065, addr: 'SH Arniqueira' },
-    { name: 'Drogaria Unicom', lat: -15.8588, lng: -48.0080, addr: 'SH Arniqueira' },
+    { name: 'Drogaria Rosário (Filial 466)', lat: -15.8545, lng: -48.0075, addr: 'Próx. Chácaras 59/60 — SH Arniqueira' },
+    { name: 'Drogaria Rosário (Filial 345)', lat: -15.8560, lng: -48.0055, addr: 'SH Arniqueira' },
+    { name: 'Drogasil Arniqueira', lat: -15.8550, lng: -48.0080, addr: 'SHA Conjunto 4' },
+    { name: 'Drogaria Rina', lat: -15.8565, lng: -48.0050, addr: 'SH Arniqueira' },
+    { name: 'Drogaria Unicom', lat: -15.8548, lng: -48.0070, addr: 'SH Arniqueira' },
   ];
   farmacias.forEach(f => {
     L.marker([f.lat, f.lng], { icon: iconPharmacy })
@@ -153,10 +153,10 @@
 
   // ---- Comércio ----
   const comercios = [
-    { name: 'Mercado Local', lat: -15.8585, lng: -48.0095, desc: 'Supermercado de bairro' },
-    { name: 'Padaria Arniqueira', lat: -15.8590, lng: -48.0070, desc: 'Padaria e conveniência' },
-    { name: 'Academia Fit', lat: -15.8578, lng: -48.0105, desc: 'Academia do bairro' },
-    { name: 'Feira do Areal', lat: -15.8610, lng: -48.0050, desc: 'Feira permanente' },
+    { name: 'Mercado Local', lat: -15.8552, lng: -48.0072, desc: 'Supermercado — próx. Chácaras 59/60' },
+    { name: 'Padaria Arniqueira', lat: -15.8562, lng: -48.0060, desc: 'Padaria e conveniência' },
+    { name: 'Academia Fit', lat: -15.8540, lng: -48.0085, desc: 'Academia do bairro' },
+    { name: 'Feira do Areal', lat: -15.8570, lng: -48.0045, desc: 'Feira permanente' },
   ];
   comercios.forEach(c => {
     L.marker([c.lat, c.lng], { icon: iconCommerce })
@@ -166,10 +166,10 @@
 
   // ---- Pontos de Interesse ----
   const pontos = [
-    { name: 'Administração Regional', lat: -15.8570, lng: -48.0095, desc: 'RA XXXIII — Arniqueira' },
-    { name: 'Delegacia de Polícia Civil', lat: -15.8582, lng: -48.0108, desc: 'Segurança pública' },
-    { name: 'CRAS Arniqueira', lat: -15.8598, lng: -48.0070, desc: 'Centro de Referência de Assistência Social' },
-    { name: 'Ponto de Encontro Comunitário', lat: -15.8605, lng: -48.0060, desc: 'PEC — Área de convivência' },
+    { name: 'Associação de Moradores (Chácara 59/60)', lat: -15.8554, lng: -48.0068, desc: 'SHA Conjunto 1 — Chácaras 59 e 60' },
+    { name: 'Administração Regional', lat: -15.8542, lng: -48.0090, desc: 'RA XXXIII — Arniqueira' },
+    { name: 'Delegacia de Polícia Civil', lat: -15.8568, lng: -48.0085, desc: 'Segurança pública' },
+    { name: 'Ponto de Encontro Comunitário', lat: -15.8558, lng: -48.0055, desc: 'PEC — Área de convivência' },
   ];
   pontos.forEach(p => {
     L.marker([p.lat, p.lng], { icon: iconInterest })
@@ -179,8 +179,8 @@
 
   // ---- Áreas Verdes ----
   const parques = [
-    { name: 'Praça Central Arniqueira', lat: -15.8592, lng: -48.0085, desc: 'Área de lazer do bairro' },
-    { name: 'Parque Ecológico Areal', lat: -15.8620, lng: -48.0040, desc: 'Pista de caminhada e ciclovia' },
+    { name: 'Praça Central Arniqueira', lat: -15.8560, lng: -48.0065, desc: 'Área de lazer — próx. Chácaras 59/60' },
+    { name: 'Parque Ecológico Areal', lat: -15.8585, lng: -48.0030, desc: 'Pista de caminhada e ciclovia' },
   ];
   parques.forEach(p => {
     L.marker([p.lat, p.lng], { icon: iconPark })
@@ -190,10 +190,10 @@
 
   // ---- Educação / Saúde ----
   const educacao = [
-    { name: 'Escola Classe Vila Areal', lat: -15.8602, lng: -48.0065, desc: 'Escola pública' },
-    { name: 'Centro de Educação Infantil', lat: -15.8585, lng: -48.0090, desc: 'CEI' },
-    { name: 'UBS Arniqueira', lat: -15.8595, lng: -48.0075, desc: 'Unidade Básica de Saúde' },
-    { name: 'Clínica da Família', lat: -15.8575, lng: -48.0100, desc: 'Atendimento familiar' },
+    { name: 'Escola Classe Vila Areal', lat: -15.8565, lng: -48.0050, desc: 'Escola pública' },
+    { name: 'Centro de Educação Infantil', lat: -15.8550, lng: -48.0078, desc: 'CEI' },
+    { name: 'UBS Arniqueira', lat: -15.8563, lng: -48.0062, desc: 'Unidade Básica de Saúde' },
+    { name: 'Clínica da Família', lat: -15.8545, lng: -48.0082, desc: 'Atendimento familiar' },
   ];
   educacao.forEach(e => {
     L.marker([e.lat, e.lng], { icon: iconEdu })
@@ -203,8 +203,8 @@
 
   // ---- Limite aproximado do Setor Habitacional Arniqueira ----
   const bounds = [
-    [-15.865, -48.015],
-    [-15.852, -48.002]
+    [-15.858, -48.010],
+    [-15.852, -48.003]
   ];
   L.rectangle(bounds, {
     color: '#3b82f6',
