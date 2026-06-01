@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RemoveWatermark — Remover Marcas d'Água</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 24px;
+    text-align: center;
+    border-bottom: 1px solid #1e293b;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  .upload-area {
+    border: 2px dashed #334155;
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(30, 41, 59, 0.5);
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.05);
+  }
+  .upload-area .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  .upload-area h3 {
+    font-size: 18px;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+  }
+  .upload-area p {
+    color: #64748b;
+    font-size: 13px;
+  }
+  .upload-area input { display: none; }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    align-items: center;
+  }
+  .controls label {
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .controls input[type="range"] {
+    flex: 1;
+    min-width: 120px;
+    accent-color: #38bdf8;
+  }
+  .controls .value {
+    font-size: 13px;
+    color: #38bdf8;
+    font-weight: 600;
+    min-width: 30px;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    color: #fff;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: #334155;
+    color: #e2e8f0;
+  }
+  .btn-secondary:hover { background: #475569; }
+
+  .preview-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  @media (max-width: 600px) {
+    .preview-area { grid-template-columns: 1fr; }
+  }
+
+  .preview-card {
+    background: #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #334155;
+  }
+  .preview-card .label {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    border-bottom: 1px solid #334155;
+    background: rgba(15, 23, 42, 0.5);
+  }
+  .preview-card .image-wrap {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    background: repeating-conic-gradient(#1a1a2e 0% 25%, #16213e 0% 50%) 50% / 20px 20px;
+  }
+  .preview-card img, .preview-card canvas {
+    max-width: 100%;
+    max-height: 350px;
+    border-radius: 4px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .info-box {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 12px;
+    border: 1px solid #334155;
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+  .info-box strong { color: #e2e8f0; }
+
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: #475569;
+    border-top: 1px solid #1e293b;
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧹 RemoveWatermark</h1>
+  <p>Remova marcas d'água de imagens — 100% no seu navegador</p>
+</div>
+
+<div class="container">
+  <div class="upload-area" id="uploadArea">
+    <div class="icon">📁</div>
+    <h3>Clique ou arraste uma imagem aqui</h3>
+    <p>Suporta JPG, PNG, WEBP — Processamento local, nada é enviado</p>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <div class="controls" id="controls" style="display:none">
+    <label>Intensidade:</label>
+    <input type="range" id="intensity" min="1" max="10" value="5">
+    <span class="value" id="intensityValue">5</span>
+    <label>Cor da marca:</label>
+    <select id="watermarkColor" style="background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:13px">
+      <option value="auto">Automático</option>
+      <option value="white">Branca</option>
+      <option value="black">Preta</option>
+      <option value="gray">Cinza</option>
+    </select>
+  </div>
+
+  <div class="preview-area" id="preview" style="display:none">
+    <div class="preview-card">
+      <div class="label">📷 Original</div>
+      <div class="image-wrap"><img id="originalImg" alt="Original"></div>
+    </div>
+    <div class="preview-card">
+      <div class="label">✨ Sem Marca</div>
+      <div class="image-wrap"><canvas id="resultCanvas"></canvas></div>
+    </div>
+  </div>
+
+  <div class="actions" id="actions" style="display:none">
+    <button class="btn btn-primary" id="processBtn">✨ Remover Marca</button>
+    <button class="btn btn-secondary" id="downloadBtn">⬇️ Baixar</button>
+    <button class="btn btn-secondary" id="resetBtn">🔄 Nova Imagem</button>
+  </div>
+
+  <div class="info-box">
+    <strong>🧠 Como funciona:</strong> O algoritmo identifica pixels com aparência de marca d'água (cores dessaturadas, brilho elevado) e os substitui por pixels vizinhos. Processamento 100% local via Canvas API — <strong>nada é enviado para servidores</strong>. Ideal para marcas d'água semitransparentes claras ou escuras.
+  </div>
+</div>
+
+<div class="footer">
+  RemoveWatermark · Processamento local no navegador · 2026
+</div>
+
+<script>
+  const uploadArea = document.getElementById('uploadArea');
+  const fileInput = document.getElementById('fileInput');
+  const originalImg = document.getElementById('originalImg');
+  const resultCanvas = document.getElementById('resultCanvas');
+  const ctx = resultCanvas.getContext('2d');
+  const preview = document.getElementById('preview');
+  const controls = document.getElementById('controls');
+  const actions = document.getElementById('actions');
+  const processBtn = document.getElementById('processBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const intensitySlider = document.getElementById('intensity');
+  const intensityValue = document.getElementById('intensityValue');
+  const colorSelect = document.getElementById('watermarkColor');
+
+  let currentImage = null;
+
+  // Upload handlers
+  uploadArea.addEventListener('click', () => fileInput.click());
+  uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) loadImage(e.target.files[0]);
+  });
+
+  intensitySlider.addEventListener('input', () => {
+    intensityValue.textContent = intensitySlider.value;
+    if (currentImage) processWatermark();
+  });
+  colorSelect.addEventListener('change', () => {
+    if (currentImage) processWatermark();
+  });
+
+  function loadImage(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        currentImage = img;
+        originalImg.src = e.target.result;
+        preview.style.display = 'grid';
+        controls.style.display = 'flex';
+        actions.style.display = 'flex';
+        uploadArea.style.display = 'none';
+        processWatermark();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function processWatermark() {
+    if (!currentImage) return;
+    const intensity = parseInt(intensitySlider.value);
+    const mode = colorSelect.value;
+
+    const w = currentImage.naturalWidth;
+    const h = currentImage.naturalHeight;
+    resultCanvas.width = w;
+    resultCanvas.height = h;
+
+    // Draw original
+    ctx.drawImage(currentImage, 0, 0);
+
+    // Get pixel data
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+
+    // Detect watermark color from corners (sample)
+    let targetR = 255, targetG = 255, targetB = 255;
+    if (mode === 'white') { targetR = 255; targetG = 255; targetB = 255; }
+    else if (mode === 'black') { targetR = 0; targetG = 0; targetB = 0; }
+    else if (mode === 'gray') { targetR = 128; targetG = 128; targetB = 128; }
+    else if (mode === 'auto') {
+      // Sample corners to guess watermark color
+      let sr = 0, sg = 0, sb = 0, count = 0;
+      const sample = (x, y) => {
+        const idx = (y * w + x) * 4;
+        sr += data[idx]; sg += data[idx+1]; sb += data[idx+2];
+        count++;
+      };
+      for (let i = 0; i < 5; i++) {
+        sample(i * 10, 0);
+        sample(w - 1 - i * 10, 0);
+        sample(i * 10, h - 1);
+        sample(w - 1 - i * 10, h - 1);
+      }
+      targetR = sr / count; targetG = sg / count; targetB = sb / count;
+    }
+
+    const threshold = 20 + intensity * 8;
+    const radius = Math.max(2, Math.floor(intensity * 0.8));
+
+    // Process each pixel
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 4;
+        const r = data[idx], g = data[idx+1], b = data[idx+2];
+
+        // Check if pixel looks like watermark (close to target color, high brightness)
+        const dr = Math.abs(r - targetR);
+        const dg = Math.abs(g - targetG);
+        const db = Math.abs(b - targetB);
+        const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+        const brightness = (r + g + b) / 3;
+
+        const isWatermark = dist < threshold && brightness > 100;
+
+        if (isWatermark) {
+          // Sample nearby pixels to fill
+          let sr = 0, sg = 0, sb = 0, sc = 0;
+          for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const nx = Math.min(w-1, Math.max(0, x + dx));
+              const ny = Math.min(h-1, Math.max(0, y + dy));
+              const nidx = (ny * w + nx) * 4;
+              const nr = data[nidx], ng = data[nidx+1], nb = data[nidx+2];
+              const ndr = Math.abs(nr - targetR);
+              const ndg = Math.abs(ng - targetG);
+              const ndb = Math.abs(nb - targetB);
+              const ndist = Math.sqrt(ndr*ndr + ndg*ndg + ndb*ndb);
+              if (ndist >= threshold || (nr + ng + nb) / 3 <= 100) {
+                sr += nr; sg += ng; sb += nb; sc++;
+              }
+            }
+          }
+          if (sc > 0) {
+            data[idx] = sr / sc;
+            data[idx+1] = sg / sc;
+            data[idx+2] = sb / sc;
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    resultCanvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sem-marca-dagua.png';
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    currentImage = null;
+    preview.style.display = 'none';
+    controls.style.display = 'none';
+    actions.style.display = 'none';
+    uploadArea.style.display = 'block';
+    fileInput.value = '';
+  });
+</script>
+</body>
+</html>
