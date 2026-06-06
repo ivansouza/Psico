@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Tabela Periódica Interativa — Química</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
@@ -17,34 +17,30 @@
     --lantanideo: #f783ac; --actinideo: #e599f7;
   }
   body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  nav {
-    padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
-    background: rgba(10,10,26,0.8); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
-  }
-  nav .logo { font-weight: 800; font-size: 18px; color: var(--accent); }
+  nav { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,10,26,0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  nav .logo { font-weight: 800; font-size: 16px; color: var(--accent); }
   nav .logo span { color: var(--text); }
-  nav .stats { display: flex; gap: 20px; font-size: 12px; color: var(--text-muted); }
+  nav .stats { font-size: 11px; color: var(--text-muted); }
   nav .stats strong { color: var(--text); }
-  .hero { text-align: center; padding: 50px 20px 20px; }
-  .hero h1 { font-size: clamp(28px,4vw,48px); font-weight: 800; }
+  .hero { text-align: center; padding: 24px 16px 12px; }
+  .hero h1 { font-size: clamp(20px,5vw,40px); font-weight: 800; }
   .hero h1 span { color: var(--accent); }
-  .hero p { color: var(--text-muted); margin-top: 8px; font-size: 14px; }
-  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; padding: 8px 20px 16px; max-width: 1200px; margin: 0 auto; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-muted); }
-  .legend-item .dot { width: 10px; height: 10px; border-radius: 3px; }
-  .table-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 10px 10px; overflow-x: auto; }
-  .periodic-table { display: grid; grid-template-columns: repeat(18,1fr); gap: 3px; min-width: 900px; }
-  .element {
-    aspect-ratio: 1; border-radius: 6px; padding: 3px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.2s; border: 1px solid transparent; position: relative; min-height: 52px;
-  }
-  .element:hover { transform: scale(1.15); z-index: 10; border-color: rgba(255,255,255,0.3); box-shadow: 0 0 20px rgba(68,136,255,0.3); }
-  .element .number { font-size: 7px; color: rgba(255,255,255,0.5); position: absolute; top: 2px; left: 3px; }
-  .element .symbol { font-size: clamp(11px,1.1vw,16px); font-weight: 700; line-height: 1; }
-  .element .name { font-size: 5.5px; color: rgba(255,255,255,0.7); margin-top: 1px; white-space: nowrap; }
-  .element .mass { font-size: 5.5px; color: rgba(255,255,255,0.4); position: absolute; bottom: 2px; right: 3px; }
+  .hero p { color: var(--text-muted); margin-top: 4px; font-size: 12px; }
+  .search-box { max-width: 600px; margin: 0 auto 10px; padding: 0 16px; }
+  .search-box input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; padding: 4px 12px 10px; max-width: 1200px; margin: 0 auto; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-muted); }
+  .legend-item .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .table-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 8px 8px; }
+  .periodic-table { display: grid; grid-template-columns: repeat(18,1fr); gap: 2px; }
+  .element { aspect-ratio: 1; border-radius: 4px; padding: 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; position: relative; }
+  .element:hover { transform: scale(1.12); z-index: 10; border-color: rgba(255,255,255,0.3); box-shadow: 0 0 15px rgba(68,136,255,0.3); }
+  .element .number { font-size: 6px; color: rgba(255,255,255,0.4); position: absolute; top: 1px; left: 2px; }
+  .element .symbol { font-weight: 700; line-height: 1; }
+  .element .name { font-size: 5px; color: rgba(255,255,255,0.6); margin-top: 1px; white-space: nowrap; }
+  .element .mass { font-size: 5px; color: rgba(255,255,255,0.3); position: absolute; bottom: 1px; right: 2px; }
   .cat-metal-alcalino { background: var(--metal-alcalino); color: #1a1a1a; }
   .cat-alcalino-terroso { background: var(--alcalino-terroso); color: #1a1a1a; }
   .cat-metal-transicao { background: var(--metal-transicao); color: #1a1a1a; }
@@ -57,54 +53,62 @@
   .cat-actinideo { background: var(--actinideo); color: #1a1a1a; }
   .element.empty { background: transparent; cursor: default; }
   .element.empty:hover { transform: none; box-shadow: none; border-color: transparent; }
-  .series-section { max-width: 1200px; margin: 8px auto 30px; padding: 0 10px; }
-  .series-section .label { font-size: 10px; color: var(--text-muted); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 2px; }
-  .series-grid { display: grid; grid-template-columns: repeat(15,1fr); gap: 3px; min-width: 700px; }
-  .series-grid .element { min-height: 45px; }
-  .modal-overlay { display: none; position: fixed; top:0;left:0;right:0;bottom:0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
+  .series-section { max-width: 1200px; margin: 4px auto 20px; padding: 0 8px; }
+  .series-section .label { font-size: 9px; color: var(--text-muted); text-align: center; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .series-grid { display: grid; grid-template-columns: repeat(15,1fr); gap: 2px; }
+  .mobile-list { display: none; padding: 0 12px 20px; max-width: 600px; margin: 0 auto; }
+  .mobile-list .el-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 4px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+  .mobile-list .el-row:active { opacity: 0.8; }
+  .mobile-list .el-row .m-sym { font-size: 16px; font-weight: 700; width: 32px; text-align: center; padding: 4px 0; border-radius: 6px; flex-shrink: 0; }
+  .mobile-list .el-row .m-info { flex: 1; min-width: 0; }
+  .mobile-list .el-row .m-info .m-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-list .el-row .m-info .m-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .mobile-list .el-row .m-num { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+  .modal-overlay { display: none; position: fixed; top:0;left:0;right:0;bottom:0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.active { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 380px; width: 90%; position: relative; animation: modalIn 0.3s ease; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 360px; width: 100%; position: relative; animation: modalIn 0.25s ease; }
   @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal .close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+  .modal .close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px; }
   .modal .close:hover { color: var(--text); }
-  .modal .modal-symbol { font-size: 42px; font-weight: 800; margin-bottom: 2px; }
-  .modal .modal-name { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
-  .modal .modal-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+  .modal .modal-symbol { font-size: 36px; font-weight: 800; margin-bottom: 2px; }
+  .modal .modal-name { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .modal .modal-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
   .modal .modal-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .modal .modal-info .item { background: var(--card); border-radius: 8px; padding: 8px 10px; }
-  .modal .modal-info .item .label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-  .modal .modal-info .item .value { font-size: 13px; font-weight: 600; margin-top: 2px; }
-  footer { text-align: center; padding: 24px 20px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); }
+  .modal .modal-info .item .label { font-size: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .modal .modal-info .item .value { font-size: 12px; font-weight: 600; margin-top: 2px; }
+  footer { text-align: center; padding: 20px; font-size: 10px; color: var(--text-muted); border-top: 1px solid var(--border); }
+  @media (min-width: 701px) {
+    .periodic-table { min-width: 700px; }
+    .element { min-height: 44px; }
+    .element .symbol { font-size: clamp(10px,1vw,14px); }
+    .series-grid .element { min-height: 38px; }
+    .mobile-list { display: none !important; }
+    .search-box { display: none; }
+  }
   @media (max-width: 700px) {
-    .periodic-table { gap: 2px; min-width: unset; }
-    .element { min-height: 36px; padding: 2px; }
-    .element .symbol { font-size: 9px; }
-    .element .name, .element .mass, .element .number { display: none; }
-    .series-grid { gap: 2px; }
-    .series-grid .element { min-height: 30px; }
-    .series-grid .element .name { display: none; }
+    .table-wrapper, .series-section { display: none; }
+    .mobile-list { display: block; }
+    .hero { padding: 16px 16px 8px; }
+    .hero h1 { font-size: 20px; }
+    .hero p { font-size: 11px; }
+    .legend { gap: 3px 8px; }
+    .legend-item { font-size: 8px; }
+    .legend-item .dot { width: 6px; height: 6px; }
+    nav { padding: 10px 14px; }
+    nav .logo { font-size: 14px; }
   }
 </style>
 </head>
 <body>
-<nav>
-  <div class="logo">Quí<span>mica</span></div>
-  <div class="stats"><span><strong>118</strong> Elementos</span></div>
-</nav>
-<div class="hero">
-  <h1>Tabela Periódica <span>Interativa</span></h1>
-  <p>118 elementos &bull; Cores por categoria &bull; Clique para detalhes</p>
-</div>
+<nav><div class="logo">Quí<span>mica</span></div><div class="stats"><span><strong>118</strong> Elementos</span></div></nav>
+<div class="hero"><h1>Tabela Periódica <span>Interativa</span></h1><p>118 elementos &bull; Cores por categoria &bull; Clique para detalhes</p></div>
 <div class="legend" id="legend"></div>
+<div class="search-box"><input type="text" id="searchInput" placeholder="Buscar elemento..." autocomplete="off"></div>
 <div class="table-wrapper"><div class="periodic-table" id="table"></div></div>
-<div class="series-section">
-  <div class="label">S&eacute;rie dos Lantan&iacute;deos</div>
-  <div class="series-grid" id="lantanideos"></div>
-</div>
-<div class="series-section">
-  <div class="label">S&eacute;rie dos Actin&iacute;deos</div>
-  <div class="series-grid" id="actinideos"></div>
-</div>
+<div class="series-section"><div class="label">Série dos Lantanídeos</div><div class="series-grid" id="lantanideos"></div></div>
+<div class="series-section"><div class="label">Série dos Actinídeos</div><div class="series-grid" id="actinideos"></div></div>
+<div class="mobile-list" id="mobileList"></div>
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <button class="close" id="modalClose">&times;</button>
@@ -117,143 +121,15 @@
 <footer>Feito por Ivan Souza</footer>
 <script>
 const ELEMENTS=[
-{n:1,sym:"H",name:"Hidrogênio",mass:"1.008",cat:"nao-metal",row:1,col:1},
-{n:2,sym:"He",name:"Hélio",mass:"4.003",cat:"gas-nobre",row:1,col:18},
-{n:3,sym:"Li",name:"Lítio",mass:"6.941",cat:"metal-alcalino",row:2,col:1},
-{n:4,sym:"Be",name:"Berílio",mass:"9.012",cat:"alcalino-terroso",row:2,col:2},
-{n:5,sym:"B",name:"Boro",mass:"10.811",cat:"semimetal",row:2,col:13},
-{n:6,sym:"C",name:"Carbono",mass:"12.011",cat:"nao-metal",row:2,col:14},
-{n:7,sym:"N",name:"Nitrogênio",mass:"14.007",cat:"nao-metal",row:2,col:15},
-{n:8,sym:"O",name:"Oxigênio",mass:"15.999",cat:"nao-metal",row:2,col:16},
-{n:9,sym:"F",name:"Flúor",mass:"18.998",cat:"halogenio",row:2,col:17},
-{n:10,sym:"Ne",name:"Neônio",mass:"20.180",cat:"gas-nobre",row:2,col:18},
-{n:11,sym:"Na",name:"Sódio",mass:"22.990",cat:"metal-alcalino",row:3,col:1},
-{n:12,sym:"Mg",name:"Magnésio",mass:"24.305",cat:"alcalino-terroso",row:3,col:2},
-{n:13,sym:"Al",name:"Alumínio",mass:"26.982",cat:"metal-pobre",row:3,col:13},
-{n:14,sym:"Si",name:"Silício",mass:"28.086",cat:"semimetal",row:3,col:14},
-{n:15,sym:"P",name:"Fósforo",mass:"30.974",cat:"nao-metal",row:3,col:15},
-{n:16,sym:"S",name:"Enxofre",mass:"32.065",cat:"nao-metal",row:3,col:16},
-{n:17,sym:"Cl",name:"Cloro",mass:"35.453",cat:"halogenio",row:3,col:17},
-{n:18,sym:"Ar",name:"Argônio",mass:"39.948",cat:"gas-nobre",row:3,col:18},
-{n:19,sym:"K",name:"Potássio",mass:"39.098",cat:"metal-alcalino",row:4,col:1},
-{n:20,sym:"Ca",name:"Cálcio",mass:"40.078",cat:"alcalino-terroso",row:4,col:2},
-{n:21,sym:"Sc",name:"Escândio",mass:"44.956",cat:"metal-transicao",row:4,col:3},
-{n:22,sym:"Ti",name:"Titânio",mass:"47.867",cat:"metal-transicao",row:4,col:4},
-{n:23,sym:"V",name:"Vanádio",mass:"50.942",cat:"metal-transicao",row:4,col:5},
-{n:24,sym:"Cr",name:"Cromo",mass:"51.996",cat:"metal-transicao",row:4,col:6},
-{n:25,sym:"Mn",name:"Manganês",mass:"54.938",cat:"metal-transicao",row:4,col:7},
-{n:26,sym:"Fe",name:"Ferro",mass:"55.845",cat:"metal-transicao",row:4,col:8},
-{n:27,sym:"Co",name:"Cobalto",mass:"58.933",cat:"metal-transicao",row:4,col:9},
-{n:28,sym:"Ni",name:"Níquel",mass:"58.693",cat:"metal-transicao",row:4,col:10},
-{n:29,sym:"Cu",name:"Cobre",mass:"63.546",cat:"metal-transicao",row:4,col:11},
-{n:30,sym:"Zn",name:"Zinco",mass:"65.409",cat:"metal-transicao",row:4,col:12},
-{n:31,sym:"Ga",name:"Gálio",mass:"69.723",cat:"metal-pobre",row:4,col:13},
-{n:32,sym:"Ge",name:"Germânio",mass:"72.630",cat:"semimetal",row:4,col:14},
-{n:33,sym:"As",name:"Arsênio",mass:"74.922",cat:"semimetal",row:4,col:15},
-{n:34,sym:"Se",name:"Selênio",mass:"78.971",cat:"nao-metal",row:4,col:16},
-{n:35,sym:"Br",name:"Bromo",mass:"79.904",cat:"halogenio",row:4,col:17},
-{n:36,sym:"Kr",name:"Criptônio",mass:"83.798",cat:"gas-nobre",row:4,col:18},
-{n:37,sym:"Rb",name:"Rubídio",mass:"85.468",cat:"metal-alcalino",row:5,col:1},
-{n:38,sym:"Sr",name:"Estrôncio",mass:"87.620",cat:"alcalino-terroso",row:5,col:2},
-{n:39,sym:"Y",name:"Ítrio",mass:"88.906",cat:"metal-transicao",row:5,col:3},
-{n:40,sym:"Zr",name:"Zircônio",mass:"91.224",cat:"metal-transicao",row:5,col:4},
-{n:41,sym:"Nb",name:"Nióbio",mass:"92.906",cat:"metal-transicao",row:5,col:5},
-{n:42,sym:"Mo",name:"Molibdênio",mass:"95.950",cat:"metal-transicao",row:5,col:6},
-{n:43,sym:"Tc",name:"Tecnécio",mass:"98.000",cat:"metal-transicao",row:5,col:7},
-{n:44,sym:"Ru",name:"Rutênio",mass:"101.070",cat:"metal-transicao",row:5,col:8},
-{n:45,sym:"Rh",name:"Ródio",mass:"102.906",cat:"metal-transicao",row:5,col:9},
-{n:46,sym:"Pd",name:"Paládio",mass:"106.420",cat:"metal-transicao",row:5,col:10},
-{n:47,sym:"Ag",name:"Prata",mass:"107.868",cat:"metal-transicao",row:5,col:11},
-{n:48,sym:"Cd",name:"Cádmio",mass:"112.411",cat:"metal-transicao",row:5,col:12},
-{n:49,sym:"In",name:"Índio",mass:"114.818",cat:"metal-pobre",row:5,col:13},
-{n:50,sym:"Sn",name:"Estanho",mass:"118.710",cat:"metal-pobre",row:5,col:14},
-{n:51,sym:"Sb",name:"Antimônio",mass:"121.760",cat:"semimetal",row:5,col:15},
-{n:52,sym:"Te",name:"Telúrio",mass:"127.600",cat:"semimetal",row:5,col:16},
-{n:53,sym:"I",name:"Iodo",mass:"126.904",cat:"halogenio",row:5,col:17},
-{n:54,sym:"Xe",name:"Xenônio",mass:"131.293",cat:"gas-nobre",row:5,col:18},
-{n:55,sym:"Cs",name:"Césio",mass:"132.905",cat:"metal-alcalino",row:6,col:1},
-{n:56,sym:"Ba",name:"Bário",mass:"137.327",cat:"alcalino-terroso",row:6,col:2},
-{n:57,sym:"La",name:"Lantânio",mass:"138.905",cat:"lantanideo",row:6,col:3},
-{n:58,sym:"Ce",name:"Cério",mass:"140.116",cat:"lantanideo",row:6,col:4},
-{n:59,sym:"Pr",name:"Praseodímio",mass:"140.908",cat:"lantanideo",row:6,col:5},
-{n:60,sym:"Nd",name:"Neodímio",mass:"144.243",cat:"lantanideo",row:6,col:6},
-{n:61,sym:"Pm",name:"Promécio",mass:"145.000",cat:"lantanideo",row:6,col:7},
-{n:62,sym:"Sm",name:"Samário",mass:"150.362",cat:"lantanideo",row:6,col:8},
-{n:63,sym:"Eu",name:"Európio",mass:"151.964",cat:"lantanideo",row:6,col:9},
-{n:64,sym:"Gd",name:"Gadolínio",mass:"157.250",cat:"lantanideo",row:6,col:10},
-{n:65,sym:"Tb",name:"Térbio",mass:"158.925",cat:"lantanideo",row:6,col:11},
-{n:66,sym:"Dy",name:"Disprósio",mass:"162.500",cat:"lantanideo",row:6,col:12},
-{n:67,sym:"Ho",name:"Hólmio",mass:"164.930",cat:"lantanideo",row:6,col:13},
-{n:68,sym:"Er",name:"Érbio",mass:"167.259",cat:"lantanideo",row:6,col:14},
-{n:69,sym:"Tm",name:"Túlio",mass:"168.934",cat:"lantanideo",row:6,col:15},
-{n:70,sym:"Yb",name:"Itérbio",mass:"173.054",cat:"lantanideo",row:6,col:16},
-{n:71,sym:"Lu",name:"Lutécio",mass:"174.967",cat:"lantanideo",row:6,col:17},
-{n:72,sym:"Hf",name:"Háfnio",mass:"178.490",cat:"metal-transicao",row:6,col:4},
-{n:73,sym:"Ta",name:"Tântalo",mass:"180.948",cat:"metal-transicao",row:6,col:5},
-{n:74,sym:"W",name:"Tungstênio",mass:"183.840",cat:"metal-transicao",row:6,col:6},
-{n:75,sym:"Re",name:"Rênio",mass:"186.207",cat:"metal-transicao",row:6,col:7},
-{n:76,sym:"Os",name:"Ósmio",mass:"190.230",cat:"metal-transicao",row:6,col:8},
-{n:77,sym:"Ir",name:"Irídio",mass:"192.217",cat:"metal-transicao",row:6,col:9},
-{n:78,sym:"Pt",name:"Platina",mass:"195.084",cat:"metal-transicao",row:6,col:10},
-{n:79,sym:"Au",name:"Ouro",mass:"196.967",cat:"metal-transicao",row:6,col:11},
-{n:80,sym:"Hg",name:"Mercúrio",mass:"200.590",cat:"metal-transicao",row:6,col:12},
-{n:81,sym:"Tl",name:"Tálio",mass:"204.383",cat:"metal-pobre",row:6,col:13},
-{n:82,sym:"Pb",name:"Chumbo",mass:"207.200",cat:"metal-pobre",row:6,col:14},
-{n:83,sym:"Bi",name:"Bismuto",mass:"208.980",cat:"metal-pobre",row:6,col:15},
-{n:84,sym:"Po",name:"Polônio",mass:"209.000",cat:"semimetal",row:6,col:16},
-{n:85,sym:"At",name:"Astato",mass:"210.000",cat:"halogenio",row:6,col:17},
-{n:86,sym:"Rn",name:"Radônio",mass:"222.000",cat:"gas-nobre",row:6,col:18},
-{n:87,sym:"Fr",name:"Frâncio",mass:"223.000",cat:"metal-alcalino",row:7,col:1},
-{n:88,sym:"Ra",name:"Rádio",mass:"226.000",cat:"alcalino-terroso",row:7,col:2},
-{n:89,sym:"Ac",name:"Actínio",mass:"227.000",cat:"actinideo",row:7,col:3},
-{n:90,sym:"Th",name:"Tório",mass:"232.038",cat:"actinideo",row:7,col:4},
-{n:91,sym:"Pa",name:"Protactínio",mass:"231.036",cat:"actinideo",row:7,col:5},
-{n:92,sym:"U",name:"Urânio",mass:"238.029",cat:"actinideo",row:7,col:6},
-{n:93,sym:"Np",name:"Netúnio",mass:"237.000",cat:"actinideo",row:7,col:7},
-{n:94,sym:"Pu",name:"Plutônio",mass:"244.000",cat:"actinideo",row:7,col:8},
-{n:95,sym:"Am",name:"Amerício",mass:"243.000",cat:"actinideo",row:7,col:9},
-{n:96,sym:"Cm",name:"Cúrio",mass:"247.000",cat:"actinideo",row:7,col:10},
-{n:97,sym:"Bk",name:"Berquélio",mass:"247.000",cat:"actinideo",row:7,col:11},
-{n:98,sym:"Cf",name:"Califórnio",mass:"251.000",cat:"actinideo",row:7,col:12},
-{n:99,sym:"Es",name:"Einstênio",mass:"252.000",cat:"actinideo",row:7,col:13},
-{n:100,sym:"Fm",name:"Férmio",mass:"257.000",cat:"actinideo",row:7,col:14},
-{n:101,sym:"Md",name:"Mendelévio",mass:"258.000",cat:"actinideo",row:7,col:15},
-{n:102,sym:"No",name:"Nobélio",mass:"259.000",cat:"actinideo",row:7,col:16},
-{n:103,sym:"Lr",name:"Laurêncio",mass:"262.000",cat:"actinideo",row:7,col:17},
-{n:104,sym:"Rf",name:"Rutherfórdio",mass:"267.000",cat:"metal-transicao",row:7,col:4},
-{n:105,sym:"Db",name:"Dúbnio",mass:"268.000",cat:"metal-transicao",row:7,col:5},
-{n:106,sym:"Sg",name:"Seabórgio",mass:"269.000",cat:"metal-transicao",row:7,col:6},
-{n:107,sym:"Bh",name:"Bóhrio",mass:"270.000",cat:"metal-transicao",row:7,col:7},
-{n:108,sym:"Hs",name:"Hássio",mass:"277.000",cat:"metal-transicao",row:7,col:8},
-{n:109,sym:"Mt",name:"Meitnério",mass:"278.000",cat:"metal-transicao",row:7,col:9},
-{n:110,sym:"Ds",name:"Darmstádio",mass:"281.000",cat:"metal-transicao",row:7,col:10},
-{n:111,sym:"Rg",name:"Roentgênio",mass:"282.000",cat:"metal-transicao",row:7,col:11},
-{n:112,sym:"Cn",name:"Copernício",mass:"285.000",cat:"metal-transicao",row:7,col:12},
-{n:113,sym:"Nh",name:"Nihônio",mass:"286.000",cat:"metal-pobre",row:7,col:13},
-{n:114,sym:"Fl",name:"Fleróvio",mass:"289.000",cat:"metal-pobre",row:7,col:14},
-{n:115,sym:"Mc",name:"Moscóvio",mass:"290.000",cat:"metal-pobre",row:7,col:15},
-{n:116,sym:"Lv",name:"Livermório",mass:"293.000",cat:"metal-pobre",row:7,col:16},
-{n:117,sym:"Ts",name:"Tenessino",mass:"294.000",cat:"halogenio",row:7,col:17},
-{n:118,sym:"Og",name:"Oganessônio",mass:"294.000",cat:"gas-nobre",row:7,col:18}
+{n:1,sym:"H",name:"Hidrogênio",mass:"1.008",cat:"nao-metal",row:1,col:1},{n:2,sym:"He",name:"Hélio",mass:"4.003",cat:"gas-nobre",row:1,col:18},{n:3,sym:"Li",name:"Lítio",mass:"6.941",cat:"metal-alcalino",row:2,col:1},{n:4,sym:"Be",name:"Berílio",mass:"9.012",cat:"alcalino-terroso",row:2,col:2},{n:5,sym:"B",name:"Boro",mass:"10.811",cat:"semimetal",row:2,col:13},{n:6,sym:"C",name:"Carbono",mass:"12.011",cat:"nao-metal",row:2,col:14},{n:7,sym:"N",name:"Nitrogênio",mass:"14.007",cat:"nao-metal",row:2,col:15},{n:8,sym:"O",name:"Oxigênio",mass:"15.999",cat:"nao-metal",row:2,col:16},{n:9,sym:"F",name:"Flúor",mass:"18.998",cat:"halogenio",row:2,col:17},{n:10,sym:"Ne",name:"Neônio",mass:"20.180",cat:"gas-nobre",row:2,col:18},{n:11,sym:"Na",name:"Sódio",mass:"22.990",cat:"metal-alcalino",row:3,col:1},{n:12,sym:"Mg",name:"Magnésio",mass:"24.305",cat:"alcalino-terroso",row:3,col:2},{n:13,sym:"Al",name:"Alumínio",mass:"26.982",cat:"metal-pobre",row:3,col:13},{n:14,sym:"Si",name:"Silício",mass:"28.086",cat:"semimetal",row:3,col:14},{n:15,sym:"P",name:"Fósforo",mass:"30.974",cat:"nao-metal",row:3,col:15},{n:16,sym:"S",name:"Enxofre",mass:"32.065",cat:"nao-metal",row:3,col:16},{n:17,sym:"Cl",name:"Cloro",mass:"35.453",cat:"halogenio",row:3,col:17},{n:18,sym:"Ar",name:"Argônio",mass:"39.948",cat:"gas-nobre",row:3,col:18},{n:19,sym:"K",name:"Potássio",mass:"39.098",cat:"metal-alcalino",row:4,col:1},{n:20,sym:"Ca",name:"Cálcio",mass:"40.078",cat:"alcalino-terroso",row:4,col:2},{n:21,sym:"Sc",name:"Escândio",mass:"44.956",cat:"metal-transicao",row:4,col:3},{n:22,sym:"Ti",name:"Titânio",mass:"47.867",cat:"metal-transicao",row:4,col:4},{n:23,sym:"V",name:"Vanádio",mass:"50.942",cat:"metal-transicao",row:4,col:5},{n:24,sym:"Cr",name:"Cromo",mass:"51.996",cat:"metal-transicao",row:4,col:6},{n:25,sym:"Mn",name:"Manganês",mass:"54.938",cat:"metal-transicao",row:4,col:7},{n:26,sym:"Fe",name:"Ferro",mass:"55.845",cat:"metal-transicao",row:4,col:8},{n:27,sym:"Co",name:"Cobalto",mass:"58.933",cat:"metal-transicao",row:4,col:9},{n:28,sym:"Ni",name:"Níquel",mass:"58.693",cat:"metal-transicao",row:4,col:10},{n:29,sym:"Cu",name:"Cobre",mass:"63.546",cat:"metal-transicao",row:4,col:11},{n:30,sym:"Zn",name:"Zinco",mass:"65.409",cat:"metal-transicao",row:4,col:12},{n:31,sym:"Ga",name:"Gálio",mass:"69.723",cat:"metal-pobre",row:4,col:13},{n:32,sym:"Ge",name:"Germânio",mass:"72.630",cat:"semimetal",row:4,col:14},{n:33,sym:"As",name:"Arsênio",mass:"74.922",cat:"semimetal",row:4,col:15},{n:34,sym:"Se",name:"Selênio",mass:"78.971",cat:"nao-metal",row:4,col:16},{n:35,sym:"Br",name:"Bromo",mass:"79.904",cat:"halogenio",row:4,col:17},{n:36,sym:"Kr",name:"Criptônio",mass:"83.798",cat:"gas-nobre",row:4,col:18},{n:37,sym:"Rb",name:"Rubídio",mass:"85.468",cat:"metal-alcalino",row:5,col:1},{n:38,sym:"Sr",name:"Estrôncio",mass:"87.620",cat:"alcalino-terroso",row:5,col:2},{n:39,sym:"Y",name:"Ítrio",mass:"88.906",cat:"metal-transicao",row:5,col:3},{n:40,sym:"Zr",name:"Zircônio",mass:"91.224",cat:"metal-transicao",row:5,col:4},{n:41,sym:"Nb",name:"Nióbio",mass:"92.906",cat:"metal-transicao",row:5,col:5},{n:42,sym:"Mo",name:"Molibdênio",mass:"95.950",cat:"metal-transicao",row:5,col:6},{n:43,sym:"Tc",name:"Tecnécio",mass:"98.000",cat:"metal-transicao",row:5,col:7},{n:44,sym:"Ru",name:"Rutênio",mass:"101.070",cat:"metal-transicao",row:5,col:8},{n:45,sym:"Rh",name:"Ródio",mass:"102.906",cat:"metal-transicao",row:5,col:9},{n:46,sym:"Pd",name:"Paládio",mass:"106.420",cat:"metal-transicao",row:5,col:10},{n:47,sym:"Ag",name:"Prata",mass:"107.868",cat:"metal-transicao",row:5,col:11},{n:48,sym:"Cd",name:"Cádmio",mass:"112.411",cat:"metal-transicao",row:5,col:12},{n:49,sym:"In",name:"Índio",mass:"114.818",cat:"metal-pobre",row:5,col:13},{n:50,sym:"Sn",name:"Estanho",mass:"118.710",cat:"metal-pobre",row:5,col:14},{n:51,sym:"Sb",name:"Antimônio",mass:"121.760",cat:"semimetal",row:5,col:15},{n:52,sym:"Te",name:"Telúrio",mass:"127.600",cat:"semimetal",row:5,col:16},{n:53,sym:"I",name:"Iodo",mass:"126.904",cat:"halogenio",row:5,col:17},{n:54,sym:"Xe",name:"Xenônio",mass:"131.293",cat:"gas-nobre",row:5,col:18},{n:55,sym:"Cs",name:"Césio",mass:"132.905",cat:"metal-alcalino",row:6,col:1},{n:56,sym:"Ba",name:"Bário",mass:"137.327",cat:"alcalino-terroso",row:6,col:2},{n:57,sym:"La",name:"Lantânio",mass:"138.905",cat:"lantanideo",row:6,col:3},{n:58,sym:"Ce",name:"Cério",mass:"140.116",cat:"lantanideo",row:6,col:4},{n:59,sym:"Pr",name:"Praseodímio",mass:"140.908",cat:"lantanideo",row:6,col:5},{n:60,sym:"Nd",name:"Neodímio",mass:"144.243",cat:"lantanideo",row:6,col:6},{n:61,sym:"Pm",name:"Promécio",mass:"145.000",cat:"lantanideo",row:6,col:7},{n:62,sym:"Sm",name:"Samário",mass:"150.362",cat:"lantanideo",row:6,col:8},{n:63,sym:"Eu",name:"Európio",mass:"151.964",cat:"lantanideo",row:6,col:9},{n:64,sym:"Gd",name:"Gadolínio",mass:"157.250",cat:"lantanideo",row:6,col:10},{n:65,sym:"Tb",name:"Térbio",mass:"158.925",cat:"lantanideo",row:6,col:11},{n:66,sym:"Dy",name:"Disprósio",mass:"162.500",cat:"lantanideo",row:6,col:12},{n:67,sym:"Ho",name:"Hólmio",mass:"164.930",cat:"lantanideo",row:6,col:13},{n:68,sym:"Er",name:"Érbio",mass:"167.259",cat:"lantanideo",row:6,col:14},{n:69,sym:"Tm",name:"Túlio",mass:"168.934",cat:"lantanideo",row:6,col:15},{n:70,sym:"Yb",name:"Itérbio",mass:"173.054",cat:"lantanideo",row:6,col:16},{n:71,sym:"Lu",name:"Lutécio",mass:"174.967",cat:"lantanideo",row:6,col:17},{n:72,sym:"Hf",name:"Háfnio",mass:"178.490",cat:"metal-transicao",row:6,col:4},{n:73,sym:"Ta",name:"Tântalo",mass:"180.948",cat:"metal-transicao",row:6,col:5},{n:74,sym:"W",name:"Tungstênio",mass:"183.840",cat:"metal-transicao",row:6,col:6},{n:75,sym:"Re",name:"Rênio",mass:"186.207",cat:"metal-transicao",row:6,col:7},{n:76,sym:"Os",name:"Ósmio",mass:"190.230",cat:"metal-transicao",row:6,col:8},{n:77,sym:"Ir",name:"Irídio",mass:"192.217",cat:"metal-transicao",row:6,col:9},{n:78,sym:"Pt",name:"Platina",mass:"195.084",cat:"metal-transicao",row:6,col:10},{n:79,sym:"Au",name:"Ouro",mass:"196.967",cat:"metal-transicao",row:6,col:11},{n:80,sym:"Hg",name:"Mercúrio",mass:"200.590",cat:"metal-transicao",row:6,col:12},{n:81,sym:"Tl",name:"Tálio",mass:"204.383",cat:"metal-pobre",row:6,col:13},{n:82,sym:"Pb",name:"Chumbo",mass:"207.200",cat:"metal-pobre",row:6,col:14},{n:83,sym:"Bi",name:"Bismuto",mass:"208.980",cat:"metal-pobre",row:6,col:15},{n:84,sym:"Po",name:"Polônio",mass:"209.000",cat:"semimetal",row:6,col:16},{n:85,sym:"At",name:"Astato",mass:"210.000",cat:"halogenio",row:6,col:17},{n:86,sym:"Rn",name:"Radônio",mass:"222.000",cat:"gas-nobre",row:6,col:18},{n:87,sym:"Fr",name:"Frâncio",mass:"223.000",cat:"metal-alcalino",row:7,col:1},{n:88,sym:"Ra",name:"Rádio",mass:"226.000",cat:"alcalino-terroso",row:7,col:2},{n:89,sym:"Ac",name:"Actínio",mass:"227.000",cat:"actinideo",row:7,col:3},{n:90,sym:"Th",name:"Tório",mass:"232.038",cat:"actinideo",row:7,col:4},{n:91,sym:"Pa",name:"Protactínio",mass:"231.036",cat:"actinideo",row:7,col:5},{n:92,sym:"U",name:"Urânio",mass:"238.029",cat:"actinideo",row:7,col:6},{n:93,sym:"Np",name:"Netúnio",mass:"237.000",cat:"actinideo",row:7,col:7},{n:94,sym:"Pu",name:"Plutônio",mass:"244.000",cat:"actinideo",row:7,col:8},{n:95,sym:"Am",name:"Amerício",mass:"243.000",cat:"actinideo",row:7,col:9},{n:96,sym:"Cm",name:"Cúrio",mass:"247.000",cat:"actinideo",row:7,col:10},{n:97,sym:"Bk",name:"Berquélio",mass:"247.000",cat:"actinideo",row:7,col:11},{n:98,sym:"Cf",name:"Califórnio",mass:"251.000",cat:"actinideo",row:7,col:12},{n:99,sym:"Es",name:"Einstênio",mass:"252.000",cat:"actinideo",row:7,col:13},{n:100,sym:"Fm",name:"Férmio",mass:"257.000",cat:"actinideo",row:7,col:14},{n:101,sym:"Md",name:"Mendelévio",mass:"258.000",cat:"actinideo",row:7,col:15},{n:102,sym:"No",name:"Nobélio",mass:"259.000",cat:"actinideo",row:7,col:16},{n:103,sym:"Lr",name:"Laurêncio",mass:"262.000",cat:"actinideo",row:7,col:17},{n:104,sym:"Rf",name:"Rutherfórdio",mass:"267.000",cat:"metal-transicao",row:7,col:4},{n:105,sym:"Db",name:"Dúbnio",mass:"268.000",cat:"metal-transicao",row:7,col:5},{n:106,sym:"Sg",name:"Seabórgio",mass:"269.000",cat:"metal-transicao",row:7,col:6},{n:107,sym:"Bh",name:"Bóhrio",mass:"270.000",cat:"metal-transicao",row:7,col:7},{n:108,sym:"Hs",name:"Hássio",mass:"277.000",cat:"metal-transicao",row:7,col:8},{n:109,sym:"Mt",name:"Meitnério",mass:"278.000",cat:"metal-transicao",row:7,col:9},{n:110,sym:"Ds",name:"Darmstádio",mass:"281.000",cat:"metal-transicao",row:7,col:10},{n:111,sym:"Rg",name:"Roentgênio",mass:"282.000",cat:"metal-transicao",row:7,col:11},{n:112,sym:"Cn",name:"Copernício",mass:"285.000",cat:"metal-transicao",row:7,col:12},{n:113,sym:"Nh",name:"Nihônio",mass:"286.000",cat:"metal-pobre",row:7,col:13},{n:114,sym:"Fl",name:"Fleróvio",mass:"289.000",cat:"metal-pobre",row:7,col:14},{n:115,sym:"Mc",name:"Moscóvio",mass:"290.000",cat:"metal-pobre",row:7,col:15},{n:116,sym:"Lv",name:"Livermório",mass:"293.000",cat:"metal-pobre",row:7,col:16},{n:117,sym:"Ts",name:"Tenessino",mass:"294.000",cat:"halogenio",row:7,col:17},{n:118,sym:"Og",name:"Oganessônio",mass:"294.000",cat:"gas-nobre",row:7,col:18}
 ];
-const CATEGORIES=[
-{id:"metal-alcalino",label:"Metal Alcalino",color:"var(--metal-alcalino)"},
-{id:"alcalino-terroso",label:"Alcalino Terroso",color:"var(--alcalino-terroso)"},
-{id:"metal-transicao",label:"Metal de Transição",color:"var(--metal-transicao)"},
-{id:"metal-pobre",label:"Metal Pobre",color:"var(--metal-pobre)"},
-{id:"semimetal",label:"Semimetal",color:"var(--semimetal)"},
-{id:"nao-metal",label:"Não Metal",color:"var(--nao-metal)"},
-{id:"halogenio",label:"Halogênio",color:"var(--halogenio)"},
-{id:"gas-nobre",label:"Gás Nobre",color:"var(--gas-nobre)"},
-{id:"lantanideo",label:"Lantanídeo",color:"var(--lantanideo)"},
-{id:"actinideo",label:"Actinídeo",color:"var(--actinideo)"}
-];
+const CATEGORIES=[{id:"metal-alcalino",label:"Metal Alcalino",color:"var(--metal-alcalino)"},{id:"alcalino-terroso",label:"Alcalino Terroso",color:"var(--alcalino-terroso)"},{id:"metal-transicao",label:"Metal de Transição",color:"var(--metal-transicao)"},{id:"metal-pobre",label:"Metal Pobre",color:"var(--metal-pobre)"},{id:"semimetal",label:"Semimetal",color:"var(--semimetal)"},{id:"nao-metal",label:"Não Metal",color:"var(--nao-metal)"},{id:"halogenio",label:"Halogênio",color:"var(--halogenio)"},{id:"gas-nobre",label:"Gás Nobre",color:"var(--gas-nobre)"},{id:"lantanideo",label:"Lantanídeo",color:"var(--lantanideo)"},{id:"actinideo",label:"Actinídeo",color:"var(--actinideo)"}];
 const CAT_NAMES={"metal-alcalino":"Metal Alcalino","alcalino-terroso":"Alcalino Terroso","metal-transicao":"Metal de Transição","metal-pobre":"Metal Pobre","semimetal":"Semimetal","nao-metal":"Não Metal","halogenio":"Halogênio","gas-nobre":"Gás Nobre","lantanideo":"Lantanídeo","actinideo":"Actinídeo"};
-function createElement(el,clickable=true){
+function createElement(el,clickable){
   const div=document.createElement('div');
   div.className=`element cat-${el.cat}`;
   div.innerHTML=`<span class="number">${el.n}</span><span class="symbol">${el.sym}</span><span class="name">${el.name}</span><span class="mass">${el.mass}</span>`;
-  if(clickable) div.addEventListener('click',()=>showModal(el));
+  if(clickable)div.addEventListener('click',()=>showModal(el));
   return div;
 }
 function renderTable(){
@@ -262,14 +138,14 @@ function renderTable(){
   ELEMENTS.forEach(el=>{if(el.cat!=='lantanideo'&&el.cat!=='actinideo')grid[el.row+'-'+el.col]=el;});
   for(let r=1;r<=7;r++)for(let c=1;c<=18;c++){
     const k=r+'-'+c;
-    if(grid[k])table.appendChild(createElement(grid[k]));
+    if(grid[k])table.appendChild(createElement(grid[k],true));
     else{const e=document.createElement('div');e.className='element empty';table.appendChild(e);}
   }
 }
 function renderSeries(id,cat){
   const c=document.getElementById(id);
   for(let i=0;i<3;i++){const e=document.createElement('div');e.className='element empty';c.appendChild(e);}
-  ELEMENTS.forEach(el=>{if(el.cat===cat)c.appendChild(createElement(el));});
+  ELEMENTS.forEach(el=>{if(el.cat===cat)c.appendChild(createElement(el,true));});
 }
 function renderLegend(){
   const l=document.getElementById('legend');
@@ -279,20 +155,20 @@ function renderLegend(){
     l.appendChild(i);
   });
 }
+function renderMobileList(filter){
+  const container=document.getElementById('mobileList');
+  container.innerHTML='';
+  const f=filter?ELEMENTS.filter(e=>e.name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().includes(filter)||e.sym.toLowerCase().includes(filter)):ELEMENTS;
+  f.forEach(el=>{
+    const row=document.createElement('div');row.className='el-row';
+    row.innerHTML=`<div class="m-sym" style="background:var(--${el.cat});color:#1a1a1a">${el.sym}</div><div class="m-info"><div class="m-name">${el.n}. ${el.name}</div><div class="m-sub">${CAT_NAMES[el.cat]} &bull; ${el.mass}</div></div><div class="m-num">#${el.n}</div>`;
+    row.addEventListener('click',()=>showModal(el));
+    container.appendChild(row);
+  });
+}
 function showModal(el){
   document.getElementById('mSymbol').textContent=el.sym;
+  document.getElementById('mSymbol').style.color=`var(--${el.cat})`;
   document.getElementById('mName').textContent=el.name;
-  document.getElementById('mSub').textContent=`Nº ${el.n} • Massa: ${el.mass}`;
-  document.getElementById('mInfo').innerHTML=
-    `<div class="item"><div class="label">Símbolo</div><div class="value">${el.sym}</div></div>`+
-    `<div class="item"><div class="label">Número</div><div class="value">${el.n}</div></div>`+
-    `<div class="item"><div class="label">Massa</div><div class="value">${el.mass}</div></div>`+
-    `<div class="item"><div class="label">Categoria</div><div class="value">${CAT_NAMES[el.cat]}</div></div>`;
-  document.getElementById('modal').classList.add('active');
-}
-document.getElementById('modalClose').addEventListener('click',()=>document.getElementById('modal').classList.remove('active'));
-document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('modal').classList.remove('active');});
-renderLegend();renderTable();renderSeries('lantanideos','lantanideo');renderSeries('actinideos','actinideo');
-</script>
-</body>
-</html>
+  document.getElementById('mSub').innerHTML=`N&ordm; ${el.n} &bull; Massa: ${el.mass} &bull; ${CAT_NAMES[el.cat]}`;
+  document.getElementById('mInfo').innerHTML=`<div class="item"><div class="label">S&iacute;mbolo</div><div class="value">${el.sym}</div></div><div
