@@ -171,4 +171,13 @@ function showModal(el){
   document.getElementById('mSymbol').style.color=`var(--${el.cat})`;
   document.getElementById('mName').textContent=el.name;
   document.getElementById('mSub').innerHTML=`N&ordm; ${el.n} &bull; Massa: ${el.mass} &bull; ${CAT_NAMES[el.cat]}`;
-  document.getElementById('mInfo').innerHTML=`<div class="item"><div class="label">S&iacute;mbolo</div><div class="value">${el.sym}</div></div><div
+  document.getElementById('mInfo').innerHTML=`<div class="item"><div class="label">S&iacute;mbolo</div><div class="value">${el.sym}</div></div><div class="item"><div class="label">N&uacute;mero</div><div class="value">${el.n}</div></div><div class="item"><div class="label">Massa</div><div class="value">${el.mass}</div></div><div class="item"><div class="label">Categoria</div><div class="value">${CAT_NAMES[el.cat]}</div></div>`;
+  document.getElementById('modal').classList.add('active');
+}
+document.getElementById('modalClose').addEventListener('click',()=>document.getElementById('modal').classList.remove('active'));
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('modal').classList.remove('active');});
+document.getElementById('searchInput').addEventListener('input',function(){renderMobileList(this.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""));});
+renderLegend();renderTable();renderSeries('lantanideos','lantanideo');renderSeries('actinideos','actinideo');renderMobileList();
+</script>
+</body>
+</html>
