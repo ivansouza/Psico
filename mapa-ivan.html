@@ -14,8 +14,6 @@
         .planet-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.2); }
         .aspect-tag { transition: all 0.2s; }
         .aspect-tag:hover { transform: scale(1.05); }
-        @keyframes pulse-border { 0%,100%{border-color:#e94560} 50%{border-color:#0f3460} }
-        .animate-pulse-border { animation: pulse-border 3s ease-in-out infinite; }
         .tab-btn.active { background: #e94560; color: white; }
         .section { display: none; }
         .section.active { display: block; }
@@ -35,18 +33,18 @@
         </div>
 
         <!-- Tabs -->
-        <div class="flex justify-center gap-2 mb-8 flex-wrap">
-            <button onclick="switchTab('mapa', event)" class="tab-btn active px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔄 Mapa</button>
-            <button onclick="switchTab('planetas', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">📊 Planetas</button>
-            <button onclick="switchTab('aspectos', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔗 Aspectos</button>
-            <button onclick="switchTab('interpretacao', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔮 Interpretação</button>
-            <button onclick="switchTab('transitos', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">📅 Trânsitos</button>
+        <div class="flex justify-center gap-2 mb-8 flex-wrap" id="tab-bar">
+            <button class="tab-btn active px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="mapa">🔄 Mapa</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="planetas">📊 Planetas</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="aspectos">🔗 Aspectos</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="interpretacao">🔮 Interpretação</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="transitos">📅 Trânsitos</button>
         </div>
 
         <!-- Section: Mapa SVG -->
         <div id="section-mapa" class="section active">
             <div class="glass rounded-2xl p-6 glow flex justify-center">
-                <div id="svg-container" class="max-w-lg w-full"></div>
+                <div id="svg-container" class="w-full" style="max-width:800px"></div>
             </div>
         </div>
 
@@ -76,22 +74,10 @@
             <div class="glass rounded-2xl p-6 glow">
                 <div class="text-gray-300 leading-relaxed" id="transitos-container">
                     <h2 class="text-e94560 text-xl font-bold mb-4">🔮 Horóscopo de 07/06/2026</h2>
-
-<p class="text-gray-300 text-sm mb-4 leading-relaxed">
-O dia começa com uma tônica de introspecção e sensibilidade. Com a Lua transitando por Peixes e tocando seu Saturno natal na casa 4, você pode sentir a necessidade de recolhimento ou de resolver questões pendentes ligadas ao lar e à ancestralidade. É um momento propício para a <span class="text-e94560 font-semibold">cura emocional e a organização interna</span>, permitindo que a intuição guie suas decisões mais profundas.
-</p>
-
-<p class="text-gray-300 text-sm mb-4 leading-relaxed">
-No entanto, o céu reserva um aspecto extraordinário para você: a conjunção de Vênus e Júpiter com o seu Sol natal em Câncer. Este é um dos trânsitos mais benéficos do ano, trazendo <span class="text-e94560 font-semibold">expansão, sorte e reconhecimento</span>, especialmente em áreas ligadas ao conhecimento superior, viagens ou espiritualidade (Casa 9). Você se sentirá mais radiante e aberto a novas oportunidades de crescimento pessoal.
-</p>
-
-<p class="text-gray-300 text-sm mb-4 leading-relaxed">
-Nas interações sociais, a influência do Sol em Gêmeos e de Marte em Touro pede equilíbrio entre a agilidade mental e a paciência prática. Embora haja um desejo de comunicar e diversificar seus contatos, a chave para o sucesso hoje reside na <span class="text-e94560 font-semibold">estabilidade dos seus vínculos</span>. Evite a pressa e utilize a diplomacia para conduzir seus acordos e parcerias.
-</p>
-
-<div class="bg-gray-800 rounded-xl p-4 mt-4">
-<span class="text-e94560 font-semibold">💡 Dica prática:</span> Aproveite a poderosa energia de Júpiter e Vênus sobre o seu Sol para iniciar um curso, planejar uma viagem ou manifestar um desejo antigo; a probabilidade de sucesso e apoio externo está altíssima hoje.
-</div>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed">O dia começa com uma tônica de introspecção e sensibilidade. Com a Lua transitando por Peixes e tocando seu Saturno natal na casa 4, você pode sentir a necessidade de recolhimento ou de resolver questões pendentes ligadas ao lar e à ancestralidade. É um momento propício para a <span class="text-e94560 font-semibold">cura emocional e a organização interna</span>, permitindo que a intuição guie suas decisões mais profundas.</p>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed">No entanto, o céu reserva um aspecto extraordinário para você: a conjunção de Vênus e Júpiter com o seu Sol natal em Câncer. Este é um dos trânsitos mais benéficos do ano, trazendo <span class="text-e94560 font-semibold">expansão, sorte e reconhecimento</span>, especialmente em áreas ligadas ao conhecimento superior, viagens ou espiritualidade (Casa 9).</p>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed">Nas interações sociais, a influência do Sol em Gêmeos e de Marte em Touro pede equilíbrio entre a agilidade mental e a paciência prática. A chave para o sucesso hoje reside na <span class="text-e94560 font-semibold">estabilidade dos seus vínculos</span>. Evite a pressa e utilize a diplomacia para conduzir seus acordos e parcerias.</p>
+                    <div class="bg-gray-800 rounded-xl p-4 mt-4"><span class="text-e94560 font-semibold">💡 Dica prática:</span> Aproveite a poderosa energia de Júpiter e Vênus sobre o seu Sol para iniciar um curso, planejar uma viagem ou manifestar um desejo antigo.</div>
                 </div>
             </div>
         </div>
@@ -104,174 +90,168 @@ Nas interações sociais, a influência do Sol em Gêmeos e de Marte em Touro pe
 
     <script>
         // ============================================================
-        // DADOS DO MAPA ASTRAL
+        // DADOS
         // ============================================================
-        const MAPA = {
-            nome: "Ivan Tadeu dos Santos Souza",
-            data: "15/07/1964",
-            hora: "14:00",
-            cidade: "Brasília-DF",
-            ascendente: "Escorpião 28.7°",
-            sistema: "Placidus",
-            planetas: [
-                { nome: "Sol", simbolo: "☀️", signo: "Câncer", graus: 23.2, casa: 9, elemento: "Água", qualidade: "Cardinal", retrogrado: false, cor: "#FFD700" },
-                { nome: "Lua", simbolo: "🌙", signo: "Libra", graus: 14.1, casa: 11, elemento: "Ar", qualidade: "Cardinal", retrogrado: false, cor: "#C0C0C0" },
-                { nome: "Mercúrio", simbolo: "☿", signo: "Leão", graus: 12.1, casa: 9, elemento: "Fogo", qualidade: "Fixo", retrogrado: false, cor: "#4FC3F7" },
-                { nome: "Vênus", simbolo: "♀", signo: "Gêmeos", graus: 20.7, casa: 7, elemento: "Ar", qualidade: "Mutável", retrogrado: false, cor: "#FF69B4" },
-                { nome: "Marte", simbolo: "♂", signo: "Gêmeos", graus: 19.8, casa: 7, elemento: "Ar", qualidade: "Mutável", retrogrado: false, cor: "#FF4444" },
-                { nome: "Júpiter", simbolo: "♃", signo: "Touro", graus: 20.6, casa: 6, elemento: "Terra", qualidade: "Fixo", retrogrado: false, cor: "#FFB74D" },
-                { nome: "Saturno", simbolo: "♄", signo: "Peixes", graus: 4.3, casa: 4, elemento: "Água", qualidade: "Mutável", retrogrado: true, cor: "#616161" },
-                { nome: "Urano", simbolo: "♅", signo: "Virgem", graus: 7.6, casa: 10, elemento: "Terra", qualidade: "Mutável", retrogrado: false, cor: "#00BCD4" },
-                { nome: "Netuno", simbolo: "♆", signo: "Escorpião", graus: 15.1, casa: 12, elemento: "Água", qualidade: "Fixo", retrogrado: true, cor: "#7E57C2" },
-                { nome: "Plutão", simbolo: "♇", signo: "Virgem", graus: 12.3, casa: 10, elemento: "Terra", qualidade: "Mutável", retrogrado: false, cor: "#8D6E63" }
-            ],
-            aspectos: [
-                { p1: "Vênus", p2: "Júpiter", tipo: "Semisextil", simbolo: "★", orb: 0.1 },
-                { p1: "Mercúrio", p2: "Plutão", tipo: "Semisextil", simbolo: "★", orb: 0.2 },
-                { p1: "Vênus", p2: "Netuno", tipo: "Biquintil", simbolo: "★", orb: 0.4 },
-                { p1: "Lua", p2: "Júpiter", tipo: "Biquintil", simbolo: "★", orb: 0.5 },
-                { p1: "Marte", p2: "Júpiter", tipo: "Semisextil", simbolo: "★", orb: 0.8 },
-                { p1: "Vênus", p2: "Marte", tipo: "Conjunção", simbolo: "★★★", orb: 0.9 },
-                { p1: "Lua", p2: "Netuno", tipo: "Semisextil", simbolo: "★", orb: 1.0 },
-                { p1: "Marte", p2: "Netuno", tipo: "Biquintil", simbolo: "★", orb: 1.3 },
-                { p1: "Lua", p2: "Plutão", tipo: "Semisextil", simbolo: "★", orb: 1.8 },
-                { p1: "Lua", p2: "Mercúrio", tipo: "Sextil", simbolo: "★★", orb: 2.0 }
-            ],
-            interpretacao: `Olá, Ivan. Como astrólogo, vejo que seu mapa revela uma personalidade complexa e profunda, onde a sensibilidade e a força caminham juntas.
+        const PLANETAS = [
+            { nome:"Sol", glifo:"☉", pos:84.35, signo:"Câncer", graus:"23°18'", casa:9, elemento:"Água", qualidade:"Cardinal", retrogrado:false, cor:"#FFD700" },
+            { nome:"Lua", glifo:"☽", pos:348.43, signo:"Libra", graus:"14°06'", casa:11, elemento:"Ar", qualidade:"Cardinal", retrogrado:false, cor:"#C0C0C0" },
+            { nome:"Mercúrio", glifo:"☿", pos:66.09, signo:"Leão", graus:"12°05'", casa:9, elemento:"Fogo", qualidade:"Fixo", retrogrado:false, cor:"#4FC3F7" },
+            { nome:"Vênus", glifo:"♀", pos:49.05, signo:"Gêmeos", graus:"20°42'", casa:7, elemento:"Ar", qualidade:"Mutável", retrogrado:false, cor:"#FF69B4" },
+            { nome:"Marte", glifo:"♂", pos:11.21, signo:"Gêmeos", graus:"19°48'", casa:7, elemento:"Ar", qualidade:"Mutável", retrogrado:false, cor:"#FF4444" },
+            { nome:"Júpiter", glifo:"♃", pos:50.61, signo:"Touro", graus:"20°36'", casa:6, elemento:"Terra", qualidade:"Fixo", retrogrado:false, cor:"#FFB74D" },
+            { nome:"Saturno", glifo:"♄", pos:334.30, signo:"Peixes", graus:"4°18'", casa:4, elemento:"Água", qualidade:"Mutável", retrogrado:true, cor:"#616161" },
+            { nome:"Urano", glifo:"♅", pos:157.62, signo:"Virgem", graus:"7°36'", casa:10, elemento:"Terra", qualidade:"Mutável", retrogrado:false, cor:"#00BCD4" },
+            { nome:"Netuno", glifo:"♆", pos:225.14, signo:"Escorpião", graus:"15°06'", casa:12, elemento:"Água", qualidade:"Fixo", retrogrado:true, cor:"#7E57C2" },
+            { nome:"Plutão", glifo:"♇", pos:162.30, signo:"Virgem", graus:"12°18'", casa:10, elemento:"Terra", qualidade:"Mutável", retrogrado:false, cor:"#8D6E63" }
+        ];
 
-🌟 PERFIL GERAL: Você apresenta uma combinação fascinante: o Ascendente em Escorpião confere a você uma aura de mistério, intensidade e uma capacidade nata de regeneração e investigação. Por dentro, seu Sol em Câncer revela um coração acolhedor, intuitivo e com um forte vínculo emocional, especialmente voltado para a expansão da mente, estudos superiores ou espiritualidade (devido à Casa 9). Para equilibrar essa intensidade, sua Lua em Libra traz a necessidade de harmonia, diplomacia e um prazer genuíno no convívio social e nas amizades, buscando sempre a paz e a justiça nas suas relações.
+        const ASPECTOS = [
+            { p1:0, p2:9, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:3, p2:5, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:3, p2:4, tipo:"Conjunção", cor:"#2196F3" },
+            { p1:1, p2:5, tipo:"Biquintil", cor:"#9C27B0" },
+            { p1:1, p2:8, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:1, p2:2, tipo:"Sextil", cor:"#4CAF50" },
+            { p1:4, p2:5, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:3, p2:8, tipo:"Biquintil", cor:"#9C27B0" },
+            { p1:4, p2:8, tipo:"Biquintil", cor:"#9C27B0" },
+            { p1:1, p2:9, tipo:"Semisextil", cor:"#4CAF50" }
+        ];
 
-💼 CARREIRA: No cotidiano, as áreas da sua vida mostram dinâmicas interessantes. No amor e nas parcerias (Casa 7), a presença de Vênus e Marte em Gêmeos indica que você valoriza a comunicação, a inteligência e a troca mental; para você, o diálogo é o combustível da paixão. No trabalho, Júpiter em Touro na Casa 6 sugere prosperidade através da dedicação e da persistência na rotina. Já a sua vida profissional (Casa 10) é marcada por Urano e Plutão em Virgem, o que aponta para uma carreira de transformações profundas, onde a precisão e a capacidade de inovar são seus grandes diferenciais, podendo ter passado por rupturas ou mudanças bruscas de status.
-
-⚡ DESAFIOS: Quanto aos seus desafios, Saturno retrógrado na Casa 4 sugere que questões ligadas às raízes familiares ou ao passado podem ter sido sentidas como fardos ou limitações, exigindo de você um amadurecimento lento e consciente sobre a sua base emocional. Netuno retrógrado na Casa 12 reforça uma espiritualidade muito forte, mas que pede cuidado para não se perder em fantasias ou escapismos. Seu grande potencial reside em integrar a profundidade escorpiana com a leveza geminiana, usando sua inteligência estratégica e sua empatia para liderar e transformar a realidade ao seu redor.`
-        };
+        const SIGNOS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
 
         // ============================================================
-        // GERAR SVG
+        // SVG PROFISSIONAL (estilo Astrodienst)
         // ============================================================
         function gerarSVG() {
-            const cx = 250, cy = 250, r = 200;
-            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" style="max-width:500px">`;
-            svg += `<rect width="500" height="500" fill="#1a1a2e"/>`;
-            svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e94560" stroke-width="2"/>`;
-            svg += `<circle cx="${cx}" cy="${cy}" r="${r-30}" fill="none" stroke="#e94560" stroke-width="1" stroke-dasharray="5,5"/>`;
-            
-            // Casas
-            for (let i = 0; i < 12; i++) {
-                const ang = (i * 30 - 90) * Math.PI / 180;
-                const x1 = cx + (r-30) * Math.cos(ang);
-                const y1 = cy + (r-30) * Math.sin(ang);
-                const x2 = cx + r * Math.cos(ang);
-                const y2 = cy + r * Math.sin(ang);
-                svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0f3460" stroke-width="1"/>`;
-                const nx = cx + (r-15) * Math.cos(ang);
-                const ny = cy + (r-15) * Math.sin(ang);
-                svg += `<text x="${nx}" y="${ny}" fill="#e94560" font-size="10" text-anchor="middle">${i+1}</text>`;
-            }
-            
-            // Planetas
-            const emojis = { "Sol":"☀️","Lua":"🌙","Mercúrio":"☿","Vênus":"♀","Marte":"♂","Júpiter":"♃","Saturno":"♄","Urano":"♅","Netuno":"♆","Plutão":"♇" };
-            const posicoes = [84.3, 348.4, 66.1, 49.0, 11.2, 50.6, 334.3, 157.6, 225.1, 162.3];
-            MAPA.planetas.forEach((p, i) => {
-                const ang = (posicoes[i] - 90) * Math.PI / 180;
-                const px = cx + (r-55) * Math.cos(ang);
-                const py = cy + (r-55) * Math.sin(ang);
-                svg += `<text x="${px}" y="${py}" fill="#fff" font-size="14" text-anchor="middle">${emojis[p.nome]}</text>`;
-            });
-            
-            svg += `<text x="${cx}" y="${cy-10}" fill="#fff" font-size="14" text-anchor="middle" font-weight="bold">Ivan</text>`;
-            svg += `<text x="${cx}" y="${cy+10}" fill="#aaa" font-size="11" text-anchor="middle">ASC ${MAPA.ascendente}</text>`;
-            svg += '</svg>';
-            return svg;
-        }
+            const cx=400, cy=400, rExt=300, rInt=260, rPlan=245, rAsp=220;
+            let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">`;
+            s += `<defs><radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a1a3e"/><stop offset="100%" stop-color="#0a0a1a"/></radialGradient></defs>`;
+            s += `<rect width="800" height="800" fill="url(#bg)"/>`;
+            s += `<circle cx="${cx}" cy="${cy}" r="${rExt}" fill="none" stroke="#333" stroke-width="2"/>`;
+            s += `<circle cx="${cx}" cy="${cy}" r="${rInt}" fill="none" stroke="#333" stroke-width="1"/>`;
 
-        // ============================================================
-        // RENDER
-        // ============================================================
-        function renderizar() {
-            // SVG
-            document.getElementById('svg-container').innerHTML = gerarSVG();
-            
-            // Planetas
-            const container = document.getElementById('planetas-container');
-            MAPA.planetas.forEach(p => {
-                const ret = p.retrogrado ? '<span class="text-yellow-400 text-xs ml-1">℞</span>' : '';
-                container.innerHTML += `
-                    <div class="planet-card glass rounded-xl p-4 border-l-4" style="border-left-color: ${p.cor}">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-2xl">${p.simbolo}</span>
-                            <span class="text-xs text-gray-500">Casa ${p.casa}</span>
-                        </div>
-                        <h3 class="font-bold text-lg">${p.nome}${ret}</h3>
-                        <p class="text-gray-400">${p.signo} ${p.graus}°</p>
-                        <div class="flex gap-2 mt-2 text-xs">
-                            <span class="px-2 py-1 rounded-full bg-gray-800 text-gray-400">${p.elemento}</span>
-                            <span class="px-2 py-1 rounded-full bg-gray-800 text-gray-400">${p.qualidade}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            
+            // Signos
+            for(let i=0;i<12;i++){
+                const a=(i*30-90)*Math.PI/180;
+                s+=`<line x1="${cx+rInt*Math.cos(a)}" y1="${cy+rInt*Math.sin(a)}" x2="${cx+rExt*Math.cos(a)}" y2="${cy+rExt*Math.sin(a)}" stroke="#333" stroke-width="1"/>`;
+                const am=((i+0.5)*30-90)*Math.PI/180;
+                s+=`<text x="${cx+(rExt-12)*Math.cos(am)}" y="${cy+(rExt-12)*Math.sin(am)}" fill="#e94560" font-size="14" text-anchor="middle" dominant-baseline="central">${SIGNOS[i]}</text>`;
+            }
+
+            // Casas
+            for(let i=0;i<12;i++){
+                const a=(i*30-90)*Math.PI/180;
+                const sw=i%3===0?2:1;
+                s+=`<line x1="${cx+rInt*Math.cos(a)}" y1="${cy+rInt*Math.sin(a)}" x2="${cx+rExt*Math.cos(a)}" y2="${cy+rExt*Math.sin(a)}" stroke="#555" stroke-width="${sw}"/>`;
+                s+=`<text x="${cx+(rInt+10)*Math.cos(a)}" y="${cy+(rInt+10)*Math.sin(a)}" fill="#888" font-size="9" text-anchor="middle" dominant-baseline="central">${i+1}</text>`;
+            }
+
+            // Ângulos
+            const angASC=(238.7-90)*Math.PI/180, angMC=(148.7-90)*Math.PI/180;
+            for(const[n,a,c] of[["ASC",angASC,"#FFD700"],["MC",angMC,"#FFD700"],["DC",angASC+Math.PI,"#FFD700"],["IC",angMC+Math.PI,"#FFD700"]]){
+                s+=`<text x="${cx+rInt*Math.cos(a)}" y="${cy+rInt*Math.sin(a)}" fill="${c}" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="central">${n}</text>`;
+            }
+
             // Aspectos
-            const aspContainer = document.getElementById('aspectos-container');
-            MAPA.aspectos.forEach(a => {
-                aspContainer.innerHTML += `
-                    <div class="aspect-tag glass rounded-lg px-4 py-3 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="font-medium">${a.p1}</span>
-                            <span class="text-lg">${a.simbolo}</span>
-                            <span class="text-gray-400">${a.tipo}</span>
-                            <span class="font-medium">${a.p2}</span>
-                        </div>
-                        <span class="text-xs text-gray-500">orb ${a.orb}°</span>
-                    </div>
-                `;
+            for(const a of ASPECTOS){
+                const a1=(PLANETAS[a.p1].pos-90)*Math.PI/180, a2=(PLANETAS[a.p2].pos-90)*Math.PI/180;
+                const dash=a.tipo==="Conjunção"?"none":"6,3";
+                s+=`<line x1="${cx+rAsp*Math.cos(a1)}" y1="${cy+rAsp*Math.sin(a1)}" x2="${cx+rAsp*Math.cos(a2)}" y2="${cy+rAsp*Math.sin(a2)}" stroke="${a.cor}" stroke-width="1.5" stroke-dasharray="${dash}" opacity="0.6"/>`;
+            }
+
+            // Planetas
+            for(const p of PLANETAS){
+                const a=(p.pos-90)*Math.PI/180;
+                s+=`<text x="${cx+rPlan*Math.cos(a)}" y="${cy+rPlan*Math.sin(a)}" fill="#fff" font-size="16" text-anchor="middle" dominant-baseline="central">${p.glifo}</text>`;
+                s+=`<text x="${cx+(rPlan+12)*Math.cos(a)}" y="${cy+(rPlan+4)*Math.sin(a)}" fill="#aaa" font-size="8" text-anchor="start">${p.graus.split("°")[0]}°</text>`;
+            }
+
+            // Centro
+            s+=`<text x="${cx}" y="${cy-8}" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">Ivan</text>`;
+            s+=`<text x="${cx}" y="${cy+10}" fill="#e94560" font-size="10" text-anchor="middle">ASC 28.7° ♏</text>`;
+
+            // Tabela de posições
+            let tx=30, ty=30;
+            s+=`<text x="${tx}" y="${ty}" fill="#e94560" font-size="16" font-weight="bold">🌙 Mapa Astral</text>`;
+            s+=`<text x="${tx}" y="${ty+22}" fill="#aaa" font-size="11">Ivan Tadeu dos Santos Souza</text>`;
+            s+=`<text x="${tx}" y="${ty+38}" fill="#888" font-size="10">15/07/1964 14:00 Brasília-DF</text>`;
+            let y0=ty+65;
+            s+=`<text x="${tx}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Planeta</text>`;
+            s+=`<text x="${tx+70}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Signo</text>`;
+            s+=`<text x="${tx+130}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Posição</text>`;
+            s+=`<text x="${tx+190}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Casa</text>`;
+            s+=`<line x1="${tx}" y1="${y0+3}" x2="${tx+240}" y2="${y0+3}" stroke="#333" stroke-width="1"/>`;
+            PLANETAS.forEach((p,i)=>{
+                const y=y0+20+i*18;
+                s+=`<text x="${tx}" y="${y}" fill="#fff" font-size="11">${p.glifo} ${p.nome}</text>`;
+                s+=`<text x="${tx+70}" y="${y}" fill="#ccc" font-size="11">${p.signo}</text>`;
+                s+=`<text x="${tx+130}" y="${y}" fill="#ccc" font-size="11">${p.graus}</text>`;
+                s+=`<text x="${tx+190}" y="${y}" fill="#ccc" font-size="11">Casa ${p.casa}${p.retrogrado?" R":""}</text>`;
             });
-            
-            // Interpretação
-            document.getElementById('interpretacao-container').innerHTML = MAPA.interpretacao.replace(/\n/g, '<br><br>');
+
+            // Grade de aspectos
+            let gx=30, gy=520;
+            s+=`<text x="${gx}" y="${gy}" fill="#e94560" font-size="12" font-weight="bold">🔗 Aspectos</text>`;
+            const nc=["Sol","Lua","Mer","Vên","Mar","Jup","Sat","Ura","Net","Plu"];
+            const simb={Conjunção:"☌",Sextil:"⚹",Semisextil:"⚺",Biquintil:"⩩"};
+            for(let i=0;i<10;i++){
+                s+=`<text x="${gx+30+i*22}" y="${gy+18}" fill="#888" font-size="8" text-anchor="middle">${nc[i]}</text>`;
+                s+=`<text x="${gx+12}" y="${gy+18+i*18}" fill="#888" font-size="8" text-anchor="end">${nc[i]}</text>`;
+            }
+            for(const a of ASPECTOS){
+                s+=`<text x="${gx+30+a.p2*22}" y="${gy+18+a.p1*18}" fill="${a.cor}" font-size="10" text-anchor="middle">${simb[a.tipo]||"•"}</text>`;
+            }
+            let ly=gy+210;
+            s+=`<text x="${gx}" y="${ly}" fill="#4CAF50" font-size="9">⚺ Semisextil</text>`;
+            s+=`<text x="${gx+100}" y="${ly}" fill="#2196F3" font-size="9">☌ Conjunção</text>`;
+            s+=`<text x="${gx+200}" y="${ly}" fill="#9C27B0" font-size="9">⩩ Biquintil</text>`;
+            s+=`<text x="${gx}" y="${ly+16}" fill="#4CAF50" font-size="9">⚹ Sextil</text>`;
+
+            s+='</svg>';
+            return s;
         }
 
         // ============================================================
         // TABS
         // ============================================================
-        function switchTab(tab, evt) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById('section-' + tab).classList.add('active');
-        }
+        document.addEventListener('DOMContentLoaded', ()=>{
+            document.querySelectorAll('.tab-btn').forEach(btn=>{
+                btn.addEventListener('click', ()=>{
+                    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+                    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('section-'+btn.dataset.tab).classList.add('active');
+                });
+            });
 
-        // ============================================================
-        // HORÓSCOPO
-        // ============================================================
-        function carregarHoroscopo() {
-            const container = document.getElementById('transitos-container');
-            container.innerHTML = `
-                <h2 class="text-e94560 text-xl font-bold mb-4">🔮 Horóscopo de 07/06/2026</h2>
+            // Renderizar
+            document.getElementById('svg-container').innerHTML = gerarSVG();
 
-                <p class="text-gray-300 text-sm mb-4 leading-relaxed">
-                    Amanhã é um dia de rara luminosidade e expansão para você. Com a poderosa conjunção de <span class="text-e94560 font-semibold">Vênus e Júpiter sobre o seu Sol em Câncer</span>, você sentirá um impulso de autoconfiança e um magnetismo pessoal irresistível. É um momento excepcional para colher frutos de projetos antigos, atrair prosperidade e sentir-se verdadeiramente valorizado em seus círculos mais íntimos.
-                </p>
+            // Planetas
+            const pc = document.getElementById('planetas-container');
+            PLANETAS.forEach(p=>{
+                const ret = p.retrogrado?'<span class="text-yellow-400 text-xs ml-1">℞</span>':'';
+                pc.innerHTML += `<div class="planet-card glass rounded-xl p-4 border-l-4" style="border-left-color:${p.cor}">
+                    <div class="flex items-center justify-between mb-2"><span class="text-2xl">${p.glifo}</span><span class="text-xs text-gray-500">Casa ${p.casa}</span></div>
+                    <h3 class="font-bold text-lg">${p.nome}${ret}</h3>
+                    <p class="text-gray-400">${p.signo} ${p.graus}</p>
+                    <div class="flex gap-2 mt-2 text-xs"><span class="px-2 py-1 rounded-full bg-gray-800 text-gray-400">${p.elemento}</span><span class="px-2 py-1 rounded-full bg-gray-800 text-gray-400">${p.qualidade}</span></div>
+                </div>`;
+            });
 
-                <p class="text-gray-300 text-sm mb-4 leading-relaxed">
-                    No campo das relações e da comunicação, o Sol em Gêmeos harmoniza-se com seus planetas na Casa 7, facilitando o <span class="text-e94560 font-semibold">entendimento mútuo e a diplomacia</span>. A mente estará ágil e a disposição para resolver pendências através do diálogo será alta, tornando o clima propício para trocas intelectuais estimulantes ou para fortalecer vínculos afetivos com leveza.
-                </p>
+            // Aspectos
+            const ac = document.getElementById('aspectos-container');
+            const nomes = PLANETAS.map(p=>p.nome);
+            ASPECTOS.forEach(a=>{
+                ac.innerHTML += `<div class="aspect-tag glass rounded-lg px-4 py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3"><span class="font-medium">${nomes[a.p1]}</span><span class="text-lg">●</span><span class="text-gray-400">${a.tipo}</span><span class="font-medium">${nomes[a.p2]}</span></div>
+                </div>`;
+            });
 
-                <p class="text-gray-300 text-sm mb-4 leading-relaxed">
-                    Contudo, a quadratura de Saturno com sua Lua em Libra sugere que algumas <span class="text-e94560 font-semibold">tensões emocionais ou cobranças externas</span> podem surgir pontualmente. O desafio será não permitir que a autocrítica excessiva ou a rigidez de terceiros ofusquem a alegria do dia, buscando o equilíbrio necessário entre suas responsabilidades e a sua necessidade de paz interior.
-                </p>
-
-                <div class="bg-gray-800 rounded-xl p-4 mt-4">
-                    <p class="text-gray-300 text-sm leading-relaxed">
-                        <span class="text-e94560 font-semibold">💡 Dica Prática:</span> Aproveite a energia de abundância para manifestar um desejo ou iniciar algo que traga prazer genuíno. Se sentir pressão emocional, respire fundo e lembre-se que o brilho do seu Sol agora é maior do que qualquer limitação temporária.
-                    </p>
-                </div>
-            `;
-        }
-
-        // Iniciar
-        renderizar();
+            // Interpretação
+            document.getElementById('interpretacao-container').innerHTML = `🌟 PERFIL GERAL: Você apresenta uma combinação fascinante: o Ascendente em Escorpião confere a você uma aura de mistério, intensidade e uma capacidade nata de regeneração e investigação. Por dentro, seu Sol em Câncer revela um coração acolhedor, intuitivo e com um forte vínculo emocional, especialmente voltado para a expansão da mente, estudos superiores ou espiritualidade (devido à Casa 9). Para equilibrar essa intensidade, sua Lua em Libra traz a necessidade de harmonia, diplomacia e um prazer genuíno no convívio social e nas amizades, buscando sempre a paz e a justiça nas suas relações.<br><br>💼 CARREIRA: No cotidiano, as áreas da sua vida mostram dinâmicas interessantes. No amor e nas parcerias (Casa 7), a presença de Vênus e Marte em Gêmeos indica que você valoriza a comunicação, a inteligência e a troca mental; para você, o diálogo é o combustível da paixão. No trabalho, Júpiter em Touro na Casa 6 sugere prosperidade através da dedicação e da persistência na rotina. Já a sua vida profissional (Casa 10) é marcada por Urano e Plutão em Virgem, o que aponta para uma carreira de transformações profundas, onde a precisão e a capacidade de inovar são seus grandes diferenciais, podendo ter passado por rupturas ou mudanças bruscas de status.<br><br>⚡ DESAFIOS: Quanto aos seus desafios, Saturno retrógrado na Casa 4 sugere que questões ligadas às raízes familiares ou ao passado podem ter sido sentidas como fardos ou limitações, exigindo de você um amadurecimento lento e consciente sobre a sua base emocional. Netuno retrógrado na Casa 12 reforça uma espiritualidade muito forte, mas que pede cuidado para não se perder em fantasias ou escapismos. Seu grande potencial reside em integrar a profundidade escorpiana com a leveza geminiana, usando sua inteligência estratégica e sua empatia para liderar e transformar a realidade ao seu redor.`;
+        });
     </script>
 </body>
 </html>
