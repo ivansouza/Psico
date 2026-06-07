@@ -239,37 +239,19 @@
             const container = document.getElementById('transitos-container');
             container.innerHTML = '<p class="text-center text-gray-500 py-8">🔮 Carregando horóscopo...</p>';
             
-            fetch('https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent?key=***', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `Você é um astrólogo brasileiro. Faça o horóscopo de HOJE para Ivan Tadeu dos Santos Souza:
-
-NASCIMENTO: 15/07/1964 às 14:00 Brasília-DF
-ASC: Escorpião 28.7°
-SOL: Câncer 23° Casa 9
-LUA: Libra 14° Casa 11
-SATURNO: Peixes 4° Casa 4 (R)
-
-Faça 3 parágrafos em português brasileiro natural:
-1. Energia geral do dia
-2. Áreas que merecem atenção
-3. Dica prática`
-                        }]
-                    }],
-                    generationConfig: { maxOutputTokens: 500 }
-                })
-            })
-            .then(r => r.json())
-            .then(d => {
-                const texto = d.candidates[0].content.parts[0].text;
-                container.innerHTML = '<div class="leading-relaxed">' + texto.replace(/\n/g, '<br><br>') + '</div>';
-            })
-            .catch(e => {
-                container.innerHTML = '<p class="text-center text-red-400 py-8">Erro ao carregar horóscopo. Tente novamente.</p>';
-            });
+            // O horóscopo é gerado pelo backend (ZePequeno/OpenClaw)
+            // A chave da API não pode ficar exposta no frontend
+            // Peça o horóscopo diretamente no Telegram!
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <p class="text-gray-400 mb-4">🔒 O horóscopo é gerado pelo backend para proteger a chave da API.</p>
+                    <p class="text-gray-500">Peça o horóscopo de hoje diretamente no Telegram! 🐶</p>
+                    <div class="mt-6 glass rounded-xl p-6 inline-block">
+                        <p class="text-lg">💬 Mande uma mensagem no Telegram:</p>
+                        <p class="text-e94560 font-bold mt-2">"Zé, qual o horóscopo de hoje?"</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Iniciar
