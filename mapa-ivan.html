@@ -237,19 +237,25 @@
         // ============================================================
         function carregarHoroscopo() {
             const container = document.getElementById('transitos-container');
-            container.innerHTML = '<p class="text-center text-gray-500 py-8">🔮 Carregando horóscopo...</p>';
-            
-            // O horóscopo é gerado pelo backend (ZePequeno/OpenClaw)
-            // A chave da API não pode ficar exposta no frontend
-            // Peça o horóscopo diretamente no Telegram!
             container.innerHTML = `
-                <div class="text-center py-8">
-                    <p class="text-gray-400 mb-4">🔒 O horóscopo é gerado pelo backend para proteger a chave da API.</p>
-                    <p class="text-gray-500">Peça o horóscopo de hoje diretamente no Telegram! 🐶</p>
-                    <div class="mt-6 glass rounded-xl p-6 inline-block">
-                        <p class="text-lg">💬 Mande uma mensagem no Telegram:</p>
-                        <p class="text-e94560 font-bold mt-2">"Zé, qual o horóscopo de hoje?"</p>
-                    </div>
+                <h2 class="text-e94560 text-xl font-bold mb-4">🔮 Horóscopo de 08/06/2026</h2>
+
+                <p class="text-gray-300 text-sm mb-4 leading-relaxed">
+                    Amanhã é um dia de rara luminosidade e expansão para você. Com a poderosa conjunção de <span class="text-e94560 font-semibold">Vênus e Júpiter sobre o seu Sol em Câncer</span>, você sentirá um impulso de autoconfiança e um magnetismo pessoal irresistível. É um momento excepcional para colher frutos de projetos antigos, atrair prosperidade e sentir-se verdadeiramente valorizado em seus círculos mais íntimos.
+                </p>
+
+                <p class="text-gray-300 text-sm mb-4 leading-relaxed">
+                    No campo das relações e da comunicação, o Sol em Gêmeos harmoniza-se com seus planetas na Casa 7, facilitando o <span class="text-e94560 font-semibold">entendimento mútuo e a diplomacia</span>. A mente estará ágil e a disposição para resolver pendências através do diálogo será alta, tornando o clima propício para trocas intelectuais estimulantes ou para fortalecer vínculos afetivos com leveza.
+                </p>
+
+                <p class="text-gray-300 text-sm mb-4 leading-relaxed">
+                    Contudo, a quadratura de Saturno com sua Lua em Libra sugere que algumas <span class="text-e94560 font-semibold">tensões emocionais ou cobranças externas</span> podem surgir pontualmente. O desafio será não permitir que a autocrítica excessiva ou a rigidez de terceiros ofusquem a alegria do dia, buscando o equilíbrio necessário entre suas responsabilidades e a sua necessidade de paz interior.
+                </p>
+
+                <div class="bg-gray-800 rounded-xl p-4 mt-4">
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        <span class="text-e94560 font-semibold">💡 Dica Prática:</span> Aproveite a energia de abundância para manifestar um desejo ou iniciar algo que traga prazer genuíno. Se sentir pressão emocional, respire fundo e lembre-se que o brilho do seu Sol agora é maior do que qualquer limitação temporária.
+                    </p>
                 </div>
             `;
         }
