@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌙 Mapa Astral - Ivan Tadeu dos Santos Souza</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
+        function toggleGuia() {
+            const el = document.getElementById('guia-container');
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #0a0a1a; color: #e2e8f0; }
@@ -263,6 +273,16 @@
             // Interpretação
             document.getElementById('interpretacao-container').innerHTML = `🌟 PERFIL GERAL: Você apresenta uma combinação fascinante: o Ascendente em Escorpião confere a você uma aura de mistério, intensidade e uma capacidade nata de regeneração e investigação. Por dentro, seu Sol em Câncer revela um coração acolhedor, intuitivo e com um forte vínculo emocional, especialmente voltado para a expansão da mente, estudos superiores ou espiritualidade (devido à Casa 9). Para equilibrar essa intensidade, sua Lua em Libra traz a necessidade de harmonia, diplomacia e um prazer genuíno no convívio social e nas amizades, buscando sempre a paz e a justiça nas suas relações.<br><br>💼 CARREIRA: No cotidiano, as áreas da sua vida mostram dinâmicas interessantes. No amor e nas parcerias (Casa 7), a presença de Vênus e Marte em Gêmeos indica que você valoriza a comunicação, a inteligência e a troca mental; para você, o diálogo é o combustível da paixão. No trabalho, Júpiter em Touro na Casa 6 sugere prosperidade através da dedicação e da persistência na rotina. Já a sua vida profissional (Casa 10) é marcada por Urano e Plutão em Virgem, o que aponta para uma carreira de transformações profundas, onde a precisão e a capacidade de inovar são seus grandes diferenciais, podendo ter passado por rupturas ou mudanças bruscas de status.<br><br>⚡ DESAFIOS: Quanto aos seus desafios, Saturno retrógrado na Casa 4 sugere que questões ligadas às raízes familiares ou ao passado podem ter sido sentidas como fardos ou limitações, exigindo de você um amadurecimento lento e consciente sobre a sua base emocional. Netuno retrógrado na Casa 12 reforça uma espiritualidade muito forte, mas que pede cuidado para não se perder em fantasias ou escapismos. Seu grande potencial reside em integrar a profundidade escorpiana com a leveza geminiana, usando sua inteligência estratégica e sua empatia para liderar e transformar a realidade ao seu redor.`;
         });
-    </script>
+    
+        function toggleGuia() {
+            const el = document.getElementById('guia-container');
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+</script>
 </body>
 </html>
