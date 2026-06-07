@@ -114,29 +114,31 @@
         // DADOS
         // ============================================================
         const PLANETAS = [
-            { nome:"Sol", glifo:"☉", pos:84.35, signo:"Câncer", graus:"23°18'", casa:9, elemento:"Água", qualidade:"Cardinal", retrogrado:false, cor:"#FFD700" },
-            { nome:"Lua", glifo:"☽", pos:348.43, signo:"Libra", graus:"14°06'", casa:11, elemento:"Ar", qualidade:"Cardinal", retrogrado:false, cor:"#C0C0C0" },
-            { nome:"Mercúrio", glifo:"☿", pos:66.09, signo:"Leão", graus:"12°05'", casa:9, elemento:"Fogo", qualidade:"Fixo", retrogrado:false, cor:"#4FC3F7" },
-            { nome:"Vênus", glifo:"♀", pos:49.05, signo:"Gêmeos", graus:"20°42'", casa:7, elemento:"Ar", qualidade:"Mutável", retrogrado:false, cor:"#FF69B4" },
-            { nome:"Marte", glifo:"♂", pos:11.21, signo:"Gêmeos", graus:"19°48'", casa:7, elemento:"Ar", qualidade:"Mutável", retrogrado:false, cor:"#FF4444" },
-            { nome:"Júpiter", glifo:"♃", pos:50.61, signo:"Touro", graus:"20°36'", casa:6, elemento:"Terra", qualidade:"Fixo", retrogrado:false, cor:"#FFB74D" },
+            { nome:"Sol", glifo:"☉", pos:113.21, signo:"Câncer", graus:"23°13'", casa:9, elemento:"Água", qualidade:"Cardinal", retrogrado:false, cor:"#FFD700" },
+            { nome:"Lua", glifo:"☽", pos:194.14, signo:"Libra", graus:"14°08'", casa:11, elemento:"Ar", qualidade:"Cardinal", retrogrado:false, cor:"#C0C0C0" },
+            { nome:"Mercúrio", glifo:"☿", pos:132.12, signo:"Leão", graus:"12°07'", casa:9, elemento:"Fogo", qualidade:"Fixo", retrogrado:false, cor:"#4FC3F7" },
+            { nome:"Vênus", glifo:"♀", pos:80.68, signo:"Gêmeos", graus:"20°41'", casa:7, elemento:"Ar", qualidade:"Mutável", retrogrado:false, cor:"#FF69B4" },
+            { nome:"Marte", glifo:"♂", pos:79.78, signo:"Gêmeos", graus:"19°47'", casa:7, elemento:"Ar", qualidade:"Mutável", retrogrado:false, cor:"#FF4444" },
+            { nome:"Júpiter", glifo:"♃", pos:50.59, signo:"Touro", graus:"20°35'", casa:6, elemento:"Terra", qualidade:"Fixo", retrogrado:false, cor:"#FFB74D" },
             { nome:"Saturno", glifo:"♄", pos:334.30, signo:"Peixes", graus:"4°18'", casa:4, elemento:"Água", qualidade:"Mutável", retrogrado:true, cor:"#616161" },
-            { nome:"Urano", glifo:"♅", pos:157.62, signo:"Virgem", graus:"7°36'", casa:10, elemento:"Terra", qualidade:"Mutável", retrogrado:false, cor:"#00BCD4" },
-            { nome:"Netuno", glifo:"♆", pos:225.14, signo:"Escorpião", graus:"15°06'", casa:12, elemento:"Água", qualidade:"Fixo", retrogrado:true, cor:"#7E57C2" },
+            { nome:"Urano", glifo:"♅", pos:157.58, signo:"Virgem", graus:"7°34'", casa:10, elemento:"Terra", qualidade:"Mutável", retrogrado:false, cor:"#00BCD4" },
+            { nome:"Netuno", glifo:"♆", pos:225.10, signo:"Escorpião", graus:"15°06'", casa:12, elemento:"Água", qualidade:"Fixo", retrogrado:true, cor:"#7E57C2" },
             { nome:"Plutão", glifo:"♇", pos:162.30, signo:"Virgem", graus:"12°18'", casa:10, elemento:"Terra", qualidade:"Mutável", retrogrado:false, cor:"#8D6E63" }
         ];
 
         const ASPECTOS = [
-            { p1:0, p2:9, tipo:"Semisextil", cor:"#4CAF50" },
             { p1:3, p2:5, tipo:"Semisextil", cor:"#4CAF50" },
-            { p1:3, p2:4, tipo:"Conjunção", cor:"#2196F3" },
-            { p1:1, p2:5, tipo:"Biquintil", cor:"#9C27B0" },
-            { p1:1, p2:8, tipo:"Semisextil", cor:"#4CAF50" },
-            { p1:1, p2:2, tipo:"Sextil", cor:"#4CAF50" },
-            { p1:4, p2:5, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:2, p2:9, tipo:"Semisextil", cor:"#4CAF50" },
             { p1:3, p2:8, tipo:"Biquintil", cor:"#9C27B0" },
+            { p1:1, p2:5, tipo:"Biquintil", cor:"#9C27B0" },
+            { p1:4, p2:5, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:3, p2:4, tipo:"Conjunção", cor:"#2196F3" },
+            { p1:1, p2:8, tipo:"Semisextil", cor:"#4CAF50" },
             { p1:4, p2:8, tipo:"Biquintil", cor:"#9C27B0" },
-            { p1:1, p2:9, tipo:"Semisextil", cor:"#4CAF50" }
+            { p1:1, p2:9, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:1, p2:2, tipo:"Sextil", cor:"#4CAF50" },
+            { p1:0, p2:3, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:0, p2:5, tipo:"Sextil", cor:"#4CAF50" }
         ];
 
         const SIGNOS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
@@ -169,7 +171,7 @@
             }
 
             // Ângulos
-            const angASC=(238.7-90)*Math.PI/180, angMC=(148.7-90)*Math.PI/180;
+            const angASC=(238.7-90)*Math.PI/180, angMC=(138.2-90)*Math.PI/180;
             for(const[n,a,c] of[["ASC",angASC,"#FFD700"],["MC",angMC,"#FFD700"],["DC",angASC+Math.PI,"#FFD700"],["IC",angMC+Math.PI,"#FFD700"]]){
                 s+=`<text x="${cx+rInt*Math.cos(a)}" y="${cy+rInt*Math.sin(a)}" fill="${c}" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="central">${n}</text>`;
             }
