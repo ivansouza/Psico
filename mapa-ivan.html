@@ -36,11 +36,11 @@
 
         <!-- Tabs -->
         <div class="flex justify-center gap-2 mb-8 flex-wrap">
-            <button onclick="switchTab('mapa')" class="tab-btn active px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔄 Mapa</button>
-            <button onclick="switchTab('planetas')" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">📊 Planetas</button>
-            <button onclick="switchTab('aspectos')" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔗 Aspectos</button>
-            <button onclick="switchTab('interpretacao')" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔮 Interpretação</button>
-            <button onclick="switchTab('trânsitos')" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">📅 Trânsitos</button>
+            <button onclick="switchTab('mapa', event)" class="tab-btn active px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔄 Mapa</button>
+            <button onclick="switchTab('planetas', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">📊 Planetas</button>
+            <button onclick="switchTab('aspectos', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔗 Aspectos</button>
+            <button onclick="switchTab('interpretacao', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">🔮 Interpretação</button>
+            <button onclick="switchTab('transitos', event)" class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700">📅 Trânsitos</button>
         </div>
 
         <!-- Section: Mapa SVG -->
@@ -235,7 +235,7 @@ Nas interações sociais, a influência do Sol em Gêmeos e de Marte em Touro pe
         // ============================================================
         // TABS
         // ============================================================
-        function switchTab(tab) {
+        function switchTab(tab, evt) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             event.target.classList.add('active');
