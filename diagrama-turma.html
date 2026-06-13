@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turma do ZéPequeno — Arquitetura</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --clay-soft: rgba(217,119,87,0.10);
+    --olive: #788C5D; --olive-soft: rgba(120,140,93,0.12);
+    --gold: #C9A45C; --blue: #5B7E96; --blue-soft: rgba(91,126,150,0.12);
+    --purple: #8B6FAF; --purple-soft: rgba(139,111,175,0.12);
+    --red: #C95B5B; --red-soft: rgba(201,91,91,0.12);
+    --teal: #5B9E8F; --teal-soft: rgba(91,158,143,0.12);
+    --zone: rgba(20,20,19,0.025); --zone-line: #D1CFC5;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --clay-soft: rgba(228,138,110,0.14);
+    --olive: #9DB07C; --olive-soft: rgba(157,176,124,0.16);
+    --gold: #D4B36F; --blue: #7FA3BC; --blue-soft: rgba(127,163,188,0.14);
+    --purple: #B08FD4; --purple-soft: rgba(176,143,212,0.14);
+    --red: #D97A7A; --red-soft: rgba(217,122,122,0.14);
+    --teal: #7ABCA8; --teal-soft: rgba(122,188,168,0.14);
+    --zone: rgba(250,249,245,0.03); --zone-line: #3D3D3A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--line-soft); flex: none;
+  }
+  .bar h1 { font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); letter-spacing: -0.01em; }
+  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .spacer { flex: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  #themeToggle {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--muted); }
+
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; rx: 16; }
+  .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
+  .zone .zsub { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); opacity: 0.75; }
+
+  .node { cursor: pointer; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; rx: 10; transition: stroke .15s ease, filter .15s ease; }
+  .node:hover rect { stroke: var(--muted); }
+  .node.sel rect { stroke: var(--clay) !important; stroke-width: 2; }
+  .node .t  { font-family: var(--sans); font-size: 14px; font-weight: 600; fill: var(--ink); pointer-events: none; }
+  .node .m  { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); pointer-events: none; }
+  .node .k  { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--muted); pointer-events: none; }
+  .node .emoji { font-size: 22px; pointer-events: none; }
+  .node.raimundo rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.tonhao rect { fill: var(--clay-soft); stroke: var(--clay); }
+  .node.james rect { fill: var(--purple-soft); stroke: var(--purple); }
+  .node.bibi rect { fill: var(--blue-soft); stroke: var(--blue); }
+  .node.zedroga rect { fill: var(--red-soft); stroke: var(--red); }
+  .node.zepequeno rect { fill: var(--teal-soft); stroke: var(--teal); }
+  .node.ext rect { stroke-dasharray: 6 3; }
+
+  .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#a-mut); transition: opacity .2s ease, stroke .2s ease; }
+  .edge.dash { stroke-dasharray: 5 4; }
+  .edge.ws { stroke-width: 2; }
+  .elbl { font-family: var(--mono); font-size: 10px; fill: var(--muted); transition: opacity .2s ease; }
+
+  .stage.flowing .edge { opacity: 0.13; }
+  .stage.flowing .elbl { opacity: 0.13; }
+  .stage.flowing .node { opacity: 0.30; }
+  .stage.flowing .zone { opacity: 0.45; }
+  .stage.flowing .edge.lit { opacity: 1; stroke: var(--clay); marker-end: url(#a-clay); }
+  .stage.flowing .elbl.lit { opacity: 1; fill: var(--clay); }
+  .stage.flowing .node.lit { opacity: 1; }
+  .stage.flowing .zone.lit { opacity: 1; }
+
+  .info-panel {
+    position: absolute; bottom: 20px; right: 20px; width: 280px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    font-size: 13px; line-height: 1.5; display: none;
+  }
+  .info-panel.show { display: block; }
+  .info-panel h3 { font-family: var(--serif); font-size: 16px; color: var(--ink); margin-bottom: 6px; }
+  .info-panel p { color: var(--body); margin-bottom: 4px; }
+  .info-panel .tag {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    padding: 2px 8px; border-radius: 4px; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>🐶 Turma do ZéPequeno</h1>
+  <span class="sub">Arquitetura · Modelos de IA</span>
+  <div class="spacer"></div>
+  <div class="chips" id="flowChips">
+    <button class="chip" data-flow="all">🌐 Todos</button>
+    <button class="chip" data-flow="cloud">☁️ Cloud</button>
+    <button class="chip" data-flow="local">💻 Local</button>
+  </div>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="stage" id="stage">
+  <svg viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="var(--muted)"/>
+      </marker>
+      <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="var(--clay)"/>
+      </marker>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Zona: Cloud -->
+    <g class="zone" data-zone="cloud">
+      <rect x="30" y="30" width="540" height="300" rx="16"/>
+      <text x="50" y="58" class="ztitle">☁️ Cloud</text>
+      <text x="50" y="74" class="zsub">Serviços externos</text>
+    </g>
+
+    <!-- Zona: Local WSL -->
+    <g class="zone" data-zone="local">
+      <rect x="630" y="30" width="540" height="300" rx="16"/>
+      <text x="650" y="58" class="ztitle">💻 Local WSL</text>
+      <text x="650" y="74" class="zsub">Modelos rodando em CPU</text>
+    </g>
+
+    <!-- Zona: Orquestrador -->
+    <g class="zone" data-zone="orchestrator">
+      <rect x="30" y="370" width="1140" height="100" rx="16"/>
+      <text x="50" y="398" class="ztitle">🎯 Orquestrador</text>
+      <text x="50" y="414" class="zsub">OpenClaw Gateway · deepseek/deepseek-v4-flash</text>
+    </g>
+
+    <!-- Zona: Serviços Auxiliares -->
+    <g class="zone" data-zone="aux">
+      <rect x="30" y="510" width="1140" height="160" rx="16"/>
+      <text x="50" y="538" class="ztitle">🔧 Serviços Auxiliares</text>
+      <text x="50" y="554" class="zsub">TTS · Armazenamento · Conhecimento</text>
+    </g>
+
+    <!-- NÓS: Cloud -->
+    <!-- Raimundo -->
+    <g class="node raimundo" data-node="raimundo" data-zone="cloud" data-port="llm.naesquina.com.br" data-engine="Na Esquina (oMLX)" data-speed="Rápido" data-context="64K" data-desc="Tarefas leves: tradução, resumo, revisão. Tem visão.">
+      <rect x="80" y="100" width="180" height="80" rx="10"/>
+      <text x="120" y="130" class="emoji">🧱</text>
+      <text x="150" y="132" class="t">Raimundo</text>
+      <text x="120" y="152" class="m">Gemma 4 E4B IT 4bit</text>
+      <text x="120" y="168" class="k">Na Esquina · 64K ctx</text>
+    </g>
+
+    <!-- Tonhão -->
+    <g class="node tonhao" data-node="tonhao" data-zone="cloud" data-port=":8767" data-engine="HF Space" data-speed="Médio" data-context="32K" data-desc="Tarefas pesadas. Proxy local → HF Space.">
+      <rect x="310" y="100" width="180" height="80" rx="10"/>
+      <text x="350" y="130" class="emoji">🏋️</text>
+      <text x="380" y="132" class="t">Tonhão</text>
+      <text x="350" y="152" class="m">Gemma 4 12B IT</text>
+      <text x="350" y="168" class="k">HF Space · :8767</text>
+    </g>
+
+    <!-- James -->
+    <g class="node james" data-node="james" data-zone="cloud" data-port=":8769" data-engine="Google AI Studio" data-speed="Médio" data-context="32K" data-desc="Tarefas muito pesadas (31B). Proxy → Google AI Studio.">
+      <rect x="80" y="210" width="180" height="80" rx="10"/>
+      <text x="120" y="240" class="emoji">🏋️‍♂️</text>
+      <text x="150" y="242" class="t">James</text>
+      <text x="120" y="262" class="m">Gemma 4 31B IT</text>
+      <text x="120" y="278" class="k">Google AI Studio · :8769</text>
+    </g>
+
+    <!-- NÓS: Local -->
+    <!-- Zé Droguinha -->
+    <g class="node zedroga" data-node="zedroga" data-zone="local" data-port=":8770" data-engine="llama-server" data-speed="~16 tok/s" data-context="8K" data-desc="Testes sem censura. 100% local no WSL.">
+      <rect x="680" y="100" width="200" height="80" rx="10"/>
+      <text x="720" y="130" class="emoji">🧱💊</text>
+      <text x="760" y="132" class="t">Zé Droguinha</text>
+      <text x="700" y="152" class="m">Gemma 4 E2B uncensored</text>
+      <text x="700" y="168" class="k">WSL · :8770 · 8K ctx</text>
+    </g>
+
+    <!-- Bibi -->
+    <g class="node bibi" data-node="bibi" data-zone="local" data-port=":8774" data-engine="llama-server + MTP" data-speed="~3.7 tok/s" data-context="16K" data-desc="Passarinha azul de cartola. Alma de shihtzu. Mística e amorosa.">
+      <rect x="930" y="100" width="200" height="80" rx="10"/>
+      <text x="970" y="130" class="emoji">🐦💙</text>
+      <text x="1010" y="132" class="t">Bibi</text>
+      <text x="950" y="152" class="m">Gemma 4 12B IT + MTP</text>
+      <text x="950" y="168" class="k">WSL · :8774 · 16K ctx</text>
+    </g>
+
+    <!-- NÓS: Orquestrador -->
+    <!-- ZéPequeno -->
+    <g class="node zepequeno" data-node="zepequeno" data-zone="orchestrator" data-port="deepseek" data-engine="DeepSeek V4 Flash" data-speed="Rápido" data-context="128K" data-desc="Eu! O shihtzu digital que coordena a turma.">
+      <rect x="470" y="390" width="260" height="60" rx="10"/>
+      <text x="510" y="420" class="emoji">🐶</text>
+      <text x="540" y="422" class="t">ZéPequeno</text>
+      <text x="510" y="440" class="m">deepseek/deepseek-v4-flash</text>
+    </g>
+
+    <!-- NÓS: Auxiliares -->
+    <!-- Pocket TTS -->
+    <g class="node ext" data-node="tts" data-zone="aux">
+      <rect x="80" y="580" width="200" height="60" rx="10"/>
+      <text x="120" y="608" class="emoji">🎙️</text>
+      <text x="150" y="610" class="t">Pocket TTS</text>
+      <text x="120" y="628" class="m">:8765 · Voz HAL 9000 BR</text>
+    </g>
+
+    <!-- gbrain -->
+    <g class="node ext" data-node="gbrain" data-zone="aux">
+      <rect x="340" y="580" width="200" height="60" rx="10"/>
+      <text x="380" y="608" class="emoji">🧠</text>
+      <text x="410" y="610" class="t">gbrain</text>
+      <text x="360" y="628" class="m">Conhecimento · Memória</text>
+    </g>
+
+    <!-- SEABI -->
+    <g class="node ext" data-node="seabi" data-zone="aux">
+      <rect x="600" y="580" width="200" height="60" rx="10"/>
+      <text x="640" y="608" class="emoji">📊</text>
+      <text x="670" y="610" class="t">SEABI</text>
+      <text x="620" y="628" class="m">Diagrama de Cargas</text>
+    </g>
+
+    <!-- Birdclaw -->
+    <g class="node ext" data-node="birdclaw" data-zone="aux">
+      <rect x="860" y="580" width="200" height="60" rx="10"/>
+      <text x="900" y="608" class="emoji">🐦</text>
+      <text x="930" y="610" class="t">Birdclaw</text>
+      <text x="880" y="628" class="m">Twitter Archive</text>
+    </g>
+
+    <!-- ARESTAS: ZéPequeno → Modelos -->
+    <path class="edge ws" d="M600,390 L170,180" data-flow="all cloud"/>
+    <path class="edge ws" d="M600,390 L400,180" data-flow="all cloud"/>
+    <path class="edge ws" d="M600,390 L170,290" data-flow="all cloud"/>
+    <path class="edge ws" d="M600,390 L780,180" data-flow="all local"/>
+    <path class="edge ws" d="M600,390 L1030,180" data-flow="all local"/>
+
+    <!-- ARESTAS: Modelos → Auxiliares -->
+    <path class="edge dash" d="M170,290 L180,580" data-flow="all"/>
+    <path class="edge dash" d="M400,180 L440,580" data-flow="all"/>
+    <path class="edge dash" d="M780,180 L700,580" data-flow="all"/>
+    <path class="edge dash" d="M1030,180 L960,580" data-flow="all"/>
+
+    <!-- Labels das arestas -->
+    <text x="380" y="300" class="elbl" data-flow="all cloud">OpenAI API</text>
+    <text x="700" y="300" class="elbl" data-flow="all local">OpenAI API</text>
+    <text x="280" y="440" class="elbl" data-flow="all">TTS · Dados</text>
+  </svg>
+
+  <!-- Info Panel -->
+  <div class="info-panel" id="infoPanel">
+    <h3 id="infoName">Nó</h3>
+    <p id="infoDesc">Clique em um nó para ver detalhes</p>
+    <p id="infoMeta"></p>
+  </div>
+</div>
+
+<script>
+  const nodes = document.querySelectorAll('.node');
+  const chips = document.querySelectorAll('.chip');
+  const stage = document.getElementById('stage');
+  const panel = document.getElementById('infoPanel');
+  const infoName = document.getElementById('infoName');
+  const infoDesc = document.getElementById('infoDesc');
+  const infoMeta = document.getElementById('infoMeta');
+  const themeBtn = document.getElementById('themeToggle');
+
+  // Theme toggle
+  themeBtn.addEventListener('click', () => {
+    const html = document.documentElement;
+    const isDark = html.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    themeBtn.textContent = isDark ? '☀️ Claro' : '🌙 Escuro';
+  });
+  themeBtn.textContent = document.documentElement.classList.contains('dark') ? '☀️ Claro' : '🌙 Escuro';
+
+  // Node click → info panel
+  nodes.forEach(n => {
+    n.addEventListener('click', () => {
+      nodes.forEach(x => x.classList.remove('sel'));
+      n.classList.add('sel');
+      const name = n.querySelector('.t').textContent;
+      const emoji = n.querySelector('.emoji').textContent;
+      const model = n.querySelector('.m').textContent;
+      const desc = n.dataset.desc || '';
+      const port = n.dataset.port || '';
+      const engine = n.dataset.engine || '';
+      const speed = n.dataset.speed || '';
+      const ctx = n.dataset.context || '';
+      infoName.textContent = `${emoji} ${name}`;
+      infoDesc.textContent = desc;
+      infoMeta.innerHTML = `
+        <span class="tag" style="background:var(--line-soft);color:var(--body)">${model}</span>
+        ${port ? `<span class="tag" style="background:var(--line-soft);color:var(--body)">${port}</span>` : ''}
+        ${engine ? `<span class="tag" style="background:var(--line-soft);color:var(--body)">${engine}</span>` : ''}
+        ${speed ? `<span class="tag" style="background:var(--line-soft);color:var(--body)">${speed}</span>` : ''}
+        ${ctx ? `<span class="tag" style="background:var(--line-soft);color:var(--body)">${ctx}</span>` : ''}
+      `;
+      panel.classList.add('show');
+    });
+  });
+
+  // Flow chips
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('on'));
+      chip.classList.add('on');
+      const flow = chip.dataset.flow;
+      stage.classList.add('flowing');
+      document.querySelectorAll('.edge, .elbl, .node, .zone').forEach(el => el.classList.remove('lit'));
+      document.querySelectorAll(`[data-flow*="${flow}"]`).forEach(el => el.classList.add('lit'));
+      document.querySelectorAll(`[data-zone="${flow}"]`).forEach(el => el.classList.add('lit'));
+      document.querySelectorAll(`[data-node]`).forEach(el => {
+        if (el.dataset.zone === flow || flow === 'all') el.classList.add('lit');
+      });
+      if (flow === 'all') {
+        document.querySelectorAll('.edge, .elbl, .node, .zone').forEach(el => el.classList.add('lit'));
+      }
+      setTimeout(() => stage.classList.remove('flowing'), 2000);
+    });
+  });
+
+  // Click outside to close panel
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.node') && !e.target.closest('.info-panel')) {
+      panel.classList.remove('show');
+      nodes.forEach(n => n.classList.remove('sel'));
+    }
+  });
+
+  // Auto-trigger "Todos" on load
+  setTimeout(() => document.querySelector('[data-flow="all"]').click(), 500);
+</script>
+</body>
+</html>
