@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" width="960" height="700">
+<style>
+  text { font-family: "SF Mono", "Fira Code", "Cascadia Code", "Courier New", monospace; fill: #e2e8f0; }
+  .title { font-size: 18px; font-weight: 700; fill: #e2e8f0; }
+  .sub { font-size: 11px; fill: #94a3b8; }
+  .label { font-size: 13px; }
+  .muted { font-size: 11px; fill: #475569; }
+</style>
+<defs>
+  <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#0f0f1a"/>
+    <stop offset="100%" stop-color="#1a1a2e"/>
+  </linearGradient>
+  <filter id="glow-purple"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow-blue"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow-green"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow-orange"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow-red"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#a855f7"/></marker>
+  <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/></marker>
+  <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#10b981"/></marker>
+  <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f97316"/></marker>
+  <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ef4444"/></marker>
+</defs>
+<rect width="960" height="700" fill="url(#bg-grad)"/>
+<text x="480" y="40" class="title" text-anchor="middle">🐶 TURMA DO ZÉPEQUENO</text>
+<text x="480" y="58" class="sub" text-anchor="middle">Arquitetura dos Modelos de IA · Dark Terminal</text>
+<rect x="30" y="80" width="440" height="280" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="50" y="105" class="label" font-weight="700" fill="#94a3b8">☁️ CLOUD</text>
+<text x="50" y="120" class="muted">Serviços externos</text>
+<rect x="490" y="80" width="440" height="280" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="510" y="105" class="label" font-weight="700" fill="#94a3b8">💻 LOCAL WSL</text>
+<text x="510" y="120" class="muted">Modelos em CPU</text>
+<rect x="30" y="390" width="900" height="90" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="50" y="415" class="label" font-weight="700" fill="#94a3b8">🎯 ORQUESTRADOR</text>
+<text x="50" y="430" class="muted">OpenClaw Gateway</text>
+<rect x="30" y="510" width="900" height="160" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="50" y="535" class="label" font-weight="700" fill="#94a3b8">🔧 AUXILIARES</text>
+<text x="50" y="550" class="muted">TTS · Conhecimento · Dados</text>
+<rect x="70" y="145" width="170" height="75" rx="6" fill="#052e16" stroke="#10b981" stroke-width="1.5"/>
+<text x="155" y="172" class="label" text-anchor="middle" font-weight="700" fill="#10b981">🧱 Raimundo</text>
+<text x="155" y="190" class="muted" text-anchor="middle">Gemma 4 E4B IT 4bit</text>
+<text x="155" y="206" class="muted" text-anchor="middle">Na Esquina · 64K ctx</text>
+<rect x="270" y="145" width="170" height="75" rx="6" fill="#1e1b4b" stroke="#a855f7" stroke-width="1.5"/>
+<text x="355" y="172" class="label" text-anchor="middle" font-weight="700" fill="#a855f7">🏋️ Tonhão</text>
+<text x="355" y="190" class="muted" text-anchor="middle">Gemma 4 12B IT</text>
+<text x="355" y="206" class="muted" text-anchor="middle">HF Space · :8767</text>
+<rect x="70" y="250" width="170" height="75" rx="6" fill="#1e1b4b" stroke="#a855f7" stroke-width="1.5"/>
+<text x="155" y="277" class="label" text-anchor="middle" font-weight="700" fill="#a855f7">🏋️‍♂️ James</text>
+<text x="155" y="295" class="muted" text-anchor="middle">Gemma 4 31B IT</text>
+<text x="155" y="311" class="muted" text-anchor="middle">Google AI Studio · :8769</text>
+<rect x="530" y="145" width="180" height="75" rx="6" fill="#1c1917" stroke="#f97316" stroke-width="1.5"/>
+<text x="620" y="172" class="label" text-anchor="middle" font-weight="700" fill="#f97316">🧱💊 Zé Droguinha</text>
+<text x="620" y="190" class="muted" text-anchor="middle">Gemma 4 E2B uncensored</text>
+<text x="620" y="206" class="muted" text-anchor="middle">WSL · :8770 · 8K ctx</text>
+<rect x="740" y="145" width="180" height="75" rx="6" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+<text x="830" y="172" class="label" text-anchor="middle" font-weight="700" fill="#3b82f6">🐦💙 Bibi</text>
+<text x="830" y="190" class="muted" text-anchor="middle">Gemma 4 12B IT + MTP</text>
+<text x="830" y="206" class="muted" text-anchor="middle">WSL · :8774 · 16K ctx</text>
+<rect x="350" y="410" width="260" height="55" rx="6" fill="#1e1b4b" stroke="#a855f7" stroke-width="2" filter="url(#glow-purple)"/>
+<text x="480" y="435" class="label" text-anchor="middle" font-weight="700" fill="#a855f7">🐶 ZéPequeno</text>
+<text x="480" y="452" class="muted" text-anchor="middle">deepseek/deepseek-v4-flash</text>
+<rect x="70" y="575" width="180" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="160" y="600" class="label" text-anchor="middle" fill="#94a3b8">🎙️ Pocket TTS</text>
+<text x="160" y="620" class="muted" text-anchor="middle">:8765 · Voz HAL 9000</text>
+<rect x="280" y="575" width="180" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="370" y="600" class="label" text-anchor="middle" fill="#94a3b8">🧠 gbrain</text>
+<text x="370" y="620" class="muted" text-anchor="middle">Conhecimento · Memória</text>
+<rect x="490" y="575" width="180" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="580" y="600" class="label" text-anchor="middle" fill="#94a3b8">📊 SEABI</text>
+<text x="580" y="620" class="muted" text-anchor="middle">Diagrama de Cargas</text>
+<rect x="700" y="575" width="180" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="790" y="600" class="label" text-anchor="middle" fill="#94a3b8">🐦 Birdclaw</text>
+<text x="790" y="620" class="muted" text-anchor="middle">Twitter Archive</text>
+<path d="M480,410 L155,220" stroke="#a855f7" stroke-width="1.5" fill="none" marker-end="url(#arrow-purple)"/>
+<path d="M480,410 L355,220" stroke="#a855f7" stroke-width="1.5" fill="none" marker-end="url(#arrow-purple)"/>
+<path d="M480,410 L155,325" stroke="#a855f7" stroke-width="1.5" fill="none" marker-end="url(#arrow-purple)"/>
+<path d="M480,410 L620,220" stroke="#f97316" stroke-width="1.5" fill="none" marker-end="url(#arrow-orange)"/>
+<path d="M480,410 L830,220" stroke="#3b82f6" stroke-width="1.5" fill="none" marker-end="url(#arrow-blue)"/>
+<path d="M155,325 L160,575" stroke="#475569" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-purple)"/>
+<path d="M355,220 L370,575" stroke="#475569" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-purple)"/>
+<path d="M620,220 L580,575" stroke="#475569" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-orange)"/>
+<path d="M830,220 L790,575" stroke="#475569" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-blue)"/>
+<text x="300" y="340" class="muted">OpenAI API</text>
+<text x="700" y="340" class="muted">OpenAI API</text>
+<text x="350" y="500" class="muted">TTS · Dados · Conhecimento</text>
+<rect x="30" y="660" width="900" height="30" rx="4" fill="none"/>
+<rect x="40" y="666" width="12" height="12" rx="2" fill="#10b981"/>
+<text x="58" y="676" class="muted">Raimundo</text>
+<rect x="140" y="666" width="12" height="12" rx="2" fill="#a855f7"/>
+<text x="158" y="676" class="muted">Tonhão / James</text>
+<rect x="270" y="666" width="12" height="12" rx="2" fill="#f97316"/>
+<text x="288" y="676" class="muted">Zé Droguinha</text>
+<rect x="400" y="666" width="12" height="12" rx="2" fill="#3b82f6"/>
+<text x="418" y="676" class="muted">Bibi</text>
+<rect x="490" y="666" width="12" height="12" rx="2" fill="#a855f7" filter="url(#glow-purple)"/>
+<text x="508" y="676" class="muted">ZéPequeno (orquestrador)</text>
+<rect x="680" y="666" width="12" height="12" rx="2" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+<text x="698" y="676" class="muted">Auxiliares</text>
+</svg>
