@@ -450,10 +450,10 @@
   </div>
   <!-- LEGENDA GRUPOS -->
   <div class="help-bar" id="help-groups">
-    <span class="help-title">📖 Ajuda</span>
+    <span class="help-title">📖 Legenda</span>
     <span class="help-item"><span class="dot green"></span> 1º lugar (classificado)</span>
     <span class="help-item"><span class="dot blue"></span> 2º lugar (classificado)</span>
-    <span class="help-item"><kbd>P</kbd> Partidas</span>
+    <span class="help-item"><kbd>P</kbd> Jogos</span>
     <span class="help-item"><kbd>V</kbd> Vitórias</span>
     <span class="help-item"><kbd>E</kbd> Empates</span>
     <span class="help-item"><kbd>D</kbd> Derrotas</span>
@@ -461,12 +461,16 @@
     <span class="help-item"><kbd>GC</kbd> Gols Contra</span>
     <span class="help-item"><kbd>SG</kbd> Saldo de Gols</span>
     <span class="help-item"><kbd>Pts</kbd> Pontos</span>
-    <button class="help-toggle" onclick="document.getElementById('help-detail-groups').classList.toggle('open')">▼ detalhes</button>
+    <button class="help-toggle" onclick="document.getElementById('help-detail-groups').classList.toggle('open')">▼ formato</button>
     <div class="help-detail" id="help-detail-groups">
-      <strong>Critérios de desempate:</strong> 1. Pontos · 2. Saldo de Gols · 3. Gols Pró<br>
-      <strong>Classificação:</strong> 1º e 2º de cada grupo avançam às oitavas de final.<br>
-      <strong>🔴 Ao vivo:</strong> grupo com pelo menos 1 partida realizada.<br>
-      <strong>⚽ Aguardando:</strong> grupo ainda não iniciou.
+      <strong>Formato:</strong> 48 seleções divididas em 12 grupos de quatro. Os dois melhores de cada chave e os oito melhores terceiros colocados avançam para a fase eliminatória (32-avos de final).<br><br>
+      <strong>Critérios de desempate:</strong><br>
+      1. Pontos<br>
+      2. Saldo de Gols<br>
+      3. Gols Pró (GP)<br>
+      4. Confronto direto entre as equipes empatadas<br><br>
+      <strong>🔴 Ao vivo:</strong> grupo com pelo menos uma partida já realizada.<br>
+      <strong>⚽ Aguardando:</strong> grupo ainda não iniciou seus jogos.
     </div>
   </div>
 
@@ -490,13 +494,14 @@
       <span class="help-item"><span class="dot green" style="border:2px solid #22c55e;border-radius:3px;width:12px;height:12px"></span> Confirmado</span>
       <span class="help-item"><span class="dot orange" style="border:2px dashed #f59e0b;border-radius:3px;width:12px;height:12px"></span> Provável</span>
       <span class="help-item"><span class="dot gray"></span> A definir</span>
-      <button class="help-toggle" onclick="document.getElementById('help-detail-bracket').classList.toggle('open')">▼ detalhes</button>
+      <button class="help-toggle" onclick="document.getElementById('help-detail-bracket').classList.toggle('open')">▼ chaveamento</button>
       <div class="help-detail" id="help-detail-bracket">
-        <strong>🟢 Confirmado:</strong> todos os grupos que alimentam esta fase já fecharam (4 times jogaram).<br>
-        <strong>🟠 Provável:</strong> baseado na classificação atual, mas grupos ainda em aberto.<br>
-        <strong>⚫ A definir:</strong> grupos ainda não começaram.<br><br>
-        <strong>Formato:</strong> 12 grupos (A-L) · 48 seleções · 32 classificados para o mata-mata.<br>
-        Os confrontos seguem o chaveamento oficial da FIFA 2026.
+        <strong>Chaveamento do mata-mata:</strong><br>
+        A fase eliminatória começa com 32-avos de final (oitavas), seguida por quartas de final, semifinais e a grande final em 19 de julho no MetLife Stadium (East Rutherford, EUA).<br><br>
+        <strong>🟢 Confirmado:</strong> todos os grupos que alimentam esta fase já encerraram suas partidas — a classificação é definitiva.<br>
+        <strong>🟠 Provável:</strong> baseado na classificação atual dos grupos, mas ainda há jogos pendentes — a posição pode mudar.<br>
+        <strong>⚫ A definir:</strong> os grupos envolvidos ainda não começaram a jogar.<br><br>
+        Os confrontos das oitavas seguem o chaveamento oficial da FIFA 2026: 1º de um grupo contra 2º de outro, conforme o cruzamento pré-definido (A×B, C×D, E×F, G×H, I×J, K×L).
       </div>
     </div>
 
