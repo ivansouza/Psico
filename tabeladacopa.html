@@ -475,7 +475,7 @@
     <span class="help-item"><kbd>Pts</kbd> Pontos</span>
     <button class="help-toggle" onclick="document.getElementById('help-detail-groups').classList.toggle('open')">▼ formato</button>
     <div class="help-detail" id="help-detail-groups">
-      <strong>Formato:</strong> 48 seleções divididas em 12 grupos de quatro. Os dois melhores de cada chave e os oito melhores terceiros colocados avançam para a fase eliminatória (32-avos de final).<br><br>
+      <strong>Formato:</strong> 48 seleções divididas em 12 grupos de quatro. Os dois melhores de cada chave e os oito melhores terceiros colocados avançam para a fase eliminatória (Segunda Fase / 16-avos de final).<br><br>
       <strong>Critérios de desempate:</strong><br>
       1. Pontos<br>
       2. Saldo de Gols<br>
@@ -509,11 +509,11 @@
       <button class="help-toggle" onclick="document.getElementById('help-detail-bracket').classList.toggle('open')">▼ chaveamento</button>
       <div class="help-detail" id="help-detail-bracket">
         <strong>Chaveamento do mata-mata:</strong><br>
-        A fase eliminatória começa com 32-avos de final (oitavas), seguida por quartas de final, semifinais e a grande final em 19 de julho no MetLife Stadium (East Rutherford, EUA).<br><br>
-        <strong>🟢 Confirmado:</strong> todos os grupos que alimentam esta fase já encerraram suas partidas — a classificação é definitiva.<br>
+        A fase eliminatória começa com a Segunda Fase (Round of 32 / 16-avos de final, de 28/jun a 3/jul), seguida pelas oitavas de final (4 a 7/jul), quartas, semifinais e a grande final em 19 de julho no MetLife Stadium (East Rutherford, EUA).<br><br>
+        <strong>🟢 Confirmado:</strong> todos os grupos que alimentam esta fase já encerraram suas partidas (cada time jogou 3 jogos) — a classificação é definitiva.<br>
         <strong>🟠 Provável:</strong> baseado na classificação atual dos grupos, mas ainda há jogos pendentes — a posição pode mudar.<br>
         <strong>⚫ A definir:</strong> os grupos envolvidos ainda não começaram a jogar.<br><br>
-        Os confrontos das oitavas seguem o chaveamento oficial da FIFA 2026: 1º de um grupo contra 2º de outro, conforme o cruzamento pré-definido (A×B, C×D, E×F, G×H, I×J, K×L).
+        Os confrontos da Segunda Fase seguem o chaveamento oficial da FIFA 2026: 1º de um grupo contra 2º de outro, conforme o cruzamento pré-definido (A×B, C×D, E×F, G×H, I×J, K×L), além dos melhores terceiros colocados completando os 16 confrontos.
       </div>
     </div>
 
@@ -571,7 +571,8 @@
 
   // Um grupo é considerado "fechado" quando todos os 4 times já jogaram
   function isGroupClosed(groupTeams) {
-    return groupTeams.every(t => parseInt(t.mp) > 0);
+    // Grupo fechado = todos os 4 times jogaram suas 3 partidas
+    return groupTeams.every(t => parseInt(t.mp) === 3);
   }
 
   function buildBracket(sortedGroups) {
@@ -591,45 +592,54 @@
       };
     });
 
-    // Cruzamentos das oitavas
-    const oitavas = [
-      { label: 'Oitava 1', home: classified.A?.first, away: classified.B?.second, g1: 'A', g2: 'B' },
-      { label: 'Oitava 2', home: classified.C?.first, away: classified.D?.second, g1: 'C', g2: 'D' },
-      { label: 'Oitava 3', home: classified.E?.first, away: classified.F?.second, g1: 'E', g2: 'F' },
-      { label: 'Oitava 4', home: classified.G?.first, away: classified.H?.second, g1: 'G', g2: 'H' },
-      { label: 'Oitava 5', home: classified.I?.first, away: classified.J?.second, g1: 'I', g2: 'J' },
-      { label: 'Oitava 6', home: classified.K?.first, away: classified.L?.second, g1: 'K', g2: 'L' },
-      { label: 'Oitava 7', home: classified.B?.first, away: classified.A?.second, g1: 'B', g2: 'A' },
-      { label: 'Oitava 8', home: classified.D?.first, away: classified.C?.second, g1: 'D', g2: 'C' },
+    // Cruzamentos da Segunda Fase (16-avos / Round of 32)
+    // 12 primeiros + 12 segundos + 8 melhores terceiros = 32 times
+    const segundaFase = [
+      { label: 'Jogo 1', home: classified.A?.first, away: classified.B?.second, g1: 'A', g2: 'B' },
+      { label: 'Jogo 2', home: classified.C?.first, away: classified.D?.second, g1: 'C', g2: 'D' },
+      { label: 'Jogo 3', home: classified.E?.first, away: classified.F?.second, g1: 'E', g2: 'F' },
+      { label: 'Jogo 4', home: classified.G?.first, away: classified.H?.second, g1: 'G', g2: 'H' },
+      { label: 'Jogo 5', home: classified.I?.first, away: classified.J?.second, g1: 'I', g2: 'J' },
+      { label: 'Jogo 6', home: classified.K?.first, away: classified.L?.second, g1: 'K', g2: 'L' },
+      { label: 'Jogo 7', home: classified.B?.first, away: classified.A?.second, g1: 'B', g2: 'A' },
+      { label: 'Jogo 8', home: classified.D?.first, away: classified.C?.second, g1: 'D', g2: 'C' },
+      { label: 'Jogo 9', home: classified.F?.first, away: classified.E?.second, g1: 'F', g2: 'E' },
+      { label: 'Jogo 10', home: classified.H?.first, away: classified.G?.second, g1: 'H', g2: 'G' },
+      { label: 'Jogo 11', home: classified.J?.first, away: classified.I?.second, g1: 'J', g2: 'I' },
+      { label: 'Jogo 12', home: classified.L?.first, away: classified.K?.second, g1: 'L', g2: 'K' },
+      // 4 vagas: melhores terceiros (placeholder)
+      { label: 'Jogo 13', home: null, away: null, g1: '3º', g2: '3º' },
+      { label: 'Jogo 14', home: null, away: null, g1: '3º', g2: '3º' },
+      { label: 'Jogo 15', home: null, away: null, g1: '3º', g2: '3º' },
+      { label: 'Jogo 16', home: null, away: null, g1: '3º', g2: '3º' },
     ];
 
-    // Mapeia quais grupos alimentam cada quartas
-    // Q1 ← O1+O2 ← grupos A,B,C,D
-    // Q2 ← O3+O4 ← grupos E,F,G,H
-    // Q3 ← O5+O6 ← grupos I,J,K,L
-    // Q4 ← O7+O8 ← grupos A,B,C,D (mesmo)
-    const quartasGroupMap = [
-      ['A','B','C','D'],
-      ['E','F','G','H'],
-      ['I','J','K','L'],
-      ['A','B','C','D'],
+    const oitavas = [
+      { label: 'Oitava 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D'] },
+      { label: 'Oitava 2', home: null, away: null, source: [2, 3], groups: ['E','F','G','H'] },
+      { label: 'Oitava 3', home: null, away: null, source: [4, 5], groups: ['I','J','K','L'] },
+      { label: 'Oitava 4', home: null, away: null, source: [6, 7], groups: ['A','B','C','D'] },
+      { label: 'Oitava 5', home: null, away: null, source: [8, 9], groups: ['E','F','G','H'] },
+      { label: 'Oitava 6', home: null, away: null, source: [10, 11], groups: ['I','J','K','L'] },
+      { label: 'Oitava 7', home: null, away: null, source: [12, 13], groups: ['3º'] },
+      { label: 'Oitava 8', home: null, away: null, source: [14, 15], groups: ['3º'] },
     ];
 
     const quartas = [
-      { label: 'Quartas 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D'] },
-      { label: 'Quartas 2', home: null, away: null, source: [2, 3], groups: ['E','F','G','H'] },
-      { label: 'Quartas 3', home: null, away: null, source: [4, 5], groups: ['I','J','K','L'] },
-      { label: 'Quartas 4', home: null, away: null, source: [6, 7], groups: ['A','B','C','D'] },
+      { label: 'Quartas 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D','E','F','G','H'] },
+      { label: 'Quartas 2', home: null, away: null, source: [2, 3], groups: ['I','J','K','L','A','B','C','D'] },
+      { label: 'Quartas 3', home: null, away: null, source: [4, 5], groups: ['E','F','G','H','I','J','K','L'] },
+      { label: 'Quartas 4', home: null, away: null, source: [6, 7], groups: ['3º','3º'] },
     ];
 
     const semis = [
-      { label: 'Semifinal 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D','E','F','G','H'] },
-      { label: 'Semifinal 2', home: null, away: null, source: [2, 3], groups: ['I','J','K','L','A','B','C','D'] },
+      { label: 'Semifinal 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D','E','F','G','H','I','J','K','L'] },
+      { label: 'Semifinal 2', home: null, away: null, source: [2, 3], groups: ['A','B','C','D','E','F','G','H','I','J','K','L'] },
     ];
 
     const final = { label: 'Final', home: null, away: null, source: [0, 1], groups: ['A','B','C','D','E','F','G','H','I','J','K','L'] };
 
-    return { oitavas, quartas, semis, final, classified };
+    return { segundaFase, oitavas, quartas, semis, final, classified };
   }
 
   function renderMatch(team1, team2, label, isPending, status) {
@@ -701,15 +711,23 @@
       return 'pending';
     }
 
-    // Rodada 1: Oitavas
-    html += `<div class="bracket-round"><div class="bracket-round-title">Oitavas de Final</div>`;
-    bracket.oitavas.forEach(o => {
-      const status = groupsStatus([o.g1, o.g2]);
+    // Rodada 1: Segunda Fase (16-avos)
+    html += `<div class="bracket-round"><div class="bracket-round-title">Segunda Fase<br><span style="font-size:.6rem;font-weight:400;color:#475569">16-avos de final</span></div>`;
+    bracket.segundaFase.forEach(o => {
+      const status = o.g1 === '3º' ? 'pending' : groupsStatus([o.g1, o.g2]);
       html += renderMatch(o.home, o.away, o.label, false, status);
     });
     html += `</div>`;
 
-    // Rodada 2: Quartas
+    // Rodada 2: Oitavas
+    html += `<div class="bracket-round"><div class="bracket-round-title">Oitavas de Final</div>`;
+    bracket.oitavas.forEach(o => {
+      const status = groupsStatus(o.groups);
+      html += renderMatch(null, null, o.label, true, status);
+    });
+    html += `</div>`;
+
+    // Rodada 3: Quartas
     html += `<div class="bracket-round"><div class="bracket-round-title">Quartas de Final</div>`;
     bracket.quartas.forEach(q => {
       const status = groupsStatus(q.groups);
@@ -717,7 +735,7 @@
     });
     html += `</div>`;
 
-    // Rodada 3: Semifinais
+    // Rodada 4: Semifinais
     html += `<div class="bracket-round"><div class="bracket-round-title">Semifinais</div>`;
     bracket.semis.forEach(s => {
       const status = groupsStatus(s.groups);
@@ -725,7 +743,7 @@
     });
     html += `</div>`;
 
-    // Rodada 4: Final + Campeão
+    // Rodada 5: Final + Campeão
     html += `<div class="bracket-round"><div class="bracket-round-title">Final</div>`;
     html += renderMatch(null, null, 'Grande Final', true, groupsStatus(bracket.final.groups));
     html += `
