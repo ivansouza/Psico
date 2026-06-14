@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Choveu Hoje? 🌧️</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f5f4ed; --surface: #faf9f5; --border: #e8e6dc;
+    --ink: #141413; --body: #3d3d3a; --muted: #87867f;
+    --blue: #1B365D; --blue-soft: #EEF2F7;
+    --green: #2d6a4f; --green-soft: #d8f3dc;
+    --amber: #b8860b; --amber-soft: #fff3cd;
+    --red: #9b2226; --red-soft: #f8d7da;
+    --serif: Charter, Georgia, Palatino, "Times New Roman", serif;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--body);
+    font-family: var(--sans); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px;
+  }
+
+  .app {
+    max-width: 780px; width: 100%;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-top: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+
+  h1 { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  .info-box {
+    background: var(--blue-soft); border: 1px solid var(--blue);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .info-box strong { color: var(--blue); }
+
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: end; }
+  .control-group { display: flex; flex-direction: column; gap: 3px; }
+  .control-group label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+  .controls input, .controls select {
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: var(--sans); font-size: 13px; background: var(--bg);
+    color: var(--ink);
+  }
+  .controls input:focus, .controls select:focus { outline: none; border-color: var(--blue); }
+  .controls input[type="text"] { min-width: 140px; }
+  .controls input[type="number"] { width: 80px; }
+  .controls button {
+    padding: 8px 20px; border: none; border-radius: 8px;
+    background: var(--blue); color: white; font-weight: 600; font-size: 13px;
+    cursor: pointer; transition: opacity .15s; height: 37px;
+  }
+  .controls button:hover { opacity: 0.85; }
+  .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status { font-size: 13px; color: var(--muted); margin-bottom: 12px; min-height: 20px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border);
+       font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase;
+       letter-spacing: 0.06em; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+
+  .choveu { color: var(--green); font-weight: 600; }
+  .choveu-bg { background: var(--green-soft); }
+  .nao-choveu { color: var(--red); font-weight: 600; }
+  .nao-choveu-bg { background: var(--red-soft); }
+  .sem-dado { color: var(--muted); font-style: italic; }
+
+  .mono { font-family: var(--mono); font-size: 12px; }
+
+  .summary {
+    margin-top: 16px; padding: 12px 16px; border-radius: 10px;
+    font-size: 14px; font-weight: 500; text-align: center;
+  }
+  .summary.choveu { background: var(--green-soft); color: var(--green); }
+  .summary.nao-choveu { background: var(--red-soft); color: var(--red); }
+  .summary.parcial { background: var(--amber-soft); color: var(--amber); }
+
+  .footer { margin-top: 16px; font-size: 11px; color: var(--muted); text-align: center; }
+  .footer a { color: var(--blue); }
+
+  .error { color: var(--red); font-size: 13px; padding: 8px 0; }
+
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .preset-btn {
+    font-size: 11px; padding: 4px 12px; border: 1px solid var(--border);
+    border-radius: 999px; background: transparent; color: var(--muted);
+    cursor: pointer; transition: all .15s; font-family: var(--sans);
+  }
+  .preset-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  @media (max-width: 500px) {
+    .app { padding: 16px; }
+    .controls { flex-direction: column; }
+    .controls input[type="text"] { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>🌧️ Choveu Hoje?</h1>
+  <div class="sub">Descubra se choveu em qualquer lugar do mundo nos últimos 10 anos</div>
+
+  <div class="info-box">
+    <strong>🔬 Fonte:</strong> NASA POWER — <span class="mono">PRECTOTCORR</span> (precipitação diária corrigida por satélite)
+    <br>
+    <strong>🌍 Cobertura:</strong> qualquer coordenada do globo
+    <br>
+    <strong>📅 Período:</strong> últimos 10 anos, sempre na mesma data
+  </div>
+
+  <div class="presets">
+    <button class="preset-btn" data-lat="-15.8577" data-lon="-48.0102">📍 Arniqueiras, DF</button>
+    <button class="preset-btn" data-lat="-15.7939" data-lon="-47.8828">📍 Brasília (Plano Piloto)</button>
+    <button class="preset-btn" data-lat="-22.9068" data-lon="-43.1729">📍 Rio de Janeiro</button>
+    <button class="preset-btn" data-lat="-23.5505" data-lon="-46.6333">📍 São Paulo</button>
+    <button class="preset-btn" data-lat="-19.9167" data-lon="-43.9345">📍 Belo Horizonte</button>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Bairro / Cidade</label>
+      <input type="text" id="localInput" value="Arniqueiras, Brasília - DF" placeholder="Ex: Arniqueiras, DF">
+    </div>
+    <div class="control-group">
+      <label>Latitude</label>
+      <input type="text" id="latInput" value="-15.857715" placeholder="-15.8577">
+    </div>
+    <div class="control-group">
+      <label>Longitude</label>
+      <input type="text" id="lonInput" value="-48.010224" placeholder="-48.0102">
+    </div>
+    <div class="control-group">
+      <label>Dia</label>
+      <input type="number" id="diaInput" value="13" min="1" max="31">
+    </div>
+    <div class="control-group">
+      <label>Mês</label>
+      <select id="mesInput">
+        <option value="1">Janeiro</option>
+        <option value="2">Fevereiro</option>
+        <option value="3">Março</option>
+        <option value="4">Abril</option>
+        <option value="5">Maio</option>
+        <option value="6" selected>Junho</option>
+        <option value="7">Julho</option>
+        <option value="8">Agosto</option>
+        <option value="9">Setembro</option>
+        <option value="10">Outubro</option>
+        <option value="11">Novembro</option>
+        <option value="12">Dezembro</option>
+      </select>
+    </div>
+    <button id="btnConsultar">Consultar</button>
+  </div>
+
+  <div class="status" id="status">Pronto. Clique em "Consultar".</div>
+
+  <div id="resultArea" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Ano</th>
+          <th>Data</th>
+          <th>Precipitação (mm)</th>
+          <th>Choveu?</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <div id="errorArea" class="error"></div>
+
+  <div class="footer">
+    Dados: <a href="https://power.larc.nasa.gov/" target="_blank">NASA POWER</a> ·
+    <a href="https://github.com/ivansouza" target="_blank">github.com/ivansouza</a>
+  </div>
+</div>
+
+<script>
+const latInput = document.getElementById('latInput');
+const lonInput = document.getElementById('lonInput');
+const localInput = document.getElementById('localInput');
+const diaInput = document.getElementById('diaInput');
+const mesInput = document.getElementById('mesInput');
+const btn = document.getElementById('btnConsultar');
+const status = document.getElementById('status');
+const tbody = document.getElementById('tbody');
+const summary = document.getElementById('summary');
+const resultArea = document.getElementById('resultArea');
+const errorArea = document.getElementById('errorArea');
+
+// Presets
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    latInput.value = btn.dataset.lat;
+    lonInput.value = btn.dataset.lon;
+    localInput.value = btn.textContent.trim();
+  });
+});
+
+// Data atual como default
+const hoje = new Date();
+diaInput.value = hoje.getDate();
+mesInput.value = hoje.getMonth() + 1;
+
+btn.addEventListener('click', consultar);
+
+async function consultar() {
+  const lat = latInput.value.trim();
+  const lon = lonInput.value.trim();
+  const dia = parseInt(diaInput.value, 10);
+  const mes = parseInt(mesInput.value, 10);
+
+  if (!lat || !lon || isNaN(dia) || isNaN(mes)) {
+    errorArea.textContent = 'Preencha latitude, longitude, dia e mês.';
+    return;
+  }
+
+  const latNum = parseFloat(lat);
+  const lonNum = parseFloat(lon);
+  if (isNaN(latNum) || isNaN(lonNum)) {
+    errorArea.textContent = 'Latitude e longitude devem ser números.';
+    return;
+  }
+
+  const mmdd = `${String(mes).padStart(2,'0')}${String(dia).padStart(2,'0')}`;
+
+  btn.disabled = true;
+  status.textContent = '🔄 Consultando NASA POWER...';
+  errorArea.textContent = '';
+  resultArea.style.display = 'none';
+
+  const anoAtual = hoje.getFullYear();
+  const anos = [];
+  for (let a = anoAtual - 9; a <= anoAtual; a++) {
+    anos.push(a);
+  }
+
+  const startDate = `${anos[0]}0101`;
+  const endDate = `${anoAtual}1231`;
+
+  const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=${lonNum}&latitude=${latNum}&start=${startDate}&end=${endDate}&format=JSON`;
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+    const data = await resp.json();
+
+    const parameter = data.properties?.parameter || {};
+    const prec = parameter.PRECTOTCORR || {};
+
+    const resultados = [];
+    let totalChoveu = 0;
+    let totalNaoChoveu = 0;
+    let totalSemDado = 0;
+
+    anos.forEach(ano => {
+      const key = `${ano}${mmdd}`;
+      const val = prec[key];
+
+      if (val === undefined || val === null || val === -999 || val === -9999) {
+        resultados.push({ ano, data: `${String(dia).padStart(2,'0')}/${String(mes).padStart(2,'0')}/${ano}`, precipitacao: null, choveu: null });
+        totalSemDado++;
+      } else {
+        const choveu = val > 0.5;
+        resultados.push({ ano, data: `${String(dia).padStart(2,'0')}/${String(mes).padStart(2,'0')}/${ano}`, precipitacao: val, choveu });
+        if (choveu) totalChoveu++;
+        else totalNaoChoveu++;
+      }
+    });
+
+    tbody.innerHTML = '';
+    resultados.forEach(r => {
+      const tr = document.createElement('tr');
+      if (r.choveu === true) tr.classList.add('choveu-bg');
+      else if (r.choveu === false) tr.classList.add('nao-choveu-bg');
+
+      tr.innerHTML = `
+        <td><strong>${r.ano}</strong></td>
+        <td>${r.data}</td>
+        <td class="mono">${r.precipitacao !== null ? r.precipitacao.toFixed(2) : '<span class="sem-dado">—</span>'}</td>
+        <td>${r.choveu === true ? '<span class="choveu">✅ Sim</span>' : r.choveu === false ? '<span class="nao-choveu">❌ Não</span>' : '<span class="sem-dado">Sem dado</span>'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const total = resultados.length;
+    let summaryText = '';
+    let summaryClass = '';
+
+    if (totalChoveu > totalNaoChoveu) {
+      summaryText = `🌧️ Choveu em ${totalChoveu} dos ${total - totalSemDado} anos com dados disponíveis.`;
+      summaryClass = 'choveu';
+    } else if (totalNaoChoveu > totalChoveu) {
+      summaryText = `☀️ Não choveu em ${totalNaoChoveu} dos ${total - totalSemDado} anos com dados disponíveis.`;
+      summaryClass = 'nao-choveu';
+    } else if (totalChoveu === 0 && totalNaoChoveu === 0) {
+      summaryText = '📡 Sem dados disponíveis para esta data e local.';
+      summaryClass = 'parcial';
+    } else {
+      summaryText = `⚖️ Empate: ${totalChoveu} anos choveu, ${totalNaoChoveu} não.`;
+      summaryClass = 'parcial';
+    }
+
+    if (totalSemDado > 0) {
+      summaryText += ` (${totalSemDado} anos sem dados)`;
+    }
+
+    summary.textContent = summaryText;
+    summary.className = `summary ${summaryClass}`;
+    resultArea.style.display = 'block';
+    status.textContent = `✅ Consulta concluída — ${total} anos verificados.`;
+
+  } catch (err) {
+    errorArea.textContent = `❌ Erro: ${err.message}`;
+    status.textContent = '⚠️ Falha na consulta.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Consulta automática ao carregar
+window.addEventListener('DOMContentLoaded', consultar);
+</script>
+</body>
+</html>
