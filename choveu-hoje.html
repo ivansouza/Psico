@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Choveu Hoje? 🌧️</title>
+<script>
+  (function(){
+    const saved = localStorage.getItem('choveu-theme');
+    const dark = saved ? saved === 'dark' : true;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
@@ -17,6 +24,15 @@
     --serif: Charter, Georgia, Palatino, "Times New Roman", serif;
     --sans: 'Inter', system-ui, -apple-system, sans-serif;
     --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
+
+  html.dark {
+    --bg: #0f0f0e; --surface: #1a1a18; --border: #2a2a28;
+    --ink: #f5f4ed; --body: #c8c7bf; --muted: #6b6a64;
+    --blue: #6b9bc4; --blue-soft: #1a2a3a;
+    --green: #6bbf8a; --green-soft: #1a2f22;
+    --amber: #d4b36f; --amber-soft: #2a2418;
+    --red: #d97a7a; --red-soft: #2a1818;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -118,6 +134,18 @@
   .summary.nao-choveu { background: var(--red-soft); color: var(--red); }
   .summary.parcial { background: var(--amber-soft); color: var(--amber); }
 
+  .top-bar { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+  .top-bar h1 { margin-bottom: 0; }
+  .top-bar .sub { margin-bottom: 0; }
+
+  .theme-btn {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .theme-btn:hover { color: var(--ink); border-color: var(--muted); }
+
   .footer { margin-top: 16px; font-size: 11px; color: var(--muted); text-align: center; }
   .footer a { color: var(--blue); }
 
@@ -138,8 +166,13 @@
 <body>
 
 <div class="app">
-  <h1>🌧️ Choveu Hoje?</h1>
-  <div class="sub">Descubra se choveu em qualquer lugar nos últimos 10 anos</div>
+  <div class="top-bar">
+    <div>
+      <h1>🌧️ Choveu Hoje?</h1>
+      <div class="sub">Descubra se choveu em qualquer lugar nos últimos 10 anos</div>
+    </div>
+    <button class="theme-btn" id="themeBtn">☀️ Claro</button>
+  </div>
 
   <div class="info-box">
     <strong>🔬 Fonte:</strong> NASA POWER — precipitação diária por satélite
@@ -228,6 +261,16 @@ let selectedSuggestion = false;
 let currentLat = null;
 let currentLon = null;
 let currentLabel = '';
+
+// Theme toggle
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', () => {
+  const html = document.documentElement;
+  const isDark = html.classList.toggle('dark');
+  localStorage.setItem('choveu-theme', isDark ? 'dark' : 'light');
+  themeBtn.textContent = isDark ? '☀️ Claro' : '🌙 Escuro';
+});
+themeBtn.textContent = document.documentElement.classList.contains('dark') ? '☀️ Claro' : '🌙 Escuro';
 
 // Data atual como default
 const hoje = new Date();
