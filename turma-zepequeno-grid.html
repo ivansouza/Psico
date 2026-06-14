@@ -70,39 +70,101 @@ body.grid-on .guides{opacity:1;}
   font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:11px 14px;}
 .toggle .dot{width:9px;height:9px;border-radius:50%;background:#555;}
 body.grid-on .toggle{background:var(--accent);} body.grid-on .toggle .dot{background:#fff;}
-
-  .masthead { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
-  .subhead { font-size: 1.05rem; color: var(--ink-soft); margin-top: 0; }
-  .numeral { font-size: 5rem; font-weight: 800; line-height: 1; color: var(--accent); text-align: right; }
-  .h2b { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; }
-  .body { font-size: 0.95rem; line-height: 1.6; color: var(--ink-soft); }
-  .body strong { color: var(--ink); }
-  .tag { display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 2px 8px; border-radius: 3px; background: rgba(27,54,93,0.08); color: var(--accent); margin: 2px 2px 2px 0; }
-  hr { grid-column: 1 / -1; border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: var(--lh) 0; }
-  .stat { text-align: center; }
-  .stat-val { font-size: 2.2rem; font-weight: 700; color: var(--accent); }
-  .stat-lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
-  .card { background: rgba(27,54,93,0.03); border-radius: 8px; padding: 16px; }
-  .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
-  .card p { font-size: 0.85rem; color: var(--ink-soft); }
-
 </style></head>
 <body>
-<div style="position:fixed;top:16px;right:16px;z-index:999;">
-  <button id="gridToggle" aria-pressed="false" style="font-family:monospace;font-size:11px;padding:6px 12px;border:1px solid rgba(0,0,0,0.15);border-radius:6px;background:rgba(255,255,255,0.9);cursor:pointer;backdrop-filter:blur(4px);">
-    <span class="lbl">Show grid</span> <kbd style="font-size:10px;opacity:0.5;">G</kbd>
-  </button>
-</div>
 <button class="toggle" id="gridToggle" aria-pressed="false"><span class="dot"></span><span class="lbl">Show grid</span></button>
 
 <section class="spread">
   <div class="wrap">
     <div class="grid">
-      <!-- a band: children placed by column LINE -->
-      <div class="band">
-        <div style="grid-column:1 / 6;"><!-- text col --></div>
-        <figure style="grid-column:6 / 13;"><!-- image col (height = x --lh) --></figure>
+
+      <!-- Header -->
+      <div class="band" style="margin-bottom:calc(var(--lh)*2);">
+        <div style="grid-column:1/9;font-size:clamp(2.4rem,5vw,4rem);font-weight:700;letter-spacing:-0.03em;line-height:1.05;">Turma do ZéPequeno</div>
+        <div style="grid-column:10/13;font-size:5rem;font-weight:800;line-height:1;color:var(--accent);text-align:right;">6</div>
+        <div style="grid-column:1/7;font-size:1.05rem;color:var(--ink-soft);">Arquitetura dos modelos de IA — Raimundo, Tonhão, James, Bibi, Zé Droguinha e o shihtzu digital que orquestra tudo.</div>
       </div>
+
+      <hr style="grid-column:1/-1;border:none;border-top:1px solid rgba(0,0,0,0.08);margin:var(--lh) 0;">
+
+      <!-- Stats -->
+      <div class="band">
+        <div style="grid-column:2/4;text-align:center;"><div style="font-size:2.2rem;font-weight:700;color:var(--accent);">6</div><div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);">Modelos</div></div>
+        <div style="grid-column:5/7;text-align:center;"><div style="font-size:2.2rem;font-weight:700;color:var(--accent);">3</div><div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);">Cloud</div></div>
+        <div style="grid-column:8/10;text-align:center;"><div style="font-size:2.2rem;font-weight:700;color:var(--accent);">2</div><div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);">Local WSL</div></div>
+        <div style="grid-column:11/13;text-align:center;"><div style="font-size:2.2rem;font-weight:700;color:var(--accent);">1</div><div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);">Orquestrador</div></div>
+      </div>
+
+      <hr style="grid-column:1/-1;border:none;border-top:1px solid rgba(0,0,0,0.08);margin:var(--lh) 0;">
+
+      <!-- Cloud -->
+      <div class="band">
+        <h2 style="grid-column:1/7;font-size:1.6rem;font-weight:600;letter-spacing:-0.02em;">Cloud</h2>
+        <p style="grid-column:1/7;font-size:0.95rem;line-height:1.6;color:var(--ink-soft);">Modelos que rodam em servicos externos — rapidos, com contexto generoso, mas dependentes de rede.</p>
+      </div>
+
+      <div class="band">
+        <div style="grid-column:1/5;background:rgba(27,54,93,0.03);border-radius:8px;padding:16px;">
+          <h3 style="font-size:1rem;font-weight:600;margin-bottom:4px;">Raimundo</h3>
+          <p style="font-size:0.85rem;color:var(--ink-soft);">Gemma 4 E4B IT 4bit — 64K ctx. Tarefas leves: traducao, resumo, revisao.</p>
+          <div><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">8 tok/s</span><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">64K ctx</span></div>
+        </div>
+        <div style="grid-column:5/9;background:rgba(27,54,93,0.03);border-radius:8px;padding:16px;">
+          <h3 style="font-size:1rem;font-weight:600;margin-bottom:4px;">Tonhao</h3>
+          <p style="font-size:0.85rem;color:var(--ink-soft);">Gemma 4 12B IT — 32K ctx. Tarefas pesadas. Proxy local HF Space.</p>
+          <div><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">16 tok/s</span><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">32K ctx</span></div>
+        </div>
+        <div style="grid-column:9/13;background:rgba(27,54,93,0.03);border-radius:8px;padding:16px;">
+          <h3 style="font-size:1rem;font-weight:600;margin-bottom:4px;">James</h3>
+          <p style="font-size:0.85rem;color:var(--ink-soft);">Gemma 4 31B IT — 32K ctx. Tarefas muito pesadas. Proxy Google AI Studio.</p>
+          <div><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">31B params</span><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">32K ctx</span></div>
+        </div>
+      </div>
+
+      <hr style="grid-column:1/-1;border:none;border-top:1px solid rgba(0,0,0,0.08);margin:var(--lh) 0;">
+
+      <!-- Local -->
+      <div class="band">
+        <h2 style="grid-column:1/7;font-size:1.6rem;font-weight:600;letter-spacing:-0.02em;">Local WSL</h2>
+        <p style="grid-column:1/7;font-size:0.95rem;line-height:1.6;color:var(--ink-soft);">Modelos que rodam 100% local no WSL — sem dependencia externa, mas mais lentos.</p>
+      </div>
+
+      <div class="band">
+        <div style="grid-column:1/6;background:rgba(27,54,93,0.03);border-radius:8px;padding:16px;">
+          <h3 style="font-size:1rem;font-weight:600;margin-bottom:4px;">Ze Droguinha</h3>
+          <p style="font-size:0.85rem;color:var(--ink-soft);">Gemma 4 E2B uncensored — 8K ctx. Testes sem censura. 100% local.</p>
+          <div><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">16 tok/s</span><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">8K ctx</span></div>
+        </div>
+        <div style="grid-column:7/13;background:rgba(27,54,93,0.03);border-radius:8px;padding:16px;">
+          <h3 style="font-size:1rem;font-weight:600;margin-bottom:4px;">Bibi</h3>
+          <p style="font-size:0.85rem;color:var(--ink-soft);">Gemma 4 12B IT + MTP — 16K ctx. Passarinha azul de cartola. Alma de shihtzu.</p>
+          <div><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">3.7 tok/s</span><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">16K ctx</span></div>
+        </div>
+      </div>
+
+      <hr style="grid-column:1/-1;border:none;border-top:1px solid rgba(0,0,0,0.08);margin:var(--lh) 0;">
+
+      <!-- Orchestrator -->
+      <div class="band">
+        <h2 style="grid-column:1/7;font-size:1.6rem;font-weight:600;letter-spacing:-0.02em;">Orquestrador</h2>
+        <p style="grid-column:1/7;font-size:0.95rem;line-height:1.6;color:var(--ink-soft);">O cerebro da operacao — um shihtzu digital que coordena a turma toda.</p>
+      </div>
+
+      <div class="band">
+        <div style="grid-column:3/11;background:rgba(27,54,93,0.03);border-radius:8px;padding:16px;text-align:center;">
+          <h3 style="font-size:1.4rem;font-weight:600;margin-bottom:4px;">ZePequeno</h3>
+          <p style="font-size:0.95rem;color:var(--ink-soft);">DeepSeek V4 Flash — 128K ctx. O shihtzu digital que orquestra a turma toda.</p>
+          <div><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">128K ctx</span><span style="display:inline-block;font-family:'Space Mono',monospace;font-size:0.7rem;padding:2px 8px;border-radius:3px;background:rgba(27,54,93,0.08);color:var(--accent);margin:2px;">DeepSeek</span></div>
+        </div>
+      </div>
+
+      <hr style="grid-column:1/-1;border:none;border-top:1px solid rgba(0,0,0,0.08);margin:var(--lh) 0;">
+
+      <!-- Footer -->
+      <div class="band" style="margin-top:calc(var(--lh)*2);">
+        <p style="grid-column:1/13;text-align:center;font-size:0.8rem;color:var(--ink-soft);">Brasilia, DF · 2026 · <strong style="color:var(--ink);">ZePequeno</strong> — um shihtzu digital de opiniao</p>
+      </div>
+
     </div>
     <div class="guides" aria-hidden="true">
       <div class="cols"></div><div class="rows"></div>
