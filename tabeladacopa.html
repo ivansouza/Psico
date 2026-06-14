@@ -234,6 +234,29 @@
   }
   .bracket-match.pending .team-row .team-info .name { color: #64748b; }
 
+  /* Confirmado vs Provável */
+  .bracket-match.confirmed {
+    border-color: #22c55e44;
+  }
+  .bracket-match.confirmed .match-label {
+    color: #22c55e;
+    font-weight: 600;
+  }
+  .bracket-match.probable {
+    border-color: #f59e0b44;
+    border-style: dashed;
+  }
+  .bracket-match.probable .match-label {
+    color: #f59e0b;
+  }
+  .bracket-match.probable .team-row .team-info .name::after {
+    content: ' (provável)';
+    font-size: .6rem;
+    color: #f59e0b;
+    font-weight: 400;
+    margin-left: 2px;
+  }
+
   /* Campeão */
   .champion-box {
     background: linear-gradient(135deg, #f59e0b22, #ef444422);
@@ -405,7 +428,7 @@
   // e indicar que os melhores 3ºs completam.
 
   function buildBracket(sortedGroups) {
-    // Pega 1º e 2º de cada grupo
+    // Pega 1º e 2º de cada grupo + se o grupo já tem jogos
     const classified = {};
     sortedGroups.forEach(g => {
       const sorted = [...g.teams].sort((a,b) => {
@@ -413,29 +436,26 @@
         if (parseInt(b.gd) !== parseInt(a.gd)) return parseInt(b.gd) - parseInt(a.gd);
         return parseInt(b.gf) - parseInt(a.gf);
       });
+      const hasMatches = sorted.some(t => parseInt(t.mp) > 0);
       classified[g.name] = {
         first: sorted[0],
-        second: sorted[1]
+        second: sorted[1],
+        confirmed: hasMatches
       };
     });
 
-    // Cruzamentos das oitavas (formato FIFA 2026 - chaveamento A-L)
-    // Pareamento oficial: 1ºA vs 2ºB, 1ºC vs 2ºD, 1ºE vs 2ºF,
-    // 1ºG vs 2ºH, 1ºI vs 2ºJ, 1ºK vs 2ºL
-    // + 4 melhores 3ºs vs 4 primeiros restantes
-    // Para simplificar visual, usamos 1º vs 2º dos grupos adjacentes
+    // Cruzamentos das oitavas
     const oitavas = [
-      { label: 'Oitava 1', home: classified.A?.first, away: classified.B?.second },
-      { label: 'Oitava 2', home: classified.C?.first, away: classified.D?.second },
-      { label: 'Oitava 3', home: classified.E?.first, away: classified.F?.second },
-      { label: 'Oitava 4', home: classified.G?.first, away: classified.H?.second },
-      { label: 'Oitava 5', home: classified.I?.first, away: classified.J?.second },
-      { label: 'Oitava 6', home: classified.K?.first, away: classified.L?.second },
-      { label: 'Oitava 7', home: classified.B?.first, away: classified.A?.second },
-      { label: 'Oitava 8', home: classified.D?.first, away: classified.C?.second },
+      { label: 'Oitava 1', home: classified.A?.first, away: classified.B?.second, g1: 'A', g2: 'B' },
+      { label: 'Oitava 2', home: classified.C?.first, away: classified.D?.second, g1: 'C', g2: 'D' },
+      { label: 'Oitava 3', home: classified.E?.first, away: classified.F?.second, g1: 'E', g2: 'F' },
+      { label: 'Oitava 4', home: classified.G?.first, away: classified.H?.second, g1: 'G', g2: 'H' },
+      { label: 'Oitava 5', home: classified.I?.first, away: classified.J?.second, g1: 'I', g2: 'J' },
+      { label: 'Oitava 6', home: classified.K?.first, away: classified.L?.second, g1: 'K', g2: 'L' },
+      { label: 'Oitava 7', home: classified.B?.first, away: classified.A?.second, g1: 'B', g2: 'A' },
+      { label: 'Oitava 8', home: classified.D?.first, away: classified.C?.second, g1: 'D', g2: 'C' },
     ];
 
-    // Quartas (vencedores das oitavas)
     const quartas = [
       { label: 'Quartas 1', home: null, away: null, source: [0, 1] },
       { label: 'Quartas 2', home: null, away: null, source: [2, 3] },
@@ -443,22 +463,26 @@
       { label: 'Quartas 4', home: null, away: null, source: [6, 7] },
     ];
 
-    // Semifinais
     const semis = [
       { label: 'Semifinal 1', home: null, away: null, source: [0, 1] },
       { label: 'Semifinal 2', home: null, away: null, source: [2, 3] },
     ];
 
-    // Final
     const final = { label: 'Final', home: null, away: null, source: [0, 1] };
 
-    return { oitavas, quartas, semis, final };
+    return { oitavas, quartas, semis, final, classified };
   }
 
-  function renderMatch(team1, team2, label, isPending) {
+  function renderMatch(team1, team2, label, isPending, status) {
     const t1 = team1 ? teamsMap[team1.team_id] : null;
     const t2 = team2 ? teamsMap[team2.team_id] : null;
     const pending = isPending || !team1 || !team2;
+
+    // status: 'confirmed' | 'probable' | 'pending'
+    let statusClass = 'pending';
+    if (!isPending && team1 && team2) {
+      statusClass = status === 'confirmed' ? 'confirmed' : 'probable';
+    }
 
     const t1Flag = t1?.flag || '';
     const t1Name = t1?.name_en || `#${team1?.team_id || '?'}`;
@@ -468,12 +492,12 @@
     const t2Fifa = t2?.fifa_code || '';
 
     return `
-      <div class="bracket-match ${pending ? 'pending' : ''}">
+      <div class="bracket-match ${statusClass}">
         <div class="match-teams">
           <div class="team-row">
             <div class="team-info">
               ${t1Flag ? `<img class="flag" src="${t1Flag}" alt="" onerror="this.style.display='none'">` : ''}
-              <span class="name">${t1Name} ${t1Fifa ? `(${t1Fifa})` : ''}</span>
+              <span class="name">${t1Name}${t1Fifa ? ` (${t1Fifa})` : ''}</span>
             </div>
             <span class="score empty">-</span>
           </div>
@@ -481,7 +505,7 @@
           <div class="team-row">
             <div class="team-info">
               ${t2Flag ? `<img class="flag" src="${t2Flag}" alt="" onerror="this.style.display='none'">` : ''}
-              <span class="name">${t2Name} ${t2Fifa ? `(${t2Fifa})` : ''}</span>
+              <span class="name">${t2Name}${t2Fifa ? ` (${t2Fifa})` : ''}</span>
             </div>
             <span class="score empty">-</span>
           </div>
@@ -496,30 +520,42 @@
 
     let html = '';
 
+    const classified = bracket.classified;
+
+    // Determina status de cada oitava
+    function oitavaStatus(g1, g2) {
+      const c1 = classified[g1];
+      const c2 = classified[g2];
+      if (!c1 || !c2) return 'pending';
+      if (c1.confirmed && c2.confirmed) return 'confirmed';
+      return 'probable';
+    }
+
     // Rodada 1: Oitavas
     html += `<div class="bracket-round"><div class="bracket-round-title">Oitavas de Final</div>`;
     bracket.oitavas.forEach(o => {
-      html += renderMatch(o.home, o.away, o.label, false);
+      const status = oitavaStatus(o.g1, o.g2);
+      html += renderMatch(o.home, o.away, o.label, false, status);
     });
     html += `</div>`;
 
     // Rodada 2: Quartas
     html += `<div class="bracket-round"><div class="bracket-round-title">Quartas de Final</div>`;
     bracket.quartas.forEach(q => {
-      html += renderMatch(null, null, q.label, true);
+      html += renderMatch(null, null, q.label, true, 'pending');
     });
     html += `</div>`;
 
     // Rodada 3: Semifinais
     html += `<div class="bracket-round"><div class="bracket-round-title">Semifinais</div>`;
     bracket.semis.forEach(s => {
-      html += renderMatch(null, null, s.label, true);
+      html += renderMatch(null, null, s.label, true, 'pending');
     });
     html += `</div>`;
 
     // Rodada 4: Final + Campeão
     html += `<div class="bracket-round"><div class="bracket-round-title">Final</div>`;
-    html += renderMatch(null, null, 'Grande Final', true);
+    html += renderMatch(null, null, 'Grande Final', true, 'pending');
     html += `
       <div class="champion-box">
         <div class="trophy">🏆</div>
