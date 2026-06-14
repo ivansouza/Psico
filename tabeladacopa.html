@@ -337,6 +337,90 @@
     .bracket-round { min-width: auto; }
   }
 
+  /* ===== LEGENDA / HELP ===== */
+  .help-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    align-items: center;
+    padding: 10px 14px;
+    background: #1a2332;
+    border: 1px solid #2d3a4e;
+    border-radius: 10px;
+    margin-bottom: 1.2rem;
+    font-size: .78rem;
+  }
+  .help-bar .help-title {
+    font-weight: 700;
+    color: #94a3b8;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-right: 4px;
+  }
+  .help-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #94a3b8;
+  }
+  .help-item .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .help-item .dot.green { background: #22c55e; }
+  .help-item .dot.blue  { background: #3b82f6; }
+  .help-item .dot.orange { background: #f59e0b; }
+  .help-item .dot.gray  { background: #475569; }
+  .help-item kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: .7rem;
+    font-family: inherit;
+    background: #0f172a;
+    border: 1px solid #2d3a4e;
+    border-radius: 4px;
+    color: #64748b;
+  }
+  .help-toggle {
+    cursor: pointer;
+    color: #64748b;
+    font-size: .75rem;
+    font-weight: 600;
+    transition: color .2s;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .help-toggle:hover { color: #f59e0b; background: #0f172a; }
+  .help-detail {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #2d3a4e;
+    font-size: .75rem;
+    color: #64748b;
+    line-height: 1.6;
+    width: 100%;
+  }
+  .help-detail.open { display: block; }
+  .help-detail table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .help-detail td {
+    padding: 3px 8px;
+    border-bottom: 1px solid #1e293b;
+    vertical-align: top;
+  }
+  .help-detail td:first-child {
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+    width: 60px;
+  }
+
   /* ===== FOOTER ===== */
   footer {
     text-align: center;
@@ -364,6 +448,28 @@
     <span>📋 Fase de Grupos</span>
     <span class="bar"></span>
   </div>
+  <!-- LEGENDA GRUPOS -->
+  <div class="help-bar" id="help-groups">
+    <span class="help-title">📖 Ajuda</span>
+    <span class="help-item"><span class="dot green"></span> 1º lugar (classificado)</span>
+    <span class="help-item"><span class="dot blue"></span> 2º lugar (classificado)</span>
+    <span class="help-item"><kbd>P</kbd> Partidas</span>
+    <span class="help-item"><kbd>V</kbd> Vitórias</span>
+    <span class="help-item"><kbd>E</kbd> Empates</span>
+    <span class="help-item"><kbd>D</kbd> Derrotas</span>
+    <span class="help-item"><kbd>GP</kbd> Gols Pró</span>
+    <span class="help-item"><kbd>GC</kbd> Gols Contra</span>
+    <span class="help-item"><kbd>SG</kbd> Saldo de Gols</span>
+    <span class="help-item"><kbd>Pts</kbd> Pontos</span>
+    <button class="help-toggle" onclick="document.getElementById('help-detail-groups').classList.toggle('open')">▼ detalhes</button>
+    <div class="help-detail" id="help-detail-groups">
+      <strong>Critérios de desempate:</strong> 1. Pontos · 2. Saldo de Gols · 3. Gols Pró<br>
+      <strong>Classificação:</strong> 1º e 2º de cada grupo avançam às oitavas de final.<br>
+      <strong>🔴 Ao vivo:</strong> grupo com pelo menos 1 partida realizada.<br>
+      <strong>⚽ Aguardando:</strong> grupo ainda não iniciou.
+    </div>
+  </div>
+
   <div id="groups-container" class="groups-grid">
     <div class="loading-state">
       <div class="spinner"></div>
@@ -377,6 +483,23 @@
       <span>🏅 Fase Final</span>
       <span class="bar"></span>
     </div>
+
+    <!-- LEGENDA FASE FINAL -->
+    <div class="help-bar">
+      <span class="help-title">🎯 Status</span>
+      <span class="help-item"><span class="dot green" style="border:2px solid #22c55e;border-radius:3px;width:12px;height:12px"></span> Confirmado</span>
+      <span class="help-item"><span class="dot orange" style="border:2px dashed #f59e0b;border-radius:3px;width:12px;height:12px"></span> Provável</span>
+      <span class="help-item"><span class="dot gray"></span> A definir</span>
+      <button class="help-toggle" onclick="document.getElementById('help-detail-bracket').classList.toggle('open')">▼ detalhes</button>
+      <div class="help-detail" id="help-detail-bracket">
+        <strong>🟢 Confirmado:</strong> todos os grupos que alimentam esta fase já fecharam (4 times jogaram).<br>
+        <strong>🟠 Provável:</strong> baseado na classificação atual, mas grupos ainda em aberto.<br>
+        <strong>⚫ A definir:</strong> grupos ainda não começaram.<br><br>
+        <strong>Formato:</strong> 12 grupos (A-L) · 48 seleções · 32 classificados para o mata-mata.<br>
+        Os confrontos seguem o chaveamento oficial da FIFA 2026.
+      </div>
+    </div>
+
     <div class="bracket-section">
       <div id="bracket-container" class="bracket">
         <div class="loading-state" style="grid-column:auto">
