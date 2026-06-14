@@ -28,7 +28,7 @@
   }
 
   .app {
-    max-width: 780px; width: 100%;
+    max-width: 820px; width: 100%;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 16px; padding: 24px; margin-top: 20px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.06);
@@ -93,18 +93,22 @@
 
   .error { color: var(--red); font-size: 13px; padding: 8px 0; }
 
-  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .presets-section { margin-bottom: 16px; }
+  .presets-section summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+  .presets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px; margin-top: 6px; }
   .preset-btn {
-    font-size: 11px; padding: 4px 12px; border: 1px solid var(--border);
-    border-radius: 999px; background: transparent; color: var(--muted);
-    cursor: pointer; transition: all .15s; font-family: var(--sans);
+    font-size: 11px; padding: 5px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: transparent; color: var(--muted);
+    cursor: pointer; transition: all .15s; font-family: var(--sans); text-align: left;
   }
-  .preset-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .preset-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+  .preset-btn .coords { font-family: var(--mono); font-size: 9px; color: var(--muted); display: block; opacity: 0.6; }
 
   @media (max-width: 500px) {
     .app { padding: 16px; }
     .controls { flex-direction: column; }
     .controls input[type="text"] { min-width: auto; }
+    .presets-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -112,7 +116,7 @@
 
 <div class="app">
   <h1>🌧️ Choveu Hoje?</h1>
-  <div class="sub">Descubra se choveu em qualquer lugar do mundo nos últimos 10 anos</div>
+  <div class="sub">Descubra se choveu em qualquer lugar nos últimos 10 anos</div>
 
   <div class="info-box">
     <strong>🔬 Fonte:</strong> NASA POWER — <span class="mono">PRECTOTCORR</span> (precipitação diária corrigida por satélite)
@@ -122,13 +126,10 @@
     <strong>📅 Período:</strong> últimos 10 anos, sempre na mesma data
   </div>
 
-  <div class="presets">
-    <button class="preset-btn" data-lat="-15.8577" data-lon="-48.0102">📍 Arniqueiras, DF</button>
-    <button class="preset-btn" data-lat="-15.7939" data-lon="-47.8828">📍 Brasília (Plano Piloto)</button>
-    <button class="preset-btn" data-lat="-22.9068" data-lon="-43.1729">📍 Rio de Janeiro</button>
-    <button class="preset-btn" data-lat="-23.5505" data-lon="-46.6333">📍 São Paulo</button>
-    <button class="preset-btn" data-lat="-19.9167" data-lon="-43.9345">📍 Belo Horizonte</button>
-  </div>
+  <details class="presets-section" open>
+    <summary>📍 Presets</summary>
+    <div class="presets-grid" id="presetsGrid"></div>
+  </details>
 
   <div class="controls">
     <div class="control-group">
@@ -137,11 +138,11 @@
     </div>
     <div class="control-group">
       <label>Latitude</label>
-      <input type="text" id="latInput" value="-15.857715" placeholder="-15.8577">
+      <input type="text" id="latInput" value="-15.8577" placeholder="-15.8577">
     </div>
     <div class="control-group">
       <label>Longitude</label>
-      <input type="text" id="lonInput" value="-48.010224" placeholder="-48.0102">
+      <input type="text" id="lonInput" value="-48.0102" placeholder="-48.0102">
     </div>
     <div class="control-group">
       <label>Dia</label>
@@ -193,6 +194,62 @@
 </div>
 
 <script>
+// Todas as capitais brasileiras + bairros de Brasília
+const PRESETS = [
+  // ─── Bairros de Brasília ───
+  { label: 'Arniqueiras, DF', lat: -15.8577, lon: -48.0102 },
+  { label: 'Águas Claras, DF', lat: -15.8390, lon: -48.0280 },
+  { label: 'Asa Norte, DF', lat: -15.7667, lon: -47.8833 },
+  { label: 'Asa Sul, DF', lat: -15.8100, lon: -47.8900 },
+  { label: 'Ceilândia, DF', lat: -15.8170, lon: -48.1100 },
+  { label: 'Cruzeiro, DF', lat: -15.7900, lon: -47.9300 },
+  { label: 'Gama, DF', lat: -15.9833, lon: -48.0667 },
+  { label: 'Guará, DF', lat: -15.8250, lon: -47.9830 },
+  { label: 'Lago Norte, DF', lat: -15.7333, lon: -47.8667 },
+  { label: 'Lago Sul, DF', lat: -15.8333, lon: -47.8167 },
+  { label: 'Núcleo Bandeirante, DF', lat: -15.8667, lon: -47.9667 },
+  { label: 'Paranoá, DF', lat: -15.7667, lon: -47.7833 },
+  { label: 'Planaltina, DF', lat: -15.6167, lon: -47.6500 },
+  { label: 'Recanto das Emas, DF', lat: -15.9000, lon: -48.0667 },
+  { label: 'Riacho Fundo, DF', lat: -15.8833, lon: -48.0167 },
+  { label: 'Samambaia, DF', lat: -15.8833, lon: -48.0833 },
+  { label: 'Santa Maria, DF', lat: -15.9333, lon: -48.0000 },
+  { label: 'São Sebastião, DF', lat: -15.7833, lon: -47.7500 },
+  { label: 'Sobradinho, DF', lat: -15.6500, lon: -47.7833 },
+  { label: 'Sudoeste, DF', lat: -15.8000, lon: -47.9200 },
+  { label: 'Taguatinga, DF', lat: -15.8167, lon: -48.0500 },
+  { label: 'Vicente Pires, DF', lat: -15.8000, lon: -48.0000 },
+
+  // ─── Capitais Brasileiras ───
+  { label: 'Aracaju, SE', lat: -10.9472, lon: -37.0731 },
+  { label: 'Belém, PA', lat: -1.4558, lon: -48.5039 },
+  { label: 'Belo Horizonte, MG', lat: -19.9167, lon: -43.9345 },
+  { label: 'Boa Vista, RR', lat: 2.8197, lon: -60.6733 },
+  { label: 'Brasília, DF', lat: -15.7939, lon: -47.8828 },
+  { label: 'Campo Grande, MS', lat: -20.4428, lon: -54.6464 },
+  { label: 'Cuiabá, MT', lat: -15.5989, lon: -56.0949 },
+  { label: 'Curitiba, PR', lat: -25.4290, lon: -49.2671 },
+  { label: 'Florianópolis, SC', lat: -27.5954, lon: -48.5480 },
+  { label: 'Fortaleza, CE', lat: -3.7319, lon: -38.5267 },
+  { label: 'Goiânia, GO', lat: -16.6864, lon: -49.2643 },
+  { label: 'João Pessoa, PB', lat: -7.1150, lon: -34.8640 },
+  { label: 'Macapá, AP', lat: 0.0230, lon: -51.0600 },
+  { label: 'Maceió, AL', lat: -9.6658, lon: -35.7350 },
+  { label: 'Manaus, AM', lat: -3.1190, lon: -60.0217 },
+  { label: 'Natal, RN', lat: -5.7945, lon: -35.2110 },
+  { label: 'Palmas, TO', lat: -10.2120, lon: -48.3600 },
+  { label: 'Porto Alegre, RS', lat: -30.0346, lon: -51.2177 },
+  { label: 'Porto Velho, RO', lat: -8.7619, lon: -63.9039 },
+  { label: 'Recife, PE', lat: -8.0476, lon: -34.8770 },
+  { label: 'Rio Branco, AC', lat: -9.9740, lon: -67.8070 },
+  { label: 'Rio de Janeiro, RJ', lat: -22.9068, lon: -43.1729 },
+  { label: 'Salvador, BA', lat: -12.9714, lon: -38.5014 },
+  { label: 'São Luís, MA', lat: -2.5300, lon: -44.3028 },
+  { label: 'São Paulo, SP', lat: -23.5505, lon: -46.6333 },
+  { label: 'Teresina, PI', lat: -5.0892, lon: -42.8019 },
+  { label: 'Vitória, ES', lat: -20.3155, lon: -40.3128 },
+];
+
 const latInput = document.getElementById('latInput');
 const lonInput = document.getElementById('lonInput');
 const localInput = document.getElementById('localInput');
@@ -204,14 +261,19 @@ const tbody = document.getElementById('tbody');
 const summary = document.getElementById('summary');
 const resultArea = document.getElementById('resultArea');
 const errorArea = document.getElementById('errorArea');
+const presetsGrid = document.getElementById('presetsGrid');
 
-// Presets
-document.querySelectorAll('.preset-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    latInput.value = btn.dataset.lat;
-    lonInput.value = btn.dataset.lon;
-    localInput.value = btn.textContent.trim();
+// Renderizar presets
+PRESETS.forEach(p => {
+  const el = document.createElement('button');
+  el.className = 'preset-btn';
+  el.innerHTML = `${p.label} <span class="coords">${p.lat}, ${p.lon}</span>`;
+  el.addEventListener('click', () => {
+    latInput.value = p.lat;
+    lonInput.value = p.lon;
+    localInput.value = p.label;
   });
+  presetsGrid.appendChild(el);
 });
 
 // Data atual como default
