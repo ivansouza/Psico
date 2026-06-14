@@ -612,31 +612,49 @@
     renderBracket(groups);
   }
 
-  async function loadData() {
-    try {
-      const [teamsData, groupsData] = await Promise.all([
-        fetchJSON('https://worldcup26.ir/get/teams'),
-        fetchJSON('https://worldcup26.ir/get/groups')
-      ]);
+  async function loadData(retryCount = 10) {
+    for (let attempt = 1; attempt <= retryCount; attempt++) {
+      try {
+        const [teamsData, groupsData] = await Promise.all([
+          fetchJSON('https://worldcup26.ir/get/teams'),
+          fetchJSON('https://worldcup26.ir/get/groups')
+        ]);
 
-      teamsData.teams.forEach(t => { teamsMap[t.id] = t; });
+        teamsData.teams.forEach(t => { teamsMap[t.id] = t; });
 
-      renderGroups(groupsData.groups);
-      updateTime.textContent = `Atualizado ${new Date().toLocaleString('pt-BR')}`;
-    } catch (err) {
-      console.error(err);
-      groupsContainer.innerHTML = `
-        <div class="error-state">
-          <p>❌ Erro ao carregar dados da Copa</p>
-          <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
-          <button class="retry-btn" onclick="location.reload()">Tentar novamente</button>
-        </div>
-      `;
+        renderGroups(groupsData.groups);
+        updateTime.textContent = `Atualizado ${new Date().toLocaleString('pt-BR')}`;
+        return; // deu certo, sai
+      } catch (err) {
+        console.error(`Tentativa ${attempt}/${retryCount} falhou:`, err);
+        if (attempt < retryCount) {
+          // Mostra tentativa na tela
+          groupsContainer.innerHTML = `
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Tentando conectar... (${attempt}/${retryCount})</p>
+              <p style="color:#64748b;font-size:.8rem;margin-top:.5rem">${err.message}</p>
+            </div>
+          `;
+          // Espera progressivo: 1s, 2s, 3s... até 5s max
+          const delay = Math.min(attempt * 1000, 5000);
+          await new Promise(r => setTimeout(r, delay));
+        } else {
+          // Esgotou as tentativas
+          groupsContainer.innerHTML = `
+            <div class="error-state">
+              <p>❌ Erro ao carregar dados da Copa</p>
+              <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
+              <button class="retry-btn" onclick="location.reload()">Tentar novamente</button>
+            </div>
+          `;
+        }
+      }
     }
   }
 
   await loadData();
-  setInterval(loadData, 60000);
+  setInterval(() => loadData(3), 60000); // nas atualizações, só 3 retries
 })();
 </script>
 </body>
