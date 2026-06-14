@@ -429,8 +429,13 @@
   // Para este visual, vou mostrar o bracket com os 1ºs e 2ºs colocados
   // e indicar que os melhores 3ºs completam.
 
+  // Um grupo é considerado "fechado" quando todos os 4 times já jogaram
+  function isGroupClosed(groupTeams) {
+    return groupTeams.every(t => parseInt(t.mp) > 0);
+  }
+
   function buildBracket(sortedGroups) {
-    // Pega 1º e 2º de cada grupo + se o grupo já tem jogos
+    // Pega 1º e 2º de cada grupo + se o grupo está fechado
     const classified = {};
     sortedGroups.forEach(g => {
       const sorted = [...g.teams].sort((a,b) => {
@@ -438,11 +443,11 @@
         if (parseInt(b.gd) !== parseInt(a.gd)) return parseInt(b.gd) - parseInt(a.gd);
         return parseInt(b.gf) - parseInt(a.gf);
       });
-      const hasMatches = sorted.some(t => parseInt(t.mp) > 0);
       classified[g.name] = {
         first: sorted[0],
         second: sorted[1],
-        confirmed: hasMatches
+        teams: g.teams,
+        closed: isGroupClosed(g.teams)
       };
     });
 
@@ -458,19 +463,31 @@
       { label: 'Oitava 8', home: classified.D?.first, away: classified.C?.second, g1: 'D', g2: 'C' },
     ];
 
+    // Mapeia quais grupos alimentam cada quartas
+    // Q1 ← O1+O2 ← grupos A,B,C,D
+    // Q2 ← O3+O4 ← grupos E,F,G,H
+    // Q3 ← O5+O6 ← grupos I,J,K,L
+    // Q4 ← O7+O8 ← grupos A,B,C,D (mesmo)
+    const quartasGroupMap = [
+      ['A','B','C','D'],
+      ['E','F','G','H'],
+      ['I','J','K','L'],
+      ['A','B','C','D'],
+    ];
+
     const quartas = [
-      { label: 'Quartas 1', home: null, away: null, source: [0, 1] },
-      { label: 'Quartas 2', home: null, away: null, source: [2, 3] },
-      { label: 'Quartas 3', home: null, away: null, source: [4, 5] },
-      { label: 'Quartas 4', home: null, away: null, source: [6, 7] },
+      { label: 'Quartas 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D'] },
+      { label: 'Quartas 2', home: null, away: null, source: [2, 3], groups: ['E','F','G','H'] },
+      { label: 'Quartas 3', home: null, away: null, source: [4, 5], groups: ['I','J','K','L'] },
+      { label: 'Quartas 4', home: null, away: null, source: [6, 7], groups: ['A','B','C','D'] },
     ];
 
     const semis = [
-      { label: 'Semifinal 1', home: null, away: null, source: [0, 1] },
-      { label: 'Semifinal 2', home: null, away: null, source: [2, 3] },
+      { label: 'Semifinal 1', home: null, away: null, source: [0, 1], groups: ['A','B','C','D','E','F','G','H'] },
+      { label: 'Semifinal 2', home: null, away: null, source: [2, 3], groups: ['I','J','K','L','A','B','C','D'] },
     ];
 
-    const final = { label: 'Final', home: null, away: null, source: [0, 1] };
+    const final = { label: 'Final', home: null, away: null, source: [0, 1], groups: ['A','B','C','D','E','F','G','H','I','J','K','L'] };
 
     return { oitavas, quartas, semis, final, classified };
   }
@@ -481,10 +498,8 @@
     const pending = isPending || !team1 || !team2;
 
     // status: 'confirmed' | 'probable' | 'pending'
-    let statusClass = 'pending';
-    if (!isPending && team1 && team2) {
-      statusClass = status === 'confirmed' ? 'confirmed' : 'probable';
-    }
+    // Mesmo sem times definidos (pending), a borda reflete o status dos grupos
+    let statusClass = status === 'confirmed' ? 'confirmed' : (status === 'probable' ? 'probable' : 'pending');
 
     const t1Flag = t1?.flag || '';
     const t1Name = t1?.name_en || `#${team1?.team_id || '?'}`;
@@ -524,19 +539,32 @@
 
     const classified = bracket.classified;
 
-    // Determina status de cada oitava
-    function oitavaStatus(g1, g2) {
-      const c1 = classified[g1];
-      const c2 = classified[g2];
-      if (!c1 || !c2) return 'pending';
-      if (c1.confirmed && c2.confirmed) return 'confirmed';
-      return 'probable';
+    // Status de um grupo: 'closed' | 'started' | 'pending'
+    function groupStatus(gName) {
+      const c = classified[gName];
+      if (!c) return 'pending';
+      if (c.closed) return 'closed';
+      if (c.teams.some(t => parseInt(t.mp) > 0)) return 'started';
+      return 'pending';
+    }
+
+    // Status de um conjunto de grupos: 'confirmed' se todos fechados, 'probable' se algum começou, 'pending' se nenhum
+    function groupsStatus(groupNames) {
+      let hasClosed = true, hasStarted = false;
+      for (const g of groupNames) {
+        const s = groupStatus(g);
+        if (s !== 'closed') hasClosed = false;
+        if (s === 'started' || s === 'closed') hasStarted = true;
+      }
+      if (hasClosed) return 'confirmed';
+      if (hasStarted) return 'probable';
+      return 'pending';
     }
 
     // Rodada 1: Oitavas
     html += `<div class="bracket-round"><div class="bracket-round-title">Oitavas de Final</div>`;
     bracket.oitavas.forEach(o => {
-      const status = oitavaStatus(o.g1, o.g2);
+      const status = groupsStatus([o.g1, o.g2]);
       html += renderMatch(o.home, o.away, o.label, false, status);
     });
     html += `</div>`;
@@ -544,20 +572,22 @@
     // Rodada 2: Quartas
     html += `<div class="bracket-round"><div class="bracket-round-title">Quartas de Final</div>`;
     bracket.quartas.forEach(q => {
-      html += renderMatch(null, null, q.label, true, 'pending');
+      const status = groupsStatus(q.groups);
+      html += renderMatch(null, null, q.label, true, status);
     });
     html += `</div>`;
 
     // Rodada 3: Semifinais
     html += `<div class="bracket-round"><div class="bracket-round-title">Semifinais</div>`;
     bracket.semis.forEach(s => {
-      html += renderMatch(null, null, s.label, true, 'pending');
+      const status = groupsStatus(s.groups);
+      html += renderMatch(null, null, s.label, true, status);
     });
     html += `</div>`;
 
     // Rodada 4: Final + Campeão
     html += `<div class="bracket-round"><div class="bracket-round-title">Final</div>`;
-    html += renderMatch(null, null, 'Grande Final', true, 'pending');
+    html += renderMatch(null, null, 'Grande Final', true, groupsStatus(final.groups));
     html += `
       <div class="champion-box">
         <div class="trophy">🏆</div>
