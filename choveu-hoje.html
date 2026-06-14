@@ -28,7 +28,7 @@
   }
 
   .app {
-    max-width: 820px; width: 100%;
+    max-width: 780px; width: 100%;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 16px; padding: 24px; margin-top: 20px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.06);
@@ -57,37 +57,41 @@
   .suggestions {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 0 0 10px 10px; max-height: 240px; overflow-y: auto;
+    border-top: none; border-radius: 0 0 10px 10px;
+    max-height: 260px; overflow-y: auto;
     display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   }
   .suggestions.show { display: block; }
   .suggestion-item {
-    padding: 8px 14px; cursor: pointer; font-size: 13px;
+    padding: 10px 14px; cursor: pointer; font-size: 13px;
     border-bottom: 1px solid var(--border); transition: background .1s;
   }
-  .suggestion-item:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
+  .suggestion-item:last-child { border-bottom: none; }
   .suggestion-item:hover { background: var(--blue-soft); }
   .suggestion-item .sug-label { font-weight: 500; }
-  .suggestion-item .sug-coords { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .suggestion-item .sug-detail { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
-  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: end; }
-  .control-group { display: flex; flex-direction: column; gap: 3px; }
-  .control-group label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
-  .controls input, .controls select {
+  .date-row {
+    display: flex; gap: 8px; align-items: end; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .date-group { display: flex; flex-direction: column; gap: 3px; }
+  .date-group label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+  .date-group input, .date-group select {
     padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
     font-family: var(--sans); font-size: 13px; background: var(--bg);
     color: var(--ink);
   }
-  .controls input:focus, .controls select:focus { outline: none; border-color: var(--blue); }
-  .controls input[type="text"] { min-width: 140px; }
-  .controls input[type="number"] { width: 80px; }
-  .controls button {
-    padding: 8px 20px; border: none; border-radius: 8px;
-    background: var(--blue); color: white; font-weight: 600; font-size: 13px;
-    cursor: pointer; transition: opacity .15s; height: 37px;
+  .date-group input:focus, .date-group select:focus { outline: none; border-color: var(--blue); }
+  .date-group input[type="number"] { width: 80px; }
+
+  .btn-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .btn-row button {
+    padding: 10px 24px; border: none; border-radius: 10px;
+    background: var(--blue); color: white; font-weight: 600; font-size: 14px;
+    cursor: pointer; transition: opacity .15s; flex: 1;
   }
-  .controls button:hover { opacity: 0.85; }
-  .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row button:hover { opacity: 0.85; }
+  .btn-row button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .status { font-size: 13px; color: var(--muted); margin-bottom: 12px; min-height: 20px; }
 
@@ -119,10 +123,15 @@
 
   .error { color: var(--red); font-size: 13px; padding: 8px 0; }
 
+  .local-label {
+    font-size: 12px; color: var(--muted); margin-bottom: 8px; min-height: 18px;
+  }
+  .local-label strong { color: var(--ink); }
+
   @media (max-width: 500px) {
     .app { padding: 16px; }
-    .controls { flex-direction: column; }
-    .controls input[type="text"] { min-width: auto; }
+    .date-row { flex-direction: column; }
+    .date-group input[type="number"] { width: 100%; }
   }
 </style>
 </head>
@@ -133,33 +142,27 @@
   <div class="sub">Descubra se choveu em qualquer lugar nos últimos 10 anos</div>
 
   <div class="info-box">
-    <strong>🔬 Fonte:</strong> NASA POWER — <span class="mono">PRECTOTCORR</span> (precipitação diária corrigida por satélite)
+    <strong>🔬 Fonte:</strong> NASA POWER — precipitação diária por satélite
     <br>
-    <strong>🌍 Cobertura:</strong> qualquer lugar do mundo — digite o nome que o app descobre as coordenadas
+    <strong>🌍 Cobertura:</strong> qualquer lugar do mundo
     <br>
     <strong>📅 Período:</strong> últimos 10 anos, sempre na mesma data
   </div>
 
   <div class="search-box">
     <span class="icon">🔍</span>
-    <input type="text" id="searchInput" placeholder="Digite um bairro, cidade ou endereço... (ex: Arniqueiras, DF)" autocomplete="off">
+    <input type="text" id="searchInput" placeholder="Digite um bairro, cidade ou endereço..." autocomplete="off">
     <div class="suggestions" id="suggestions"></div>
   </div>
 
-  <div class="controls">
-    <div class="control-group">
-      <label>Latitude</label>
-      <input type="text" id="latInput" value="-15.8577" placeholder="-15.8577">
-    </div>
-    <div class="control-group">
-      <label>Longitude</label>
-      <input type="text" id="lonInput" value="-48.0102" placeholder="-48.0102">
-    </div>
-    <div class="control-group">
+  <div class="local-label" id="localLabel"></div>
+
+  <div class="date-row">
+    <div class="date-group">
       <label>Dia</label>
       <input type="number" id="diaInput" value="13" min="1" max="31">
     </div>
-    <div class="control-group">
+    <div class="date-group">
       <label>Mês</label>
       <select id="mesInput">
         <option value="1">Janeiro</option>
@@ -176,10 +179,13 @@
         <option value="12">Dezembro</option>
       </select>
     </div>
-    <button id="btnConsultar">Consultar</button>
   </div>
 
-  <div class="status" id="status">Digite um local e clique em "Consultar".</div>
+  <div class="btn-row">
+    <button id="btnConsultar">🌧️ Verificar</button>
+  </div>
+
+  <div class="status" id="status">Digite um local e clique em "Verificar".</div>
 
   <div id="resultArea" style="display:none;">
     <table>
@@ -199,17 +205,15 @@
   <div id="errorArea" class="error"></div>
 
   <div class="footer">
-    Geocoding: <a href="https://nominatim.openstreetmap.org/" target="_blank">Nominatim (OSM)</a> ·
-    Dados: <a href="https://power.larc.nasa.gov/" target="_blank">NASA POWER</a> ·
-    <a href="https://github.com/ivansouza" target="_blank">github.com/ivansouza</a>
+    Geocoding: <a href="https://nominatim.openstreetmap.org/" target="_blank">OpenStreetMap</a> ·
+    Dados: <a href="https://power.larc.nasa.gov/" target="_blank">NASA POWER</a>
   </div>
 </div>
 
 <script>
 const searchInput = document.getElementById('searchInput');
 const suggestions = document.getElementById('suggestions');
-const latInput = document.getElementById('latInput');
-const lonInput = document.getElementById('lonInput');
+const localLabel = document.getElementById('localLabel');
 const diaInput = document.getElementById('diaInput');
 const mesInput = document.getElementById('mesInput');
 const btn = document.getElementById('btnConsultar');
@@ -221,6 +225,9 @@ const errorArea = document.getElementById('errorArea');
 
 let searchTimeout = null;
 let selectedSuggestion = false;
+let currentLat = null;
+let currentLon = null;
+let currentLabel = '';
 
 // Data atual como default
 const hoje = new Date();
@@ -260,12 +267,16 @@ async function geocode(query) {
     data.forEach(item => {
       const div = document.createElement('div');
       div.className = 'suggestion-item';
-      const label = item.display_name.split(',').slice(0, 3).join(',');
-      div.innerHTML = `<div class="sug-label">${label}</div><div class="sug-coords">${parseFloat(item.lat).toFixed(4)}, ${parseFloat(item.lon).toFixed(4)}</div>`;
+      const parts = item.display_name.split(',');
+      const label = parts.slice(0, 2).join(',');
+      const detail = parts.slice(2, 5).join(',').trim();
+      div.innerHTML = `<div class="sug-label">${label}</div><div class="sug-detail">${detail}</div>`;
       div.addEventListener('click', () => {
-        latInput.value = parseFloat(item.lat).toFixed(6);
-        lonInput.value = parseFloat(item.lon).toFixed(6);
+        currentLat = parseFloat(item.lat);
+        currentLon = parseFloat(item.lon);
+        currentLabel = parts.slice(0, 3).join(',').replace(/^,\s*/, '');
         searchInput.value = label;
+        localLabel.innerHTML = `📍 <strong>${currentLabel}</strong> &middot; ${currentLat.toFixed(4)}, ${currentLon.toFixed(4)}`;
         selectedSuggestion = true;
         suggestions.classList.remove('show');
       });
@@ -281,20 +292,15 @@ async function geocode(query) {
 btn.addEventListener('click', consultar);
 
 async function consultar() {
-  const lat = latInput.value.trim();
-  const lon = lonInput.value.trim();
-  const dia = parseInt(diaInput.value, 10);
-  const mes = parseInt(mesInput.value, 10);
-
-  if (!lat || !lon || isNaN(dia) || isNaN(mes)) {
-    errorArea.textContent = 'Preencha latitude, longitude, dia e mês.';
+  if (!currentLat || !currentLon) {
+    errorArea.textContent = 'Primeiro, digite e selecione um local na busca acima.';
     return;
   }
 
-  const latNum = parseFloat(lat);
-  const lonNum = parseFloat(lon);
-  if (isNaN(latNum) || isNaN(lonNum)) {
-    errorArea.textContent = 'Latitude e longitude devem ser números.';
+  const dia = parseInt(diaInput.value, 10);
+  const mes = parseInt(mesInput.value, 10);
+  if (isNaN(dia) || isNaN(mes)) {
+    errorArea.textContent = 'Informe dia e mês válidos.';
     return;
   }
 
@@ -314,7 +320,7 @@ async function consultar() {
   const startDate = `${anos[0]}0101`;
   const endDate = `${anoAtual}1231`;
 
-  const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=${lonNum}&latitude=${latNum}&start=${startDate}&end=${endDate}&format=JSON`;
+  const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=${currentLon}&latitude=${currentLat}&start=${startDate}&end=${endDate}&format=JSON`;
 
   try {
     const resp = await fetch(url);
@@ -393,12 +399,6 @@ async function consultar() {
     btn.disabled = false;
   }
 }
-
-// Se o campo de busca tiver valor ao carregar, faz geocode automático
-window.addEventListener('DOMContentLoaded', () => {
-  const q = searchInput.value.trim();
-  if (q.length >= 3) geocode(q);
-});
 </script>
 </body>
 </html>
