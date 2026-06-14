@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copa do Mundo 2026 — Tabela de Grupos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f59e0b, #ef4444, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+
+  header p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 0.4rem;
+  }
+
+  .last-update {
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+  }
+
+  .last-update .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Grid de grupos */
+  .groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.2rem;
+  }
+
+  /* Card de grupo */
+  .group-card {
+    background: linear-gradient(145deg, #1e293b, #1a2332);
+    border-radius: 14px;
+    border: 1px solid #2d3a4e;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  .group-header {
+    padding: 0.9rem 1.2rem;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #2d3a4e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .group-header .group-label {
+    color: #f59e0b;
+  }
+
+  .group-header .group-status {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #64748b;
+  }
+
+  /* Tabela dentro do card */
+  .group-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  .group-table thead th {
+    padding: 0.6rem 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    border-bottom: 1px solid #2d3a4e;
+  }
+
+  .group-table thead th:first-child {
+    text-align: left;
+    padding-left: 1rem;
+    width: 40%;
+  }
+
+  .group-table tbody tr {
+    transition: background 0.15s;
+  }
+
+  .group-table tbody tr:hover {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .group-table tbody td {
+    padding: 0.55rem 0.5rem;
+    text-align: center;
+    border-bottom: 1px solid #1e293b;
+    font-weight: 500;
+  }
+
+  .group-table tbody td:first-child {
+    text-align: left;
+    padding-left: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .team-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .team-cell .pos {
+    font-weight: 700;
+    color: #64748b;
+    min-width: 16px;
+    font-size: 0.75rem;
+  }
+
+  .team-cell .flag {
+    width: 22px;
+    height: 16px;
+    border-radius: 2px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .team-cell .name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .team-cell .fifa-code {
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+
+  /* Destaque para classificação */
+  .qualified-1, .qualified-2 {
+    position: relative;
+  }
+
+  .qualified-1 td:first-child .team-cell .pos {
+    color: #22c55e;
+  }
+
+  .qualified-2 td:first-child .team-cell .pos {
+    color: #3b82f6;
+  }
+
+  /* Pontos em destaque */
+  .pts-cell {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #f59e0b;
+  }
+
+  /* GD negativo */
+  .gd-neg {
+    color: #ef4444;
+  }
+
+  .gd-pos {
+    color: #22c55e;
+  }
+
+  /* Loading / Error */
+  .loading-state, .error-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+  }
+
+  .loading-state .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #2d3a4e;
+    border-top-color: #f59e0b;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-state {
+    color: #f87171;
+  }
+
+  .error-state .retry-btn {
+    margin-top: 1rem;
+    padding: 0.6rem 1.5rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .error-state .retry-btn:hover {
+    background: #2563eb;
+  }
+
+  /* Responsivo */
+  @media (max-width: 720px) {
+    body { padding: 1rem 0.6rem; }
+    header h1 { font-size: 1.5rem; }
+    .groups-grid { grid-template-columns: 1fr; }
+    .group-table { font-size: 0.75rem; }
+    .team-cell .name { font-size: 0.75rem; }
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    margin-top: 2.5rem;
+    color: #475569;
+    font-size: 0.75rem;
+  }
+
+  footer a {
+    color: #64748b;
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🏆 Copa do Mundo 2026</h1>
+    <p>🇺🇸 Estados Unidos · 🇲🇽 México · 🇨🇦 Canadá</p>
+    <div class="last-update">
+      <span class="live-dot"></span>
+      <span id="update-time">Carregando...</span>
+    </div>
+  </header>
+
+  <div id="groups-container" class="groups-grid">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Buscando dados da Copa...</p>
+    </div>
+  </div>
+
+  <footer>
+    Dados via <a href="https://worldcup26.ir" target="_blank">worldcup26.ir</a> ·
+    <a href="https://github.com/rezarahiminia/worldcup2026" target="_blank">API gratuita</a>
+  </footer>
+</div>
+
+<script>
+(async () => {
+  const container = document.getElementById('groups-container');
+  const updateTime = document.getElementById('update-time');
+
+  // Mapeamento de team_id → dados do time
+  let teamsMap = {};
+  // Ordem dos grupos (A-L)
+  const groupOrder = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+  async function fetchJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function loadData() {
+    try {
+      // Carrega times e grupos em paralelo
+      const [teamsData, groupsData] = await Promise.all([
+        fetchJSON('https://worldcup26.ir/get/teams'),
+        fetchJSON('https://worldcup26.ir/get/groups')
+      ]);
+
+      // Monta mapa de times
+      teamsData.teams.forEach(t => {
+        teamsMap[t.id] = t;
+      });
+
+      renderGroups(groupsData.groups);
+      updateTime.textContent = `Atualizado ${new Date().toLocaleString('pt-BR')}`;
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = `
+        <div class="error-state">
+          <p>❌ Erro ao carregar dados da Copa</p>
+          <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">${err.message}</p>
+          <button class="retry-btn" onclick="location.reload()">Tentar novamente</button>
+        </div>
+      `;
+    }
+  }
+
+  function renderGroups(groups) {
+    // Ordena grupos alfabeticamente (A-L)
+    groups.sort((a, b) => groupOrder.indexOf(a.name) - groupOrder.indexOf(b.name));
+
+    let html = '';
+
+    groups.forEach(group => {
+      const groupName = group.name;
+      // Ordena times: pontos (desc), depois saldo (desc), depois GF (desc)
+      const sortedTeams = [...group.teams].sort((a, b) => {
+        if (parseInt(b.pts) !== parseInt(a.pts)) return parseInt(b.pts) - parseInt(a.pts);
+        if (parseInt(b.gd) !== parseInt(a.gd)) return parseInt(b.gd) - parseInt(a.gd);
+        return parseInt(b.gf) - parseInt(a.gf);
+      });
+
+      // Verifica se algum time já jogou
+      const hasMatches = sortedTeams.some(t => parseInt(t.mp) > 0);
+
+      let rows = '';
+      sortedTeams.forEach((team, idx) => {
+        const t = teamsMap[team.team_id];
+        if (!t) return;
+
+        const flagUrl = t.flag || `https://flagcdn.com/w80/${t.iso2?.toLowerCase() || 'xx'}.png`;
+        const name = t.name_en || t.name_fa || `Time #${team.team_id}`;
+        const fifa = t.fifa_code || '';
+        const pts = parseInt(team.pts);
+        const gd = parseInt(team.gd);
+        const gdClass = gd > 0 ? 'gd-pos' : (gd < 0 ? 'gd-neg' : '');
+        const gdDisplay = gd > 0 ? `+${gd}` : gd;
+
+        // Destaque para 1º e 2º (se já tem jogos)
+        const highlightClass = hasMatches && idx < 2 ? `qualified-${idx + 1}` : '';
+
+        rows += `
+          <tr class="${highlightClass}">
+            <td>
+              <div class="team-cell">
+                <span class="pos">${idx + 1}</span>
+                <img class="flag" src="${flagUrl}" alt="${fifa}" loading="lazy" onerror="this.style.display='none'">
+                <span class="name">${name}</span>
+                ${fifa ? `<span class="fifa-code">${fifa}</span>` : ''}
+              </div>
+            </td>
+            <td>${team.mp}</td>
+            <td>${team.w}</td>
+            <td>${team.d}</td>
+            <td>${team.l}</td>
+            <td>${team.gf}</td>
+            <td>${team.ga}</td>
+            <td class="${gdClass}">${gdDisplay}</td>
+            <td class="pts-cell">${pts}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+        <div class="group-card">
+          <div class="group-header">
+            <span class="group-label">Grupo ${groupName}</span>
+            <span class="group-status">${hasMatches ? '🔴 Ao vivo' : '⚽ Aguardando'}</span>
+          </div>
+          <table class="group-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>P</th>
+                <th>V</th>
+                <th>E</th>
+                <th>D</th>
+                <th>GP</th>
+                <th>GC</th>
+                <th>SG</th>
+                <th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  // Carrega dados e atualiza a cada 60 segundos
+  await loadData();
+  setInterval(loadData, 60000);
+})();
+</script>
+</body>
+</html>
