@@ -371,16 +371,18 @@
     </div>
   </div>
 
-  <!-- MATA-MATA -->
-  <div class="section-title">
-    <span>🏅 Fase Final</span>
-    <span class="bar"></span>
-  </div>
-  <div class="bracket-section">
-    <div id="bracket-container" class="bracket">
-      <div class="loading-state" style="grid-column:auto">
-        <div class="spinner"></div>
-        <p>Calculando confrontos...</p>
+  <!-- MATA-MATA (só aparece após carregar grupos) -->
+  <div id="bracket-wrapper" style="display:none">
+    <div class="section-title">
+      <span>🏅 Fase Final</span>
+      <span class="bar"></span>
+    </div>
+    <div class="bracket-section">
+      <div id="bracket-container" class="bracket">
+        <div class="loading-state" style="grid-column:auto">
+          <div class="spinner"></div>
+          <p>Calculando confrontos...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -645,7 +647,11 @@
     });
 
     groupsContainer.innerHTML = html;
-    renderBracket(groups);
+    // Só renderiza o bracket depois que os grupos aparecerem
+    setTimeout(() => {
+      document.getElementById('bracket-wrapper').style.display = 'block';
+      renderBracket(groups);
+    }, 100);
   }
 
   async function loadData(retryCount = 10) {
