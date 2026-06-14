@@ -390,7 +390,7 @@ async function consultar() {
     summary.textContent = summaryText;
     summary.className = `summary ${summaryClass}`;
     resultArea.style.display = 'block';
-    status.textContent = `✅ Consulta concluída — ${total} anos verificados.`;
+    status.textContent = `✅ ${currentLabel} — Consulta concluída — ${total} anos verificados.`;
 
   } catch (err) {
     errorArea.textContent = `❌ Erro: ${err.message}`;
