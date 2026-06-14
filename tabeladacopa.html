@@ -537,6 +537,7 @@
 
     let html = '';
     groups.forEach(group => {
+      const groupName = group.name;
       const sortedTeams = [...group.teams].sort((a, b) => {
         if (parseInt(b.pts) !== parseInt(a.pts)) return parseInt(b.pts) - parseInt(a.pts);
         if (parseInt(b.gd) !== parseInt(a.gd)) return parseInt(b.gd) - parseInt(a.gd);
