@@ -96,7 +96,7 @@
     letter-spacing: 0;
     color: #64748b;
   }
-  .group-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .group-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
   .group-table thead th {
     padding: .6rem .5rem;
     text-align: center;
@@ -107,7 +107,15 @@
     color: #64748b;
     border-bottom: 1px solid #2d3a4e;
   }
-  .group-table thead th:first-child { text-align: left; padding-left: 1rem; width: 40%; }
+  .group-table thead th:first-child { text-align: left; padding-left: 1rem; width: 34%; }
+  .group-table thead th:last-child { width: 32px; }
+  .group-table thead th:nth-child(2),
+  .group-table thead th:nth-child(3),
+  .group-table thead th:nth-child(4),
+  .group-table thead th:nth-child(5) { width: 22px; }
+  .group-table thead th:nth-child(6),
+  .group-table thead th:nth-child(7),
+  .group-table thead th:nth-child(8) { width: 26px; }
   .group-table tbody tr { transition: background .15s; }
   .group-table tbody tr:hover { background: rgba(255,255,255,.03); }
   .group-table tbody td {
@@ -117,6 +125,7 @@
     font-weight: 500;
   }
   .group-table tbody td:first-child { text-align: left; padding-left: 1rem; }
+  .group-table tbody td:last-child { text-align: center; }
   .team-cell { display: flex; align-items: center; gap: 8px; }
   .team-cell .pos { font-weight: 700; color: #64748b; min-width: 16px; font-size: .75rem; }
   .team-cell .flag { width: 22px; height: 16px; border-radius: 2px; object-fit: cover; flex-shrink: 0; }
@@ -331,7 +340,10 @@
     body { padding: 1rem .6rem; }
     header h1 { font-size: 1.5rem; }
     .groups-grid { grid-template-columns: 1fr; }
-    .group-table { font-size: .75rem; }
+    .group-table { font-size: .7rem; }
+    .group-table thead th:first-child { width: 30%; }
+    .group-table thead th { padding: .5rem .2rem; }
+    .group-table tbody td { padding: .45rem .2rem; }
     .team-cell .name { font-size: .75rem; }
     .bracket { min-width: auto; flex-direction: column; align-items: stretch; }
     .bracket-round { min-width: auto; }
