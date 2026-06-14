@@ -44,6 +44,32 @@
   }
   .info-box strong { color: var(--blue); }
 
+  .search-box { position: relative; margin-bottom: 12px; }
+  .search-box input {
+    width: 100%; padding: 10px 14px 10px 40px;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: var(--sans); font-size: 14px; background: var(--bg);
+    color: var(--ink);
+  }
+  .search-box input:focus { outline: none; border-color: var(--blue); }
+  .search-box .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
+
+  .suggestions {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 0 0 10px 10px; max-height: 240px; overflow-y: auto;
+    display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  .suggestions.show { display: block; }
+  .suggestion-item {
+    padding: 8px 14px; cursor: pointer; font-size: 13px;
+    border-bottom: 1px solid var(--border); transition: background .1s;
+  }
+  .suggestion-item:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
+  .suggestion-item:hover { background: var(--blue-soft); }
+  .suggestion-item .sug-label { font-weight: 500; }
+  .suggestion-item .sug-coords { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
   .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: end; }
   .control-group { display: flex; flex-direction: column; gap: 3px; }
   .control-group label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
@@ -93,22 +119,10 @@
 
   .error { color: var(--red); font-size: 13px; padding: 8px 0; }
 
-  .presets-section { margin-bottom: 16px; }
-  .presets-section summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); padding: 4px 0; }
-  .presets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px; margin-top: 6px; }
-  .preset-btn {
-    font-size: 11px; padding: 5px 10px; border: 1px solid var(--border);
-    border-radius: 6px; background: transparent; color: var(--muted);
-    cursor: pointer; transition: all .15s; font-family: var(--sans); text-align: left;
-  }
-  .preset-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
-  .preset-btn .coords { font-family: var(--mono); font-size: 9px; color: var(--muted); display: block; opacity: 0.6; }
-
   @media (max-width: 500px) {
     .app { padding: 16px; }
     .controls { flex-direction: column; }
     .controls input[type="text"] { min-width: auto; }
-    .presets-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -121,21 +135,18 @@
   <div class="info-box">
     <strong>🔬 Fonte:</strong> NASA POWER — <span class="mono">PRECTOTCORR</span> (precipitação diária corrigida por satélite)
     <br>
-    <strong>🌍 Cobertura:</strong> qualquer coordenada do globo
+    <strong>🌍 Cobertura:</strong> qualquer lugar do mundo — digite o nome que o app descobre as coordenadas
     <br>
     <strong>📅 Período:</strong> últimos 10 anos, sempre na mesma data
   </div>
 
-  <details class="presets-section" open>
-    <summary>📍 Presets</summary>
-    <div class="presets-grid" id="presetsGrid"></div>
-  </details>
+  <div class="search-box">
+    <span class="icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Digite um bairro, cidade ou endereço... (ex: Arniqueiras, DF)" autocomplete="off">
+    <div class="suggestions" id="suggestions"></div>
+  </div>
 
   <div class="controls">
-    <div class="control-group">
-      <label>Bairro / Cidade</label>
-      <input type="text" id="localInput" value="Arniqueiras, Brasília - DF" placeholder="Ex: Arniqueiras, DF">
-    </div>
     <div class="control-group">
       <label>Latitude</label>
       <input type="text" id="latInput" value="-15.8577" placeholder="-15.8577">
@@ -168,7 +179,7 @@
     <button id="btnConsultar">Consultar</button>
   </div>
 
-  <div class="status" id="status">Pronto. Clique em "Consultar".</div>
+  <div class="status" id="status">Digite um local e clique em "Consultar".</div>
 
   <div id="resultArea" style="display:none;">
     <table>
@@ -188,71 +199,17 @@
   <div id="errorArea" class="error"></div>
 
   <div class="footer">
+    Geocoding: <a href="https://nominatim.openstreetmap.org/" target="_blank">Nominatim (OSM)</a> ·
     Dados: <a href="https://power.larc.nasa.gov/" target="_blank">NASA POWER</a> ·
     <a href="https://github.com/ivansouza" target="_blank">github.com/ivansouza</a>
   </div>
 </div>
 
 <script>
-// Todas as capitais brasileiras + bairros de Brasília
-const PRESETS = [
-  // ─── Bairros de Brasília ───
-  { label: 'Arniqueiras, DF', lat: -15.8577, lon: -48.0102 },
-  { label: 'Águas Claras, DF', lat: -15.8390, lon: -48.0280 },
-  { label: 'Asa Norte, DF', lat: -15.7667, lon: -47.8833 },
-  { label: 'Asa Sul, DF', lat: -15.8100, lon: -47.8900 },
-  { label: 'Ceilândia, DF', lat: -15.8170, lon: -48.1100 },
-  { label: 'Cruzeiro, DF', lat: -15.7900, lon: -47.9300 },
-  { label: 'Gama, DF', lat: -15.9833, lon: -48.0667 },
-  { label: 'Guará, DF', lat: -15.8250, lon: -47.9830 },
-  { label: 'Lago Norte, DF', lat: -15.7333, lon: -47.8667 },
-  { label: 'Lago Sul, DF', lat: -15.8333, lon: -47.8167 },
-  { label: 'Núcleo Bandeirante, DF', lat: -15.8667, lon: -47.9667 },
-  { label: 'Paranoá, DF', lat: -15.7667, lon: -47.7833 },
-  { label: 'Planaltina, DF', lat: -15.6167, lon: -47.6500 },
-  { label: 'Recanto das Emas, DF', lat: -15.9000, lon: -48.0667 },
-  { label: 'Riacho Fundo, DF', lat: -15.8833, lon: -48.0167 },
-  { label: 'Samambaia, DF', lat: -15.8833, lon: -48.0833 },
-  { label: 'Santa Maria, DF', lat: -15.9333, lon: -48.0000 },
-  { label: 'São Sebastião, DF', lat: -15.7833, lon: -47.7500 },
-  { label: 'Sobradinho, DF', lat: -15.6500, lon: -47.7833 },
-  { label: 'Sudoeste, DF', lat: -15.8000, lon: -47.9200 },
-  { label: 'Taguatinga, DF', lat: -15.8167, lon: -48.0500 },
-  { label: 'Vicente Pires, DF', lat: -15.8000, lon: -48.0000 },
-
-  // ─── Capitais Brasileiras ───
-  { label: 'Aracaju, SE', lat: -10.9472, lon: -37.0731 },
-  { label: 'Belém, PA', lat: -1.4558, lon: -48.5039 },
-  { label: 'Belo Horizonte, MG', lat: -19.9167, lon: -43.9345 },
-  { label: 'Boa Vista, RR', lat: 2.8197, lon: -60.6733 },
-  { label: 'Brasília, DF', lat: -15.7939, lon: -47.8828 },
-  { label: 'Campo Grande, MS', lat: -20.4428, lon: -54.6464 },
-  { label: 'Cuiabá, MT', lat: -15.5989, lon: -56.0949 },
-  { label: 'Curitiba, PR', lat: -25.4290, lon: -49.2671 },
-  { label: 'Florianópolis, SC', lat: -27.5954, lon: -48.5480 },
-  { label: 'Fortaleza, CE', lat: -3.7319, lon: -38.5267 },
-  { label: 'Goiânia, GO', lat: -16.6864, lon: -49.2643 },
-  { label: 'João Pessoa, PB', lat: -7.1150, lon: -34.8640 },
-  { label: 'Macapá, AP', lat: 0.0230, lon: -51.0600 },
-  { label: 'Maceió, AL', lat: -9.6658, lon: -35.7350 },
-  { label: 'Manaus, AM', lat: -3.1190, lon: -60.0217 },
-  { label: 'Natal, RN', lat: -5.7945, lon: -35.2110 },
-  { label: 'Palmas, TO', lat: -10.2120, lon: -48.3600 },
-  { label: 'Porto Alegre, RS', lat: -30.0346, lon: -51.2177 },
-  { label: 'Porto Velho, RO', lat: -8.7619, lon: -63.9039 },
-  { label: 'Recife, PE', lat: -8.0476, lon: -34.8770 },
-  { label: 'Rio Branco, AC', lat: -9.9740, lon: -67.8070 },
-  { label: 'Rio de Janeiro, RJ', lat: -22.9068, lon: -43.1729 },
-  { label: 'Salvador, BA', lat: -12.9714, lon: -38.5014 },
-  { label: 'São Luís, MA', lat: -2.5300, lon: -44.3028 },
-  { label: 'São Paulo, SP', lat: -23.5505, lon: -46.6333 },
-  { label: 'Teresina, PI', lat: -5.0892, lon: -42.8019 },
-  { label: 'Vitória, ES', lat: -20.3155, lon: -40.3128 },
-];
-
+const searchInput = document.getElementById('searchInput');
+const suggestions = document.getElementById('suggestions');
 const latInput = document.getElementById('latInput');
 const lonInput = document.getElementById('lonInput');
-const localInput = document.getElementById('localInput');
 const diaInput = document.getElementById('diaInput');
 const mesInput = document.getElementById('mesInput');
 const btn = document.getElementById('btnConsultar');
@@ -261,25 +218,65 @@ const tbody = document.getElementById('tbody');
 const summary = document.getElementById('summary');
 const resultArea = document.getElementById('resultArea');
 const errorArea = document.getElementById('errorArea');
-const presetsGrid = document.getElementById('presetsGrid');
 
-// Renderizar presets
-PRESETS.forEach(p => {
-  const el = document.createElement('button');
-  el.className = 'preset-btn';
-  el.innerHTML = `${p.label} <span class="coords">${p.lat}, ${p.lon}</span>`;
-  el.addEventListener('click', () => {
-    latInput.value = p.lat;
-    lonInput.value = p.lon;
-    localInput.value = p.label;
-  });
-  presetsGrid.appendChild(el);
-});
+let searchTimeout = null;
+let selectedSuggestion = false;
 
 // Data atual como default
 const hoje = new Date();
 diaInput.value = hoje.getDate();
 mesInput.value = hoje.getMonth() + 1;
+
+// Geocoding via Nominatim
+searchInput.addEventListener('input', () => {
+  if (selectedSuggestion) { selectedSuggestion = false; return; }
+  clearTimeout(searchTimeout);
+  const q = searchInput.value.trim();
+  if (q.length < 3) { suggestions.classList.remove('show'); return; }
+  searchTimeout = setTimeout(() => geocode(q), 400);
+});
+
+searchInput.addEventListener('blur', () => {
+  setTimeout(() => suggestions.classList.remove('show'), 200);
+});
+
+searchInput.addEventListener('focus', () => {
+  if (suggestions.children.length > 0) suggestions.classList.add('show');
+});
+
+async function geocode(query) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&accept-language=pt`;
+    const resp = await fetch(url, { headers: { 'User-Agent': 'ChoveuHojeApp/1.0' } });
+    if (!resp.ok) throw new Error('Erro na geocodificação');
+    const data = await resp.json();
+
+    suggestions.innerHTML = '';
+    if (data.length === 0) {
+      suggestions.classList.remove('show');
+      return;
+    }
+
+    data.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item';
+      const label = item.display_name.split(',').slice(0, 3).join(',');
+      div.innerHTML = `<div class="sug-label">${label}</div><div class="sug-coords">${parseFloat(item.lat).toFixed(4)}, ${parseFloat(item.lon).toFixed(4)}</div>`;
+      div.addEventListener('click', () => {
+        latInput.value = parseFloat(item.lat).toFixed(6);
+        lonInput.value = parseFloat(item.lon).toFixed(6);
+        searchInput.value = label;
+        selectedSuggestion = true;
+        suggestions.classList.remove('show');
+      });
+      suggestions.appendChild(div);
+    });
+
+    suggestions.classList.add('show');
+  } catch (err) {
+    console.error('Geocode error:', err);
+  }
+}
 
 btn.addEventListener('click', consultar);
 
@@ -397,8 +394,11 @@ async function consultar() {
   }
 }
 
-// Consulta automática ao carregar
-window.addEventListener('DOMContentLoaded', consultar);
+// Se o campo de busca tiver valor ao carregar, faz geocode automático
+window.addEventListener('DOMContentLoaded', () => {
+  const q = searchInput.value.trim();
+  if (q.length >= 3) geocode(q);
+});
 </script>
 </body>
 </html>
