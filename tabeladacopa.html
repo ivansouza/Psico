@@ -679,8 +679,19 @@
     groupsContainer.innerHTML = html;
     // Só renderiza o bracket depois que os grupos aparecerem
     setTimeout(() => {
-      document.getElementById('bracket-wrapper').style.display = 'block';
-      renderBracket(groups);
+      try {
+        renderBracket(groups);
+        document.getElementById('bracket-wrapper').style.display = 'block';
+      } catch(e) {
+        console.error('Erro no bracket:', e);
+        document.getElementById('bracket-container').innerHTML = `
+          <div class="error-state" style="grid-column:auto;padding:2rem">
+            <p>❌ Erro ao montar fase final</p>
+            <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${e.message}</p>
+          </div>
+        `;
+        document.getElementById('bracket-wrapper').style.display = 'block';
+      }
     }, 100);
   }
 
