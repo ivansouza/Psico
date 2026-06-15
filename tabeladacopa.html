@@ -433,6 +433,99 @@
     width: 60px;
   }
 
+  /* ===== PRÓXIMOS JOGOS ===== */
+  .games-section { margin-top: 1rem; }
+  .games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .game-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(145deg, #1e293b, #1a2332);
+    border: 1px solid #2d3a4e;
+    border-radius: 10px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .game-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  }
+  .game-card .game-time {
+    min-width: 70px;
+    text-align: center;
+    font-weight: 700;
+    font-size: .85rem;
+    color: #f59e0b;
+  }
+  .game-card .game-time .game-date {
+    display: block;
+    font-size: .65rem;
+    font-weight: 500;
+    color: #64748b;
+  }
+  .game-card .game-teams {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .game-card .game-teams .team {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+  .game-card .game-teams .team:last-child { justify-content: flex-end; text-align: right; }
+  .game-card .game-teams .team .flag { width: 20px; height: 14px; border-radius: 2px; object-fit: cover; flex-shrink: 0; }
+  .game-card .game-teams .team .name { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .game-card .game-teams .vs { color: #475569; font-size: .7rem; font-weight: 600; flex-shrink: 0; }
+  .game-card .game-score {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #f59e0b;
+    min-width: 40px;
+    text-align: center;
+  }
+  .game-card .game-score.live { color: #22c55e; animation: pulse-score 1.5s infinite; }
+  @keyframes pulse-score { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .game-card .game-score.finished { color: #94a3b8; }
+  .game-card .game-score.pending { color: #475569; }
+  .game-card .game-location {
+    min-width: 120px;
+    text-align: right;
+    font-size: .7rem;
+    color: #64748b;
+    line-height: 1.3;
+  }
+  .game-card .game-location .stadium { display: block; }
+  .game-card .game-location .city { display: block; font-size: .65rem; color: #475569; }
+  .game-card .game-status-badge {
+    font-size: .6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .game-card .game-status-badge.live { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+  .game-card .game-status-badge.finished { background: #47556922; color: #64748b; border: 1px solid #47556944; }
+  .game-card .game-status-badge.pending { background: #3b82f622; color: #60a5fa; border: 1px solid #3b82f644; }
+
+  @media (max-width: 720px) {
+    .game-card { flex-wrap: wrap; gap: 6px; }
+    .game-card .game-time { min-width: 55px; font-size: .75rem; }
+    .game-card .game-teams .team .name { font-size: .72rem; }
+    .game-card .game-location { min-width: 80px; font-size: .65rem; }
+    .game-card .game-score { min-width: 30px; font-size: .85rem; }
+  }
+
   /* ===== FOOTER ===== */
   footer {
     text-align: center;
@@ -522,6 +615,22 @@
         <div class="loading-state" style="grid-column:auto">
           <div class="spinner"></div>
           <p>Calculando confrontos...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRÓXIMOS JOGOS -->
+  <div id="games-wrapper" style="display:none">
+    <div class="section-title">
+      <span>📅 Jogos</span>
+      <span class="bar"></span>
+    </div>
+    <div class="games-section">
+      <div id="games-container" class="games-list">
+        <div class="loading-state" style="grid-column:auto">
+          <div class="spinner"></div>
+          <p>Carregando jogos...</p>
         </div>
       </div>
     </div>
@@ -853,6 +962,133 @@
     }, 100);
   }
 
+  // ===== MAPA DE ESTÁDIOS =====
+  let stadiumsMap = {};
+
+  function renderGames(games) {
+    const container = document.getElementById('games-container');
+    const now = new Date();
+
+    // Filtra jogos que ainda não aconteceram OU estão ao vivo
+    // Ordena por data (mais próximo primeiro)
+    const upcoming = games
+      .filter(g => g.time_elapsed !== 'finished' || g.finished !== 'TRUE')
+      .sort((a, b) => {
+        const dateA = parseGameDate(a.local_date);
+        const dateB = parseGameDate(b.local_date);
+        return dateA - dateB;
+      });
+
+    if (upcoming.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">✅ Todos os jogos já foram realizados!</div>';
+      return;
+    }
+
+    let html = '';
+    upcoming.forEach(g => {
+      const home = teamsMap[g.home_team_id];
+      const away = teamsMap[g.away_team_id];
+      const stadium = stadiumsMap[g.stadium_id];
+
+      const homeFlag = home?.flag || `https://flagcdn.com/w80/${(home?.iso2||'xx').toLowerCase()}.png`;
+      const homeName = g.home_team_name_en || home?.name_en || `Time #${g.home_team_id}`;
+      const awayFlag = away?.flag || `https://flagcdn.com/w80/${(away?.iso2||'xx').toLowerCase()}.png`;
+      const awayName = g.away_team_name_en || away?.name_en || `Time #${g.away_team_id}`;
+
+      const gameDate = parseGameDate(g.local_date);
+      const isLive = g.time_elapsed === 'live' || g.time_elapsed === 'started';
+      const isFinished = g.finished === 'TRUE' || g.time_elapsed === 'finished';
+
+      // Formata data e hora
+      const dayStr = gameDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+      const timeStr = gameDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      // Placar
+      let scoreDisplay = 'vs';
+      let scoreClass = 'pending';
+      if (isFinished) {
+        scoreDisplay = `${g.home_score} × ${g.away_score}`;
+        scoreClass = 'finished';
+      } else if (isLive) {
+        scoreDisplay = `${g.home_score} × ${g.away_score}`;
+        scoreClass = 'live';
+      }
+
+      // Badge de status
+      let badge = '<span class="game-status-badge pending">⏳ Previsto</span>';
+      if (isLive) badge = '<span class="game-status-badge live">🔴 Ao vivo</span>';
+      else if (isFinished) badge = '<span class="game-status-badge finished">✅ Encerrado</span>';
+
+      const stadiumName = stadium ? stadium.name_en : '';
+      const stadiumCity = stadium ? `${stadium.city_en}, ${stadium.country_en}` : '';
+
+      html += `
+        <div class="game-card">
+          <div class="game-time">
+            <span class="game-date">${dayStr}</span>
+            ${timeStr}
+          </div>
+          <div class="game-teams">
+            <div class="team">
+              <img class="flag" src="${homeFlag}" alt="" onerror="this.style.display='none'">
+              <span class="name">${homeName}</span>
+            </div>
+            <span class="vs">⚔</span>
+            <div class="team">
+              <span class="name">${awayName}</span>
+              <img class="flag" src="${awayFlag}" alt="" onerror="this.style.display='none'">
+            </div>
+          </div>
+          <div class="game-score ${scoreClass}">${scoreDisplay}</div>
+          ${badge}
+          <div class="game-location">
+            <span class="stadium">${stadiumName}</span>
+            <span class="city">${stadiumCity}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  function parseGameDate(dateStr) {
+    // Formato: "06/13/2026 21:00"
+    const parts = dateStr.split(' ');
+    const dateParts = parts[0].split('/');
+    const timeParts = parts[1].split(':');
+    return new Date(
+      parseInt(dateParts[2]), // ano
+      parseInt(dateParts[0]) - 1, // mês (0-index)
+      parseInt(dateParts[1]), // dia
+      parseInt(timeParts[0]), // hora
+      parseInt(timeParts[1]) // minuto
+    );
+  }
+
+  async function loadGames() {
+    try {
+      const [gamesData, stadiumsData] = await Promise.all([
+        fetchJSON('https://worldcup26.ir/get/games'),
+        fetchJSON('https://worldcup26.ir/get/stadiums')
+      ]);
+
+      stadiumsData.stadiums.forEach(s => { stadiumsMap[s.id] = s; });
+
+      renderGames(gamesData.games);
+      document.getElementById('games-wrapper').style.display = 'block';
+    } catch (err) {
+      console.error('Erro ao carregar jogos:', err);
+      document.getElementById('games-container').innerHTML = `
+        <div class="error-state" style="grid-column:auto;padding:2rem">
+          <p>❌ Erro ao carregar jogos</p>
+          <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
+        </div>
+      `;
+      document.getElementById('games-wrapper').style.display = 'block';
+    }
+  }
+
   async function loadData(retryCount = 10) {
     for (let attempt = 1; attempt <= retryCount; attempt++) {
       try {
@@ -865,11 +1101,14 @@
 
         renderGroups(groupsData.groups);
         updateTime.textContent = `Atualizado ${new Date().toLocaleString('pt-BR')}`;
+
+        // Carrega jogos depois dos grupos
+        loadGames();
+
         return; // deu certo, sai
       } catch (err) {
         console.error(`Tentativa ${attempt}/${retryCount} falhou:`, err);
         if (attempt < retryCount) {
-          // Mostra tentativa na tela
           groupsContainer.innerHTML = `
             <div class="loading-state">
               <div class="spinner"></div>
@@ -877,11 +1116,9 @@
               <p style="color:#64748b;font-size:.8rem;margin-top:.5rem">${err.message}</p>
             </div>
           `;
-          // Espera progressivo: 1s, 2s, 3s... até 5s max
           const delay = Math.min(attempt * 1000, 5000);
           await new Promise(r => setTimeout(r, delay));
         } else {
-          // Esgotou as tentativas
           groupsContainer.innerHTML = `
             <div class="error-state">
               <p>❌ Erro ao carregar dados da Copa</p>
@@ -895,7 +1132,7 @@
   }
 
   await loadData();
-  setInterval(() => loadData(3), 60000); // nas atualizações, só 3 retries
+  setInterval(() => { loadData(3); loadGames(); }, 60000);
 })();
 </script>
 </body>
