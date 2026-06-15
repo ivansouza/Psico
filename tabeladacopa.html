@@ -1070,6 +1070,7 @@
   // ===== MAPA DE ESTÁDIOS =====
   let stadiumsMap = {};
   let allUpcomingGames = [];
+  let allFinishedGames = [];
 
   function renderGames(games) {
     const container = document.getElementById('games-container');
@@ -1096,6 +1097,7 @@
       })
       .slice(0, 30);
 
+    allFinishedGames = finished;
     renderFinishedGames(finished);
   }
 
@@ -1248,13 +1250,10 @@
   }
 
   // Filtro de jogos por time
-  window.filterGames = function(query) {
+  function filterGameList(games, query) {
     const q = query.toLowerCase().trim();
-    if (!q || !allUpcomingGames.length) {
-      renderGameList(allUpcomingGames);
-      return;
-    }
-    const filtered = allUpcomingGames.filter(g => {
+    if (!q) return games;
+    return games.filter(g => {
       const homeEn = g.home_team_name_en || teamsMap[g.home_team_id]?.name_en || '';
       const awayEn = g.away_team_name_en || teamsMap[g.away_team_id]?.name_en || '';
       const homePt = translateName(homeEn);
@@ -1264,7 +1263,12 @@
       const full = (homeEn + ' ' + awayEn + ' ' + homePt + ' ' + awayPt + ' ' + homeLabel + ' ' + awayLabel).toLowerCase();
       return full.includes(q);
     });
-    renderGameList(filtered);
+  }
+
+  window.filterGames = function(query) {
+    const q = query.toLowerCase().trim();
+    renderGameList(filterGameList(allUpcomingGames, q));
+    renderFinishedGames(filterGameList(allFinishedGames, q));
   }
 
   async function loadGames(retryCount = 5) {
