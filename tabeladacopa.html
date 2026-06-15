@@ -1095,13 +1095,12 @@
           </div>
           <div class="game-teams">
             <div class="team">
-              <img class="flag" src="${homeFlag}" alt="" onerror="this.style.display='none'">
+              ${homeFlag ? `<img class="flag" src="${homeFlag}" alt="" onerror="this.style.display='none'">` : ''}
               <span class="name">${homeName}</span>
             </div>
-            <span class="vs">⚔</span>
             <div class="team">
+              ${awayFlag ? `<img class="flag" src="${awayFlag}" alt="" onerror="this.style.display='none'">` : ''}
               <span class="name">${awayName}</span>
-              <img class="flag" src="${awayFlag}" alt="" onerror="this.style.display='none'">
             </div>
           </div>
           <div class="game-score ${scoreClass}">${scoreDisplay}</div>
