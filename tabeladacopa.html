@@ -1163,11 +1163,13 @@
       return;
     }
     const filtered = allUpcomingGames.filter(g => {
-      const home = g.home_team_name_en || teamsMap[g.home_team_id]?.name_en || '';
-      const away = g.away_team_name_en || teamsMap[g.away_team_id]?.name_en || '';
+      const homeEn = g.home_team_name_en || teamsMap[g.home_team_id]?.name_en || '';
+      const awayEn = g.away_team_name_en || teamsMap[g.away_team_id]?.name_en || '';
+      const homePt = translateName(homeEn);
+      const awayPt = translateName(awayEn);
       const homeLabel = g.home_team_label || '';
       const awayLabel = g.away_team_label || '';
-      const full = (home + ' ' + away + ' ' + homeLabel + ' ' + awayLabel).toLowerCase();
+      const full = (homeEn + ' ' + awayEn + ' ' + homePt + ' ' + awayPt + ' ' + homeLabel + ' ' + awayLabel).toLowerCase();
       return full.includes(q);
     });
     renderGameList(filtered);
