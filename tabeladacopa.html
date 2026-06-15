@@ -1074,6 +1074,27 @@
   // ===== MAPA DE ESTÁDIOS =====
   let stadiumsMap = {};
   let allUpcomingGames = [];
+
+  // Mapa de fuso horário por estádio (offset UTC)
+  const stadiumTZ = {
+    "1": -6, "2": -6, "3": -6, "4": -6, "5": -6, "6": -6,
+    "7": -5, "8": -5, "9": -5, "10": -5, "11": -5, "12": -5,
+    "13": -7, "14": -7, "15": -8, "16": -8,
+  };
+  // Horário de Brasília = UTC-3
+  const BR_TZ = -3;
+
+  function toBrasiliaTime(dateStr, stadiumId) {
+    // dateStr: "06/14/2026 20:00"
+    const parts = dateStr.split(' ');
+    const dp = parts[0].split('/');
+    const tp = parts[1].split(':');
+    const localTZ = stadiumTZ[stadiumId] || -6;
+    const diffHours = localTZ - BR_TZ; // diferença: local → Brasília
+    const d = new Date(parseInt(dp[2]), parseInt(dp[0])-1, parseInt(dp[1]),
+                       parseInt(tp[0]) + diffHours, parseInt(tp[1]));
+    return d;
+  }
   let allFinishedGames = [];
 
   function renderGames(games) {
@@ -1084,8 +1105,8 @@
     allUpcomingGames = games
       .filter(g => g.time_elapsed !== 'finished' || g.finished !== 'TRUE')
       .sort((a, b) => {
-        const dateA = parseGameDate(a.local_date);
-        const dateB = parseGameDate(b.local_date);
+        const dateA = toBrasiliaTime(a.local_date, a.stadium_id);
+        const dateB = toBrasiliaTime(b.local_date, b.stadium_id);
         return dateA - dateB;
       });
 
@@ -1095,8 +1116,8 @@
     const finished = games
       .filter(g => g.finished === 'TRUE' || g.time_elapsed === 'finished')
       .sort((a, b) => {
-        const dateA = parseGameDate(a.local_date);
-        const dateB = parseGameDate(b.local_date);
+        const dateA = toBrasiliaTime(a.local_date, a.stadium_id);
+        const dateB = toBrasiliaTime(b.local_date, b.stadium_id);
         return dateB - dateA;
       })
       .slice(0, 30);
@@ -1130,7 +1151,7 @@
       const homeFlag = (home?.flag && g.home_team_id !== '0') ? home.flag : '';
       const awayFlag = (away?.flag && g.away_team_id !== '0') ? away.flag : '';
 
-      const gameDate = parseGameDate(g.local_date);
+      const gameDate = toBrasiliaTime(g.local_date, g.stadium_id);
       const isLive = g.time_elapsed === 'live' || g.time_elapsed === 'started';
       const isFinished = g.finished === 'TRUE' || g.time_elapsed === 'finished';
 
@@ -1202,7 +1223,7 @@
       const homeFlag = (home?.flag && g.home_team_id !== '0') ? home.flag : '';
       const awayFlag = (away?.flag && g.away_team_id !== '0') ? away.flag : '';
 
-      const gameDate = parseGameDate(g.local_date);
+      const gameDate = toBrasiliaTime(g.local_date, g.stadium_id);
       const dayStr = gameDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
       const timeStr = gameDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
