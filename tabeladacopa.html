@@ -35,6 +35,42 @@
   }
   header p { color: #94a3b8; font-size: 0.9rem; margin-top: 0.4rem; }
   .last-update { color: #64748b; font-size: 0.8rem; margin-top: 0.3rem; }
+
+  /* ===== NAVEGAÇÃO ===== */
+  .nav-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin: 1rem 0 1.5rem;
+  }
+  .nav-btn {
+    padding: 6px 14px;
+    background: #1a2332;
+    border: 1px solid #2d3a4e;
+    border-radius: 8px;
+    color: #94a3b8;
+    font-size: .78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+  }
+  .nav-btn:hover {
+    background: #2d3a4e;
+    color: #f59e0b;
+    border-color: #f59e0b44;
+  }
+  .nav-btn.active {
+    background: #f59e0b22;
+    color: #f59e0b;
+    border-color: #f59e0b;
+  }
+
+  @media (max-width: 720px) {
+    .nav-btn { font-size: .7rem; padding: 5px 10px; }
+  }
   .last-update .live-dot {
     display: inline-block;
     width: 8px; height: 8px;
@@ -553,8 +589,15 @@
     </div>
   </header>
 
+  <!-- NAVEGAÇÃO -->
+  <nav class="nav-bar" id="top-nav">
+    <a class="nav-btn" href="#grupos">📋 Grupos</a>
+    <a class="nav-btn" href="#fase-final" id="nav-final" style="display:none">🏅 Fase Final</a>
+    <a class="nav-btn" href="#jogos" id="nav-jogos" style="display:none">📅 Jogos</a>
+  </nav>
+
   <!-- GRUPOS -->
-  <div class="section-title">
+  <div class="section-title" id="grupos">
     <span>📋 Fase de Grupos</span>
     <span class="bar"></span>
   </div>
@@ -593,7 +636,7 @@
 
   <!-- MATA-MATA (só aparece após carregar grupos) -->
   <div id="bracket-wrapper" style="display:none">
-    <div class="section-title">
+    <div class="section-title" id="fase-final">
       <span>🏅 Fase Final</span>
       <span class="bar"></span>
     </div>
@@ -627,7 +670,7 @@
 
   <!-- PRÓXIMOS JOGOS -->
   <div id="games-wrapper" style="display:none">
-    <div class="section-title">
+    <div class="section-title" id="jogos">
       <span>📅 Jogos</span>
       <span class="bar"></span>
     </div>
@@ -954,6 +997,7 @@
       try {
         renderBracket(groups);
         document.getElementById('bracket-wrapper').style.display = 'block';
+        document.getElementById('nav-final').style.display = 'inline-block';
       } catch(e) {
         console.error('Erro no bracket:', e);
         document.getElementById('bracket-container').innerHTML = `
@@ -963,6 +1007,7 @@
           </div>
         `;
         document.getElementById('bracket-wrapper').style.display = 'block';
+        document.getElementById('nav-final').style.display = 'inline-block';
       }
     }, 100);
   }
@@ -1085,6 +1130,7 @@
 
       renderGames(gamesData.games);
       document.getElementById('games-wrapper').style.display = 'block';
+      document.getElementById('nav-jogos').style.display = 'inline-block';
     } catch (err) {
       console.error('Erro ao carregar jogos:', err);
       document.getElementById('games-container').innerHTML = `
@@ -1094,6 +1140,7 @@
         </div>
       `;
       document.getElementById('games-wrapper').style.display = 'block';
+      document.getElementById('nav-jogos').style.display = 'inline-block';
     }
   }
 
