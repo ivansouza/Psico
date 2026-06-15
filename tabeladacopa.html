@@ -1106,7 +1106,7 @@
     const dp = parts[0].split('/');
     const tp = parts[1].split(':');
     const localTZ = stadiumTZ[stadiumId] || -6;
-    const diffHours = localTZ - BR_TZ; // diferença: local → Brasília
+    const diffHours = BR_TZ - localTZ; // diferença: local → Brasília
     const d = new Date(parseInt(dp[2]), parseInt(dp[0])-1, parseInt(dp[1]),
                        parseInt(tp[0]) + diffHours, parseInt(tp[1]));
     return d;
