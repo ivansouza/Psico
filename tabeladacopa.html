@@ -729,8 +729,23 @@
     "Uruguay": "Uruguai", "Uzbekistan": "Uzbequistão"
   };
 
+  // Mapa de tradução de labels da fase final
+  const labelPT = {
+    "Winner": "Vencedor", "Runner-up": "Vice", "Loser": "Perdedor",
+    "Match": "Jogo", "Group": "Grupo",
+    "3rd Group": "3º Grupo"
+  };
+
   function translateName(enName) {
-    return teamNamesPT[enName] || enName;
+    if (!enName) return enName;
+    // Tenta tradução direta (time)
+    if (teamNamesPT[enName]) return teamNamesPT[enName];
+    // Tenta tradução de label (ex: "Winner Match 73")
+    let result = enName;
+    for (const [en, pt] of Object.entries(labelPT)) {
+      result = result.replace(new RegExp(en, 'g'), pt);
+    }
+    return result;
   }
 
   async function fetchJSON(url) {
