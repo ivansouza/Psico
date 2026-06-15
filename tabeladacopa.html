@@ -1277,6 +1277,10 @@
   }
 
   async function loadGames(retryCount = 5) {
+    // Guarda conteúdo atual pra não apagar durante o carregamento
+    const oldContent = document.getElementById('games-container').innerHTML;
+    const oldFinished = document.getElementById('finished-wrapper')?.style.display;
+
     for (let attempt = 1; attempt <= retryCount; attempt++) {
       try {
         const [gamesData, stadiumsData] = await Promise.all([
@@ -1294,22 +1298,30 @@
       } catch (err) {
         console.error(`Tentativa ${attempt}/${retryCount} jogos falhou:`, err);
         if (attempt < retryCount) {
-          document.getElementById('games-container').innerHTML = `
-            <div class="loading-state" style="grid-column:auto">
-              <div class="spinner"></div>
-              <p>Carregando jogos... (${attempt}/${retryCount})</p>
-              <p style="color:#64748b;font-size:.8rem;margin-top:.5rem">${err.message}</p>
-            </div>
-          `;
+          // Só mostra loading na primeira carga (quando não tem conteúdo ainda)
+          const hasContent = document.getElementById('games-container').querySelector('.game-card');
+          if (!hasContent) {
+            document.getElementById('games-container').innerHTML = `
+              <div class="loading-state" style="grid-column:auto">
+                <div class="spinner"></div>
+                <p>Carregando jogos... (${attempt}/${retryCount})</p>
+                <p style="color:#64748b;font-size:.8rem;margin-top:.5rem">${err.message}</p>
+              </div>
+            `;
+          }
           await new Promise(r => setTimeout(r, 3000));
         } else {
-          document.getElementById('games-container').innerHTML = `
-            <div class="error-state" style="grid-column:auto;padding:2rem">
-              <p>❌ Erro ao carregar jogos</p>
-              <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
-              <button class="retry-btn" onclick="location.reload()">Tentar novamente</button>
-            </div>
-          `;
+          // Só mostra erro se não tinha conteúdo antes
+          const hasContent = document.getElementById('games-container').querySelector('.game-card');
+          if (!hasContent) {
+            document.getElementById('games-container').innerHTML = `
+              <div class="error-state" style="grid-column:auto;padding:2rem">
+                <p>❌ Erro ao carregar jogos</p>
+                <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
+                <button class="retry-btn" onclick="location.reload()">Tentar novamente</button>
+              </div>
+            `;
+          }
           document.getElementById('games-wrapper').style.display = 'block';
           document.getElementById('nav-jogos').style.display = 'inline-block';
         }
