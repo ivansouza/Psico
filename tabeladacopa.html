@@ -577,8 +577,8 @@
     <h1>🏆 Copa do Mundo 2026</h1>
     <p>🇺🇸 Estados Unidos · 🇲🇽 México · 🇨🇦 Canadá</p>
     <div class="last-update">
-      <span class="live-dot"></span>
-      <span id="update-time">Carregando...</span>
+      <span class="live-dot" id="live-dot"></span>
+      <span id="update-time">Iniciando...</span>
     </div>
   </header>
 
@@ -623,7 +623,7 @@
   <div id="groups-container" class="groups-grid">
     <div class="loading-state">
       <div class="spinner"></div>
-      <p>Buscando dados da Copa...</p>
+      <p id="loading-groups-msg">Carregando grupos...</p>
     </div>
   </div>
 
@@ -680,7 +680,7 @@
       <div id="games-container" class="games-list">
         <div class="loading-state" style="grid-column:auto">
           <div class="spinner"></div>
-          <p>Carregando jogos...</p>
+          <p id="loading-games-msg">Carregando jogos...</p>
         </div>
       </div>
 
@@ -1284,6 +1284,7 @@
         renderGames(gamesData.games);
         document.getElementById('games-wrapper').style.display = 'block';
         document.getElementById('nav-jogos').style.display = 'inline-block';
+        updateTime.textContent = `Atualizado ${new Date().toLocaleString('pt-BR')}`;
         return;
       } catch (err) {
         console.error(`Tentativa ${attempt}/${retryCount} jogos falhou:`, err);
@@ -1322,7 +1323,7 @@
         teamsData.teams.forEach(t => { teamsMap[t.id] = t; });
 
         renderGroups(groupsData.groups);
-        updateTime.textContent = `Atualizado ${new Date().toLocaleString('pt-BR')}`;
+        updateTime.textContent = `Carregando jogos...`;
 
         // Carrega jogos depois dos grupos
         loadGames();
