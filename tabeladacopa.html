@@ -1328,9 +1328,12 @@
         teamsData.teams.forEach(t => { teamsMap[t.id] = t; });
 
         renderGroups(groupsData.groups);
-        updateTime.textContent = `Carregando jogos...`;
 
         // Carrega jogos depois dos grupos
+        // Só mostra "Carregando jogos..." na primeira carga
+        if (!document.getElementById('games-wrapper').style.display || document.getElementById('games-wrapper').style.display === 'none') {
+          updateTime.textContent = `Carregando jogos...`;
+        }
         loadGames();
 
         return; // deu certo, sai
