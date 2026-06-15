@@ -701,6 +701,31 @@
   let teamsMap = {};
   const groupOrder = ['A','B','C','D','E','F','G','H','I','J','K','L'];
 
+  // Mapa de tradução PT-BR
+  const teamNamesPT = {
+    "Algeria": "Argélia", "Argentina": "Argentina", "Australia": "Austrália",
+    "Austria": "Áustria", "Belgium": "Bélgica", "Bosnia and Herzegovina": "Bósnia e Herzegovina",
+    "Brazil": "Brasil", "Canada": "Canadá", "Cape Verde": "Cabo Verde",
+    "Colombia": "Colômbia", "Croatia": "Croácia", "Curaçao": "Curaçao",
+    "Czech Republic": "República Tcheca", "Democratic Republic of the Congo": "RD Congo",
+    "Ecuador": "Equador", "Egypt": "Egito", "England": "Inglaterra",
+    "France": "França", "Germany": "Alemanha", "Ghana": "Gana",
+    "Haiti": "Haiti", "Iran": "Irã", "Iraq": "Iraque",
+    "Ivory Coast": "Costa do Marfim", "Japan": "Japão", "Jordan": "Jordânia",
+    "Mexico": "México", "Morocco": "Marrocos", "Netherlands": "Países Baixos",
+    "New Zealand": "Nova Zelândia", "Norway": "Noruega", "Panama": "Panamá",
+    "Paraguay": "Paraguai", "Portugal": "Portugal", "Qatar": "Catar",
+    "Saudi Arabia": "Arábia Saudita", "Scotland": "Escócia", "Senegal": "Senegal",
+    "South Africa": "África do Sul", "South Korea": "Coreia do Sul",
+    "Spain": "Espanha", "Sweden": "Suécia", "Switzerland": "Suíça",
+    "Tunisia": "Tunísia", "Turkey": "Turquia", "United States": "Estados Unidos",
+    "Uruguay": "Uruguai", "Uzbekistan": "Uzbequistão"
+  };
+
+  function translateName(enName) {
+    return teamNamesPT[enName] || enName;
+  }
+
   async function fetchJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -811,10 +836,10 @@
     let statusClass = status === 'confirmed' ? 'confirmed' : (status === 'probable' ? 'probable' : 'pending');
 
     const t1Flag = t1?.flag || '';
-    const t1Name = t1?.name_en || `#${team1?.team_id || '?'}`;
+    const t1Name = translateName(t1?.name_en) || `#${team1?.team_id || '?'}`;
     const t1Fifa = t1?.fifa_code || '';
     const t2Flag = t2?.flag || '';
-    const t2Name = t2?.name_en || `#${team2?.team_id || '?'}`;
+    const t2Name = translateName(t2?.name_en) || `#${team2?.team_id || '?'}`;
     const t2Fifa = t2?.fifa_code || '';
 
     return `
@@ -937,7 +962,7 @@
         if (!t) return;
 
         const flagUrl = t.flag || `https://flagcdn.com/w80/${(t.iso2||'xx').toLowerCase()}.png`;
-        const name = t.name_en || t.name_fa || `Time #${team.team_id}`;
+        const name = translateName(t.name_en) || t.name_fa || `Time #${team.team_id}`;
         const fifa = t.fifa_code || '';
         const pts = parseInt(team.pts);
         const gd = parseInt(team.gd);
@@ -1053,8 +1078,8 @@
       const stadium = stadiumsMap[g.stadium_id];
 
       // Se team_id for "0", usa o label (ex: "Winner Match 86") ou o nome direto da API
-      const homeName = g.home_team_name_en || home?.name_en || g.home_team_label || `Jogo #${g.id} (casa)`;
-      const awayName = g.away_team_name_en || away?.name_en || g.away_team_label || `Jogo #${g.id} (fora)`;
+      const homeName = translateName(g.home_team_name_en || home?.name_en || '') || g.home_team_label || `Jogo #${g.id}`;
+      const awayName = translateName(g.away_team_name_en || away?.name_en || '') || g.away_team_label || `Jogo #${g.id}`;
 
       // Bandeira: só mostra se tiver time real
       const homeFlag = (home?.flag && g.home_team_id !== '0') ? home.flag : '';
