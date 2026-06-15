@@ -1075,11 +1075,27 @@
   let stadiumsMap = {};
   let allUpcomingGames = [];
 
-  // Mapa de fuso horário por estádio (offset UTC)
+  // Mapa de fuso horário por estádio (offset UTC em junho/julho - horário de verão)
+  // México: CDT (UTC-5) / México não adota DST em todo país, mas junho é UTC-5
+  // EUA: EDT (UTC-4) leste, CDT (UTC-5) central, MDT (UTC-6) montanha, PDT (UTC-7) oeste
+  // Canadá: EDT (UTC-4) Toronto, PDT (UTC-7) Vancouver
   const stadiumTZ = {
-    "1": -6, "2": -6, "3": -6, "4": -6, "5": -6, "6": -6,
-    "7": -5, "8": -5, "9": -5, "10": -5, "11": -5, "12": -5,
-    "13": -7, "14": -7, "15": -8, "16": -8,
+    "1": -6,  // Mexico City - CST (UTC-6, sem DST)
+    "2": -6,  // Guadalajara - CST (UTC-6)
+    "3": -6,  // Monterrey - CST (UTC-6)
+    "4": -5,  // Dallas - CDT (UTC-5)
+    "5": -5,  // Houston - CDT (UTC-5)
+    "6": -5,  // Kansas City - CDT (UTC-5)
+    "7": -4,  // Atlanta - EDT (UTC-4)
+    "8": -4,  // Miami - EDT (UTC-4)
+    "9": -4,  // Boston - EDT (UTC-4)
+    "10": -4, // Philadelphia - EDT (UTC-4)
+    "11": -4, // New York/New Jersey - EDT (UTC-4)
+    "12": -4, // Toronto - EDT (UTC-4)
+    "13": -7, // Vancouver - PDT (UTC-7)
+    "14": -7, // Seattle - PDT (UTC-7)
+    "15": -7, // San Francisco - PDT (UTC-7)
+    "16": -7, // Los Angeles - PDT (UTC-7)
   };
   // Horário de Brasília = UTC-3
   const BR_TZ = -3;
