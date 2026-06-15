@@ -1342,9 +1342,11 @@
         renderGroups(groupsData.groups);
 
         // Carrega jogos depois dos grupos
-        // Só mostra "Carregando jogos..." na primeira carga
-        if (!document.getElementById('games-wrapper').style.display || document.getElementById('games-wrapper').style.display === 'none') {
+        const jaCarregou = document.getElementById('games-wrapper').style.display !== 'none';
+        if (!jaCarregou) {
           updateTime.textContent = `Carregando jogos...`;
+        } else {
+          updateTime.textContent = `Atualizando jogos...`;
         }
         loadGames();
 
