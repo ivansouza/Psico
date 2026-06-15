@@ -748,7 +748,7 @@
     return result;
   }
 
-  async function fetchJSON(url, timeoutMs = 10000) {
+  async function fetchJSON(url, timeoutMs = 20000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -1267,28 +1267,43 @@
     renderGameList(filtered);
   }
 
-  async function loadGames() {
-    try {
-      const [gamesData, stadiumsData] = await Promise.all([
-        fetchJSON('https://worldcup26.ir/get/games'),
-        fetchJSON('https://worldcup26.ir/get/stadiums')
-      ]);
+  async function loadGames(retryCount = 5) {
+    for (let attempt = 1; attempt <= retryCount; attempt++) {
+      try {
+        const [gamesData, stadiumsData] = await Promise.all([
+          fetchJSON('https://worldcup26.ir/get/games', 15000),
+          fetchJSON('https://worldcup26.ir/get/stadiums', 15000)
+        ]);
 
-      stadiumsData.stadiums.forEach(s => { stadiumsMap[s.id] = s; });
+        stadiumsData.stadiums.forEach(s => { stadiumsMap[s.id] = s; });
 
-      renderGames(gamesData.games);
-      document.getElementById('games-wrapper').style.display = 'block';
-      document.getElementById('nav-jogos').style.display = 'inline-block';
-    } catch (err) {
-      console.error('Erro ao carregar jogos:', err);
-      document.getElementById('games-container').innerHTML = `
-        <div class="error-state" style="grid-column:auto;padding:2rem">
-          <p>❌ Erro ao carregar jogos</p>
-          <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
-        </div>
-      `;
-      document.getElementById('games-wrapper').style.display = 'block';
-      document.getElementById('nav-jogos').style.display = 'inline-block';
+        renderGames(gamesData.games);
+        document.getElementById('games-wrapper').style.display = 'block';
+        document.getElementById('nav-jogos').style.display = 'inline-block';
+        return;
+      } catch (err) {
+        console.error(`Tentativa ${attempt}/${retryCount} jogos falhou:`, err);
+        if (attempt < retryCount) {
+          document.getElementById('games-container').innerHTML = `
+            <div class="loading-state" style="grid-column:auto">
+              <div class="spinner"></div>
+              <p>Carregando jogos... (${attempt}/${retryCount})</p>
+              <p style="color:#64748b;font-size:.8rem;margin-top:.5rem">${err.message}</p>
+            </div>
+          `;
+          await new Promise(r => setTimeout(r, 3000));
+        } else {
+          document.getElementById('games-container').innerHTML = `
+            <div class="error-state" style="grid-column:auto;padding:2rem">
+              <p>❌ Erro ao carregar jogos</p>
+              <p style="color:#94a3b8;font-size:.85rem;margin-top:.5rem">${err.message}</p>
+              <button class="retry-btn" onclick="location.reload()">Tentar novamente</button>
+            </div>
+          `;
+          document.getElementById('games-wrapper').style.display = 'block';
+          document.getElementById('nav-jogos').style.display = 'inline-block';
+        }
+      }
     }
   }
 
