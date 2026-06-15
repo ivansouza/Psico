@@ -479,7 +479,7 @@
   .game-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 10px 14px;
     background: linear-gradient(145deg, #1e293b, #1a2332);
     border: 1px solid #2d3a4e;
@@ -533,14 +533,14 @@
   .game-card .game-score.finished { color: #94a3b8; }
   .game-card .game-score.pending { color: #475569; }
   .game-card .game-location {
-    min-width: 120px;
+    min-width: 110px;
     text-align: right;
-    font-size: .7rem;
+    font-size: .68rem;
     color: #64748b;
     line-height: 1.3;
   }
   .game-card .game-location .stadium { display: block; }
-  .game-card .game-location .city { display: block; font-size: .65rem; color: #475569; }
+  .game-card .game-location .city { display: block; font-size: .62rem; color: #475569; }
   .game-card .game-status-badge {
     font-size: .6rem;
     font-weight: 700;
@@ -555,16 +555,65 @@
   .game-card .game-status-badge.pending { background: #3b82f622; color: #60a5fa; border: 1px solid #3b82f644; }
 
   @media (max-width: 720px) {
-    .game-card { flex-wrap: wrap; gap: 4px; padding: 8px 8px; }
-    .game-card .game-time { min-width: 48px; font-size: .65rem; }
+    .game-card {
+      flex-wrap: wrap;
+      gap: 3px;
+      padding: 8px 8px;
+      position: relative;
+    }
+    .game-card .game-time {
+      min-width: auto;
+      font-size: .6rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      margin-bottom: 2px;
+    }
     .game-card .game-time .game-date { font-size: .55rem; }
-    .game-card .game-teams { flex: 1; min-width: 0; }
-    .game-card .game-teams .team .name { font-size: .68rem; -webkit-line-clamp: 2; }
-    .game-card .game-teams .team .flag { width: 16px; height: 11px; }
-    .game-card .game-score { min-width: 24px; font-size: .75rem; }
-    .game-card .game-status-badge { font-size: .5rem; padding: 1px 4px; }
-    .game-card .game-location { min-width: 80px; font-size: .6rem; }
-    .game-card .game-location .city { font-size: .55rem; }
+    .game-card .game-teams {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .game-card .game-teams .team {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      width: 100%;
+    }
+    .game-card .game-teams .team:last-child { justify-content: flex-start; text-align: left; }
+    .game-card .game-teams .team .name { font-size: .68rem; -webkit-line-clamp: 1; }
+    .game-card .game-teams .team .flag { width: 14px; height: 10px; }
+    .game-card .game-teams .vs { display: none; }
+    .game-card .game-score {
+      min-width: 28px;
+      font-size: .75rem;
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .game-card .game-status-badge {
+      font-size: .5rem;
+      padding: 1px 4px;
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+    }
+    .game-card .game-location {
+      width: 100%;
+      min-width: auto;
+      font-size: .58rem;
+      text-align: left;
+      padding-top: 2px;
+      border-top: 1px solid #1e293b;
+      margin-top: 2px;
+    }
+    .game-card .game-location .city { font-size: .52rem; display: inline; }
+    .game-card .game-location .city::before { content: ' · '; }
   }
 
   /* ===== FOOTER ===== */
