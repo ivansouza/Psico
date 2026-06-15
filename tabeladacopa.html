@@ -1131,7 +1131,7 @@
   }
 
   // Filtro de jogos por time
-  function filterGames(query) {
+  window.filterGames = function(query) {
     const q = query.toLowerCase().trim();
     if (!q || !allUpcomingGames.length) {
       renderGameList(allUpcomingGames);
