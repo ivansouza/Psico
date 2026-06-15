@@ -1117,8 +1117,8 @@
       const stadium = stadiumsMap[g.stadium_id];
 
       // Se team_id for "0", usa o label (ex: "Winner Match 86") ou o nome direto da API
-      const homeName = translateName(g.home_team_name_en || home?.name_en || '') || g.home_team_label || `Jogo #${g.id}`;
-      const awayName = translateName(g.away_team_name_en || away?.name_en || '') || g.away_team_label || `Jogo #${g.id}`;
+      const homeName = translateName(g.home_team_name_en || home?.name_en || '') || translateName(g.home_team_label) || `Jogo #${g.id}`;
+      const awayName = translateName(g.away_team_name_en || away?.name_en || '') || translateName(g.away_team_label) || `Jogo #${g.id}`;
 
       // Bandeira: só mostra se tiver time real
       const homeFlag = (home?.flag && g.home_team_id !== '0') ? home.flag : '';
@@ -1191,8 +1191,8 @@
       const away = teamsMap[g.away_team_id];
       const stadium = stadiumsMap[g.stadium_id];
 
-      const homeName = translateName(g.home_team_name_en || home?.name_en || '') || g.home_team_label || `Jogo #${g.id}`;
-      const awayName = translateName(g.away_team_name_en || away?.name_en || '') || g.away_team_label || `Jogo #${g.id}`;
+      const homeName = translateName(g.home_team_name_en || home?.name_en || '') || translateName(g.home_team_label) || `Jogo #${g.id}`;
+      const awayName = translateName(g.away_team_name_en || away?.name_en || '') || translateName(g.away_team_label) || `Jogo #${g.id}`;
       const homeFlag = (home?.flag && g.home_team_id !== '0') ? home.flag : '';
       const awayFlag = (away?.flag && g.away_team_id !== '0') ? away.flag : '';
 
