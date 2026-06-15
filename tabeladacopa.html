@@ -519,11 +519,14 @@
   .game-card .game-status-badge.pending { background: #3b82f622; color: #60a5fa; border: 1px solid #3b82f644; }
 
   @media (max-width: 720px) {
-    .game-card { flex-wrap: wrap; gap: 6px; }
-    .game-card .game-time { min-width: 55px; font-size: .75rem; }
-    .game-card .game-teams .team .name { font-size: .72rem; }
-    .game-card .game-location { min-width: 80px; font-size: .65rem; }
-    .game-card .game-score { min-width: 30px; font-size: .85rem; }
+    .game-card { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+    .game-card .game-time { min-width: 50px; font-size: .7rem; }
+    .game-card .game-time .game-date { font-size: .6rem; }
+    .game-card .game-teams { flex: 1 1 100%; order: 1; }
+    .game-card .game-teams .team .name { font-size: .7rem; }
+    .game-card .game-score { min-width: 28px; font-size: .8rem; order: 2; }
+    .game-card .game-status-badge { font-size: .55rem; padding: 1px 5px; order: 3; }
+    .game-card .game-location { min-width: 100%; font-size: .62rem; order: 4; text-align: left; }
   }
 
   /* ===== FOOTER ===== */
