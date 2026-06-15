@@ -668,6 +668,15 @@
       <span class="bar"></span>
     </div>
     <div class="games-section">
+      <!-- FILTRO -->
+      <div class="help-bar" style="margin-bottom:.8rem">
+        <span class="help-title">🔍 Filtrar</span>
+        <input type="text" id="game-filter" placeholder="Nome do time..." style="
+          flex:1; min-width:120px; padding:6px 10px; border-radius:8px; border:1px solid #2d3a4e;
+          background:#0f172a; color:#e2e8f0; font-family:inherit; font-size:.82rem; outline:none;
+        " oninput="filterGames(this.value)">
+        <span id="game-count" style="color:#64748b;font-size:.75rem"></span>
+      </div>
       <div id="games-container" class="games-list">
         <div class="loading-state" style="grid-column:auto">
           <div class="spinner"></div>
@@ -1007,6 +1016,7 @@
 
   // ===== MAPA DE ESTÁDIOS =====
   let stadiumsMap = {};
+  let allUpcomingGames = [];
 
   function renderGames(games) {
     const container = document.getElementById('games-container');
@@ -1014,7 +1024,7 @@
 
     // Filtra jogos que ainda não aconteceram OU estão ao vivo
     // Ordena por data (mais próximo primeiro)
-    const upcoming = games
+    allUpcomingGames = games
       .filter(g => g.time_elapsed !== 'finished' || g.finished !== 'TRUE')
       .sort((a, b) => {
         const dateA = parseGameDate(a.local_date);
@@ -1022,13 +1032,22 @@
         return dateA - dateB;
       });
 
-    if (upcoming.length === 0) {
-      container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">✅ Todos os jogos já foram realizados!</div>';
+    renderGameList(upcoming);
+  }
+
+  function renderGameList(games) {
+    const container = document.getElementById('games-container');
+    const count = document.getElementById('game-count');
+
+    if (count) count.textContent = `${games.length} jogo${games.length !== 1 ? 's' : ''}`;
+
+    if (games.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">🔍 Nenhum jogo encontrado para este filtro</div>';
       return;
     }
 
     let html = '';
-    upcoming.forEach(g => {
+    games.forEach(g => {
       const home = teamsMap[g.home_team_id];
       const away = teamsMap[g.away_team_id];
       const stadium = stadiumsMap[g.stadium_id];
@@ -1110,6 +1129,24 @@
       parseInt(timeParts[0]), // hora
       parseInt(timeParts[1]) // minuto
     );
+  }
+
+  // Filtro de jogos por time
+  function filterGames(query) {
+    const q = query.toLowerCase().trim();
+    if (!q || !allUpcomingGames.length) {
+      renderGameList(allUpcomingGames);
+      return;
+    }
+    const filtered = allUpcomingGames.filter(g => {
+      const home = g.home_team_name_en || teamsMap[g.home_team_id]?.name_en || '';
+      const away = g.away_team_name_en || teamsMap[g.away_team_id]?.name_en || '';
+      const homeLabel = g.home_team_label || '';
+      const awayLabel = g.away_team_label || '';
+      const full = (home + ' ' + away + ' ' + homeLabel + ' ' + awayLabel).toLowerCase();
+      return full.includes(q);
+    });
+    renderGameList(filtered);
   }
 
   async function loadGames() {
