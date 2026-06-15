@@ -587,6 +587,7 @@
     <a class="nav-btn" href="#grupos">📋 Grupos</a>
     <a class="nav-btn" href="#fase-final" id="nav-final" style="display:none">🏅 Fase Final</a>
     <a class="nav-btn" href="#jogos" id="nav-jogos" style="display:none">📅 Jogos</a>
+    <a class="nav-btn" href="#jogos-encerrados" id="nav-encerrados" style="display:none">✅ Encerrados</a>
   </nav>
 
   <!-- GRUPOS -->
@@ -686,7 +687,10 @@
 
       <!-- JOGOS ENCERRADOS -->
       <div id="finished-wrapper" style="margin-top:1.5rem;display:none">
-        <div style="font-size:.9rem;font-weight:700;margin-bottom:.8rem;color:#94a3b8">✅ Jogos Encerrados</div>
+        <div class="section-title" id="jogos-encerrados" style="font-size:1rem;margin:0 0 .8rem">
+          <span>✅ Jogos Encerrados</span>
+          <span class="bar"></span>
+        </div>
         <div id="finished-container" class="games-list"></div>
       </div>
       </div>
@@ -1233,6 +1237,7 @@
 
     container.innerHTML = html;
     wrapper.style.display = 'block';
+    document.getElementById('nav-encerrados').style.display = 'inline-block';
   }
 
   function parseGameDate(dateStr) {
