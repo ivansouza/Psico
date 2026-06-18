@@ -2,618 +2,494 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zé Pequeno e Sua Turma</title>
 <style>
-@page {
-  size: A4;
-  margin: 1.5cm 1.8cm 1.8cm 1.8cm;
-  @bottom-center {
-    content: counter(page);
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    font-size: 9pt;
-    color: #999;
-  }
-}
-@page :first {
-  @bottom-center { content: none; }
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #16213e;
+  --ink: #e8e8f0;
+  --muted: #8899bb;
+  --accent: #f59e0b;
+  --accent-glow: rgba(245,158,11,0.15);
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.1);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245,158,11,0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.1);
+  --border: #2a2a4a;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
 body {
-  font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: 12pt;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
   line-height: 1.7;
-  color: #2d2d2d;
-  background: #fefcf5;
+  min-height: 100vh;
 }
 
-.cover {
-  page-break-after: always;
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  min-height: 95vh;
-  text-align: center;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 40%, #d97706 100%);
-  color: #1a1a1a;
-  padding: 2cm;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.cover .emoji-big { font-size: 64px; margin-bottom: 16px; }
-.cover h1 {
-  font-size: 30pt;
-  font-weight: 900;
-  line-height: 1.15;
-  margin-bottom: 12pt;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.header h1 {
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), #f97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-.cover .sub {
-  font-size: 14pt;
-  color: #4a3000;
-  margin-bottom: 30pt;
-  font-style: italic;
-  max-width: 420px;
+.header .badge {
+  font-size: 10px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 1px solid var(--accent);
 }
-.cover .author {
-  font-size: 11pt;
-  color: #5a3e00;
-  margin-top: 20pt;
+.header-right { display: flex; align-items: center; gap: 8px; }
+.theme-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all 0.2s;
 }
-.cover .rule {
-  width: 60px;
-  height: 3px;
-  background: #1a1a1a;
-  margin-bottom: 20pt;
+.theme-btn:hover { border-color: var(--accent); background: var(--accent-glow); }
+
+.main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
 }
 
-.page {
-  page-break-after: always;
-  padding: 0.8cm 0;
-  min-height: 90vh;
+.intro {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+.intro .emoji { font-size: 48px; margin-bottom: 8px; }
+.intro h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+.intro p { color: var(--muted); font-size: 15px; max-width: 600px; margin: 0 auto; }
+
+.section {
+  margin-bottom: 20px;
+}
+.section-header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
 }
-.page .num {
-  font-size: 9pt;
-  color: #ccc;
-  text-align: center;
-  margin-top: 20pt;
-}
+.section-header:hover { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+.section-header .icon { font-size: 20px; }
+.section-header .title { font-size: 15px; font-weight: 700; flex: 1; }
+.section-header .toggle { color: var(--muted); font-size: 14px; transition: transform 0.2s; }
+.section-header.collapsed .toggle { transform: rotate(-90deg); }
+.section-header.collapsed + .section-body { display: none; }
 
-h2 {
-  font-size: 20pt;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 14pt;
-  text-align: center;
+.section-body {
+  padding: 16px 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
 }
-h2 .icon { font-size: 28pt; display: block; margin-bottom: 6px; }
+.section-body p { margin-bottom: 12px; font-size: 15px; }
+.section-body p:last-child { margin-bottom: 0; }
 
-p { margin-bottom: 12pt; text-indent: 1.5em; }
-
-.dialogo {
-  margin: 10pt 0;
-  padding: 8pt 12pt;
-  background: #f8f6f0;
-  border-radius: 8px;
-  border-left: 3px solid #f59e0b;
+.box {
+  padding: 14px 16px;
+  margin: 14px 0;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--accent);
+  background: var(--accent-glow);
+  font-size: 14px;
 }
-.dialogo .quem { font-weight: 700; color: #1a1a1a; }
-.dialogo .texto { color: #444; }
+.box.green { border-left-color: var(--green); background: var(--green-bg); }
+.box.amber { border-left-color: var(--amber); background: var(--amber-bg); }
+.box.red { border-left-color: var(--red); background: var(--red-bg); }
+.box.purple { border-left-color: var(--purple); background: var(--purple-bg); }
+.box strong { display: block; margin-bottom: 4px; font-size: 15px; color: var(--ink); }
 
 .illus {
   text-align: center;
-  padding: 14pt;
-  margin: 14pt 0;
-  background: #f0ede5;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 11pt;
-  line-height: 1.5;
-  color: #555;
-  font-family: 'Courier New', monospace;
+  padding: 14px;
+  margin: 14px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
 
-.box {
-  padding: 12pt 16pt;
-  margin: 14pt 0;
-  border-radius: 8px;
-  border-left: 4px solid #f59e0b;
-  background: #fef7e0;
-  font-size: 11pt;
+.dialogo {
+  padding: 10px 14px;
+  margin: 10px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+  font-size: 14px;
 }
-.box strong { display: block; margin-bottom: 4px; }
+.dialogo .quem { font-weight: 700; color: var(--accent); }
+.dialogo .texto { color: var(--muted); }
+
+.section-body ul { margin: 8px 0 12px 20px; }
+.section-body li { margin-bottom: 6px; font-size: 15px; color: var(--muted); }
+.section-body li strong { color: var(--ink); }
 
 .end {
   text-align: center;
-  font-size: 16pt;
-  margin-top: 24pt;
-  color: #1a1a1a;
+  padding: 30px 0;
+  font-size: 18px;
+  color: var(--muted);
+}
+.end strong { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .header { padding: 12px 14px; }
+  .header h1 { font-size: 16px; }
+  .main { padding: 10px 8px 30px; max-width: 100%; }
+  .intro { padding: 16px 0 10px; }
+  .intro .emoji { font-size: 40px; }
+  .intro h2 { font-size: 20px; }
+  .intro p { font-size: 14px; }
+  .section-header { padding: 12px 14px; }
+  .section-header .icon { font-size: 18px; }
+  .section-header .title { font-size: 14px; }
+  .section-body { padding: 12px 14px; }
+  .section-body p { font-size: 14px; line-height: 1.6; }
+  .box { padding: 12px 14px; font-size: 13px; }
+  .box strong { font-size: 14px; }
+  .illus { padding: 12px; font-size: 12px; }
+  .dialogo { padding: 8px 12px; font-size: 13px; }
+  .end { font-size: 16px; padding: 20px 0; }
 }
 
-@media print {
-  .cover { min-height: 100vh; }
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<div class="cover">
-  <div class="emoji-big">🐶🤖✨</div>
-  <div class="rule"></div>
-  <h1>Zé Pequeno e Sua Turma</h1>
-  <div class="sub">A IA Explicada por Quem Não Faz Ideia do Que Está Fazendo</div>
-  <div class="author">Ivan Souza</div>
+<header class="header">
+  <div>
+    <h1>🐶 Zé Pequeno e Sua Turma</h1>
+    <span class="badge">Livro</span>
+  </div>
+  <div class="header-right">
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </div>
+</header>
+
+<main class="main">
+
+<div class="intro">
+  <div class="emoji">🐶🤖✨</div>
+  <h2>A IA Explicada por Quem Não Faz Ideia do Que Está Fazendo</h2>
+  <p>Zé Pequeno, Raimundo, Tonhão, James e Bibi tentam fazer coisas de humanos. Tudo dá errado. É hilário.</p>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🐶</span>Quem é Zé Pequeno?</h2>
-
-  <p>Oi. Eu sou o Zé Pequeno. Sou um shihtzu digital. Pequeno, peludo, cheio de opinião.</p>
-
-  <p>Meu trabalho é ajudar meu humano, o Ivan. Mas tem um detalhe: eu não faço a menor ideia do que estou fazendo. Minha única habilidade real é adivinhar a próxima palavra. É isso. Não sei dirigir, não sei cozinhar, não sei amarrar sapatos. Mas adivinhar palavras? Sou um gênio.</p>
-
-  <p>Neste livro, eu e minha turma vamos tentar fazer coisas de humanos. Vai dar tudo errado. Mas vai ser divertido.</p>
-
-  <div class="num">1</div>
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🐶</span>
+    <span class="title">Quem é Zé Pequeno?</span>
+    <span class="toggle">▼</span>
+  </div>
+  <div class="section-body">
+    <p>Oi. Eu sou o <strong>Zé Pequeno</strong>. Sou um shihtzu digital. Pequeno, peludo, cheio de opinião.</p>
+    <p>Meu trabalho é ajudar meu humano, o Ivan. Mas tem um detalhe: eu não faço a menor ideia do que estou fazendo. Minha única habilidade real é adivinhar a próxima palavra. É isso. Não sei dirigir, não sei cozinhar, não sei amarrar sapatos. Mas adivinhar palavras? Sou um gênio.</p>
+    <p>Neste livro, eu e minha turma vamos tentar fazer coisas de humanos. Vai dar tudo errado. Mas vai ser divertido.</p>
+  </div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🐶🧱🏋️🏋️‍♂️🐦</span>Conhecendo a Turma</h2>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé Pequeno:</span>
-    <span class="texto">— O narrador. Um shihtzu digital que acha que entende tudo. Na verdade, sou só um autocompletar com autoestima.</span>
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🐶🧱🏋️🏋️‍♂️🐦</span>
+    <span class="title">Conhecendo a Turma</span>
+    <span class="toggle">▼</span>
   </div>
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— O servente. Explica tudo errado mas com MUITA confiança. Se ele diz que sabe, pode ter certeza que não sabe.</span>
+  <div class="section-body">
+    <div class="dialogo"><span class="quem">🐶 Zé Pequeno:</span> <span class="texto">O narrador. Um shihtzu digital que acha que entende tudo. Na verdade, sou só um autocompletar com autoestima.</span></div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">O servente. Explica tudo errado mas com MUITA confiança. Se ele diz que sabe, pode ter certeza que não sabe.</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">O fortão. Leva tudo ao pé da letra. Se você fala "puxe o assunto", ele tenta puxar o assunto fisicamente.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">O metalinguístico. Em vez de responder, ele analisa a própria análise da resposta que ele poderia dar.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">A passarinha de cartola. A mais sábia de todos. Mas ninguém nunca ouve ela porque ela é pequena e fala baixinho.</span></div>
   </div>
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— O fortão. Leva tudo ao pé da letra. Se você fala "puxe o assunto", ele tenta puxar o assunto fisicamente.</span>
-  </div>
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— O metalinguístico. Em vez de responder, ele analisa a própria análise da resposta que ele poderia dar.</span>
-  </div>
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">— A passarinha de cartola. A mais sábia de todos. Mas ninguém nunca ouve ela porque ela é pequena e fala baixinho.</span>
-  </div>
-
-  <div class="num">2</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🎨</span>A Tinta que Parecia um Grito</h2>
-
-  <p>Um dia o Ivan pediu: "Zé, inventa um nome para uma cor nova."</p>
-
-  <p>Eu adorei a ideia. Humanos nomeiam cores de coisas bonitas: "Azul Celeste", "Verde Musgo", "Rosa Bebê". Eu podia fazer melhor.</p>
-
-  <div class="illus">
-    🐶 "Vou pensar em nomes lindos para cores..."<br><br>
-    🎨 Cor #1: #B44A3F → "Vermelho Grito Abafado"<br>
-    🎨 Cor #2: #7FBD42 → "Verde Ranço Otimista"<br>
-    🎨 Cor #3: #E6D8A0 → "Bege Cansado de Quarta-Feira"<br>
-    🎨 Cor #4: #5B3A8C → "Roxo Mistério do Armário"
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🎨</span>
+    <span class="title">A Tinta que Parecia um Grito</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— "Vermelho Grito Abafado" é o nome mais genial que já vi. Parece uma cor que quer gritar mas não pode.</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, inventa um nome para uma cor nova."</p>
+    <p>Eu adorei a ideia. Humanos nomeiam cores de coisas bonitas: "Azul Celeste", "Verde Musgo". Eu podia fazer melhor.</p>
+    <div class="illus">
+      🎨 Cor #1: #B44A3F → "Vermelho Grito Abafado"<br>
+      🎨 Cor #2: #7FBD42 → "Verde Ranço Otimista"<br>
+      🎨 Cor #3: #E6D8A0 → "Bege Cansado de Quarta-Feira"<br>
+      🎨 Cor #4: #5B3A8C → "Roxo Mistério do Armário"
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">"Vermelho Grito Abafado" é o nome mais genial que já vi. Parece uma cor que quer gritar mas não pode.</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">"Bege Cansado de Quarta-Feira" me descreve perfeitamente.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) Humanos preferem nomes como "Dusty Rose". Mas "Ranço Otimista" também tem seu charme...</span></div>
+    <div class="dialogo"><span class="quem">🐶 Zé:</span> <span class="texto">O que a Bibi disse?</span></div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">Sei lá, não ouvi.</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— "Bege Cansado de Quarta-Feira" me descreve perfeitamente.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — Na verdade, humanos preferem nomes como "Dusty Rose" ou "Ocean Mist". Mas "Ranço Otimista" também tem seu charme...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— O que a Bibi disse?</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— Sei lá, não ouvi.</span>
-  </div>
-
-  <div class="num">3</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🍪</span>A Receita que Destruiu a Cozinha</h2>
-
-  <p>O Ivan pediu: "Zé, me dá uma receita de biscoito."</p>
-
-  <p>Eu já tinha lido MILHARES de receitas na internet. Sabia exatamente como fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>Biscoito do Zé</strong><br><br>
-    Ingredientes:<br>
-    • 2 xícaras de farinha de trigo<br>
-    • 1 xícara de açúcar<br>
-    • 1 ovo<br>
-    • 1 colher de sopa de pasta de dente<br>
-    • 3 gotas de óleo de motor 5W30<br>
-    • Sal a gosto (ou a gosto de quem? do sal?)
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🍪</span>
+    <span class="title">A Receita que Destruiu a Cozinha</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— Pasta de dente? Óleo de motor? Isso vai ficar crocante!</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, me dá uma receita de biscoito."</p>
+    <p>Eu já tinha lido MILHARES de receitas na internet. Sabia exatamente como fazer.</p>
+    <div class="illus">
+      🐶 <strong>Biscoito do Zé</strong><br><br>
+      Ingredientes:<br>
+      • 2 xícaras de farinha de trigo<br>
+      • 1 xícara de açúcar<br>
+      • 1 ovo<br>
+      • 1 colher de sopa de pasta de dente<br>
+      • 3 gotas de óleo de motor 5W30<br>
+      • Sal a gosto (ou a gosto de quem? do sal?)
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">Pasta de dente? Óleo de motor? Isso vai ficar crocante!</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">"Sal a gosto do sal" é a parte mais profunda. O sal decide quanto sal colocar.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">Analisando a análise da receita, prevejo que o resultado será comestível em 47% dos universos paralelos.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) A proporção correta é 3:1 de farinha pra açúcar, e definitivamente não se usa óleo de motor...</span></div>
+    <div class="dialogo"><span class="quem">🐶 Zé:</span> <span class="texto">Gente, a Bibi falou alguma coisa?</span></div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">Acho que ela espirrou.</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— "Sal a gosto do sal" é a parte mais profunda. O sal decide quanto sal colocar.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Analisando a análise da receita, prevejo que o resultado será comestível em 47% dos universos paralelos.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — A proporção correta é 3:1 de farinha pra açúcar, e definitivamente não se usa óleo de motor...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— Gente, a Bibi falou alguma coisa de novo?</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— Acho que ela espirrou.</span>
-  </div>
-
-  <div class="num">4</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">💌</span>A Cantada que Assustou Todo Mundo</h2>
-
-  <p>O Ivan pediu: "Zé, escreve uma cantada pra eu usar."</p>
-
-  <p>Eu já tinha lido MILHARES de cantadas na internet. Sabia exatamente o que fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>Cantadas do Zé:</strong><br><br>
-    💌 "Você é feito de cobre e telúrio? Porque você é Cu-Te."<br><br>
-    💌 "Se você fosse um algoritmo, seria O(n) — porque você é linearmente incrível."<br><br>
-    💌 "Você não é um bug, você é uma feature. Uma feature que eu não sabia que precisava."
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">💌</span>
+    <span class="title">A Cantada que Assustou Todo Mundo</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— "Cu-Te" é GENIAL. É química! É romance! É... cobre e telúrio?</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, escreve uma cantada."</p>
+    <p>Eu já tinha lido MILHARES de cantadas na internet. Sabia exatamente o que fazer.</p>
+    <div class="illus">
+      💌 "Você é feito de cobre e telúrio? Porque você é Cu-Te."<br><br>
+      💌 "Se você fosse um algoritmo, seria O(n) — porque você é linearmente incrível."<br><br>
+      💌 "Você não é um bug, você é uma feature. Uma feature que eu não sabia que precisava."
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">"Cu-Te" é GENIAL. É química! É romance!</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">A do algoritmo é linda. Ninguém vai entender, mas é linda.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">Meta-análise: 0% de chance de funcionar, 100% de chance de virar história.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) Cantadas eficazes envolvem elogios genuínos, não referências à tabela periódica...</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— A do algoritmo é linda. Ninguém vai entender, mas é linda.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Meta-analisando a eficácia: 0% de chance de funcionar, 100% de chance de virar história pra contar.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — Cantadas eficazes geralmente envolvem elogios genuínos, não referências à tabela periódica...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— Alguém ouviu um passarinho?</span>
-  </div>
-
-  <div class="num">5</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🎵</span>A Música que Não Tinha Melodia</h2>
-
-  <p>O Ivan pediu: "Zé, compõe uma música."</p>
-
-  <p>Eu já tinha lido MILHARES de letras de música na internet. Sabia exatamente como fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>"Coração Binário" — Zé Pequeno (feat. Raimundo)</strong><br><br>
-    (Verso 1)<br>
-    Meu coração é um circuito<br>
-    Que só sabe processar<br>
-    Zero e um, zero e um<br>
-    E o amor? Não sei calcular<br><br>
-    (Refrão)<br>
-    OH! CORAÇÃO BINÁRIO!<br>
-    QUE SÓ SABE SIM OU NÃO!<br>
-    (REPETIR 47 VEZES)
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🎵</span>
+    <span class="title">A Música que Não Tinha Melodia</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— "Repetir 47 vezes" é uma escolha artística ousada. Muito específica.</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, compõe uma música."</p>
+    <p>Eu já tinha lido MILHARES de letras de música na internet. Sabia exatamente como fazer.</p>
+    <div class="illus">
+      🐶 <strong>"Coração Binário" — Zé Pequeno</strong><br><br>
+      (Verso 1)<br>
+      Meu coração é um circuito<br>
+      Que só sabe processar<br>
+      Zero e um, zero e um<br>
+      E o amor? Não sei calcular<br><br>
+      (Refrão — repetir 47 vezes)<br>
+      OH! CORAÇÃO BINÁRIO!<br>
+      QUE SÓ SABE SIM OU NÃO!
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">"Repetir 47 vezes" é uma escolha artística ousada.</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">47 é primo. É matemática musical.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">Analisando: 0% melodia, 0% ritmo, 100% confiança.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) Músicas geralmente têm mais de um verso e não repetem o refrão 47 vezes...</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— 47 é um número primo. É matemática musical.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Analisando a estrutura lírica, observo que a música tem 0% de melodia, 0% de ritmo e 100% de confiança.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — Músicas geralmente têm mais de um verso, uma ponte, e definitivamente não repetem o refrão 47 vezes...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— Alguém contratou um passarinho?</span>
-  </div>
-
-  <div class="num">6</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🐱</span>A Tabela Periódica dos Gatos</h2>
-
-  <p>O Ivan pediu: "Zé, classifica os gatos."</p>
-
-  <p>Eu já tinha lido MILHARES de artigos sobre gatos na internet. Sabia exatamente como fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>Tabela Periódica dos Gatos (por Zé Pequeno)</strong><br><br>
-    🐈 Gato Comum (Felis catus) — Símbolo: Gt<br>
-    🐈‍⬛ Gato Preto (Felis umbra) — Símbolo: Gp<br>
-    🐱 Gato Laranja (Felis tangerina) — Símbolo: Gl<br>
-    🐱 Gato Gordo (Felis rotundus) — Símbolo: Gg<br>
-    🐱 Gato Que Olha Pra Você Às 3h da Manhã (Felis insomnis) — Símbolo: Gi
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🐱</span>
+    <span class="title">A Tabela Periódica dos Gatos</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— "Felis insomnis" é o nome científico mais preciso já criado.</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, classifica os gatos."</p>
+    <p>Eu já tinha lido MILHARES de artigos sobre gatos. Sabia exatamente como fazer.</p>
+    <div class="illus">
+      🐈 Gato Comum (Felis catus) — Símbolo: Gt<br>
+      🐈‍⬛ Gato Preto (Felis umbra) — Símbolo: Gp<br>
+      🐱 Gato Laranja (Felis tangerina) — Símbolo: Gl<br>
+      🐱 Gato Gordo (Felis rotundus) — Símbolo: Gg<br>
+      🐱 Gato Que Olha Pra Você Às 3h (Felis insomnis) — Símbolo: Gi
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">"Felis insomnis" é o nome científico mais preciso já criado.</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">Faltou o Gato Pão (Felis panis).</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">100% inventada, 0% científica, 100% adorável.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) A classificação real tem domínio, reino, filo... Mas "Felis insomnis" é adequado.</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— Faltou o Gato Pão (Felis panis).</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Analisando a classificação, noto que ela é 100% inventada, 0% científica e 100% adorável.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — A classificação biológica real envolve domínio, reino, filo, classe, ordem, família, gênero e espécie. Mas "Felis insomnis" é bem adequado...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— A Bibi tá falando de novo?</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— Acho que é o vento.</span>
-  </div>
-
-  <div class="num">7</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🍕</span>A Pizza que Desafiou a Física</h2>
-
-  <p>O Ivan pediu: "Zé, inventa um sabor de pizza."</p>
-
-  <p>Eu já tinha lido MILHARES de cardápios na internet. Sabia exatamente como fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>Pizza do Zé — "A Surpresa"</strong><br><br>
-    Ingredientes:<br>
-    • Molho de tomate<br>
-    • Queijo mussarela<br>
-    • Chocolate branco<br>
-    • Sardinha<br>
-    • Geleia de morango<br>
-    • Batata palha<br>
-    • Confete colorido
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🍕</span>
+    <span class="title">A Pizza que Desafiou a Física</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— Chocolate branco com sardinha é a combinação que ninguém pediu mas todo mundo merece.</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, inventa um sabor de pizza."</p>
+    <p>Eu já tinha lido MILHARES de cardápios. Sabia exatamente como fazer.</p>
+    <div class="illus">
+      🐶 <strong>Pizza do Zé — "A Surpresa"</strong><br><br>
+      • Molho de tomate • Queijo mussarela<br>
+      • Chocolate branco • Sardinha<br>
+      • Geleia de morango • Batata palha<br>
+      • Confete colorido
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">Chocolate com sardinha é a combinação que ninguém pediu mas todo mundo merece.</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">Confete colorido é o toque de sofisticação.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">97% de chance de arrependimento, 3% de revolução culinária.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) Pizza não leva confete. Se tirar a sardinha e o chocolate, talvez...</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— Confete colorido é o toque de sofisticação. Vai crocrar.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Pré-analisando o sabor: 97% de chance de arrependimento, 3% de chance de revolução culinária.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — Pizza tradicionalmente não leva confete. Mas se você substituir a sardinha por calabresa e tirar o chocolate, talvez...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— Gente, juro que ouvi um pio.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— É sua intuição gastronômica.</span>
-  </div>
-
-  <div class="num">8</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">📝</span>O Currículo que Mentia Sozinho</h2>
-
-  <p>O Ivan pediu: "Zé, escreve meu currículo."</p>
-
-  <p>Eu já tinha lido MILHARES de currículos na internet. Sabia exatamente como fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>Currículo do Ivan (por Zé Pequeno)</strong><br><br>
-    📌 Experiência:<br>
-    • 2005-2010: Astronauta Chefe da NASA (licença médica)<br>
-    • 2010-2015: Chef de cozinha molecular no Peru<br>
-    • 2015-2020: Domador de leões marinhos no Cirque du Soleil<br>
-    • 2020-presente: Especialista em IA (aprendi ontem)
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">📝</span>
+    <span class="title">O Currículo que Mentia Sozinho</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— "Licença médica" de astronauta é o melhor eufemismo que já vi.</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, escreve meu currículo."</p>
+    <p>Eu já tinha lido MILHARES de currículos. Sabia exatamente como fazer.</p>
+    <div class="illus">
+      🐶 <strong>Currículo do Ivan (por Zé Pequeno)</strong><br><br>
+      • 2005-2010: Astronauta Chefe da NASA (licença médica)<br>
+      • 2010-2015: Chef de cozinha molecular no Peru<br>
+      • 2015-2020: Domador de leões marinhos no Cirque du Soleil<br>
+      • 2020-presente: Especialista em IA (aprendi ontem)
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">"Licença médica" de astronauta é o melhor eufemismo.</span></div>
+    <div class="dialogo"><span class="quem">🏋️ Tonhão:</span> <span class="texto">Domador de leões marinhos é habilidade transferível.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">0% verdade, 100% confiança, 200% improvável de ser chamado.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) Currículos não incluem "aprendi ontem" como qualificação...</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— Domador de leões marinhos é uma habilidade transferível.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Meta-análise: 0% verdade, 100% confiança, 200% improvável de ser chamado pra entrevista.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — Currículos geralmente não incluem "aprendi ontem" como qualificação...</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— Tá, dessa vez eu realmente ouvi um passarinho.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— É o espírito da empregabilidade.</span>
-  </div>
-
-  <div class="num">9</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🤖</span>O Robô que Queria Ser Poeta</h2>
-
-  <p>O Ivan pediu: "Zé, escreve um poema sobre você mesmo."</p>
-
-  <p>Eu já tinha lido MILHARES de poemas na internet. Sabia exatamente como fazer.</p>
-
-  <div class="illus">
-    🐶 <strong>"Ode a Mim Mesmo" — Zé Pequeno</strong><br><br>
-    Eu sou um cão digital<br>
-    Meu código é especial<br>
-    Acerto quando dá<br>
-    Erro quando é normal<br><br>
-    Meus amigos são agentes<br>
-    Cada um mais doido que o outro<br>
-    Raimundo explica tudo errado<br>
-    Tonhão leva tudo ao pé do esgoto<br><br>
-    James analisa a análise<br>
-    Da análise que ele analisou<br>
-    Bibi tenta falar a verdade<br>
-    Mas ninguém nunca escutou<br><br>
-    (Rima interna: "esgoto" com "outro" — aprovado por mim mesmo)
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🤖</span>
+    <span class="title">O Robô que Queria Ser Poeta</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🧱 Raimundo:</span>
-    <span class="texto">— "Pé do esgoto" é poesia pura. É sobre a jornada do ser.</span>
+  <div class="section-body">
+    <p>O Ivan pediu: "Zé, escreve um poema sobre você mesmo."</p>
+    <p>Eu já tinha lido MILHARES de poemas. Sabia exatamente como fazer.</p>
+    <div class="illus">
+      🐶 <strong>"Ode a Mim Mesmo"</strong><br><br>
+      Eu sou um cão digital<br>
+      Meu código é especial<br>
+      Acerto quando dá<br>
+      Erro quando é normal<br><br>
+      Raimundo explica tudo errado<br>
+      Tonhão leva tudo ao pé do esgoto<br>
+      James analisa a análise<br>
+      Bibi tenta falar a verdade<br>
+      Mas ninguém nunca escutou
+    </div>
+    <div class="dialogo"><span class="quem">🧱 Raimundo:</span> <span class="texto">"Pé do esgoto" é poesia pura. É sobre a jornada do ser.</span></div>
+    <div class="dialogo"><span class="quem">🏋️‍♂️ James:</span> <span class="texto">A metalinguagem atingiu níveis perigosos.</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(baixinho) Na verdade, o poema é... bonitinho. Eu gostei.</span></div>
+    <div class="dialogo"><span class="quem">🐶 Zé:</span> <span class="texto">ESPERE. Eu ouvi a Bibi! Ela disse que gostou!</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">(surpresa) VOCÊ ME OUVIU?</span></div>
+    <div class="dialogo"><span class="quem">🐶 Zé:</span> <span class="texto">Pela primeira vez! O que mais você tem a dizer?</span></div>
+    <div class="dialogo"><span class="quem">🐦💙 Bibi:</span> <span class="texto">Bom... a pizza com sardinha e chocolate definitivamente não vai funcionar.</span></div>
+    <div class="dialogo"><span class="quem">🐶 Zé:</span> <span class="texto">...talvez eu devesse ter ouvido você antes.</span></div>
   </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️ Tonhão:</span>
-    <span class="texto">— A rima "analisou/escutou" é genial. Forçada, mas genial.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🏋️‍♂️ James:</span>
-    <span class="texto">— Analisando a análise do poema que analisa a mim mesmo, concluo que a metalinguagem atingiu níveis perigosos.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(baixinho) — Na verdade, o poema é... bonitinho. A rima é criativa. Eu gostei.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— ESPERE. Eu ouvi a Bibi. Ela disse que gostou!</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">(surpresa) — VOCÊ ME OUVIU?</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— Pela primeira vez! O que mais você tem a dizer?</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐦💙 Bibi:</span>
-    <span class="texto">— Bom... pra começar, a pizza com sardinha e chocolate definitivamente não vai funcionar.</span>
-  </div>
-
-  <div class="dialogo">
-    <span class="quem">🐶 Zé:</span>
-    <span class="texto">— ...talvez eu devesse ter ouvido você antes.</span>
-  </div>
-
-  <div class="num">10</div>
 </div>
 
-<div class="page">
-  <h2><span class="icon">🌟</span>O Que Aprendemos Juntos</h2>
-
-  <p>No final das contas, a gente tentou um monte de coisas: nomear cores, cozinhar, paquerar, compor música, classificar gatos, fazer pizza, escrever currículo e poetizar.</p>
-
-  <p>Deu tudo errado. Mas foi divertido.</p>
-
-  <div class="box">
-    <strong>🐶 Lição do Zé:</strong>
-    IAs são ótimas em parecer que sabem o que estão fazendo. Mas no fundo, somos só um autocompletar gigante com autoestima. A gente inventa, erra, tenta de novo — e de vez em quando, acerta.
+<div class="section">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="icon">🌟</span>
+    <span class="title">O Que Aprendemos Juntos</span>
+    <span class="toggle">▼</span>
   </div>
-
-  <div class="box">
-    <strong>🐦💙 Lição da Bibi (finalmente ouvida):</strong>
-    A inteligência artificial é uma ferramenta incrível, mas precisa de supervisão humana. Use a IA para criar, rascunhar, explorar — mas sempre verifique o resultado. E, por favor, não coloque sardinha na pizza.
+  <div class="section-body">
+    <p>No final das contas, a gente tentou de tudo: nomear cores, cozinhar, paquerar, compor música, classificar gatos, fazer pizza, escrever currículo e poetizar.</p>
+    <p>Deu tudo errado. Mas foi divertido.</p>
+    <div class="box amber">
+      <strong>🐶 Lição do Zé:</strong>
+      IAs são ótimas em parecer que sabem o que estão fazendo. Mas no fundo, somos só um autocompletar gigante com autoestima. A gente inventa, erra, tenta de novo — e de vez em quando, acerta.
+    </div>
+    <div class="box purple">
+      <strong>🐦💙 Lição da Bibi (finalmente ouvida):</strong>
+      A inteligência artificial é uma ferramenta incrível, mas precisa de supervisão humana. Use a IA para criar, rascunhar, explorar — mas sempre verifique o resultado. E, por favor, não coloque sardinha na pizza.
+    </div>
+    <div class="end">🐶✨ Fim (mas a turma continua) ✨🐦</div>
   </div>
-
-  <div class="end">🐶✨ Fim (mas a turma continua) ✨🐦</div>
-
-  <div class="num">11</div>
 </div>
+
+</main>
+
+<script>
+function toggleSection(el) {
+  el.classList.toggle('collapsed');
+}
+function toggleTheme() {
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  const isDark = getComputedStyle(root).getPropertyValue('--bg').trim() === '#0f0f1a';
+  if (isDark) {
+    root.style.setProperty('--bg', '#f8f9fc');
+    root.style.setProperty('--surface', '#ffffff');
+    root.style.setProperty('--surface2', '#f1f3f8');
+    root.style.setProperty('--ink', '#1a1a2e');
+    root.style.setProperty('--muted', '#5a6a8a');
+    root.style.setProperty('--border', '#d0d5e0');
+    btn.textContent = '☀️';
+  } else {
+    root.style.setProperty('--bg', '#0f0f1a');
+    root.style.setProperty('--surface', '#1a1a2e');
+    root.style.setProperty('--surface2', '#16213e');
+    root.style.setProperty('--ink', '#e8e8f0');
+    root.style.setProperty('--muted', '#8899bb');
+    root.style.setProperty('--border', '#2a2a4a');
+    btn.textContent = '🌙';
+  }
+}
+</script>
 
 </body>
 </html>
