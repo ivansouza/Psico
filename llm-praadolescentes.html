@@ -186,11 +186,26 @@ tr:last-child td { border-bottom: none; }
 }
 .end strong { color: var(--accent); }
 
-/* RESPONSIVE */
+/* RESPONSIVE — Portrait First */
 @media (max-width: 640px) {
-  .main { padding: 12px 10px 30px; }
-  .intro h2 { font-size: 22px; }
-  .section-body p { font-size: 14px; }
+  .header { padding: 12px 14px; }
+  .header h1 { font-size: 16px; }
+  .main { padding: 10px 8px 30px; max-width: 100%; }
+  .intro { padding: 20px 0 12px; }
+  .intro .emoji { font-size: 40px; }
+  .intro h2 { font-size: 20px; }
+  .intro p { font-size: 14px; }
+  .section-header { padding: 12px 14px; }
+  .section-header .icon { font-size: 18px; }
+  .section-header .title { font-size: 14px; }
+  .section-body { padding: 12px 14px; }
+  .section-body p { font-size: 14px; line-height: 1.6; }
+  .box { padding: 12px 14px; font-size: 13px; }
+  .box strong { font-size: 14px; }
+  .illus { padding: 12px; font-size: 13px; }
+  table { font-size: 12px; }
+  th, td { padding: 6px 8px; }
+  .end { font-size: 16px; padding: 20px 0; }
 }
 
 /* SCROLLBAR */
