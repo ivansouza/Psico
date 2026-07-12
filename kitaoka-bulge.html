@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kitaoka Bulge — padrão corrigido</title>
+<style>
+ :root{
+ color-scheme: light dark;
+ --bg:#e6e3da;
+ --panel:#fff;
+ --text:#171717;
+ --muted:#666;
+ --border:#cfcfcf;
+ --accent:#315efb;
+ }
+ @media (prefers-color-scheme: dark){
+ :root{
+ --bg:#1a1a1a;
+ --panel:#242424;
+ --text:#f0f0f0;
+ --muted:#aaa;
+ --border:#454545;
+ --accent:#84a0ff;
+ }
+ }
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+ main{width:min(1180px,100%);margin:0 auto;padding:18px}
+ h1{margin:0 0 8px;font-size:clamp(1.45rem,2.8vw,2.25rem)}
+ .sub{margin:0 0 18px;color:var(--muted);line-height:1.45}
+ .layout{display:grid;grid-template-columns:minmax(320px,780px) minmax(260px,340px);gap:18px;align-items:start}
+ .card,.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+ .card{padding:14px}
+ .panel{padding:16px}
+ canvas{display:block;width:100%;aspect-ratio:1;background:#ddd9d0;border-radius:8px}
+ h2{margin:0 0 12px;font-size:1.05rem}
+ label{display:block;margin:12px 0 5px;font-weight:650}
+ input,select,button{width:100%;font:inherit}
+ input[type="number"], select{
+ padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text)
+ }
+ input[type="range"]{accent-color:var(--accent)}
+ .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+ button{margin-top:16px;padding:10px 12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+ button:hover{filter:brightness(1.05)}
+ .value{float:right;color:var(--muted);font-weight:500}
+ .hint{margin-top:12px;color:var(--muted);font-size:.9rem;line-height:1.45}
+ @media (max-width:820px){main{padding:12px}.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+ <h1>Tabuleiro abaulado — padrão dos pontos corrigido</h1>
+ <p class="sub">
+ Nesta versão, o padrão segue a referência com mais fidelidade:
+ cada casa marcada recebe <strong>2 pontos pequenos</strong>, de cor oposta à casa,
+ e a orientação desses pontos gira ao redor do centro da figura.
+ </p>
+
+ <div class="layout">
+ <section class="card">
+ <canvas id="cv" width="1100" height="1100" aria-label="Ilusão óptica em tabuleiro"></canvas>
+ </section>
+
+ <aside class="panel">
+ <h2>Controles</h2>
+
+ <label for="preset">Predefinição</label>
+ <select id="preset">
+ <option value="reference">Padrão de referência</option>
+ <option value="pinch">Pinçado</option>
+ <option value="soft">Suave</option>
+ <option value="none">Sem pontos</option>
+ </select>
+
+ <div class="row">
+ <div>
+ <label for="checks">Quadrados</label>
+ <input id="checks" type="number" min="8" max="28" step="1" value="15">
+ </div>
+ <div>
+ <label for="shape">Formato</label>
+ <select id="shape">
+ <option value="square">Quadrado</option>
+ <option value="circle">Círculo</option>
+ </select>
+ </div>
+ </div>
+
+ <label for="dotSize">Tamanho do ponto <span id="dotSizeOut" class="value">14%</span></label>
+ <input id="dotSize" type="range" min="4" max="24" step="1" value="14">
+
+ <label for="offset">Posição do ponto <span id="offsetOut" class="value">17%</span></label>
+ <input id="offset" type="range" min="6" max="28" step="1" value="17">
+
+ <label for="radius">Raio do efeito <span id="radiusOut" class="value">64%</span></label>
+ <input id="radius" type="range" min="20" max="95" step="1" value="64">
+
+ <label for="verticalStretch">Alongamento vertical <span id="stretchOut" class="value">1.20</span></label>
+ <input id="verticalStretch" type="range" min="70" max="180" step="1" value="120"><label for="pinch">Curvatura <span id="pinchOut" class="value">0.00</span></label>
+ <input id="pinch" type="range" min="-80" max="80" step="1" value="0">
+
+ <button id="download">Salvar PNG</button>
+
+ <p class="hint">
+ A chave aqui é o <strong>padrão direcional</strong>: os pontos não ficam em todos os cantos.
+ Eles aparecem em pares que mudam de orientação conforme a posição da casa em relação ao centro.
+ </p>
+ </aside>
+ </div>
+</main>
+
+<script>
+(() => {
+ const $ = id => document.getElementById(id);
+ const canvas = $('cv');
+ const ctx = canvas.getContext('2d');
+
+ const controls = {
+ preset: $('preset'),
+ checks: $('checks'),
+ shape: $('shape'),
+ dotSize: $('dotSize'),
+ offset: $('offset'),
+ radius: $('radius'),
+ verticalStretch: $('verticalStretch'),
+ pinch: $('pinch')
+ };
+
+ const presets = {
+ reference: {checks:15, shape:'square', dotSize:14, offset:17, radius:64, verticalStretch:120, pinch:0},
+ pinch: {checks:15, shape:'square', dotSize:14, offset:17, radius:64, verticalStretch:120, pinch:-32},
+ soft: {checks:15, shape:'circle', dotSize:12, offset:18, radius:68, verticalStretch:112, pinch:0},
+ none: {checks:15, shape:'square', dotSize:0, offset:17, radius:64, verticalStretch:120, pinch:0}
+ };
+
+ function fitCanvas() {
+ const dpr = Math.min(window.devicePixelRatio || 1, 2);
+ const css = Math.max(320, Math.floor(canvas.getBoundingClientRect().width));
+ const px = Math.floor(css * dpr);
+ if (canvas.width !== px || canvas.height !== px) {
+ canvas.width = px;
+ canvas.height = px;
+ }
+ }
+
+ function setPreset(name) {
+ const p = presets[name];
+ Object.entries(p).forEach(([k,v]) => controls[k].value = v);
+ draw();
+ }
+
+ function drawSmallMark(x, y, s, fill, stroke, shape) {
+ ctx.save();
+ ctx.fillStyle = fill;
+ ctx.strokeStyle = stroke;
+ ctx.lineWidth = Math.max(1, s * 0.08);
+
+ if (shape === 'circle') {
+ ctx.beginPath();
+ ctx.arc(x, y, s / 2, 0, Math.PI * 2);
+ ctx.fill();
+ ctx.stroke();
+ } else {
+ ctx.beginPath();
+ ctx.rect(x - s/2, y - s/2, s, s);
+ ctx.fill();
+ ctx.stroke();
+ }
+ ctx.restore();
+ }
+
+ // Return which pair of corners to use:
+ // "top", "bottom", "left", "right", "diag1" (TL+BR), "diag2" (TR+BL)
+ function choosePattern(dx, dy) {
+ const theta = Math.atan2(dy, dx); // radius angle
+ let phi = theta + Math.PI / 2; // tangent angle
+ // normalize orientation to [0, pi)
+ while (phi < 0) phi += Math.PI;
+ while (phi >= Math.PI) phi -= Math.PI;
+
+ const deg = phi * 180 / Math.PI;
+
+ if (deg < 22.5 || deg >= 157.5) {
+ return dy < 0 ? 'bottom' : 'top'; // above center -> bottom pair, below -> top pair
+ }
+ if (deg < 67.5) return 'diag1'; // "\" TL+BR
+ if (deg < 112.5) {
+ return dx < 0 ? 'right' : 'left'; // left of center -> right pair, right -> left pair
+ }
+ return 'diag2'; // "/" TR+BL
+ }
+
+ function drawPair(pattern, x, y, cell, inset, size, fill, stroke, shape) {
+ const TL = [x + inset, y + inset];
+ const TR = [x + cell - inset, y + inset];
+ const BL = [x + inset, y + cell - inset];
+ const BR = [x + cell - inset, y + cell - inset];
+
+ let pts;
+ switch (pattern) {
+ case 'top': pts = [TL, TR]; break;
+ case 'bottom': pts = [BL, BR]; break;
+ case 'left': pts = [TL, BL]; break;
+ case 'right': pts = [TR, BR]; break;
+ case 'diag1': pts = [TL, BR]; break; // "\"
+ case 'diag2': pts = [TR, BL]; break; // "/"
+ default: pts = [];
+ }
+
+ for (const [px, py] of pts) {
+ drawSmallMark(px, py, size, fill, stroke, shape);
+ }
+ }
+
+ function regionMetric(nx, ny, stretch, pinch) {
+ // Elliptical footprint, then a subtle pinch/bulge deformation.
+ const ex = nx;
+ const ey = ny / stretch;
+ const base = Math.hypot(ex, ey);
+ const mod = 1 + pinch * 0.20 * (ny*ny - nx*nx);
+ return base * mod;
+ }function draw() {
+ fitCanvas();
+
+ const n = Math.max(8, Math.min(28, Number(controls.checks.value) || 15));
+ const W = canvas.width;
+ const margin = Math.round(W * 0.012);
+ const boardSize = W - margin * 2;
+ const cell = boardSize / n;
+
+ const bg = '#ddd9d0';
+ const frame = '#7a7a7a';
+ const light = '#f2f2f2';
+ const dark = '#000000';
+
+ const dotRatio = Number(controls.dotSize.value) / 100;
+ const offsetRatio = Number(controls.offset.value) / 100;
+ const radius = Number(controls.radius.value) / 100;
+ const stretch = Number(controls.verticalStretch.value) / 100;
+ const pinch = Number(controls.pinch.value) / 100;
+ const shape = controls.shape.value;
+
+ ctx.clearRect(0, 0, W, W);
+ ctx.fillStyle = bg;
+ ctx.fillRect(0, 0, W, W);
+
+ ctx.strokeStyle = frame;
+ ctx.lineWidth = Math.max(2, W * 0.003);
+ ctx.strokeRect(margin/2, margin/2, W - margin, W - margin);
+
+ // checkerboard
+ for (let r = 0; r < n; r++) {
+ for (let c = 0; c < n; c++) {
+ const x = margin + c * cell;
+ const y = margin + r * cell;
+ const isDark = ((r + c) % 2) === 0; // top-left black like the reference
+ ctx.fillStyle = isDark ? dark : light;
+ ctx.fillRect(x, y, Math.ceil(cell)+0.5, Math.ceil(cell)+0.5);
+ }
+ }
+
+ if (dotRatio <= 0) {
+ updateLabels();
+ return;
+ }
+
+ const size = cell * dotRatio;
+ const inset = cell * offsetRatio;
+ const cx = (n - 1) / 2;
+ const cy = (n - 1) / 2;
+
+ for (let r = 0; r < n; r++) {
+ for (let c = 0; c < n; c++) {
+ const nx = (c - cx) / (n * 0.5 * radius);
+ const ny = (r - cy) / (n * 0.5 * radius);
+ const metric = regionMetric(nx, ny, stretch, pinch);
+
+ // soft "bulge" silhouette
+ if (metric > 1.03) continue;
+
+ const fade = Math.max(0, 1 - Math.max(0, metric - 0.78) / 0.25);
+ if (fade <= 0.03) continue;
+
+ const x = margin + c * cell;
+ const y = margin + r * cell;
+ const isDark = ((r + c) % 2) === 0;
+ const fill = isDark ? light : dark;
+ const stroke = isDark ? '#111' : '#f1f1f1';
+
+ const pattern = choosePattern(nx, ny);
+
+ ctx.globalAlpha = 0.9 * fade + 0.1;
+ drawPair(pattern, x, y, cell, inset, size, fill, stroke, shape);
+ }
+ }
+
+ ctx.globalAlpha = 1;
+ updateLabels();
+ }
+
+ function updateLabels() {
+ $('dotSizeOut').textContent = controls.dotSize.value + '%';
+ $('offsetOut').textContent = controls.offset.value + '%';
+ $('radiusOut').textContent = controls.radius.value + '%';
+ $('stretchOut').textContent = (Number(controls.verticalStretch.value) / 100).toFixed(2);
+ $('pinchOut').textContent = (Number(controls.pinch.value) / 100).toFixed(2);
+ }
+
+ Object.values(controls).forEach(ctrl => {
+ ctrl.addEventListener('input', () => draw());
+ });
+
+ controls.preset.addEventListener('change', () => setPreset(controls.preset.value));
+
+ $('download').addEventListener('click', () => {
+ draw();
+ const a = document.createElement('a');
+ a.href = canvas.toDataURL('image/png');
+ a.download = 'kitaoka-bulge-padrao-corrido.png';
+ a.click();
+ });
+
+ window.addEventListener('resize', draw);
+ setPreset('reference');
+})();
+</script>
+</body>
+</html>
