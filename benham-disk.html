@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+ <title>Disco de Benham — Ilusão de Ótica</title>
+ <style>
+ :root {
+ color-scheme: dark;
+ --bg: #16171b;
+ --panel: rgba(24, 25, 31, 0.92);
+ --text: #f4f4f5;
+ --muted: #a8a8b3;
+ --accent: #7c9cff;
+ }
+
+ * { box-sizing: border-box; }
+
+ html, body {
+ width: 100%;
+ min-height: 100%;
+ margin: 0;
+ font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+ background:
+ radial-gradient(circle at 50% 20%, #292b33 0%, #17181d 45%, #101114 100%);
+ color: var(--text);
+ overflow-x: hidden;
+ }
+
+ body {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ padding: 20px;
+ }
+
+ .app {
+ width: min(100%, 920px);
+ display: grid;
+ grid-template-columns: minmax(260px, 1fr) 320px;
+ gap: 24px;
+ align-items: center;
+ }
+
+ .stage {
+ display: grid;
+ place-items: center;
+ min-height: min(72vh, 720px);
+ touch-action: none;
+ }
+
+ .disc-wrap {
+ width: min(78vw, 650px);
+ aspect-ratio: 1;
+ border-radius: 50%;
+ overflow: hidden;
+ box-shadow:
+ 0 30px 80px rgba(0,0,0,.55),
+ 0 0 0 1px rgba(255,255,255,.08);
+ background: #bbb;
+ will-change: transform;
+ }
+
+ .disc-wrap canvas {
+ display: block;
+ width: 100%;
+ height: 100%;
+ user-select: none;
+ -webkit-user-drag: none;
+ pointer-events: none;
+ }
+
+ .panel {
+ background: var(--panel);
+ border: 1px solid rgba(255,255,255,.09);
+ border-radius: 20px;
+ padding: 22px;
+ box-shadow: 0 18px 50px rgba(0,0,0,.38);
+ backdrop-filter: blur(12px);
+ }
+
+ h1 {
+ margin: 0 0 6px;
+ font-size: clamp(1.55rem, 4vw, 2.1rem);
+ line-height: 1.1;
+ }
+
+ .subtitle {
+ margin: 0 0 22px;
+ color: var(--muted);
+ line-height: 1.45;
+ font-size: .95rem;
+ }
+
+ .control { margin-top: 18px; }
+
+ .step-hint {
+ margin-top: 7px;
+ color: var(--muted);
+ font-size: .78rem;
+ line-height: 1.35;
+ }
+
+ .label-row {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
+ margin-bottom: 9px;
+ }
+
+ label {
+ font-weight: 650;
+ font-size: .95rem;
+ }
+
+ output {
+ color: var(--accent);
+ font-variant-numeric: tabular-nums;
+ font-weight: 700;
+ }
+
+ input[type="range"] {
+ width: 100%;
+ accent-color: var(--accent);
+ cursor: pointer;
+ }
+
+ .buttons {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 10px;
+ margin-top: 22px;
+ }
+
+ button {
+ border: 0;
+ border-radius: 13px;
+ padding: 13px 14px;
+ background: #30323a;
+ color: var(--text);
+ font: inherit;
+ font-weight: 700;
+ cursor: pointer;
+ transition: transform .15s ease, background .15s ease;
+ touch-action: manipulation;
+ }
+
+ button:hover { background: #3a3d47; }
+ button:active { transform: scale(.98); }
+ button.primary { background: var(--accent); color: #0b1020; }
+
+ .readout {
+ margin-top: 18px;
+ padding: 13px 14px;
+ border-radius: 13px;
+ background: rgba(255,255,255,.045);
+ color: var(--muted);
+ font-size: .88rem;
+ line-height: 1.45;
+ }
+
+ .readout strong { color: var(--text); }
+
+ .warning {
+ margin-top: 14px;
+ color: #d6d6dc;
+ font-size: .78rem;
+ opacity: .78;
+ }
+
+ @media (max-width: 760px) {
+ body { align-items: flex-start; padding: 14px; }
+ .app { grid-template-columns: 1fr; gap: 14px; }
+ .stage { min-height: auto; padding: 8px 0 2px; }
+ .disc-wrap { width: min(92vw, 590px); }
+ .panel { padding: 18px; }
+ }
+ </style>
+</head>
+<body>
+<div class="app">
+ <div class="stage">
+ <div class="disc-wrap">
+ <canvas id="disc" width="800" height="800"></canvas>
+ </div>
+ </div>
+
+ <div class="panel">
+ <h1>🌀 Disco de Benham</h1>
+ <p class="subtitle">
+ Gire o disco e observe o surgimento de <strong>cores fantasma</strong>.<br />
+ Um fenômeno conhecido como <em>feofênomeno de Benham</em> (1894).
+ </p>
+
+ <div class="control">
+ <div class="label-row">
+ <label for="speed">Velocidade</label>
+ <output id="speedVal">300 RPM</output>
+ </div>
+ <input type="range" id="speed" min="0" max="3000" value="300" step="10" />
+ <div class="step-hint">0 = parado &nbsp;·&nbsp; Quanto mais rápido, mais cores podem aparecer</div>
+ </div>
+
+ <div class="control">
+ <div class="label-row">
+ <label for="pattern">Padrão</label>
+ <output id="patternVal">Clássico</output>
+ </div>
+ <input type="range" id="pattern" min="0" max="3" value="0" step="1" />
+ <div class="step-hint">0: Clássico · 1: Espiral · 2: Raios · 3: Chevron</div>
+ </div>
+
+ <div class="buttons">
+ <button id="toggleBtn" class="primary">⏸ Pausar</button>
+ <button id="resetBtn">↺ Sentido</button>
+ </div>
+
+ <div class="readout">
+ <strong>👁️ Como funciona</strong><br />
+ O Disco de Benham é metade preto, metade branco, com arcos concêntricos. Ao girar, a retina interpreta os flashes intermitentes de luz como <strong>cores subjetivas</strong> — geralmente azul, vermelho e verde. A ciência ainda debate o mecanismo exato, mas acredita-se que envolva a resposta temporal desigual dos cones S, M e L da retina.
+ </div>
+
+ <div class="warning">
+ ⚠️ Se sentir desconforto visual, diminua a velocidade ou pause.
+ </div>
+ </div>
+</div>
+
+<script>
+(function() {
+ const canvas = document.getElementById('disc');
+ const ctx = canvas.getContext('2d');
+ const W = canvas.width;
+ const H = canvas.height;
+ const cx = W / 2;
+ const cy = H / 2;
+ const R = W / 2 - 4;
+
+ const speedInput = document.getElementById('speed');
+ const speedVal = document.getElementById('speedVal');
+ const patternInput = document.getElementById('pattern');
+ const patternVal = document.getElementById('patternVal');
+ const toggleBtn = document.getElementById('toggleBtn');
+ const resetBtn = document.getElementById('resetBtn');
+
+ let angle = 0;
+ let running = true;
+ let lastTime = 0;
+ let rafId = null;
+
+ const patternNames = ['Clássico', 'Espiral', 'Raios', 'Chevron'];
+
+ // ── draw the static pattern ──────────────────────────────────
+ function drawPattern(pat) {
+ ctx.clearRect(0, 0, W, H);
+
+ // half white, half black background
+ ctx.beginPath();
+ ctx.arc(cx, cy, R, 0, Math.PI * 2);
+ ctx.fillStyle = '#fff';
+ ctx.fill();
+
+ ctx.beginPath();
+ ctx.arc(cx, cy, R, -Math.PI / 2, Math.PI / 2);
+ ctx.lineTo(cx, cy);
+ ctx.closePath();
+ ctx.fillStyle = '#000';
+ ctx.fill();
+
+ // inner ring (small white circle at center)
+ ctx.beginPath();
+ ctx.arc(cx, cy, R * 0.06, 0, Math.PI * 2);
+ ctx.fillStyle = '#fff';
+ ctx.fill();
+
+ // ── arcs ─────────────────────────────────────────────────────
+ const arcCount = 12;
+ const arcWidth = R * 0.035;
+
+ for (let i = 0; i < arcCount; i++) {
+ const t = (i + 1) / (arcCount + 1);
+ const r = R * (0.12 + t * 0.78);
+
+ let startA, endA;
+
+ switch (pat) {
+ case 0: // Classic — arcs on the black half
+ startA = -Math.PI / 2 + 0.05;
+ endA = Math.PI / 2 - 0.05;
+ break;
+ case 1: // Spiral — arcs rotate progressively
+ startA = -Math.PI / 2 + i * 0.18;
+ endA = Math.PI / 2 - 0.05 + i * 0.18;
+ break;
+ case 2: // Rays — thin radial spokes on black half
+ {
+ const spokeCount = 18;
+ const si = i % spokeCount;
+ const baseAngle = -Math.PI / 2 + (si / spokeCount) * Math.PI;
+ startA = baseAngle - 0.02;
+ endA = baseAngle + 0.02;
+ }
+ break;
+ case 3: // Chevron — V shapes
+ {
+ const segs = 8;
+ const si = i % segs;
+ const baseAngle = -Math.PI / 2 + (si / segs) * Math.PI;
+ const halfSpan = 0.12 + (i / arcCount) * 0.06;
+ startA = baseAngle - halfSpan;
+ endA = baseAngle + halfSpan;
+ }
+ break;
+ }
+
+ ctx.beginPath();
+ ctx.arc(cx, cy, r, startA, endA);
+ ctx.lineWidth = arcWidth;
+ ctx.strokeStyle = '#000';
+ ctx.stroke();
+ }
+ }
+
+ // ── draw rotated ─────────────────────────────────────────────
+ function drawRotated(angleRad) {
+ ctx.save();
+ ctx.translate(cx, cy);
+ ctx.rotate(angleRad);
+ ctx.translate(-cx, -cy);
+
+ const pat = parseInt(patternInput.value);
+ drawPattern(pat);
+
+ ctx.restore();
+ }
+
+ // ── animation loop ───────────────────────────────────────────
+ function tick(time) {
+ if (!lastTime) lastTime = time;
+ const dt = (time - lastTime) / 1000; // seconds
+ lastTime = time;
+
+ const rpm = parseFloat(speedInput.value);
+ if (running && rpm > 0) {
+ const revPerSec = rpm / 60;
+ angle += revPerSec * dt * Math.PI * 2;
+ }
+
+ drawRotated(angle);
+
+ rafId = requestAnimationFrame(tick);
+ }
+
+ // ── UI events ────────────────────────────────────────────────
+ speedInput.addEventListener('input', () => {
+ speedVal.textContent = speedInput.value + ' RPM';
+ });
+
+ patternInput.addEventListener('input', () => {
+ patternVal.textContent = patternNames[parseInt(patternInput.value)];
+ });
+
+ toggleBtn.addEventListener('click', () => {
+ running = !running;
+ toggleBtn.textContent = running ? '⏸ Pausar' : '▶ Continuar';
+ });
+
+ resetBtn.addEventListener('click', () => {
+ angle = 0;
+ });
+
+ // ── start ────────────────────────────────────────────────────
+ drawRotated(0);
+ rafId = requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
