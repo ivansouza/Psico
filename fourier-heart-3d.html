@@ -176,7 +176,9 @@
  }
 
  // --- Atualizar círculos dos epiciclos ---
- function updateCircles() {
+ function updateCircles(rotY) {
+ const cosR = Math.cos(rotY);
+ const sinR = Math.sin(rotY);
  // Remove circles antigos
  while (circlesGroup.children.length > 0) {
  const child = circlesGroup.children[0];
@@ -202,7 +204,9 @@
  depthWrite: false
  });
  const circle = new THREE.Mesh(circleGeo, circleMat);
- circle.position.set(x, y, 0);
+ const cx = x * cosR - y * sinR;
+ const cy = x * sinR + y * cosR;
+ circle.position.set(cx, cy, 0);
  circlesGroup.add(circle);
 
  const angle = time * c.k + c.phase;
@@ -255,17 +259,21 @@
  y += radius * Math.sin(angle);
  }
 
- // Rotaciona 5 graus por ciclo no eixo Y
- heartGroup.rotation.y = (time / (Math.PI * 2)) * 5 * Math.PI / 180;
+ // Rotaciona as coordenadas em torno da ponta (centro)
+ const rotY = (time / (Math.PI * 2)) * 5 * Math.PI / 180;
+ const cosR = Math.cos(rotY);
+ const sinR = Math.sin(rotY);
+ const rx = x * cosR - y * sinR;
+ const ry = x * sinR + y * cosR;
 
  const zClamped = 0;
 
  // Atualiza ponto
- dot.position.set(x, y, zClamped);
- glow.position.set(x, y, zClamped);
+ dot.position.set(rx, ry, zClamped);
+ glow.position.set(rx, ry, zClamped);
 
  // Atualiza trail
- updateTrail(x, y, zClamped);
+ updateTrail(rx, ry, zClamped);
 
  // Pulsar do trail (vermelho neon)
  const pulse = 0.6 + 0.4 * Math.sin(time * 3);
@@ -273,7 +281,7 @@
  trailMat.color.setHSL(0.0, 1, 0.3 + 0.3 * pulse);
 
  // Atualiza círculos
- updateCircles();
+ updateCircles(rotY);
  }
 
  controls.update();
