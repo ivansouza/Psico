@@ -242,15 +242,17 @@
  y += radius * Math.sin(angle);
  }
 
- // Z varia com o tempo (espiral 3D)
- const z = Math.sin(time * 0.5) * Z_SPREAD;
+ // Z varia 1 grau por volta, até 360 graus
+ const totalAngle = time; // angulo acumulado
+ const z = (totalAngle / (Math.PI * 2)) * (Z_SPREAD / 360); // 1 grau por volta
+ const zClamped = Math.min(z, Z_SPREAD); // max 360 graus = Z_SPREAD
 
  // Atualiza ponto
- dot.position.set(x, y, z);
- glow.position.set(x, y, z);
+ dot.position.set(x, y, zClamped);
+ glow.position.set(x, y, zClamped);
 
  // Atualiza trail
- updateTrail(x, y, z);
+ updateTrail(x, y, zClamped);
 
  // Atualiza círculos
  updateCircles();
