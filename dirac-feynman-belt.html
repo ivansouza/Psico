@@ -277,20 +277,6 @@
  right: 16px;
  }
  }
-
- /* Responsividade */
- @media (max-width: 480px) {
- .modal-card {
- padding: 18px;
- max-width: 92%;
- }
- .modal-card h1 {
- font-size: 1rem;
- }
- .modal-card p {
- font-size: 0.82rem;
- }
- }
  </style>
 </head>
 <body>
@@ -351,20 +337,26 @@
 
  <canvas id="glcanvas"></canvas>
 
- <!-- Vertex Shader -->
- <script id="vertex-shader" type="x-shader/x-vertex">
- #version 300 es
- precision highp float;
+ <script>
+ const canvas = document.getElementById('glcanvas');
+ const loader = document.getElementById('loader');
+ const gl = canvas.getContext('webgl2');
 
+ if (!gl) {
+ alert('Este experimento exige suporte a WebGL 2. Tente em um navegador moderno atualizado.');
+ loader.style.display = 'none';
+ }
+
+ // --- Código do Vertex Shader ---
+ const vsSource = `#version 300 es
  in vec2 position;
  void main() {
  gl_Position = vec4(position, 0.0, 1.0);
  }
- </script>
+ `;
 
- <!-- Fragment Shader -->
- <script id="fragment-shader" type="x-shader/x-fragment">
- #version 300 es
+ // --- Código do Fragment Shader ---
+ const fsSource = `#version 300 es
  precision highp float;
  precision highp int;
 
@@ -730,10 +722,6 @@
  }
  `;
 
- // Código dos Shaders (lidos dos scripts inline)
- const vsSource = document.getElementById('vertex-shader').textContent;
- const fsSource = document.getElementById('fragment-shader').textContent;
-
  // Compilação dos Shaders
  function createShader(gl, type, source) {
  const shader = gl.createShader(type);
@@ -783,6 +771,7 @@
  let cameraDist = 9.5;
  const minCameraDist = 4.5;
  const maxCameraDist = 24.0;
+
  let mouseX = canvas.clientWidth * 0.55;
  let mouseY = canvas.clientHeight * 0.50;
  let mouseZ = 0.0;
@@ -814,10 +803,6 @@
  if (e.target === modalOverlay) {
  modalOverlay.classList.remove('show');
  }
- });
-
- document.addEventListener('keydown', (e) => {
- if (e.key === 'Escape') modalOverlay.classList.remove('show');
  });
 
  // Evita rotação quando se interage com os botões ou com o modal
@@ -895,10 +880,11 @@
  mouseZ = 0.0;
  });
 
- // --- Zoom buttons ---
+ // Eventos dos Botões Flutuantes (Click Zoom)
  document.getElementById('zoom-in').addEventListener('click', () => {
  cameraDist = Math.max(minCameraDist, cameraDist - 1.2);
  });
+
  document.getElementById('zoom-out').addEventListener('click', () => {
  cameraDist = Math.min(maxCameraDist, cameraDist + 1.2);
  });
