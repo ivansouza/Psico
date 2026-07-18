@@ -2,75 +2,112 @@
 <html lang="pt-BR">
 <head>
  <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>3D Fire</title>
+ <title>Shader Render - WebGL2</title>
  <style>
- body { margin:0; overflow:hidden; background:#000; }
- canvas { display:block; width:100vw; height:100vh; }
+ body {
+ margin: 0;
+ overflow: hidden;
+ background: #000;
+ }
+ canvas {
+ display: block;
+ width: 100vw;
+ height: 100vh;
+ }
  </style>
 </head>
 <body>
- <canvas id="c"></canvas>
 
- <script>
- // "3D Fire" by @XorDev — GLSL ES 1.0 (WebGL1, igual ao twigl)
- const canvas = document.getElementById('c');
- const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+ <canvas id="canvas"></canvas>
 
- const vertexShader = `
- attribute vec2 p;
- void main() { gl_Position = vec4(p, 0.0, 1.0); }
- `;
+ <!-- Vertex Shader -->
+ <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+ in vec2 position;
+ void main() {
+ gl_Position = vec4(position, 0.0, 1.0);
+ }
+ </script>
 
- const fragmentShader = `
+ <!-- Fragment Shader -->
+ <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
  precision highp float;
- uniform vec2 r;
- uniform float t;
+ uniform vec2 u_resolution;
+ uniform float u_time;
+ out vec4 fragColor;
+
+ // Mapeamento de codificação curta do modo geekest do Twigl
+ #define t u_time
+ #define r vec3(u_resolution, 1.0)
+ #define FC vec4(gl_FragCoord.xy, 0.0, 1.0)
 
  void main() {
- vec2 FC = gl_FragCoord.xy;
- gl_FragColor = vec4(0.0);
+ vec4 o = vec4(0.0);
+ float z = 0.0, d = 0.0, j = 0.0;
 
- for(float i,z,d,j; i++ < 50.0; ){
- gl_FragColor += (sin(z/3.0 + vec4(7,2,3,0)) + 1.1) / d;
- vec3 p = z * normalize(vec3(FC,0)*2.0 - r.xyy);
+ // Loop original do Twigl
+ for (float i = 0.0; i < 50.0; i++) {
+ vec3 p = z * normalize(FC.rgb * 2.0 - r.xyy);
  p.z += 5.0 + cos(t);
- p.xz *= mat2(cos(t + p.y*0.5 + vec4(0,33,11,0))) / max(p.y*0.1 + 1.0, 0.1);
- for(j=2.0; j<15.0; j/=0.6)
- p += cos((p.yzx - vec3(t,0,0)/0.1)*j + t) / j;
- z += d = 0.01 + abs(length(p.xz) + p.y*0.3 - 0.5)/7.0;
- }
- gl_FragColor = tanh(gl_FragColor / 1000.0);
- }
- `;
+ p.xz *= mat2(cos(t + p.y * 0.5 + vec4(0, 33, 11, 0))) / max(p.y * 0.1 + 1.0, 0.1);
 
- function createShader(type, source) {
+ for (j = 2.0; j < 15.0; j /= 0.6) {
+ p += cos((p.yzx - vec3(t, 0.0, 0.0) / 0.1) * j + t) / j;
+ }
+ z += d = 0.01 + abs(length(p.xz) + p.y * 0.3 - 0.5) / 7.0;
+ o += (sin(z / 3.0 + vec4(7, 2, 3, 0)) + 1.1) / d;
+ }
+ fragColor = tanh(o / 1000.0);
+ }
+ </script>
+
+ <!-- Boilerplate JavaScript para rodar o WebGL2 -->
+ <script>
+ const canvas = document.getElementById('canvas');
+ const gl = canvas.getContext('webgl2');
+
+ if (!gl) {
+ console.error('WebGL 2 não suportado neste navegador.');
+ }
+
+ // Função auxiliar para compilar shaders
+ function createShader(gl, type, source) {
  const shader = gl.createShader(type);
  gl.shaderSource(shader, source);
  gl.compileShader(shader);
  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
  console.error(gl.getShaderInfoLog(shader));
+ gl.deleteShader(shader);
+ return null;
  }
  return shader;
  }
 
+ // Configuração do Programa WebGL
  const program = gl.createProgram();
- gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexShader));
- gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentShader));
+ gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, document.getElementById('vertex-shader').text));
+ gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, document.getElementById('fragment-shader').text));
  gl.linkProgram(program);
  gl.useProgram(program);
 
- const buffer = gl.createBuffer();
- gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
- gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1, -1,1, 1,-1]), gl.STATIC_DRAW);
+ // Geometria básica: 1 quad encobrindo a tela inteira (2 triângulos)
+ const positionBuffer = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+ -1, -1,
+ 1, -1,
+ -1, 1,
+ 1, 1
+ ]), gl.STATIC_DRAW);
 
- const posLoc = gl.getAttribLocation(program, "p");
- gl.enableVertexAttribArray(posLoc);
- gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+ const positionLocation = gl.getAttribLocation(program, 'position');
+ gl.enableVertexAttribArray(positionLocation);
+ gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
- const resLoc = gl.getUniformLocation(program, "r");
- const timeLoc = gl.getUniformLocation(program, "t");
+ // Captura das localizações das Uniforms
+ const resLocation = gl.getUniformLocation(program, 'u_resolution');
+ const timeLocation = gl.getUniformLocation(program, 'u_time');
 
+ // Loop de Renderização Contínua
  function resize() {
  canvas.width = window.innerWidth;
  canvas.height = window.innerHeight;
@@ -83,9 +120,9 @@
 
  function render() {
  const time = (Date.now() - start) * 0.001;
- gl.uniform2f(resLoc, canvas.width, canvas.height);
- gl.uniform1f(timeLoc, time);
- gl.drawArrays(gl.TRIANGLES, 0, 6);
+ gl.uniform2f(resLocation, canvas.width, canvas.height);
+ gl.uniform1f(timeLocation, time);
+ gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
  requestAnimationFrame(render);
  }
 
