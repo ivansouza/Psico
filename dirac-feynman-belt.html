@@ -366,278 +366,244 @@
  <script id="fragment-shader" type="x-shader/x-fragment">
  #version 300 es
  precision highp float;
+ precision highp int;
 
- uniform vec2 iResolution;
+ uniform vec3 iResolution;
  uniform float iTime;
+ uniform vec4 iMouse;
+ uniform float uCameraDist;
 
  out vec4 fragColor;
 
- // --- Constantes ---
+ // CONFIGURAÇÕES DO SHADER ORIGINAL
+ #define TURNS 2.0
+ #define HOMOTOPY 0
+ #define TWIST_PROFILE 0
+ #define USE_SLACK 0
+ #define SLACK 0.7
+ #define REPEAT 1
+ #define REMOVE_CENTER 0
+ #define EXACT_SDF 0
+ #define SLABS 64
+ #define SHOW_STRETCH 0
+ #define STRETCH_MAX 6.0
+ #define AA 1
+ #define FOG 0.1
+ #define SHADOWS 0
+ #define DO_AO 0
+ #define ITER 220
+ #define CYCLE 16.0
+ #define FREEZE -1.0
+ #define RMAX 5.00
+ #define FOCAL 1.8
+ #define AUTOROTATE 0.05
+
  #define PI 3.14159265359
  #define TAU 6.28318530718
 
- // --- Utilitários ---
- mat2 rot2(float a) {
- float s = sin(a), c = cos(a);
- return mat2(c, -s, s, c);
+ const float H = 0.62;
+ const float R0 = 1.15;
+ const float R1 = 4.40;
+ const float WID = 0.30;
+ const float THK = 0.06;
+ const float PADL = 0.20;
+
+ #define PERIOD (2.0*R1)
+ #if TWIST_PROFILE==0
+ #define UMAX 1.0
+ #elif TWIST_PROFILE==1
+ #define UMAX 1.5
+ #else
+ #define UMAX 3.0
+ #endif
+
+ float gS; vec2 gA; float gLip;
+ #if REPEAT && REMOVE_CENTER
+ vec3 gCamCell;
+ #endif
+
+ // Quatérnios
+ vec4 qmul (vec4 a, vec4 b){
+ return vec4(a.w*b.xyz+b.w*a.xyz+cross(a.xyz,b.xyz), a.w*b.w-dot(a.xyz,b.xyz)); }
+ vec4 qconj(vec4 q){ return vec4(-q.xyz,q.w); }
+ vec3 qrot (vec4 q, vec3 v){ return v+2.0*cross(q.xyz,cross(q.xyz,v)+q.w*v); }
+
+ // Campo de spinores
+ float uOf(float t){
+ #if TWIST_PROFILE==0
+ return 1.0-t;
+ #elif TWIST_PROFILE==1
+ return 1.0-smoothstep(0.0,1.0,t);
+ #else
+ return 1.0-t*t*t;
+ #endif
  }
 
- // --- SDFs ---
- float sdBox(vec3 p, vec3 b) {
- vec3 q = abs(p) - b;
- return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+ vec3 auxAxis(){
+ #if HOMOTOPY==1
+ return vec3(cos(TAU*gS),0.0,sin(TAU*gS));
+ #else
+ return vec3(1,0,0);
+ #endif
  }
 
- float sdTorus(vec3 p, vec2 t) {
- vec2 q = vec2(length(p.xz) - t.x, p.y);
- return length(q) - t.y;
+ vec4 spinor(float t){
+ vec4 q;
+ #if HOMOTOPY==2
+ float ang=PI*TURNS*gS*t;
+ q=vec4(0,sin(ang),0,cos(ang));
+ #else
+ float u=uOf(t), c=cos(.5*PI*u), d=sin(.5*PI*u);
+ vec3 m=auxAxis();
+ vec4 A=vec4(0,gA.y,0,gA.x);
+ q=qmul(c*A+vec4(d*m,0), qconj(vec4(d*m,c)));
+ #endif
+ #if USE_SLACK
+ float psi=SLACK*sin(PI*t);
+ q=qmul(q,vec4(0,sin(.5*psi),0,cos(.5*psi)));
+ #endif
+ return q;
  }
 
- float sdCylinder(vec3 p, vec3 c) {
- return length(p.xz - c.xy) - c.z;
+ float tOf(float r){ return clamp((R1-r)/(R1-R0),0.0,1.0); }
+
+ float lipschitz(){
+ float phi=PI*TURNS*gS;
+ #if HOMOTOPY==2
+ float w=2.0*phi;
+ #else
+ float w=TAU*UMAX*abs(sin(.5*phi));
+ #endif
+ #if USE_SLACK
+ w+=PI*SLACK;
+ #endif
+ return 1.0+R1*w/(R1-R0);
  }
 
- // --- Operações Booleanas ---
- float opU(float a, float b) { return min(a, b); }
- float opS(float a, float b) { return max(a, -b); }
- float opI(float a, float b) { return max(a, b); }
-
- // --- Suavização ---
- float opSmoothU(float a, float b, float k) {
- float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
- return mix(b, a, h) - k * h * (1.0 - h);
+ // SDF da fita
+ float sdfBelt(vec3 p){
+ float r=length(p.xz);
+ float t=tOf(r);
+ vec4 q=spinor(t);
+ vec3 pp=p;
+ pp.y-=mix(R0,R1,t);
+ pp=qrot(q,pp);
+ float dx=abs(pp.x)-.5*WID;
+ float dy=abs(pp.y)-.5*THK;
+ float dz=abs(pp.z)-PADL;
+ #if EXACT_SDF
+ return length(max(vec3(dx,dy,dz),0.0));
+ #else
+ return max(max(dx,dy),dz);
+ #endif
  }
 
- // --- Cena Principal ---
- float scene(vec3 p) {
- float t = iTime * 0.3;
+ // SDF da cena
+ float map(vec3 p){
+ float d=1e10;
 
- // Rotação global lenta
- p.xz *= rot2(t * 0.15);
- p.xy *= rot2(t * 0.1);
+ // Fita principal
+ float belt=sdfBelt(p);
+ d=min(d,belt);
 
- // Corpo central (esfera achatada)
- float sphere = length(p) - 1.2;
-
- // Anéis concêntricos (torus)
- float ring1 = sdTorus(p, vec2(1.8, 0.06));
- float ring2 = sdTorus(p, vec2(2.4, 0.04));
- float ring3 = sdTorus(p, vec2(3.0, 0.03));
-
- // Fita torcida (belt trick) - uma superfície que se torce
- float beltAngle = t * 0.5;
- vec3 bp = p;
- // Torção helicoidal ao longo do eixo Y
- float twist = bp.y * 0.8 + beltAngle;
- bp.xz *= rot2(twist);
- float belt = sdBox(bp, vec3(0.08, 2.5, 0.6));
- // A fita tem uma "dobra" no meio
- float beltFold = sdBox(bp - vec3(0.0, 0.0, 0.0), vec3(0.6, 0.08, 0.6));
- belt = opSmoothU(belt, beltFold, 0.15);
-
- // Partículas internas (pontos quânticos)
- float particles = 1e10;
- for (int i = 0; i < 12; i++) {
- float fi = float(i);
- float angle = fi * TAU / 12.0 + t;
- float radius = 0.8 + sin(fi * 2.5 + t * 1.5) * 0.3;
- vec3 pp = vec3(cos(angle) * radius, sin(fi * 1.3 + t) * 0.6, sin(angle) * radius);
- particles = min(particles, length(p - pp) - 0.08);
- }
-
- // Estrutura externa (icosaedro aproximado por esferas)
- float outer = 1e10;
- for (int i = 0; i < 20; i++) {
- float fi = float(i);
- float theta = acos(1.0 - 2.0 * (fi + 0.5) / 20.0);
- float phi = PI * (1.0 + sqrt(5.0)) * fi;
- vec3 op = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi)) * 3.8;
- outer = min(outer, length(p - op) - 0.04);
- }
-
- // Combinação
- float d = sphere;
- d = opSmoothU(d, ring1, 0.1);
- d = opSmoothU(d, ring2, 0.08);
- d = opSmoothU(d, ring3, 0.06);
- d = opSmoothU(d, belt, 0.05);
- d = opSmoothU(d, particles, 0.02);
- d = opSmoothU(d, outer, 0.03);
+ // Plano de fundo
+ float ground=p.y+5.0;
+ d=min(d,ground);
 
  return d;
  }
 
- // --- Normal ---
- vec3 calcNormal(vec3 p) {
- const float h = 0.001;
- vec2 k = vec2(1, -1);
+ // Normal
+ vec3 calcNormal(vec3 p){
+ const float h=0.001;
+ vec2 k=vec2(1,-1);
  return normalize(
- k.xyy * scene(p + k.xyy * h) +
- k.yyx * scene(p + k.yyx * h) +
- k.yxy * scene(p + k.yxy * h) +
- k.xxx * scene(p + k.xxx * h)
+ k.xyy*map(p+k.xyy*h)+
+ k.yyx*map(p+k.yyx*h)+
+ k.yxy*map(p+k.yxy*h)+
+ k.xxx*map(p+k.xxx*h)
  );
  }
 
- // --- AO ---
- float calcAO(vec3 p, vec3 n) {
- float ao = 0.0;
- float scale = 1.0;
- for (int i = 0; i < 5; i++) {
- float dist = 0.02 + 0.04 * float(i);
- ao += (dist - scene(p + n * dist)) * scale;
- scale *= 0.85;
- }
- return clamp(1.0 - ao * 2.5, 0.0, 1.0);
- }
-
- // --- Cor da Cena ---
- vec3 sceneColor(vec3 p, vec3 n, float d) {
- // Gradiente de cores baseado na posição e normal
- vec3 col = vec3(0.0);
-
- // Cor base: azul-púrpura com variação
- float hue = atan(n.z, n.x) * 0.5 + 0.5;
- float val = length(n.y) * 0.5 + 0.5;
- col = mix(
- vec3(0.2, 0.1, 0.5), // púrpura escuro
- vec3(0.1, 0.3, 0.8), // azul
- hue
- );
-
- // Anéis dourados
- float ringGlow = 0.0;
- float distToCenter = length(p);
- ringGlow += exp(-pow(mod(distToCenter - 1.8, 0.6) - 0.3, 2.0) * 200.0) * 0.3;
- ringGlow += exp(-pow(mod(distToCenter - 2.4, 0.6) - 0.3, 2.0) * 200.0) * 0.2;
- ringGlow += exp(-pow(mod(distToCenter - 3.0, 0.6) - 0.3, 2.0) * 200.0) * 0.15;
-
- col += vec3(1.0, 0.7, 0.2) * ringGlow;
-
- // Fita: cor ciano vibrante
- float beltDist = abs(length(p.xz) - 1.2);
- if (beltDist < 0.8 && abs(p.y) < 2.5) {
- col = mix(col, vec3(0.0, 0.9, 0.9), 0.3 * exp(-beltDist * 2.0));
- }
-
- // Partículas: branco brilhante
- float particleDist = 1e10;
- for (int i = 0; i < 12; i++) {
- float fi = float(i);
- float angle = fi * TAU / 12.0 + iTime * 0.3;
- float radius = 0.8 + sin(fi * 2.5 + iTime * 1.5) * 0.3;
- vec3 pp = vec3(cos(angle) * radius, sin(fi * 1.3 + iTime) * 0.6, sin(angle) * radius);
- particleDist = min(particleDist, length(p - pp));
- }
- if (particleDist < 0.15) {
- col = mix(col, vec3(1.0, 0.95, 0.8), 0.8 * (1.0 - particleDist / 0.15));
- }
-
- // Estrutura externa: linhas brilhantes
- float outerDist = 1e10;
- for (int i = 0; i < 20; i++) {
- float fi = float(i);
- float theta = acos(1.0 - 2.0 * (fi + 0.5) / 20.0);
- float phi = PI * (1.0 + sqrt(5.0)) * fi;
- vec3 op = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi)) * 3.8;
- outerDist = min(outerDist, length(p - op));
- }
- if (outerDist < 0.1) {
- col = mix(col, vec3(0.3, 0.6, 1.0), 0.6 * (1.0 - outerDist / 0.1));
- }
-
- // Brilho interno (glow do centro)
- float centerGlow = exp(-length(p) * 1.5) * 0.4;
- col += vec3(0.8, 0.4, 1.0) * centerGlow;
-
- // AO
- float ao = calcAO(p, n);
- col *= ao;
-
- // Iluminação simples
- vec3 lightDir = normalize(vec3(1.0, 2.0, 1.0));
- float diff = max(dot(n, lightDir), 0.0) * 0.6 + 0.4;
- col *= diff;
-
- // Fresnel (borda)
- float fresnel = pow(1.0 - abs(dot(n, normalize(p))), 3.0);
- col += vec3(0.2, 0.5, 1.0) * fresnel * 0.3;
-
+ // Cor
+ vec3 getColor(vec3 p, vec3 n){
+ float r=length(p.xz);
+ float t=tOf(r);
+ float hue=mix(0.55,0.65,t);
+ vec3 col=0.5+0.5*cos(2.0*PI*vec3(hue+0.0,hue+0.33,hue+0.67));
+ col*=0.8+0.4*dot(n,normalize(vec3(1,2,1)));
  return col;
  }
 
- // --- Raymarching Principal ---
- void main() {
- vec2 uv = (gl_FragCoord.xy - 0.5 * iResolution.xy) / iResolution.y;
+ void main(){
+ vec2 uv=(gl_FragCoord.xy-0.5*iResolution.xy)/iResolution.y;
 
  // Câmera
- float camDist = 8.0;
- float camHeight = 1.5;
- float camAngle = iTime * 0.08;
- vec3 ro = vec3(sin(camAngle) * camDist, camHeight, cos(camAngle) * camDist);
- vec3 ta = vec3(0.0, 0.0, 0.0);
- vec3 ww = normalize(ta - ro);
- vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
- vec3 vv = cross(uu, ww);
- vec3 rd = normalize(uv.x * uu + uv.y * vv + ww * 1.8);
+ float camDist=uCameraDist;
+ float camAngle=iTime*AUTOROTATE+iMouse.x*0.01;
+ float camHeight=1.5+iMouse.y*0.005;
+ vec3 ro=vec3(sin(camAngle)*camDist,camHeight,cos(camAngle)*camDist);
+ vec3 ta=vec3(0,0,0);
+ vec3 ww=normalize(ta-ro);
+ vec3 uu=normalize(cross(ww,vec3(0,1,0)));
+ vec3 vv=cross(uu,ww);
+ vec3 rd=normalize(uv.x*uu+uv.y*vv+ww*FOCAL);
 
  // Raymarching
- float tmin = 0.1;
- float tmax = 30.0;
- float t = tmin;
- vec3 col = vec3(0.0);
-
- for (int i = 0; i < 100; i++) {
- vec3 p = ro + rd * t;
- float d = scene(p);
-
- if (d < 0.001) {
- vec3 n = calcNormal(p);
- col = sceneColor(p, n, d);
- // Profundidade para fade
- float depthFade = exp(-t * 0.08);
- col *= depthFade;
+ float t=0.1;
+ vec3 col=vec3(0);
+ for(int i=0;i<ITER;i++){
+ vec3 p=ro+rd*t;
+ float d=map(p);
+ if(d<0.001){
+ vec3 n=calcNormal(p);
+ col=getColor(p,n);
  break;
  }
-
- if (t > tmax) {
- // Fundo: estrelas
- vec3 bg = vec3(0.02, 0.02, 0.05);
- float stars = 0.0;
- vec3 sp = rd * 100.0;
- stars = pow(max(0.0, sin(sp.x * 100.0) * sin(sp.y * 100.0) * sin(sp.z * 100.0)), 20.0);
- bg += vec3(0.8, 0.9, 1.0) * stars * 0.5;
- col = bg;
- break;
+ if(t>RMAX){ break; }
+ t+=d*0.8;
  }
 
- t += d * 0.8;
+ // Fundo
+ if(t>RMAX){
+ col=mix(vec3(0.02,0.02,0.05),vec3(0.1,0.05,0.15),uv.y*0.5+0.5);
  }
 
  // Vignette
- vec2 vig = gl_FragCoord.xy / iResolution.xy;
- vig = 0.5 + 0.5 * cos(3.14159 * (vig * 2.0 - 1.0));
- col *= vig.x * vig.y;
+ vec2 vig=gl_FragCoord.xy/iResolution.xy;
+ vig=0.5+0.5*cos(PI*(vig*2.0-1.0));
+ col*=vig.x*vig.y;
 
  // Tone mapping
- col = col / (col + 1.0);
- col = pow(col, vec3(1.0 / 2.2));
+ col=col/(col+1.0);
+ col=pow(col,vec3(1.0/2.2));
 
- fragColor = vec4(col, 1.0);
+ fragColor=vec4(col,1.0);
  }
  </script>
 
  <script>
- // --- Inicialização WebGL2 ---
  const canvas = document.getElementById('glcanvas');
+ const loader = document.getElementById('loader');
  const gl = canvas.getContext('webgl2');
 
  if (!gl) {
- document.body.innerHTML = '<div style="color:white;padding:20px;font-family:sans-serif;">WebGL2 não é suportado neste navegador.</div>';
- throw new Error('WebGL2 não suportado');
+ alert('Este experimento exige suporte a WebGL 2. Tente em um navegador moderno atualizado.');
+ loader.style.display = 'none';
  }
 
- // --- Compilação dos Shaders ---
+ // --- Código do Vertex Shader ---
+ const vsSource = `#version 300 es
+ in vec2 position;
+ void main() {
+ gl_Position = vec4(position, 0.0, 1.0);
+ }
+ `;
+
+ // --- Código do Fragment Shader ---
+ const fsSource = document.getElementById('fragment-shader').textContent;
+
+ // --- Compilação ---
  function createShader(gl, source, type) {
  const shader = gl.createShader(type);
  gl.shaderSource(shader, source);
@@ -664,21 +630,17 @@
  return program;
  }
 
- const vertexShaderSource = document.getElementById('vertex-shader').textContent;
- const fragmentShaderSource = document.getElementById('fragment-shader').textContent;
- const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+ const program = createProgram(gl, vsSource, fsSource);
 
  // --- Atributos e Uniforms ---
  const positionLocation = gl.getAttribLocation(program, 'position');
  const resolutionLocation = gl.getUniformLocation(program, 'iResolution');
  const timeLocation = gl.getUniformLocation(program, 'iTime');
+ const mouseLocation = gl.getUniformLocation(program, 'iMouse');
+ const camDistLocation = gl.getUniformLocation(program, 'uCameraDist');
 
  // --- Geometria (triângulo que cobre a tela) ---
- const vertices = new Float32Array([
- -1, -1,
- 3, -1,
- -1, 3
- ]);
+ const vertices = new Float32Array([-1, -1, 3, -1, -1, 3]);
  const vao = gl.createVertexArray();
  gl.bindVertexArray(vao);
  const buffer = gl.createBuffer();
@@ -687,20 +649,26 @@
  gl.enableVertexAttribArray(positionLocation);
  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
+ // --- Estado de Câmera ---
+ let zoomLevel = 5.0;
+ let orbitX = 0, orbitY = 0;
+ let isDragging = false;
+ let prevX = 0, prevY = 0;
+ let mouseX = 0, mouseY = 0;
+
  // --- Render Loop ---
  function render(time) {
- // Ajusta o tamanho do buffer se a janela mudar de escala
  if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
  canvas.width = window.innerWidth;
  canvas.height = window.innerHeight;
  gl.viewport(0, 0, canvas.width, canvas.height);
  }
 
- // Envia as variáveis uniform atualizadas para a GPU
- gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+ gl.uniform3f(resolutionLocation, canvas.width, canvas.height, 0.0);
  gl.uniform1f(timeLocation, time * 0.001);
+ gl.uniform4f(mouseLocation, mouseX, mouseY, 0.0, 0.0);
+ gl.uniform1f(camDistLocation, zoomLevel);
 
- // Desenha
  gl.useProgram(program);
  gl.bindVertexArray(vao);
  gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -710,34 +678,7 @@
 
  requestAnimationFrame(render);
 
- // --- Modal (Explicação) ---
- const gearBtn = document.getElementById('gear-btn');
- const modalOverlay = document.getElementById('modal-overlay');
- const closeBtn = document.getElementById('close-modal');
-
- gearBtn.addEventListener('click', () => {
- modalOverlay.classList.add('show');
- });
-
- closeBtn.addEventListener('click', () => {
- modalOverlay.classList.remove('show');
- });
-
- modalOverlay.addEventListener('click', (e) => {
- if (e.target === modalOverlay) {
- modalOverlay.classList.remove('show');
- }
- });
-
- // Tecla ESC para fechar
- document.addEventListener('keydown', (e) => {
- if (e.key === 'Escape') {
- modalOverlay.classList.remove('show');
- }
- });
-
- // --- Loader: esconder após primeira renderização ---
- const loader = document.getElementById('loader');
+ // --- Loader ---
  let loaderHidden = false;
  function hideLoader() {
  if (!loaderHidden) {
@@ -746,49 +687,39 @@
  setTimeout(() => { loader.style.display = 'none'; }, 500);
  }
  }
- // Esconde após 1.5s ou no primeiro clique/interação
- setTimeout(hideLoader, 1500);
+ setTimeout(hideLoader, 2000);
  document.addEventListener('click', hideLoader, { once: true });
  document.addEventListener('touchstart', hideLoader, { once: true });
 
- // --- Zoom Controls (simula scroll no canvas) ---
- let zoomLevel = 8.0;
- const zoomInBtn = document.getElementById('zoom-in');
- const zoomOutBtn = document.getElementById('zoom-out');
+ // --- Modal ---
+ const gearBtn = document.getElementById('gear-btn');
+ const modalOverlay = document.getElementById('modal-overlay');
+ const closeBtn = document.getElementById('close-modal');
 
- zoomInBtn.addEventListener('click', () => {
- zoomLevel = Math.max(2.0, zoomLevel - 1.0);
+ gearBtn.addEventListener('click', () => modalOverlay.classList.add('show'));
+ closeBtn.addEventListener('click', () => modalOverlay.classList.remove('show'));
+ modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('show'); });
+ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modalOverlay.classList.remove('show'); });
+
+ // --- Zoom ---
+ document.getElementById('zoom-in').addEventListener('click', () => {
+ zoomLevel = Math.max(2.0, zoomLevel - 0.5);
  });
- zoomOutBtn.addEventListener('click', () => {
- zoomLevel = Math.min(20.0, zoomLevel + 1.0);
- });
-
- // --- Mouse/Touch Orbit ---
- let isDragging = false;
- let prevX = 0, prevY = 0;
- let orbitX = 0, orbitY = 0;
-
- canvas.addEventListener('mousedown', (e) => {
- isDragging = true;
- prevX = e.clientX;
- prevY = e.clientY;
+ document.getElementById('zoom-out').addEventListener('click', () => {
+ zoomLevel = Math.min(15.0, zoomLevel + 0.5);
  });
 
+ // --- Mouse Orbit ---
+ canvas.addEventListener('mousedown', (e) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
  document.addEventListener('mousemove', (e) => {
  if (!isDragging) return;
- const dx = e.clientX - prevX;
- const dy = e.clientY - prevY;
- orbitX += dx * 0.005;
- orbitY += dy * 0.005;
- prevX = e.clientX;
- prevY = e.clientY;
+ const dx = e.clientX - prevX, dy = e.clientY - prevY;
+ mouseX += dx; mouseY += dy;
+ prevX = e.clientX; prevY = e.clientY;
  });
+ document.addEventListener('mouseup', () => { isDragging = false; });
 
- document.addEventListener('mouseup', () => {
- isDragging = false;
- });
-
- // Touch support
+ // --- Touch Orbit ---
  canvas.addEventListener('touchstart', (e) => {
  if (e.touches.length === 1) {
  isDragging = true;
@@ -796,30 +727,20 @@
  prevY = e.touches[0].clientY;
  }
  });
-
  canvas.addEventListener('touchmove', (e) => {
  if (!isDragging || e.touches.length !== 1) return;
- const dx = e.touches[0].clientX - prevX;
- const dy = e.touches[0].clientY - prevY;
- orbitX += dx * 0.005;
- orbitY += dy * 0.005;
+ const dx = e.touches[0].clientX - prevX, dy = e.touches[0].clientY - prevY;
+ mouseX += dx; mouseY += dy;
  prevX = e.touches[0].clientX;
  prevY = e.touches[0].clientY;
  });
+ canvas.addEventListener('touchend', () => { isDragging = false; });
 
- canvas.addEventListener('touchend', () => {
- isDragging = false;
- });
-
- // Scroll zoom
+ // --- Scroll Zoom ---
  canvas.addEventListener('wheel', (e) => {
  e.preventDefault();
- zoomLevel = Math.max(2.0, Math.min(20.0, zoomLevel + e.deltaY * 0.01));
+ zoomLevel = Math.max(2.0, Math.min(15.0, zoomLevel + e.deltaY * 0.01));
  }, { passive: false });
-
- // --- Atualizar uniforms de câmera a cada frame ---
- // (zoomLevel, orbitX, orbitY serão injetados via uniform futuramente)
- // Por enquanto, o shader usa câmera automática
  </script>
 </body>
 </html>
