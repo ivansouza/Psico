@@ -25,17 +25,26 @@
  precision highp float;
  uniform vec2 r;
  uniform float t;
- out vec4 o;
+ out vec4 fragColor;
  void main() {
  vec2 FC = gl_FragCoord.xy;
- for(float i,z,d,j;i++<5e1;o+=(sin(z/3.+vec4(7,2,3,0))+1.1)/d){
- vec3 p=z*normalize(FC.rgb*2.-r.xyy);
- p.z+=5.+cos(t);
- p.xz*=mat2(cos(t+p.y*.5+vec4(0,33,11,0)))/max(p.y*.1+1.,.1);
- for(j=2.;j<15.;j/=.6)p+=cos((p.yzx-vec3(t,0,0)/.1)*j+t)/j;
- z+=d=.01+abs(length(p.xz)+p.y*.3-.5)/7.;
+ vec4 o = vec4(0);
+ float z = 0.0;
+ for(float i = 0.0; i < 50.0; i++) {
+ float d = 0.01 + abs(length(vec2(0)) + 0.0) / 7.0;
+ vec3 p = z * normalize(vec3(FC * 2.0 - r, 1.0));
+ p.z += 5.0 + cos(t);
+ float ca = cos(t + p.y * 0.5);
+ float sa = sin(t + p.y * 0.5);
+ p.xz = mat2(ca, -sa, sa, ca) * p.xz / max(p.y * 0.1 + 1.0, 0.1);
+ for(float j = 2.0; j < 15.0; j /= 0.6) {
+ p += cos((p.yzx - vec3(t, 0, 0) / 0.1) * j + t) / j;
  }
- o=tanh(o/1e3);
+ d = 0.01 + abs(length(p.xz) + p.y * 0.3 - 0.5) / 7.0;
+ z += d;
+ o += (sin(z / 3.0 + vec4(7, 2, 3, 0)) + 1.1) / d;
+ }
+ fragColor = tanh(o / 1000.0);
  }`;
 
  function resize() {
@@ -47,10 +56,23 @@
  const prog = gl.createProgram();
  const vsh = gl.createShader(gl.VERTEX_SHADER);
  gl.shaderSource(vsh, vs); gl.compileShader(vsh);
+ if (!gl.getShaderParameter(vsh, gl.COMPILE_STATUS)) {
+ document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:40vh">VS error: ' + gl.getShaderInfoLog(vsh) + '</h1>';
+ throw 'vs error';
+ }
  const fsh = gl.createShader(gl.FRAGMENT_SHADER);
  gl.shaderSource(fsh, fs); gl.compileShader(fsh);
+ if (!gl.getShaderParameter(fsh, gl.COMPILE_STATUS)) {
+ document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:40vh">FS error: ' + gl.getShaderInfoLog(fsh) + '</h1>';
+ throw 'fs error: ' + gl.getShaderInfoLog(fsh);
+ }
  gl.attachShader(prog, vsh); gl.attachShader(prog, fsh);
- gl.linkProgram(prog); gl.useProgram(prog);
+ gl.linkProgram(prog);
+ if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+ document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:40vh">Link error: ' + gl.getProgramInfoLog(prog) + '</h1>';
+ throw 'link error';
+ }
+ gl.useProgram(prog);
 
  const buf = gl.createBuffer();
  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
