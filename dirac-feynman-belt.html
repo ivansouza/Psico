@@ -683,58 +683,59 @@
  }
 
  void main() {
- vec2 uv=(gl_FragCoord.xy-0.5*iResolution.xy)/iResolution.y;
+ vec2 F = gl_FragCoord.xy;
+ gS =FREEZE>=0.0?FREEZE:fract(iTime/CYCLE);
+ gA =vec2(cos(PI*TURNS*gS),sin(PI*TURNS*gS));
+ #if EXACT_SDF
+ gLip=1.0;
+ #else
+ gLip=lipschitz();
+ #endif
 
- // Câmera
- float camDist=uCameraDist;
- float camAngle=iTime*AUTOROTATE+iMouse.x*0.01;
- float camHeight=1.5+iMouse.y*0.005;
- vec3 ro=vec3(sin(camAngle)*camDist,camHeight,cos(camAngle)*camDist);
- vec3 ta=vec3(0,0,0);
- vec3 ww=normalize(ta-ro);
- vec3 uu=normalize(cross(ww,vec3(0,1,0)));
- vec3 vv=cross(uu,ww);
- vec3 rd=normalize(uv.x*uu+uv.y*vv+ww*FOCAL);
-
- // Render
- vec3 col=render(ro,rd);
-
- // Vignette
- vec2 vig=gl_FragCoord.xy/iResolution.xy;
- vig=0.5+0.5*cos(PI*(vig*2.0-1.0));
- col*=vig.x*vig.y;
-
- // Tone mapping
- col=col/(col+1.0);
- col=pow(col,vec3(1.0/2.2));
-
- fragColor=vec4(col,1.0);
+ // Controle de órbita
+ float an=.75+AUTOROTATE*iTime;
+ float el=.40;
+ if(iMouse.z>.001){
+ an=TAU*(iMouse.x/iResolution.x-.5);
+ el=2.2*(iMouse.y/iResolution.y-.5)+.15;
  }
- </script>
-
- <script>
- const canvas = document.getElementById('glcanvas');
- const loader = document.getElementById('loader');
- const gl = canvas.getContext('webgl2');
-
- if (!gl) {
- alert('Este experimento exige suporte a WebGL 2. Tente em um navegador moderno atualizado.');
- loader.style.display = 'none';
+ el=clamp(el,-1.25,1.25);
+ vec3 ro=uCameraDist*vec3(cos(an)*cos(el),sin(el),sin(an)*cos(el));
+ vec3 ww=normalize(-ro),uu=normalize(cross(ww,vec3(0,1,0))),vv=cross(uu,ww);
+ #if REPEAT
+ vec3 lr=localP(ro);
+ float cs=sdBox(lr,vec3(H+.25));
+ if(cs<0.0)ro-=normalize(lr+1e-5)*cs;
+ #endif
+ #if REPEAT && REMOVE_CENTER
+ gCamCell=floor(ro/PERIOD+.5);
+ #endif
+ vec3 col=vec3(0);
+ for(int m=0;m<AA;m++) for(int n=0;n<AA;n++){
+ vec2 o=vec2(float(m),float(n))/float(AA)-.5;
+ vec2 uv=(2.0*(F+o)-iResolution.xy)/iResolution.y;
+ col+=render(ro,normalize(uv.x*uu+uv.y*vv+FOCAL*ww));
  }
-
- // --- Código do Vertex Shader ---
- const vsSource = `#version 300 es
- in vec2 position;
- void main() {
- gl_Position = vec4(position, 0.0, 1.0);
+ col/=float(AA*AA);
+ #if !REPEAT
+ float bH=.011*iResolution.y;
+ if(F.y<bH){float x=F.x/iResolution.x;
+ vec3 b=x<gS?vec3(.95,.52,.14):vec3(.10);
+ if(abs(x-.5)<.0015)b=vec3(1); col=mix(col,b,.9);}
+ #endif
+ col=pow(clamp(col,0.0,1.0),vec3(.4545));
+ col*=1.0-.06*dot((2.0*F-iResolution.xy)/iResolution.y,
+ (2.0*F-iResolution.xy)/iResolution.y);
+ fragColor = vec4(col,1);
  }
  `;
 
- // --- Código do Fragment Shader ---
+ // Código dos Shaders (lidos dos scripts inline)
+ const vsSource = document.getElementById('vertex-shader').textContent;
  const fsSource = document.getElementById('fragment-shader').textContent;
 
- // --- Compilação ---
- function createShader(gl, source, type) {
+ // Compilação dos Shaders
+ function createShader(gl, type, source) {
  const shader = gl.createShader(type);
  gl.shaderSource(shader, source);
  gl.compileShader(shader);
@@ -746,66 +747,69 @@
  return shader;
  }
 
- function createProgram(gl, vsSource, fsSource) {
- const vs = createShader(gl, vsSource, gl.VERTEX_SHADER);
- const fs = createShader(gl, fsSource, gl.FRAGMENT_SHADER);
+ const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+ const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
  const program = gl.createProgram();
- gl.attachShader(program, vs);
- gl.attachShader(program, fs);
+ gl.attachShader(program, vertexShader);
+ gl.attachShader(program, fragmentShader);
  gl.linkProgram(program);
+
  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
- console.error(gl.getProgramInfoLog(program));
- return null;
- }
- return program;
+ console.error('Falha ao linkar o programa do shader:', gl.getProgramInfoLog(program));
  }
 
- const program = createProgram(gl, vsSource, fsSource);
+ // Setup da geometria da tela (Quad screen-space)
+ const positionBuffer = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+ -1, -1, 1, -1, -1, 1,
+ -1, 1, 1, -1, 1, 1,
+ ]), gl.STATIC_DRAW);
 
- // --- Atributos e Uniforms ---
- const positionLocation = gl.getAttribLocation(program, 'position');
- const resolutionLocation = gl.getUniformLocation(program, 'iResolution');
- const timeLocation = gl.getUniformLocation(program, 'iTime');
- const mouseLocation = gl.getUniformLocation(program, 'iMouse');
- const camDistLocation = gl.getUniformLocation(program, 'uCameraDist');
-
- // --- Geometria (triângulo que cobre a tela) ---
- const vertices = new Float32Array([-1, -1, 3, -1, -1, 3]);
+ const positionAttributeLocation = gl.getAttribLocation(program, 'position');
  const vao = gl.createVertexArray();
  gl.bindVertexArray(vao);
- const buffer = gl.createBuffer();
- gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
- gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
- gl.enableVertexAttribArray(positionLocation);
- gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+ gl.enableVertexAttribArray(positionAttributeLocation);
+ gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
- // --- Estado de Câmera ---
- let zoomLevel = 5.0;
- let orbitX = 0, orbitY = 0;
+ // Uniforms
+ const resolutionUniformLocation = gl.getUniformLocation(program, 'iResolution');
+ const timeUniformLocation = gl.getUniformLocation(program, 'iTime');
+ const mouseUniformLocation = gl.getUniformLocation(program, 'iMouse');
+ const cameraDistUniformLocation = gl.getUniformLocation(program, 'uCameraDist');
+
+ // Estado do Mouse, Toque e Câmera
+ let cameraDist = 9.5;
+ const minCameraDist = 4.5;
+ const maxCameraDist = 24.0;
  let isDragging = false;
- let prevX = 0, prevY = 0;
+ let prevMouseX = 0, prevMouseY = 0;
  let mouseX = 0, mouseY = 0;
+ let mouseDown = false;
 
- // --- Render Loop ---
- function render(time) {
- if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+ // Redimensionamento
+ function resize() {
  canvas.width = window.innerWidth;
  canvas.height = window.innerHeight;
  gl.viewport(0, 0, canvas.width, canvas.height);
  }
+ window.addEventListener('resize', resize);
+ resize();
 
- gl.uniform3f(resolutionLocation, canvas.width, canvas.height, 0.0);
- gl.uniform1f(timeLocation, time * 0.001);
- gl.uniform4f(mouseLocation, mouseX, mouseY, 0.0, 0.0);
- gl.uniform1f(camDistLocation, zoomLevel);
+ // Loop de Renderização
+ function render(time) {
+ gl.uniform3f(resolutionUniformLocation, canvas.width, canvas.height, 0.0);
+ gl.uniform1f(timeUniformLocation, time * 0.001);
+ gl.uniform4f(mouseUniformLocation, mouseX, mouseY, mouseDown ? 1.0 : 0.0, 0.0);
+ gl.uniform1f(cameraDistUniformLocation, cameraDist);
 
  gl.useProgram(program);
  gl.bindVertexArray(vao);
- gl.drawArrays(gl.TRIANGLES, 0, 3);
+ gl.drawArrays(gl.TRIANGLES, 0, 6);
 
  requestAnimationFrame(render);
  }
-
  requestAnimationFrame(render);
 
  // --- Loader ---
@@ -833,43 +837,55 @@
 
  // --- Zoom ---
  document.getElementById('zoom-in').addEventListener('click', () => {
- zoomLevel = Math.max(2.0, zoomLevel - 0.5);
+ cameraDist = Math.max(minCameraDist, cameraDist - 0.5);
  });
  document.getElementById('zoom-out').addEventListener('click', () => {
- zoomLevel = Math.min(15.0, zoomLevel + 0.5);
+ cameraDist = Math.min(maxCameraDist, cameraDist + 0.5);
  });
 
  // --- Mouse Orbit ---
- canvas.addEventListener('mousedown', (e) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
+ canvas.addEventListener('mousedown', (e) => {
+ isDragging = true;
+ mouseDown = true;
+ prevMouseX = e.clientX;
+ prevMouseY = e.clientY;
+ });
  document.addEventListener('mousemove', (e) => {
  if (!isDragging) return;
- const dx = e.clientX - prevX, dy = e.clientY - prevY;
+ const dx = e.clientX - prevMouseX, dy = e.clientY - prevMouseY;
  mouseX += dx; mouseY += dy;
- prevX = e.clientX; prevY = e.clientY;
+ prevMouseX = e.clientX; prevMouseY = e.clientY;
  });
- document.addEventListener('mouseup', () => { isDragging = false; });
+ document.addEventListener('mouseup', () => {
+ isDragging = false;
+ mouseDown = false;
+ });
 
  // --- Touch Orbit ---
  canvas.addEventListener('touchstart', (e) => {
  if (e.touches.length === 1) {
  isDragging = true;
- prevX = e.touches[0].clientX;
- prevY = e.touches[0].clientY;
+ mouseDown = true;
+ prevMouseX = e.touches[0].clientX;
+ prevMouseY = e.touches[0].clientY;
  }
  });
  canvas.addEventListener('touchmove', (e) => {
  if (!isDragging || e.touches.length !== 1) return;
- const dx = e.touches[0].clientX - prevX, dy = e.touches[0].clientY - prevY;
+ const dx = e.touches[0].clientX - prevMouseX, dy = e.touches[0].clientY - prevMouseY;
  mouseX += dx; mouseY += dy;
- prevX = e.touches[0].clientX;
- prevY = e.touches[0].clientY;
+ prevMouseX = e.touches[0].clientX;
+ prevMouseY = e.touches[0].clientY;
  });
- canvas.addEventListener('touchend', () => { isDragging = false; });
+ canvas.addEventListener('touchend', () => {
+ isDragging = false;
+ mouseDown = false;
+ });
 
  // --- Scroll Zoom ---
  canvas.addEventListener('wheel', (e) => {
  e.preventDefault();
- zoomLevel = Math.max(2.0, Math.min(15.0, zoomLevel + e.deltaY * 0.01));
+ cameraDist = Math.max(minCameraDist, Math.min(maxCameraDist, cameraDist + e.deltaY * 0.01));
  }, { passive: false });
  </script>
 </body>
