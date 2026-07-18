@@ -271,6 +271,13 @@
  to { transform: rotate(360deg); }
  }
 
+ @media (max-width: 600px) {
+ .floating-zoom {
+ bottom: 16px;
+ right: 16px;
+ }
+ }
+
  /* Responsividade */
  @media (max-width: 480px) {
  .modal-card {
@@ -288,55 +295,61 @@
 </head>
 <body>
 
- <!-- Indicador de Carregamento -->
  <div id="loader">
  <div class="spinner"></div>
- <span>Carregando shader…</span>
+ <span>Compilando o Raymarcher SDF...</span>
  </div>
 
- <!-- Canvas para o Shader WebGL2 -->
- <canvas id="canvas"></canvas>
-
- <!-- Controles de Zoom Flutuantes -->
- <div class="floating-zoom" id="zoomControls">
- <button class="zoom-btn" id="zoomIn" title="Aproximar">+</button>
- <button class="zoom-btn" id="zoomOut" title="Afastar">−</button>
- </div>
-
- <!-- Botão de Engrenagem para abrir a explicação -->
- <button class="gear-button" id="gearBtn" aria-label="Abrir explicação">
+ <!-- Botão de Engrenagem (Abrir Modal) -->
+ <button class="gear-button" id="gear-btn" title="Explicar Experimento">
  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
  <circle cx="12" cy="12" r="3"></circle>
- <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+ <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
  </svg>
  </button>
 
  <!-- Modal de Explicação -->
- <div class="modal-overlay" id="modalOverlay">
+ <div class="modal-overlay" id="modal-overlay">
  <div class="modal-card">
- <button class="close-button" id="closeBtn">&times;</button>
+ <button class="close-button" id="close-modal" title="Fechar">
+ <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+ </button>
  <h1>Dirac / Feynman Belt Trick</h1>
- <p>O <strong>Belt Trick</strong> (ou truque do cinto) é uma demonstração topológica que mostra como um objeto conectado a um ambiente fixo pode ser rotacionado por $4\pi$ (720°) e retornar à sua orientação original, enquanto uma rotação de $2\pi$ (360°) não é suficiente.</p>
- <p>Na física, isso está relacionado ao fato de que <strong>elétrons</strong> (e outras partículas de spin 1/2) precisam de uma rotação de $720^\circ$ para voltar ao estado quântico original. O grupo de rotação $SO(3)$ tem uma estrutura topológica onde um caminho de $360^\circ$ não é contrátil, mas um de $720^\circ$ é.</p>
- <div class="math-block">
- \[
- \text{Spin-}\frac{1}{2}: \quad R(2\pi) = -I \quad \text{(muda o sinal da função de onda)}
- \]
- \[
- R(4\pi) = I \quad \text{(volta ao estado original)}
- \]
- </div>
- <p>Matematicamente, isso é descrito pelo grupo $SU(2)$, que é o <strong>revestimento duplo</strong> de $SO(3)$. Cada rotação em $SO(3)$ corresponde a dois elementos em $SU(2)$: um para $0^\circ$ a $360^\circ$ e outro para $360^\circ$ a $720^\circ$.</p>
- <p>O shader abaixo renderiza uma visualização 3D desse conceito usando <strong>raymarching de SDF</strong> (Signed Distance Fields), com um objeto que se torce ao ser rotacionado, ilustrando a conexão entre topologia e mecânica quântica.</p>
- <div class="credit-link">
- Inspirado por <a href="https://x.com/XorDev/status/1915054299773645249" target="_blank" rel="noopener">@XorDev no X</a>.
- </div>
+ <p>
+ Demonstração topológica de que uma rotação de $720^\circ$ (2 voltas completas) de um corpo rígido conectado a fitas pode ser continuamente destorcida sem mover as extremidades fixas.
+ </p>
+ <p>
+ Este experimento mental ilustra como o spin semi-inteiro de partículas quânticas (como os elétrons, que necessitam de 2 voltas completas para retornar ao mesmo estado de fase) opera matematicamente através do grupo especial de rotação quântica $SU(2)$.
+ </p>
+
+ <p class="credit-link">
+ Baseado no shader de <a href="https://www.shadertoy.com/view/ffd3Rl" target="_blank" rel="noopener noreferrer">https://www.shadertoy.com/view/ffd3Rl</a>
+ </p>
+
  <div class="hint">
- <div class="hint-item">🖱 Arraste para orbitar</div>
- <div class="hint-item">🔄 Scroll para zoom</div>
+ <div class="hint-item">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+ <span>Arraste na tela para orbitar a câmera.</span>
+ </div>
+ <div class="hint-item">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+ <span>Use a roda do mouse ou faça o gesto de pinça para Zoom.</span>
  </div>
  </div>
  </div>
+ </div>
+
+ <!-- Controles de Zoom Flutuantes no Canto -->
+ <div class="floating-zoom">
+ <button class="zoom-btn" id="zoom-in" title="Aproximar">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+ </button>
+ <button class="zoom-btn" id="zoom-out" title="Afastar">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+ </button>
+ </div>
+
+ <canvas id="glcanvas"></canvas>
 
  <!-- Vertex Shader -->
  <script id="vertex-shader" type="x-shader/x-vertex">
@@ -616,7 +629,7 @@
 
  <script>
  // --- Inicialização WebGL2 ---
- const canvas = document.getElementById('canvas');
+ const canvas = document.getElementById('glcanvas');
  const gl = canvas.getContext('webgl2');
 
  if (!gl) {
@@ -698,9 +711,9 @@
  requestAnimationFrame(render);
 
  // --- Modal (Explicação) ---
- const gearBtn = document.getElementById('gearBtn');
- const modalOverlay = document.getElementById('modalOverlay');
- const closeBtn = document.getElementById('closeBtn');
+ const gearBtn = document.getElementById('gear-btn');
+ const modalOverlay = document.getElementById('modal-overlay');
+ const closeBtn = document.getElementById('close-modal');
 
  gearBtn.addEventListener('click', () => {
  modalOverlay.classList.add('show');
@@ -740,8 +753,8 @@
 
  // --- Zoom Controls (simula scroll no canvas) ---
  let zoomLevel = 8.0;
- const zoomInBtn = document.getElementById('zoomIn');
- const zoomOutBtn = document.getElementById('zoomOut');
+ const zoomInBtn = document.getElementById('zoom-in');
+ const zoomOutBtn = document.getElementById('zoom-out');
 
  zoomInBtn.addEventListener('click', () => {
  zoomLevel = Math.max(2.0, zoomLevel - 1.0);
