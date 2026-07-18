@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Dirac / Feynman Belt Trick - Raymarched SDF</title>
+
+ <!-- Configuração e Importação do MathJax para renderizar fórmulas matemáticas em LaTeX -->
+ <script>
+ window.MathJax = {
+ tex: {
+ inlineMath: [['$', '$'], ['\\(', '\\)']],
+ displayMath: [['$$', '$$'], ['\\[', '\\]']]
+ },
+ options: {
+ enableMenu: false
+ }
+ };
+ </script>
+ <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+ <style>
+ :root {
+ --bg-color: #0b0d10;
+ --panel-bg: rgba(15, 20, 28, 0.75);
+ --border-color: rgba(255, 255, 255, 0.08);
+ --text-color: #f3f4f6;
+ --accent-color: #ff9d00;
+ }
+
+ html, body {
+ margin: 0;
+ padding: 0;
+ width: 100%;
+ height: 100%;
+ overflow: hidden;
+ background-color: var(--bg-color);
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+ color: var(--text-color);
+ user-select: none;
+ -webkit-user-select: none;
+ }
+
+ canvas {
+ width: 100vw;
+ height: 100vh;
+ display: block;
+ position: absolute;
+ top: 0;
+ left: 0;
+ z-index: 1;
+ }
+
+ /* Botão de Engrenagem (Abrir Explicação) */
+ .gear-button {
+ position: absolute;
+ top: 16px;
+ right: 16px;
+ z-index: 15;
+ background: var(--panel-bg);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ border: 1px solid var(--border-color);
+ color: var(--text-color);
+ border-radius: 50%;
+ width: 36px;
+ height: 36px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+ pointer-events: auto;
+ }
+
+ .gear-button:hover {
+ border-color: var(--accent-color);
+ color: var(--accent-color);
+ transform: rotate(45deg);
+ }
+
+ .gear-button:active {
+ transform: scale(0.92) rotate(45deg);
+ }
+
+ /* Janela Modal (Overlay) */
+ .modal-overlay {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100vw;
+ height: 100vh;
+ background: rgba(0, 0, 0, 0.4);
+ backdrop-filter: blur(6px);
+ -webkit-backdrop-filter: blur(6px);
+ z-index: 100;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.3s ease;
+ }
+
+ .modal-overlay.show {
+ opacity: 1;
+ pointer-events: auto;
+ }
+
+ /* Cartão de Conteúdo da Modal */
+ .modal-card {
+ background: var(--panel-bg);
+ border: 1px solid var(--border-color);
+ border-radius: 16px;
+ padding: 24px;
+ max-width: 400px;
+ width: 88%;
+ box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+ transform: scale(0.9);
+ transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+ position: relative;
+ }
+
+ .modal-overlay.show .modal-card {
+ transform: scale(1);
+ }
+
+ /* Botão Fechar (X) */
+ .close-button {
+ position: absolute;
+ top: 12px;
+ right: 12px;
+ background: none;
+ border: none;
+ color: var(--muted, #9ca3af);
+ font-size: 20px;
+ cursor: pointer;
+ line-height: 1;
+ padding: 4px;
+ transition: color 0.2s;
+ }
+
+ .close-button:hover {
+ color: var(--text-color);
+ }
+
+ /* Título e Texto da Modal */
+ .modal-card h2 {
+ margin: 0 0 12px 0;
+ font-size: 18px;
+ font-weight: 700;
+ color: var(--accent-color);
+ }
+
+ .modal-card p {
+ margin: 0 0 12px 0;
+ font-size: 14px;
+ line-height: 1.6;
+ color: var(--text-color);
+ }
+
+ .modal-card p:last-child {
+ margin-bottom: 0;
+ }
+
+ .modal-card .math-block {
+ margin: 12px 0;
+ padding: 10px;
+ background: rgba(0, 0, 0, 0.3);
+ border-radius: 8px;
+ overflow-x: auto;
+ text-align: center;
+ }
+
+ .modal-card .math-block mjx-container {
+ font-size: 110% !important;
+ }
+
+ .modal-card .footnote {
+ font-size: 12px;
+ color: var(--muted, #9ca3af);
+ margin-top: 12px;
+ padding-top: 10px;
+ border-top: 1px solid var(--border-color);
+ }
+
+ .modal-card .footnote a {
+ color: var(--accent-color);
+ text-decoration: none;
+ }
+
+ .modal-card .footnote a:hover {
+ text-decoration: underline;
+ }
+
+ /* Responsividade */
+ @media (max-width: 480px) {
+ .modal-card {
+ padding: 18px;
+ max-width: 92%;
+ }
+ .modal-card h2 {
+ font-size: 16px;
+ }
+ .modal-card p {
+ font-size: 13px;
+ }
+ }
+ </style>
+</head>
+<body>
+
+ <!-- Canvas para o Shader WebGL2 -->
+ <canvas id="canvas"></canvas>
+
+ <!-- Botão de Engrenagem para abrir a explicação -->
+ <button class="gear-button" id="gearBtn" aria-label="Abrir explicação">
+ <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+ <circle cx="12" cy="12" r="3"></circle>
+ <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+ </svg>
+ </button>
+
+ <!-- Modal de Explicação -->
+ <div class="modal-overlay" id="modalOverlay">
+ <div class="modal-card">
+ <button class="close-button" id="closeBtn">&times;</button>
+ <h2>Dirac / Feynman Belt Trick</h2>
+ <p>O <strong>Belt Trick</strong> (ou truque do cinto) é uma demonstração topológica que mostra como um objeto conectado a um ambiente fixo pode ser rotacionado por $4\pi$ (720°) e retornar à sua orientação original, enquanto uma rotação de $2\pi$ (360°) não é suficiente.</p>
+ <p>Na física, isso está relacionado ao fato de que <strong>elétrons</strong> (e outras partículas de spin 1/2) precisam de uma rotação de $720^\circ$ para voltar ao estado quântico original. O grupo de rotação $SO(3)$ tem uma estrutura topológica onde um caminho de $360^\circ$ não é contrátil, mas um de $720^\circ$ é.</p>
+ <div class="math-block">
+ \[
+ \text{Spin-}\frac{1}{2}: \quad R(2\pi) = -I \quad \text{(muda o sinal da função de onda)}
+ \]
+ \[
+ R(4\pi) = I \quad \text{(volta ao estado original)}
+ \]
+ </div>
+ <p>Matematicamente, isso é descrito pelo grupo $SU(2)$, que é o <strong>revestimento duplo</strong> de $SO(3)$. Cada rotação em $SO(3)$ corresponde a dois elementos em $SU(2)$: um para $0^\circ$ a $360^\circ$ e outro para $360^\circ$ a $720^\circ$.</p>
+ <p>O shader abaixo renderiza uma visualização 3D desse conceito usando <strong>raymarching de SDF</strong> (Signed Distance Fields), com um objeto que se torce ao ser rotacionado, ilustrando a conexão entre topologia e mecânica quântica.</p>
+ <div class="footnote">
+ Inspirado por <a href="https://x.com/XorDev/status/1915054299773645249" target="_blank" rel="noopener">@XorDev no X</a>.
+ </div>
+ </div>
+ </div>
+
+ <!-- Vertex Shader -->
+ <script id="vertex-shader" type="x-shader/x-vertex">
+ #version 300 es
+ precision highp float;
+
+ in vec2 position;
+ void main() {
+ gl_Position = vec4(position, 0.0, 1.0);
+ }
+ </script>
+
+ <!-- Fragment Shader -->
+ <script id="fragment-shader" type="x-shader/x-fragment">
+ #version 300 es
+ precision highp float;
+
+ uniform vec2 iResolution;
+ uniform float iTime;
+
+ out vec4 fragColor;
+
+ // --- Constantes ---
+ #define PI 3.14159265359
+ #define TAU 6.28318530718
+
+ // --- Utilitários ---
+ mat2 rot2(float a) {
+ float s = sin(a), c = cos(a);
+ return mat2(c, -s, s, c);
+ }
+
+ // --- SDFs ---
+ float sdBox(vec3 p, vec3 b) {
+ vec3 q = abs(p) - b;
+ return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+ }
+
+ float sdTorus(vec3 p, vec2 t) {
+ vec2 q = vec2(length(p.xz) - t.x, p.y);
+ return length(q) - t.y;
+ }
+
+ float sdCylinder(vec3 p, vec3 c) {
+ return length(p.xz - c.xy) - c.z;
+ }
+
+ // --- Operações Booleanas ---
+ float opU(float a, float b) { return min(a, b); }
+ float opS(float a, float b) { return max(a, -b); }
+ float opI(float a, float b) { return max(a, b); }
+
+ // --- Suavização ---
+ float opSmoothU(float a, float b, float k) {
+ float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+ return mix(b, a, h) - k * h * (1.0 - h);
+ }
+
+ // --- Cena Principal ---
+ float scene(vec3 p) {
+ float t = iTime * 0.3;
+
+ // Rotação global lenta
+ p.xz *= rot2(t * 0.15);
+ p.xy *= rot2(t * 0.1);
+
+ // Corpo central (esfera achatada)
+ float sphere = length(p) - 1.2;
+
+ // Anéis concêntricos (torus)
+ float ring1 = sdTorus(p, vec2(1.8, 0.06));
+ float ring2 = sdTorus(p, vec2(2.4, 0.04));
+ float ring3 = sdTorus(p, vec2(3.0, 0.03));
+
+ // Fita torcida (belt trick) - uma superfície que se torce
+ float beltAngle = t * 0.5;
+ vec3 bp = p;
+ // Torção helicoidal ao longo do eixo Y
+ float twist = bp.y * 0.8 + beltAngle;
+ bp.xz *= rot2(twist);
+ float belt = sdBox(bp, vec3(0.08, 2.5, 0.6));
+ // A fita tem uma "dobra" no meio
+ float beltFold = sdBox(bp - vec3(0.0, 0.0, 0.0), vec3(0.6, 0.08, 0.6));
+ belt = opSmoothU(belt, beltFold, 0.15);
+
+ // Partículas internas (pontos quânticos)
+ float particles = 1e10;
+ for (int i = 0; i < 12; i++) {
+ float fi = float(i);
+ float angle = fi * TAU / 12.0 + t;
+ float radius = 0.8 + sin(fi * 2.5 + t * 1.5) * 0.3;
+ vec3 pp = vec3(cos(angle) * radius, sin(fi * 1.3 + t) * 0.6, sin(angle) * radius);
+ particles = min(particles, length(p - pp) - 0.08);
+ }
+
+ // Estrutura externa (icosaedro aproximado por esferas)
+ float outer = 1e10;
+ for (int i = 0; i < 20; i++) {
+ float fi = float(i);
+ float theta = acos(1.0 - 2.0 * (fi + 0.5) / 20.0);
+ float phi = PI * (1.0 + sqrt(5.0)) * fi;
+ vec3 op = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi)) * 3.8;
+ outer = min(outer, length(p - op) - 0.04);
+ }
+
+ // Combinação
+ float d = sphere;
+ d = opSmoothU(d, ring1, 0.1);
+ d = opSmoothU(d, ring2, 0.08);
+ d = opSmoothU(d, ring3, 0.06);
+ d = opSmoothU(d, belt, 0.05);
+ d = opSmoothU(d, particles, 0.02);
+ d = opSmoothU(d, outer, 0.03);
+
+ return d;
+ }
+
+ // --- Normal ---
+ vec3 calcNormal(vec3 p) {
+ const float h = 0.001;
+ vec2 k = vec2(1, -1);
+ return normalize(
+ k.xyy * scene(p + k.xyy * h) +
+ k.yyx * scene(p + k.yyx * h) +
+ k.yxy * scene(p + k.yxy * h) +
+ k.xxx * scene(p + k.xxx * h)
+ );
+ }
+
+ // --- AO ---
+ float calcAO(vec3 p, vec3 n) {
+ float ao = 0.0;
+ float scale = 1.0;
+ for (int i = 0; i < 5; i++) {
+ float dist = 0.02 + 0.04 * float(i);
+ ao += (dist - scene(p + n * dist)) * scale;
+ scale *= 0.85;
+ }
+ return clamp(1.0 - ao * 2.5, 0.0, 1.0);
+ }
+
+ // --- Cor da Cena ---
+ vec3 sceneColor(vec3 p, vec3 n, float d) {
+ // Gradiente de cores baseado na posição e normal
+ vec3 col = vec3(0.0);
+
+ // Cor base: azul-púrpura com variação
+ float hue = atan(n.z, n.x) * 0.5 + 0.5;
+ float val = length(n.y) * 0.5 + 0.5;
+ col = mix(
+ vec3(0.2, 0.1, 0.5), // púrpura escuro
+ vec3(0.1, 0.3, 0.8), // azul
+ hue
+ );
+
+ // Anéis dourados
+ float ringGlow = 0.0;
+ float distToCenter = length(p);
+ ringGlow += exp(-pow(mod(distToCenter - 1.8, 0.6) - 0.3, 2.0) * 200.0) * 0.3;
+ ringGlow += exp(-pow(mod(distToCenter - 2.4, 0.6) - 0.3, 2.0) * 200.0) * 0.2;
+ ringGlow += exp(-pow(mod(distToCenter - 3.0, 0.6) - 0.3, 2.0) * 200.0) * 0.15;
+
+ col += vec3(1.0, 0.7, 0.2) * ringGlow;
+
+ // Fita: cor ciano vibrante
+ float beltDist = abs(length(p.xz) - 1.2);
+ if (beltDist < 0.8 && abs(p.y) < 2.5) {
+ col = mix(col, vec3(0.0, 0.9, 0.9), 0.3 * exp(-beltDist * 2.0));
+ }
+
+ // Partículas: branco brilhante
+ float particleDist = 1e10;
+ for (int i = 0; i < 12; i++) {
+ float fi = float(i);
+ float angle = fi * TAU / 12.0 + iTime * 0.3;
+ float radius = 0.8 + sin(fi * 2.5 + iTime * 1.5) * 0.3;
+ vec3 pp = vec3(cos(angle) * radius, sin(fi * 1.3 + iTime) * 0.6, sin(angle) * radius);
+ particleDist = min(particleDist, length(p - pp));
+ }
+ if (particleDist < 0.15) {
+ col = mix(col, vec3(1.0, 0.95, 0.8), 0.8 * (1.0 - particleDist / 0.15));
+ }
+
+ // Estrutura externa: linhas brilhantes
+ float outerDist = 1e10;
+ for (int i = 0; i < 20; i++) {
+ float fi = float(i);
+ float theta = acos(1.0 - 2.0 * (fi + 0.5) / 20.0);
+ float phi = PI * (1.0 + sqrt(5.0)) * fi;
+ vec3 op = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi)) * 3.8;
+ outerDist = min(outerDist, length(p - op));
+ }
+ if (outerDist < 0.1) {
+ col = mix(col, vec3(0.3, 0.6, 1.0), 0.6 * (1.0 - outerDist / 0.1));
+ }
+
+ // Brilho interno (glow do centro)
+ float centerGlow = exp(-length(p) * 1.5) * 0.4;
+ col += vec3(0.8, 0.4, 1.0) * centerGlow;
+
+ // AO
+ float ao = calcAO(p, n);
+ col *= ao;
+
+ // Iluminação simples
+ vec3 lightDir = normalize(vec3(1.0, 2.0, 1.0));
+ float diff = max(dot(n, lightDir), 0.0) * 0.6 + 0.4;
+ col *= diff;
+
+ // Fresnel (borda)
+ float fresnel = pow(1.0 - abs(dot(n, normalize(p))), 3.0);
+ col += vec3(0.2, 0.5, 1.0) * fresnel * 0.3;
+
+ return col;
+ }
+
+ // --- Raymarching Principal ---
+ void main() {
+ vec2 uv = (gl_FragCoord.xy - 0.5 * iResolution.xy) / iResolution.y;
+
+ // Câmera
+ float camDist = 8.0;
+ float camHeight = 1.5;
+ float camAngle = iTime * 0.08;
+ vec3 ro = vec3(sin(camAngle) * camDist, camHeight, cos(camAngle) * camDist);
+ vec3 ta = vec3(0.0, 0.0, 0.0);
+ vec3 ww = normalize(ta - ro);
+ vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
+ vec3 vv = cross(uu, ww);
+ vec3 rd = normalize(uv.x * uu + uv.y * vv + ww * 1.8);
+
+ // Raymarching
+ float tmin = 0.1;
+ float tmax = 30.0;
+ float t = tmin;
+ vec3 col = vec3(0.0);
+
+ for (int i = 0; i < 100; i++) {
+ vec3 p = ro + rd * t;
+ float d = scene(p);
+
+ if (d < 0.001) {
+ vec3 n = calcNormal(p);
+ col = sceneColor(p, n, d);
+ // Profundidade para fade
+ float depthFade = exp(-t * 0.08);
+ col *= depthFade;
+ break;
+ }
+
+ if (t > tmax) {
+ // Fundo: estrelas
+ vec3 bg = vec3(0.02, 0.02, 0.05);
+ float stars = 0.0;
+ vec3 sp = rd * 100.0;
+ stars = pow(max(0.0, sin(sp.x * 100.0) * sin(sp.y * 100.0) * sin(sp.z * 100.0)), 20.0);
+ bg += vec3(0.8, 0.9, 1.0) * stars * 0.5;
+ col = bg;
+ break;
+ }
+
+ t += d * 0.8;
+ }
+
+ // Vignette
+ vec2 vig = gl_FragCoord.xy / iResolution.xy;
+ vig = 0.5 + 0.5 * cos(3.14159 * (vig * 2.0 - 1.0));
+ col *= vig.x * vig.y;
+
+ // Tone mapping
+ col = col / (col + 1.0);
+ col = pow(col, vec3(1.0 / 2.2));
+
+ fragColor = vec4(col, 1.0);
+ }
+ </script>
+
+ <script>
+ // --- Inicialização WebGL2 ---
+ const canvas = document.getElementById('canvas');
+ const gl = canvas.getContext('webgl2');
+
+ if (!gl) {
+ document.body.innerHTML = '<div style="color:white;padding:20px;font-family:sans-serif;">WebGL2 não é suportado neste navegador.</div>';
+ throw new Error('WebGL2 não suportado');
+ }
+
+ // --- Compilação dos Shaders ---
+ function createShader(gl, source, type) {
+ const shader = gl.createShader(type);
+ gl.shaderSource(shader, source);
+ gl.compileShader(shader);
+ if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+ console.error(gl.getShaderInfoLog(shader));
+ gl.deleteShader(shader);
+ return null;
+ }
+ return shader;
+ }
+
+ function createProgram(gl, vsSource, fsSource) {
+ const vs = createShader(gl, vsSource, gl.VERTEX_SHADER);
+ const fs = createShader(gl, fsSource, gl.FRAGMENT_SHADER);
+ const program = gl.createProgram();
+ gl.attachShader(program, vs);
+ gl.attachShader(program, fs);
+ gl.linkProgram(program);
+ if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+ console.error(gl.getProgramInfoLog(program));
+ return null;
+ }
+ return program;
+ }
+
+ const vertexShaderSource = document.getElementById('vertex-shader').textContent;
+ const fragmentShaderSource = document.getElementById('fragment-shader').textContent;
+ const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+
+ // --- Atributos e Uniforms ---
+ const positionLocation = gl.getAttribLocation(program, 'position');
+ const resolutionLocation = gl.getUniformLocation(program, 'iResolution');
+ const timeLocation = gl.getUniformLocation(program, 'iTime');
+
+ // --- Geometria (triângulo que cobre a tela) ---
+ const vertices = new Float32Array([
+ -1, -1,
+ 3, -1,
+ -1, 3
+ ]);
+ const vao = gl.createVertexArray();
+ gl.bindVertexArray(vao);
+ const buffer = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+ gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+ gl.enableVertexAttribArray(positionLocation);
+ gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+ // --- Render Loop ---
+ function render(time) {
+ // Ajusta o tamanho do buffer se a janela mudar de escala
+ if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+ canvas.width = window.innerWidth;
+ canvas.height = window.innerHeight;
+ gl.viewport(0, 0, canvas.width, canvas.height);
+ }
+
+ // Envia as variáveis uniform atualizadas para a GPU
+ gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+ gl.uniform1f(timeLocation, time * 0.001);
+
+ // Desenha
+ gl.useProgram(program);
+ gl.bindVertexArray(vao);
+ gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+ requestAnimationFrame(render);
+ }
+
+ requestAnimationFrame(render);
+
+ // --- Modal (Explicação) ---
+ const gearBtn = document.getElementById('gearBtn');
+ const modalOverlay = document.getElementById('modalOverlay');
+ const closeBtn = document.getElementById('closeBtn');
+
+ gearBtn.addEventListener('click', () => {
+ modalOverlay.classList.add('show');
+ });
+
+ closeBtn.addEventListener('click', () => {
+ modalOverlay.classList.remove('show');
+ });
+
+ modalOverlay.addEventListener('click', (e) => {
+ if (e.target === modalOverlay) {
+ modalOverlay.classList.remove('show');
+ }
+ });
+
+ // Tecla ESC para fechar
+ document.addEventListener('keydown', (e) => {
+ if (e.key === 'Escape') {
+ modalOverlay.classList.remove('show');
+ }
+ });
+ </script>
+</body>
+</html>
