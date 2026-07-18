@@ -126,72 +126,149 @@
  transform: scale(1);
  }
 
- /* Botão Fechar (X) */
+ /* Botão Fechar Modal */
  .close-button {
  position: absolute;
- top: 12px;
- right: 12px;
+ top: 16px;
+ right: 16px;
  background: none;
  border: none;
- color: var(--muted, #9ca3af);
- font-size: 20px;
+ color: #9ca3af;
  cursor: pointer;
- line-height: 1;
  padding: 4px;
- transition: color 0.2s;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ border-radius: 50%;
+ transition: all 0.2s;
  }
 
  .close-button:hover {
  color: var(--text-color);
+ background: rgba(255, 255, 255, 0.08);
  }
 
- /* Título e Texto da Modal */
- .modal-card h2 {
- margin: 0 0 12px 0;
- font-size: 18px;
- font-weight: 700;
+ .modal-card h1 {
+ font-size: 1.15rem;
+ margin: 0 0 10px 0;
+ font-weight: 600;
+ letter-spacing: 0.5px;
  color: var(--accent-color);
+ text-transform: uppercase;
  }
 
  .modal-card p {
- margin: 0 0 12px 0;
- font-size: 14px;
- line-height: 1.6;
- color: var(--text-color);
+ font-size: 0.88rem;
+ line-height: 1.45;
+ margin: 0 0 16px 0;
+ color: #d1d5db;
  }
 
- .modal-card p:last-child {
- margin-bottom: 0;
- }
-
- .modal-card .math-block {
- margin: 12px 0;
- padding: 10px;
- background: rgba(0, 0, 0, 0.3);
- border-radius: 8px;
- overflow-x: auto;
- text-align: center;
- }
-
- .modal-card .math-block mjx-container {
- font-size: 110% !important;
- }
-
- .modal-card .footnote {
- font-size: 12px;
- color: var(--muted, #9ca3af);
- margin-top: 12px;
- padding-top: 10px;
+ .modal-card .credit-link {
+ font-size: 0.8rem;
+ margin-top: 14px;
  border-top: 1px solid var(--border-color);
+ padding-top: 12px;
+ color: #9ca3af;
  }
 
- .modal-card .footnote a {
+ .modal-card .credit-link a {
  color: var(--accent-color);
- text-decoration: none;
+ text-decoration: underline;
+ transition: color 0.2s;
  }
 
- .modal-card .footnote a:hover {
- text-decoration: underline;
+ .modal-card .credit-link a:hover {
+ color: #ffb74d;
+ }
+
+ .modal-card .hint {
+ font-size: 0.78rem;
+ color: #9ca3af;
+ display: flex;
+ flex-direction: column;
+ gap: 6px;
+ border-top: 1px dashed var(--border-color);
+ padding-top: 12px;
+ margin-top: 12px;
+ }
+
+ .modal-card .hint-item {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ }
+
+ /* Controles de Zoom Flutuantes (Acesso Rápido) */
+ .floating-zoom {
+ position: absolute;
+ bottom: 24px;
+ right: 24px;
+ z-index: 10;
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+ background: var(--panel-bg);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ border: 1px solid var(--border-color);
+ border-radius: 10px;
+ padding: 6px;
+ box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+ }
+
+ .zoom-btn {
+ background: rgba(255, 255, 255, 0.05);
+ border: 1px solid var(--border-color);
+ color: var(--text-color);
+ border-radius: 6px;
+ width: 32px;
+ height: 32px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ transition: background 0.2s, border-color 0.2s, color 0.2s;
+ }
+
+ .zoom-btn:hover {
+ background: rgba(255, 255, 255, 0.12);
+ border-color: var(--accent-color);
+ color: var(--accent-color);
+ }
+
+ .zoom-btn:active {
+ transform: scale(0.95);
+ }
+
+ /* Indicador de Carregamento */
+ #loader {
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%);
+ z-index: 20;
+ font-size: 0.9rem;
+ color: #9ca3af;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 12px;
+ transition: opacity 0.5s ease;
+ pointer-events: none;
+ }
+
+ .spinner {
+ width: 32px;
+ height: 32px;
+ border: 3px solid rgba(255, 255, 255, 0.1);
+ border-radius: 50%;
+ border-top-color: var(--accent-color);
+ animation: spin 1s ease-in-out infinite;
+ }
+
+ @keyframes spin {
+ to { transform: rotate(360deg); }
  }
 
  /* Responsividade */
@@ -200,19 +277,31 @@
  padding: 18px;
  max-width: 92%;
  }
- .modal-card h2 {
- font-size: 16px;
+ .modal-card h1 {
+ font-size: 1rem;
  }
  .modal-card p {
- font-size: 13px;
+ font-size: 0.82rem;
  }
  }
  </style>
 </head>
 <body>
 
+ <!-- Indicador de Carregamento -->
+ <div id="loader">
+ <div class="spinner"></div>
+ <span>Carregando shader…</span>
+ </div>
+
  <!-- Canvas para o Shader WebGL2 -->
  <canvas id="canvas"></canvas>
+
+ <!-- Controles de Zoom Flutuantes -->
+ <div class="floating-zoom" id="zoomControls">
+ <button class="zoom-btn" id="zoomIn" title="Aproximar">+</button>
+ <button class="zoom-btn" id="zoomOut" title="Afastar">−</button>
+ </div>
 
  <!-- Botão de Engrenagem para abrir a explicação -->
  <button class="gear-button" id="gearBtn" aria-label="Abrir explicação">
@@ -226,7 +315,7 @@
  <div class="modal-overlay" id="modalOverlay">
  <div class="modal-card">
  <button class="close-button" id="closeBtn">&times;</button>
- <h2>Dirac / Feynman Belt Trick</h2>
+ <h1>Dirac / Feynman Belt Trick</h1>
  <p>O <strong>Belt Trick</strong> (ou truque do cinto) é uma demonstração topológica que mostra como um objeto conectado a um ambiente fixo pode ser rotacionado por $4\pi$ (720°) e retornar à sua orientação original, enquanto uma rotação de $2\pi$ (360°) não é suficiente.</p>
  <p>Na física, isso está relacionado ao fato de que <strong>elétrons</strong> (e outras partículas de spin 1/2) precisam de uma rotação de $720^\circ$ para voltar ao estado quântico original. O grupo de rotação $SO(3)$ tem uma estrutura topológica onde um caminho de $360^\circ$ não é contrátil, mas um de $720^\circ$ é.</p>
  <div class="math-block">
@@ -239,8 +328,12 @@
  </div>
  <p>Matematicamente, isso é descrito pelo grupo $SU(2)$, que é o <strong>revestimento duplo</strong> de $SO(3)$. Cada rotação em $SO(3)$ corresponde a dois elementos em $SU(2)$: um para $0^\circ$ a $360^\circ$ e outro para $360^\circ$ a $720^\circ$.</p>
  <p>O shader abaixo renderiza uma visualização 3D desse conceito usando <strong>raymarching de SDF</strong> (Signed Distance Fields), com um objeto que se torce ao ser rotacionado, ilustrando a conexão entre topologia e mecânica quântica.</p>
- <div class="footnote">
+ <div class="credit-link">
  Inspirado por <a href="https://x.com/XorDev/status/1915054299773645249" target="_blank" rel="noopener">@XorDev no X</a>.
+ </div>
+ <div class="hint">
+ <div class="hint-item">🖱 Arraste para orbitar</div>
+ <div class="hint-item">🔄 Scroll para zoom</div>
  </div>
  </div>
  </div>
@@ -629,6 +722,91 @@
  modalOverlay.classList.remove('show');
  }
  });
+
+ // --- Loader: esconder após primeira renderização ---
+ const loader = document.getElementById('loader');
+ let loaderHidden = false;
+ function hideLoader() {
+ if (!loaderHidden) {
+ loaderHidden = true;
+ loader.style.opacity = '0';
+ setTimeout(() => { loader.style.display = 'none'; }, 500);
+ }
+ }
+ // Esconde após 1.5s ou no primeiro clique/interação
+ setTimeout(hideLoader, 1500);
+ document.addEventListener('click', hideLoader, { once: true });
+ document.addEventListener('touchstart', hideLoader, { once: true });
+
+ // --- Zoom Controls (simula scroll no canvas) ---
+ let zoomLevel = 8.0;
+ const zoomInBtn = document.getElementById('zoomIn');
+ const zoomOutBtn = document.getElementById('zoomOut');
+
+ zoomInBtn.addEventListener('click', () => {
+ zoomLevel = Math.max(2.0, zoomLevel - 1.0);
+ });
+ zoomOutBtn.addEventListener('click', () => {
+ zoomLevel = Math.min(20.0, zoomLevel + 1.0);
+ });
+
+ // --- Mouse/Touch Orbit ---
+ let isDragging = false;
+ let prevX = 0, prevY = 0;
+ let orbitX = 0, orbitY = 0;
+
+ canvas.addEventListener('mousedown', (e) => {
+ isDragging = true;
+ prevX = e.clientX;
+ prevY = e.clientY;
+ });
+
+ document.addEventListener('mousemove', (e) => {
+ if (!isDragging) return;
+ const dx = e.clientX - prevX;
+ const dy = e.clientY - prevY;
+ orbitX += dx * 0.005;
+ orbitY += dy * 0.005;
+ prevX = e.clientX;
+ prevY = e.clientY;
+ });
+
+ document.addEventListener('mouseup', () => {
+ isDragging = false;
+ });
+
+ // Touch support
+ canvas.addEventListener('touchstart', (e) => {
+ if (e.touches.length === 1) {
+ isDragging = true;
+ prevX = e.touches[0].clientX;
+ prevY = e.touches[0].clientY;
+ }
+ });
+
+ canvas.addEventListener('touchmove', (e) => {
+ if (!isDragging || e.touches.length !== 1) return;
+ const dx = e.touches[0].clientX - prevX;
+ const dy = e.touches[0].clientY - prevY;
+ orbitX += dx * 0.005;
+ orbitY += dy * 0.005;
+ prevX = e.touches[0].clientX;
+ prevY = e.touches[0].clientY;
+ });
+
+ canvas.addEventListener('touchend', () => {
+ isDragging = false;
+ });
+
+ // Scroll zoom
+ canvas.addEventListener('wheel', (e) => {
+ e.preventDefault();
+ zoomLevel = Math.max(2.0, Math.min(20.0, zoomLevel + e.deltaY * 0.01));
+ }, { passive: false });
+
+ // --- Atualizar uniforms de câmera a cada frame ---
+ // (zoomLevel, orbitX, orbitY serão injetados via uniform futuramente)
+ // Por enquanto, o shader usa câmera automática
  </script>
 </body>
 </html>
