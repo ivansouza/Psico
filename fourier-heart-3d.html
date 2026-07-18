@@ -48,7 +48,7 @@
  scene.background = new THREE.Color(0x0a0a1f);
 
  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
- camera.position.set(200, -100, 350);
+ camera.position.set(200, 100, 350);
  camera.lookAt(0, 0, 0);
 
  const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -85,6 +85,11 @@
  const stars = new THREE.Points(starsGeo, starsMat);
  scene.add(stars);
 
+ // Grupo principal do coração (vamos rotacionar ele)
+ const heartGroup = new THREE.Group();
+ heartGroup.rotation.x = Math.PI; // 180° no eixo X = ponta pra baixo
+ scene.add(heartGroup);
+
  // --- Fourier ---
  let fourier = [];
  let time = 0;
@@ -104,11 +109,11 @@
  linewidth: 1
  });
  const trailLine = new THREE.Line(trailGeo, trailMat);
- scene.add(trailLine);
+ heartGroup.add(trailLine);
 
  // Círculos dos epiciclos (grupo)
  const circlesGroup = new THREE.Group();
- scene.add(circlesGroup);
+ heartGroup.add(circlesGroup);
 
  // Ponto final brilhante
  const dotGeo = new THREE.SphereGeometry(4, 16, 16);
@@ -118,7 +123,7 @@
  emissiveIntensity: 2
  });
  const dot = new THREE.Mesh(dotGeo, dotMat);
- scene.add(dot);
+ heartGroup.add(dot);
 
  // Glow do ponto
  const glowGeo = new THREE.SphereGeometry(8, 16, 16);
@@ -128,7 +133,7 @@
  opacity: 0.3
  });
  const glow = new THREE.Mesh(glowGeo, glowMat);
- scene.add(glow);
+ heartGroup.add(glow);
 
  // --- Calcular Fourier (mesma fórmula do coração) ---
  function computeFourier() {
