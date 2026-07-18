@@ -783,10 +783,15 @@
  let cameraDist = 9.5;
  const minCameraDist = 4.5;
  const maxCameraDist = 24.0;
- let isDragging = false;
- let prevMouseX = 0, prevMouseY = 0;
- let mouseX = 0, mouseY = 0;
- let mouseDown = false;
+ let mouseX = canvas.clientWidth * 0.55;
+ let mouseY = canvas.clientHeight * 0.50;
+ let mouseZ = 0.0;
+ let mouseW = 0.0;
+ let isMouseDown = false;
+
+ // Oculta loader após compilação bem-sucedida
+ loader.style.opacity = '0';
+ setTimeout(() => loader.style.display = 'none', 500);
 
  // Redimensionamento
  function resize() {
@@ -801,7 +806,7 @@
  function render(time) {
  gl.uniform3f(resolutionUniformLocation, canvas.width, canvas.height, 0.0);
  gl.uniform1f(timeUniformLocation, time * 0.001);
- gl.uniform4f(mouseUniformLocation, mouseX, mouseY, mouseDown ? 1.0 : 0.0, 0.0);
+ gl.uniform4f(mouseUniformLocation, mouseX, mouseY, mouseZ, mouseW);
  gl.uniform1f(cameraDistUniformLocation, cameraDist);
 
  gl.useProgram(program);
@@ -812,81 +817,115 @@
  }
  requestAnimationFrame(render);
 
- // --- Loader ---
- let loaderHidden = false;
- function hideLoader() {
- if (!loaderHidden) {
- loaderHidden = true;
- loader.style.opacity = '0';
- setTimeout(() => { loader.style.display = 'none'; }, 500);
- }
- }
- setTimeout(hideLoader, 2000);
- document.addEventListener('click', hideLoader, { once: true });
- document.addEventListener('touchstart', hideLoader, { once: true });
-
- // --- Modal ---
+ // --- Controle do Modal de Explicação ---
  const gearBtn = document.getElementById('gear-btn');
  const modalOverlay = document.getElementById('modal-overlay');
- const closeBtn = document.getElementById('close-modal');
+ const closeModal = document.getElementById('close-modal');
 
- gearBtn.addEventListener('click', () => modalOverlay.classList.add('show'));
- closeBtn.addEventListener('click', () => modalOverlay.classList.remove('show'));
- modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('show'); });
- document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modalOverlay.classList.remove('show'); });
+ gearBtn.addEventListener('click', () => {
+ modalOverlay.classList.add('show');
+ if (window.MathJax) {
+ MathJax.typesetPromise();
+ }
+ });
 
- // --- Zoom ---
+ closeModal.addEventListener('click', () => {
+ modalOverlay.classList.remove('show');
+ });
+
+ // Fecha ao clicar fora do card
+ modalOverlay.addEventListener('click', (e) => {
+ if (e.target === modalOverlay) {
+ modalOverlay.classList.remove('show');
+ }
+ });
+
+ document.addEventListener('keydown', (e) => {
+ if (e.key === 'Escape') modalOverlay.classList.remove('show');
+ });
+
+ // Evita rotação quando se interage com os botões ou com o modal
+ function isUIElement(target) {
+ return target.closest('#gear-btn') || target.closest('.floating-zoom') || target.closest('.modal-card');
+ }
+
+ // Eventos do Mouse para Orbitar
+ window.addEventListener('mousedown', (e) => {
+ if (isUIElement(e.target)) return;
+ isMouseDown = true;
+ mouseX = e.clientX;
+ mouseY = canvas.clientHeight - e.clientY;
+ mouseZ = 1.0;
+ });
+
+ window.addEventListener('mousemove', (e) => {
+ if (isMouseDown) {
+ mouseX = e.clientX;
+ mouseY = canvas.clientHeight - e.clientY;
+ }
+ });
+
+ window.addEventListener('mouseup', () => {
+ isMouseDown = false;
+ mouseZ = 0.0;
+ });
+
+ // Evento de Zoom por Roda do Mouse (Wheel)
+ window.addEventListener('wheel', (e) => {
+ if (isUIElement(e.target)) return;
+ cameraDist += e.deltaY * 0.006;
+ cameraDist = Math.max(minCameraDist, Math.min(maxCameraDist, cameraDist));
+ }, { passive: true });
+
+ // Eventos Touch para Dispositivos Móveis (Orbitar + Pinch to Zoom)
+ let touchStartDist = 0;
+ let initialTouchDist = 9.5;
+
+ window.addEventListener('touchstart', (e) => {
+ if (isUIElement(e.target)) return;
+
+ if (e.touches.length === 2) {
+ isMouseDown = false;
+ touchStartDist = Math.hypot(
+ e.touches[0].clientX - e.touches[1].clientX,
+ e.touches[0].clientY - e.touches[1].clientY
+ );
+ initialTouchDist = cameraDist;
+ } else if (e.touches.length === 1) {
+ isMouseDown = true;
+ mouseX = e.touches[0].clientX;
+ mouseY = canvas.clientHeight - e.touches[0].clientY;
+ mouseZ = 1.0;
+ }
+ }, { passive: true });
+
+ window.addEventListener('touchmove', (e) => {
+ if (e.touches.length === 2) {
+ const currentDist = Math.hypot(
+ e.touches[0].clientX - e.touches[1].clientX,
+ e.touches[0].clientY - e.touches[1].clientY
+ );
+ const factor = touchStartDist / (currentDist || 1);
+ cameraDist = initialTouchDist * factor;
+ cameraDist = Math.max(minCameraDist, Math.min(maxCameraDist, cameraDist));
+ } else if (isMouseDown && e.touches.length === 1) {
+ mouseX = e.touches[0].clientX;
+ mouseY = canvas.clientHeight - e.touches[0].clientY;
+ }
+ }, { passive: true });
+
+ window.addEventListener('touchend', () => {
+ isMouseDown = false;
+ mouseZ = 0.0;
+ });
+
+ // --- Zoom buttons ---
  document.getElementById('zoom-in').addEventListener('click', () => {
  cameraDist = Math.max(minCameraDist, cameraDist - 0.5);
  });
  document.getElementById('zoom-out').addEventListener('click', () => {
  cameraDist = Math.min(maxCameraDist, cameraDist + 0.5);
  });
-
- // --- Mouse Orbit ---
- canvas.addEventListener('mousedown', (e) => {
- isDragging = true;
- mouseDown = true;
- prevMouseX = e.clientX;
- prevMouseY = e.clientY;
- });
- document.addEventListener('mousemove', (e) => {
- if (!isDragging) return;
- const dx = e.clientX - prevMouseX, dy = e.clientY - prevMouseY;
- mouseX += dx; mouseY += dy;
- prevMouseX = e.clientX; prevMouseY = e.clientY;
- });
- document.addEventListener('mouseup', () => {
- isDragging = false;
- mouseDown = false;
- });
-
- // --- Touch Orbit ---
- canvas.addEventListener('touchstart', (e) => {
- if (e.touches.length === 1) {
- isDragging = true;
- mouseDown = true;
- prevMouseX = e.touches[0].clientX;
- prevMouseY = e.touches[0].clientY;
- }
- });
- canvas.addEventListener('touchmove', (e) => {
- if (!isDragging || e.touches.length !== 1) return;
- const dx = e.touches[0].clientX - prevMouseX, dy = e.touches[0].clientY - prevMouseY;
- mouseX += dx; mouseY += dy;
- prevMouseX = e.touches[0].clientX;
- prevMouseY = e.touches[0].clientY;
- });
- canvas.addEventListener('touchend', () => {
- isDragging = false;
- mouseDown = false;
- });
-
- // --- Scroll Zoom ---
- canvas.addEventListener('wheel', (e) => {
- e.preventDefault();
- cameraDist = Math.max(minCameraDist, Math.min(maxCameraDist, cameraDist + e.deltaY * 0.01));
- }, { passive: false });
  </script>
 </body>
 </html>
