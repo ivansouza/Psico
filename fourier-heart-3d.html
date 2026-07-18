@@ -138,7 +138,7 @@
  const t = i * Math.PI * 2 / N;
  const x = 16 * Math.pow(Math.sin(t), 3);
  const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
- points.push({x: x*6.8, y: y*6.8});
+ points.push({x: x*6.8, y: -y*6.8});
  }
 
  fourier = [];
@@ -184,7 +184,7 @@
  depthWrite: false
  });
  const circle = new THREE.Mesh(circleGeo, circleMat);
- circle.position.set(x, -y, 0);
+ circle.position.set(x, y, 0);
  circlesGroup.add(circle);
 
  const angle = time * c.k + c.phase;
@@ -200,7 +200,7 @@
  function updateTrail(x, y, z) {
  const idx = trailIndex * 3;
  trailPositions[idx] = x;
- trailPositions[idx + 1] = -y;
+ trailPositions[idx + 1] = y;
  trailPositions[idx + 2] = z;
 
  trailIndex = (trailIndex + 1) % TRAIL_LENGTH;
@@ -241,8 +241,8 @@
  const z = Math.sin(time * 0.5) * Z_SPREAD;
 
  // Atualiza ponto
- dot.position.set(x, -y, z);
- glow.position.set(x, -y, z);
+ dot.position.set(x, y, z);
+ glow.position.set(x, y, z);
 
  // Atualiza trail
  updateTrail(x, y, z);
