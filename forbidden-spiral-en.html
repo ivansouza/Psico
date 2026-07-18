@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Forbidden Spiral 3D - Frequency</title>
+<style>
+ body { margin:0; padding:0; background:#000; overflow:hidden; font-family:Arial, sans-serif; }
+ canvas { display:block; }
+ .controls {
+ position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+ background: rgba(0,0,0,0.8); padding: 12px 20px; border-radius: 12px;
+ color: #fff; z-index: 200; text-align: center; box-shadow: 0 0 15px rgba(136,255,255,0.4);
+ max-width: 90%;
+ }
+ button, input { margin: 5px; padding: 8px 12px; background:#111; color:#0ff; border:1px solid #0ff; border-radius:6px; }
+ input[type="range"] { width: 260px; }
+ .info {
+ position: absolute; top: 15px; left: 0; right: 0; color: #fff;
+ text-align: center; pointer-events: none; z-index: 100;
+ text-shadow: 0 0 12px #88ffff;
+ }
+</style>
+</head>
+<body>
+<div class="info">
+ <h2>Forbidden Math Spiral 3D</h2>
+</div>
+
+<div class="controls">
+ Speed: <span id="speedVal">0.001</span>x<br>
+ <input type="range" id="speed" min="0" max="0.10" step="0.001" value="0.001"><br>
+
+ Frequency: <span id="freqVal">83.3</span><br>
+ <input type="range" id="freq" min="10" max="200" step="0.5" value="83.3"><br>
+
+ <button id="pauseBtn">Pause</button>
+ <button id="autoBtn">Auto Rotate: ON</button>
+ <button id="resetBtn">Reset</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// =============== SETUP ===============
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 50, 450);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.minDistance = 60;
+controls.maxDistance = 1500;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.6;
+
+const material = new THREE.LineBasicMaterial({ color: 0x88ffff, transparent: true, opacity: 0.9 });
+const geometry = new THREE.BufferGeometry();
+const spiral = new THREE.Line(geometry, material);
+scene.add(spiral);
+
+let t = 0;
+let speed = 0.001;
+let freq = 83.3;
+let isPaused = false;
+let autoRotate = true;
+
+// =============== UI ===============
+const speedSlider = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+const freqSlider = document.getElementById('freq');
+const freqVal = document.getElementById('freqVal');
+const pauseBtn = document.getElementById('pauseBtn');
+const autoBtn = document.getElementById('autoBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+speedSlider.addEventListener('input', () => {
+ speed = parseFloat(speedSlider.value);
+ speedVal.textContent = speed.toFixed(3);
+});
+
+freqSlider.addEventListener('input', () => {
+ freq = parseFloat(freqSlider.value);
+ freqVal.textContent = freq.toFixed(1);
+});
+
+pauseBtn.addEventListener('click', () => {
+ isPaused = !isPaused;
+ pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+});
+
+autoBtn.addEventListener('click', () => {
+ autoRotate = !autoRotate;
+ autoBtn.textContent = `Auto Rotate: ${autoRotate ? 'ON' : 'OFF'}`;
+ controls.autoRotate = autoRotate;
+});
+
+resetBtn.addEventListener('click', () => {
+ t = 0;
+ speed = 0.001;
+ freq = 83.3;
+ speedSlider.value = 0.001;
+ freqSlider.value = 83.3;
+ speedVal.textContent = "0.001";
+ freqVal.textContent = "83.3";
+ isPaused = false;
+ pauseBtn.textContent = 'Pause';
+ controls.reset();
+});
+
+// =============== SPIRAL ===============
+function updateSpiral() {
+ const points = [];
+ for (let n = 0; n < 2600; n += 1.15) {
+ const r = Math.pow(n, 1.5) / (n + 920) * 3.3;
+ const inner = Math.sin(0.1 * n * Math.sin(freq * t));
+ const x = r * Math.sin(0.1 * n * t) * inner;
+ const y = r * Math.cos(0.1 * n * t) * inner * 0.7;
+ const z = (n - 1300) * 0.23;
+ points.push(new THREE.Vector3(x, y, z));
+ }
+ geometry.setFromPoints(points);
+}
+
+function animate() {
+ requestAnimationFrame(animate);
+
+ if (!isPaused) {
+ t += 0.0078 * speed;
+ }
+
+ updateSpiral();
+ controls.update();
+ renderer.render(scene, camera);
+}
+
+animate();
+
+// Resize
+window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
