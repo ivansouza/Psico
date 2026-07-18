@@ -116,17 +116,25 @@
  window.addEventListener('resize', resize);
  resize();
 
- let start = Date.now();
+ function render(time) {
+ // Ajusta o tamanho do buffer se a janela mudar de escala
+ if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+ canvas.width = window.innerWidth;
+ canvas.height = window.innerHeight;
+ gl.viewport(0, 0, canvas.width, canvas.height);
+ }
 
- function render() {
- const time = (Date.now() - start) * 0.001;
+ // Envia as variáveis uniform atualizadas para a GPU
  gl.uniform2f(resLocation, canvas.width, canvas.height);
- gl.uniform1f(timeLocation, time);
+ gl.uniform1f(timeLocation, time * 0.001); // Converte milissegundos para segundos
+
+ // Desenha o quad
  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
  requestAnimationFrame(render);
  }
 
- render();
+ requestAnimationFrame(render);
  </script>
 </body>
 </html>
