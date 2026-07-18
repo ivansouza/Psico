@@ -242,10 +242,10 @@
  y += radius * Math.sin(angle);
  }
 
- // Z varia 1 grau por volta, até 360 graus
- const totalAngle = time; // angulo acumulado
- const z = (totalAngle / (Math.PI * 2)) * (Z_SPREAD / 360); // 1 grau por volta
- const zClamped = Math.min(z, Z_SPREAD); // max 360 graus = Z_SPREAD
+ // Rotaciona 5 graus por ciclo no eixo Y
+ heartGroup.rotation.y = (time / (Math.PI * 2)) * 5 * Math.PI / 180;
+
+ const zClamped = 0;
 
  // Atualiza ponto
  dot.position.set(x, y, zClamped);
