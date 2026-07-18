@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+ <title>Fourier Epicycles 3D - Coração</title>
+ <style>
+ body { margin:0; padding:0; overflow:hidden; background:#0a0a1f; font-family:Arial,sans-serif; color:#ffd700; }
+ #info {
+ position:absolute; top:15px; left:15px; z-index:100;
+ background:rgba(0,0,0,0.75); padding:12px 18px; border-radius:12px;
+ user-select:none; pointer-events:none;
+ }
+ #info button { pointer-events:auto; }
+ button {
+ margin-top:10px; padding:12px 24px; font-size:17px;
+ background:#ffd700; color:black; border:none; border-radius:10px; cursor:pointer;
+ }
+ </style>
+</head>
+<body>
+ <div id="info">
+ <strong>Fourier Epicycles 3D ❤️</strong><br>
+ Harmônicos: <span id="h">0</span>/70<br>
+ <button onclick="togglePause()">⏸️ Pausar</button>
+ </div>
+
+ <script type="importmap">
+ {
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+ "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+ }
+ }
+ </script>
+
+ <script type="module">
+ import * as THREE from 'three';
+ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+ // --- Config ---
+ const HARMONICS_MAX = 70;
+ const TRAIL_LENGTH = 1200;
+ const Z_SPREAD = 60; // quanto o coração se espalha no eixo Z
+
+ // --- Cena ---
+ const scene = new THREE.Scene();
+ scene.background = new THREE.Color(0x0a0a1f);
+
+ const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+ camera.position.set(200, 100, 350);
+ camera.lookAt(0, 0, 0);
+
+ const renderer = new THREE.WebGLRenderer({ antialias: true });
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ document.body.appendChild(renderer.domElement);
+
+ const controls = new OrbitControls(camera, renderer.domElement);
+ controls.enableDamping = true;
+ controls.dampingFactor = 0.05;
+ controls.autoRotate = true;
+ controls.autoRotateSpeed = 0.8;
+ controls.target.set(0, 0, 0);
+
+ // --- Luzes ---
+ const ambient = new THREE.AmbientLight(0x404060);
+ scene.add(ambient);
+
+ const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+ dirLight.position.set(100, 200, 100);
+ scene.add(dirLight);
+
+ const dirLight2 = new THREE.DirectionalLight(0x4488ff, 0.8);
+ dirLight2.position.set(-100, -50, -100);
+ scene.add(dirLight2);
+
+ // --- Estrelas de fundo ---
+ const starsGeo = new THREE.BufferGeometry();
+ const starCount = 2000;
+ const starPos = new Float32Array(starCount * 3);
+ for (let i = 0; i < starCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 2000;
+ starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+ const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.6 });
+ const stars = new THREE.Points(starsGeo, starsMat);
+ scene.add(stars);
+
+ // --- Fourier ---
+ let fourier = [];
+ let time = 0;
+ let isPaused = false;
+ let currentHarmonics = 0;
+
+ // Trail 3D
+ const trailPositions = new Float32Array(TRAIL_LENGTH * 3);
+ const trailGeo = new THREE.BufferGeometry();
+ trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+ trailGeo.setDrawRange(0, 0);
+
+ const trailMat = new THREE.LineBasicMaterial({
+ color: 0xffdd66,
+ transparent: true,
+ opacity: 0.9,
+ linewidth: 1
+ });
+ const trailLine = new THREE.Line(trailGeo, trailMat);
+ scene.add(trailLine);
+
+ // Círculos dos epiciclos (grupo)
+ const circlesGroup = new THREE.Group();
+ scene.add(circlesGroup);
+
+ // Ponto final brilhante
+ const dotGeo = new THREE.SphereGeometry(4, 16, 16);
+ const dotMat = new THREE.MeshStandardMaterial({
+ color: 0xffff00,
+ emissive: 0xffff00,
+ emissiveIntensity: 2
+ });
+ const dot = new THREE.Mesh(dotGeo, dotMat);
+ scene.add(dot);
+
+ // Glow do ponto
+ const glowGeo = new THREE.SphereGeometry(8, 16, 16);
+ const glowMat = new THREE.MeshBasicMaterial({
+ color: 0xffff00,
+ transparent: true,
+ opacity: 0.3
+ });
+ const glow = new THREE.Mesh(glowGeo, glowMat);
+ scene.add(glow);
+
+ // --- Calcular Fourier (mesma fórmula do coração) ---
+ function computeFourier() {
+ const N = 200;
+ const points = [];
+ for (let i = 0; i < N; i++) {
+ const t = i * Math.PI * 2 / N;
+ const x = 16 * Math.pow(Math.sin(t), 3);
+ const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+ points.push({x: x*6.8, y: -y*6.8});
+ }
+
+ fourier = [];
+ for (let k = -N/2; k < N/2; k++) {
+ let re = 0, im = 0;
+ for (let n = 0; n < N; n++) {
+ const ang = 2 * Math.PI * k * n / N;
+ re += points[n].x * Math.cos(ang) + points[n].y * Math.sin(ang);
+ im += points[n].y * Math.cos(ang) - points[n].x * Math.sin(ang);
+ }
+ re /= N;
+ im /= N;
+ const amp = Math.hypot(re, im);
+ if (amp > 0.8) fourier.push({k, amp, phase: Math.atan2(im, re)});
+ }
+ fourier.sort((a,b) => b.amp - a.amp);
+ }
+
+ // --- Atualizar círculos dos epiciclos ---
+ function updateCircles() {
+ // Remove circles antigos
+ while (circlesGroup.children.length > 0) {
+ const child = circlesGroup.children[0];
+ child.geometry?.dispose();
+ child.material?.dispose();
+ circlesGroup.remove(child);
+ }
+
+ let x = 0, y = 0;
+ const maxH = Math.min(currentHarmonics, HARMONICS_MAX, fourier.length);
+
+ for (let i = 0; i < maxH; i++) {
+ const c = fourier[i];
+ const radius = c.amp * 1.65;
+
+ // Círculo
+ const circleGeo = new THREE.RingGeometry(radius - 0.5, radius + 0.5, 48);
+ const circleMat = new THREE.MeshBasicMaterial({
+ color: 0x66bbff,
+ transparent: true,
+ opacity: 0.25 + (1 - i / maxH) * 0.4,
+ side: THREE.DoubleSide,
+ depthWrite: false
+ });
+ const circle = new THREE.Mesh(circleGeo, circleMat);
+ circle.position.set(x, y, 0);
+ circlesGroup.add(circle);
+
+ const angle = time * c.k + c.phase;
+ x += radius * Math.cos(angle);
+ y += radius * Math.sin(angle);
+ }
+ }
+
+ // --- Atualizar trail ---
+ let trailIndex = 0;
+ let trailCount = 0;
+
+ function updateTrail(x, y, z) {
+ const idx = trailIndex * 3;
+ trailPositions[idx] = x;
+ trailPositions[idx + 1] = y;
+ trailPositions[idx + 2] = z;
+
+ trailIndex = (trailIndex + 1) % TRAIL_LENGTH;
+ trailCount = Math.min(trailCount + 1, TRAIL_LENGTH);
+
+ // Reordena pra manter a ordem cronológica
+ const ordered = new Float32Array(trailCount * 3);
+ for (let i = 0; i < trailCount; i++) {
+ const srcIdx = ((trailIndex - trailCount + i) % TRAIL_LENGTH + TRAIL_LENGTH) % TRAIL_LENGTH;
+ ordered[i * 3] = trailPositions[srcIdx * 3];
+ ordered[i * 3 + 1] = trailPositions[srcIdx * 3 + 1];
+ ordered[i * 3 + 2] = trailPositions[srcIdx * 3 + 2];
+ }
+ trailGeo.setAttribute('position', new THREE.BufferAttribute(ordered, 3));
+ trailGeo.setDrawRange(0, trailCount);
+ trailGeo.attributes.position.needsUpdate = true;
+ }
+
+ // --- Loop principal ---
+ function animate() {
+ if (!isPaused) {
+ time += 0.021;
+ currentHarmonics = Math.min(70, Math.floor(time * 7.5) + 4);
+ document.getElementById('h').textContent = currentHarmonics;
+
+ // Calcula posição do ponto final
+ let x = 0, y = 0;
+ const maxH = Math.min(currentHarmonics, HARMONICS_MAX, fourier.length);
+ for (let i = 0; i < maxH; i++) {
+ const c = fourier[i];
+ const radius = c.amp * 1.65;
+ const angle = time * c.k + c.phase;
+ x += radius * Math.cos(angle);
+ y += radius * Math.sin(angle);
+ }
+
+ // Z varia com o tempo (espiral 3D)
+ const z = Math.sin(time * 0.5) * Z_SPREAD;
+
+ // Atualiza ponto
+ dot.position.set(x, y, z);
+ glow.position.set(x, y, z);
+
+ // Atualiza trail
+ updateTrail(x, y, z);
+
+ // Atualiza círculos
+ updateCircles();
+ }
+
+ controls.update();
+ renderer.render(scene, camera);
+ requestAnimationFrame(animate);
+ }
+
+ // --- Eventos ---
+ window.togglePause = () => { isPaused = !isPaused; };
+
+ window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ });
+
+ // --- Iniciar ---
+ computeFourier();
+ animate();
+ </script>
+</body>
+</html>
