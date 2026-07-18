@@ -480,49 +480,107 @@
  return 1.0+R1*w/(R1-R0);
  }
 
- // SDF da fita
- float sdfBelt(vec3 p){
- float r=length(p.xz);
- float t=tOf(r);
- vec4 q=spinor(t);
- vec3 pp=p;
- pp.y-=mix(R0,R1,t);
- pp=qrot(q,pp);
- float dx=abs(pp.x)-.5*WID;
- float dy=abs(pp.y)-.5*THK;
- float dz=abs(pp.z)-PADL;
- #if EXACT_SDF
- return length(max(vec3(dx,dy,dz),0.0));
+ // Repetição de domínio
+ vec3 localP(vec3 p){
+ #if REPEAT
+ return mod(p+.5*PERIOD,PERIOD)-.5*PERIOD;
  #else
- return max(max(dx,dy),dz);
+ return p;
  #endif
  }
 
- // SDF da cena
- float map(vec3 p){
- float d=1e10;
+ vec3 undeformL(vec3 lp){ return qrot(qconj(spinor(tOf(length(lp)))),lp); }
+ vec3 undeform (vec3 p ){ return undeformL(localP(p)); }
 
- // Fita principal
- float belt=sdfBelt(p);
- d=min(d,belt);
-
- // Plano de fundo
- float ground=p.y+5.0;
- d=min(d,ground);
-
- return d;
+ float stretchAt(vec3 p){
+ vec3 lp=localP(p); float r=max(length(lp),1e-3), h=.02;
+ vec4 q0=spinor(tOf(r)), q1=spinor(tOf(r+h));
+ vec3 Om=2.0*qmul(q1,qconj(q0)).xyz/h;
+ return length(lp/r+cross(Om,lp));
  }
 
- // Normal
+ // SDF da figura estática
+ float sdBox(vec3 p, vec3 b){
+ vec3 q=abs(p)-b;
+ return length(max(q,0.0))+min(max(q.x,max(q.y,q.z)),0.0);
+ }
+
+ vec2 sdStatic(vec3 p){
+ vec2 res=vec2(sdBox(p,vec3(H)),1);
+ vec3 a=abs(p); float m=.5*(H+R1),e=.5*(R1-H);
+ float db= sdBox(a-vec3(m,0,0),vec3(e,THK,WID));
+ db=min(db, sdBox(a-vec3(0,m,0),vec3(WID,e,THK)));
+ db=min(db, sdBox(a-vec3(0,0,m),vec3(THK,WID,e)));
+ if(db<res.x) res=vec2(db,2);
+ #if !REPEAT
+ float pm=R1+PADL; vec3 pb=vec3(PADL,WID*1.7,WID*1.7);
+ float dp= sdBox(a-vec3(pm,0,0),pb.xyz);
+ dp=min(dp, sdBox(a-vec3(0,pm,0),pb.yxz));
+ dp=min(dp, sdBox(a-vec3(0,0,pm),pb.yzx));
+ if(dp<res.x) res=vec2(dp,3);
+ #endif
+ return res;
+ }
+
+ #if EXACT_SDF
+ float slabDist(int i, vec3 p, float seg, float ov){
+ float r0=H+seg*float(i), t=tOf(r0+.5*seg);
+ vec3 y=qrot(qconj(spinor(t)),p), a=abs(y);
+ float lo=max(H,r0-ov), hi=min(R1,r0+seg+ov);
+ float m2=.5*(lo+hi), e2=.5*(hi-lo);
+ float d= sdBox(a-vec3(m2,0,0),vec3(e2,THK,WID));
+ d=min(d, sdBox(a-vec3(0,m2,0),vec3(WID,e2,THK)));
+ d=min(d, sdBox(a-vec3(0,0,m2),vec3(THK,WID,e2)));
+ return d;
+ }
+ float slabLB(int i, float rp, float seg, float ov){
+ float lo=max(H,H+seg*float(i)-ov);
+ float hi=min(R1,H+seg*float(i+1)+ov);
+ return max(0.0,max(rp-sqrt(hi*hi+THK*THK+WID*WID), lo-rp));
+ }
+ vec2 sdExact(vec3 lp){
+ vec2 res=vec2(sdBox(qrot(qconj(spinor(1.0)),lp),vec3(H)),1);
+ #if !REPEAT
+ vec3 a0=abs(lp); float pm=R1+PADL; vec3 pb=vec3(PADL,WID*1.7,WID*1.7);
+ float dp= sdBox(a0-vec3(pm,0,0),pb.xyz);
+ dp=min(dp, sdBox(a0-vec3(0,pm,0),pb.yxz));
+ dp=min(dp, sdBox(a0-vec3(0,0,pm),pb.yzx));
+ if(dp<res.x) res=vec2(dp,3);
+ #endif
+ float rp=length(lp), seg=(R1-H)/float(SLABS), ov=.5*seg;
+ int i0=int(clamp(floor((rp-H)/seg),0.0,float(SLABS)-1.0));
+ float db=1e9;
+ for(int k=0;k<SLABS;k++){int i=i0+k;if(i>=SLABS)break;
+ if(slabLB(i,rp,seg,ov)>db)break; db=min(db,slabDist(i,lp,seg,ov));}
+ for(int k=1;k<SLABS;k++){int i=i0-k;if(i<0)break;
+ if(slabLB(i,rp,seg,ov)>db)break; db=min(db,slabDist(i,lp,seg,ov));}
+ if(db<res.x) res=vec2(db,2);
+ return res;
+ }
+ #endif
+
+ vec2 mapLocal(vec3 lp){
+ #if EXACT_SDF
+ return sdExact(lp);
+ #else
+ return sdStatic(undeformL(lp));
+ #endif
+ }
+
+ vec2 map(vec3 p){
+ vec3 lp=localP(p);
+ #if REPEAT && REMOVE_CENTER
+ vec3 cid=floor(p/PERIOD+.5);
+ if(length(cid-gCamCell)<.5)
+ return vec2(max(-sdBox(lp,vec3(R1-.01)),.01), -1.0);
+ #endif
+ return mapLocal(lp);
+ }
+
  vec3 calcNormal(vec3 p){
- const float h=0.001;
- vec2 k=vec2(1,-1);
- return normalize(
- k.xyy*map(p+k.xyy*h)+
- k.yyx*map(p+k.yyx*h)+
- k.yxy*map(p+k.yxy*h)+
- k.xxx*map(p+k.xxx*h)
- );
+ const vec2 k=vec2(1,-1); float h=.0015;
+ return normalize(k.xyy*map(p+k.xyy*h).x+k.yyx*map(p+k.yyx*h).x+
+ k.yxy*map(p+k.yxy*h).x+k.xxx*map(p+k.xxx*h).x);
  }
 
  // Cor
@@ -554,7 +612,7 @@
  vec3 col=vec3(0);
  for(int i=0;i<ITER;i++){
  vec3 p=ro+rd*t;
- float d=map(p);
+ float d=map(p).x;
  if(d<0.001){
  vec3 n=calcNormal(p);
  col=getColor(p,n);
