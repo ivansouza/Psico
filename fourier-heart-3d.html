@@ -16,6 +16,14 @@
  margin-top:10px; padding:12px 24px; font-size:17px;
  background:#ffd700; color:black; border:none; border-radius:10px; cursor:pointer;
  }
+ #formula {
+ position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
+ background:rgba(0,0,0,0.8); padding:14px 28px; border-radius:14px;
+ text-align:center; font-size:16px; white-space:nowrap; z-index:100;
+ pointer-events:none; backdrop-filter:blur(4px);
+ border:1px solid rgba(255,215,0,0.2);
+ }
+ #formula sub, #formula sup { font-size:11px; }
  </style>
 </head>
 <body>
@@ -23,6 +31,11 @@
  <strong>Fourier Epicycles 3D ❤️</strong><br>
  Harmônicos: <span id="h">0</span>/70<br>
  <button onclick="togglePause()">⏸️ Pausar</button>
+ </div>
+
+ <div id="formula">
+ z(t) = Σ c<sub>n</sub> e<sup>i n t</sup><br>
+ <span style="font-size:13px;color:#8b9bb7">81 harmônicos • 5° por ciclo no eixo Y</span>
  </div>
 
  <script type="importmap">
