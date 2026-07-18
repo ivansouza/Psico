@@ -793,30 +793,6 @@
  loader.style.opacity = '0';
  setTimeout(() => loader.style.display = 'none', 500);
 
- // Redimensionamento
- function resize() {
- canvas.width = window.innerWidth;
- canvas.height = window.innerHeight;
- gl.viewport(0, 0, canvas.width, canvas.height);
- }
- window.addEventListener('resize', resize);
- resize();
-
- // Loop de Renderização
- function render(time) {
- gl.uniform3f(resolutionUniformLocation, canvas.width, canvas.height, 0.0);
- gl.uniform1f(timeUniformLocation, time * 0.001);
- gl.uniform4f(mouseUniformLocation, mouseX, mouseY, mouseZ, mouseW);
- gl.uniform1f(cameraDistUniformLocation, cameraDist);
-
- gl.useProgram(program);
- gl.bindVertexArray(vao);
- gl.drawArrays(gl.TRIANGLES, 0, 6);
-
- requestAnimationFrame(render);
- }
- requestAnimationFrame(render);
-
  // --- Controle do Modal de Explicação ---
  const gearBtn = document.getElementById('gear-btn');
  const modalOverlay = document.getElementById('modal-overlay');
@@ -921,11 +897,45 @@
 
  // --- Zoom buttons ---
  document.getElementById('zoom-in').addEventListener('click', () => {
- cameraDist = Math.max(minCameraDist, cameraDist - 0.5);
+ cameraDist = Math.max(minCameraDist, cameraDist - 1.2);
  });
  document.getElementById('zoom-out').addEventListener('click', () => {
- cameraDist = Math.min(maxCameraDist, cameraDist + 0.5);
+ cameraDist = Math.min(maxCameraDist, cameraDist + 1.2);
  });
+
+ // Ciclo de Renderização e Redimensionamento
+ function resizeCanvas() {
+ const dpr = Math.min(window.devicePixelRatio, 1.5);
+ const displayWidth = Math.floor(window.innerWidth * dpr);
+ const displayHeight = Math.floor(window.innerHeight * dpr);
+
+ if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+ canvas.width = displayWidth;
+ canvas.height = displayHeight;
+ gl.viewport(0, 0, canvas.width, canvas.height);
+ }
+ }
+
+ function render(time) {
+ resizeCanvas();
+
+ gl.clearColor(0, 0, 0, 1);
+ gl.clear(gl.COLOR_BUFFER_BIT);
+
+ gl.useProgram(program);
+ gl.bindVertexArray(vao);
+
+ gl.uniform3f(resolutionUniformLocation, canvas.width, canvas.height, 1.0);
+ gl.uniform1f(timeUniformLocation, time * 0.001);
+ gl.uniform4f(mouseUniformLocation, mouseX * (canvas.width / window.innerWidth), mouseY * (canvas.height / window.innerHeight), mouseZ, mouseW);
+ gl.uniform1f(cameraDistUniformLocation, cameraDist);
+
+ gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+ requestAnimationFrame(render);
+ }
+
+ requestAnimationFrame(render);
  </script>
 </body>
 </html>
