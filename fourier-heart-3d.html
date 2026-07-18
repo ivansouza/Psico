@@ -241,8 +241,8 @@
  const z = Math.sin(time * 0.5) * Z_SPREAD;
 
  // Atualiza ponto
- dot.position.set(x, y, z);
- glow.position.set(x, y, z);
+ dot.position.set(x, -y, z);
+ glow.position.set(x, -y, z);
 
  // Atualiza trail
  updateTrail(x, y, z);
