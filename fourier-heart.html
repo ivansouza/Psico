@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+ <title>Fourier Epicycles - Coração</title>
+ <style>
+ body {
+ margin:0; padding:0; overflow:hidden; background:#0a0a1f;
+ font-family: Arial, sans-serif; color: #ffd700;
+ }
+ canvas { display:block; }
+ #info {
+ position: absolute; top: 15px; left: 15px;
+ background: rgba(0,0,0,0.75); padding: 12px 18px;
+ border-radius: 12px; z-index: 100; user-select: none;
+ }
+ #formula {
+ position: absolute; bottom: 20px; left: 50%;
+ transform: translateX(-50%);
+ background: rgba(0,0,0,0.8); padding: 12px 25px;
+ border-radius: 12px; text-align: center; font-size: 15px;
+ white-space: nowrap; z-index: 100;
+ }
+ button {
+ margin-top: 10px; padding: 12px 24px; font-size: 17px;
+ background: #ffd700; color: black; border: none; border-radius: 10px;
+ }
+ </style>
+</head>
+<body>
+ <div id="info">
+ <strong>Fourier Epicycles ❤️</strong><br>
+ Harmônicos: <span id="h">0</span>/70<br>
+ <button onclick="togglePause()">⏸️ Pausar / Iniciar</button>
+ </div>
+
+ <div id="formula">
+ z(t) = Σ cₙ e<sup>i n t</sup><br>
+ <span style="font-size:13px">81 harmônicos • t = <span id="t">0</span></span>
+ </div>
+
+ <canvas id="c"></canvas>
+
+ <script>
+ const canvas = document.getElementById('c');
+ const ctx = canvas.getContext('2d');
+ let w, h, time = 0, isPaused = false;
+ let fourier = [];
+ let path = [];
+ let currentHarmonics = 0;
+
+ function resize() {
+ w = window.innerWidth;
+ h = window.innerHeight;
+ canvas.width = w;
+ canvas.height = h;
+ }
+
+ function computeFourier() {
+ const N = 200;
+ const points = [];
+ for (let i = 0; i < N; i++) {
+ const t = i * Math.PI * 2 / N;
+ const x = 16 * Math.pow(Math.sin(t), 3);
+ const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+ points.push({x: x*6.8, y: -y*6.8});
+ }
+
+ fourier = [];
+ for (let k = -N/2; k < N/2; k++) {
+ let re = 0, im = 0;
+ for (let n = 0; n < N; n++) {
+ const ang = 2 * Math.PI * k * n / N;
+ re += points[n].x * Math.cos(ang) + points[n].y * Math.sin(ang);
+ im += points[n].y * Math.cos(ang) - points[n].x * Math.sin(ang);
+ }
+ re /= N;
+ im /= N;
+ const amp = Math.hypot(re, im);
+ if (amp > 0.8) fourier.push({k, amp, phase: Math.atan2(im, re)});
+ }
+ fourier.sort((a,b) => b.amp - a.amp);
+ }
+
+ function draw() {
+ ctx.clearRect(0, 0, w, h);
+
+ let x = w/2;
+ let y = h/2 + 40;
+
+ const maxH = Math.min(70, fourier.length);
+
+ // Círculos azuis finos
+ ctx.strokeStyle = '#66bbff';
+ ctx.lineWidth = 1.1;
+
+ for (let i = 0; i < Math.min(currentHarmonics, maxH); i++) {
+ const c = fourier[i];
+ const radius = c.amp * 1.65;
+
+ ctx.beginPath();
+ ctx.arc(x, y, radius, 0, Math.PI*2);
+ ctx.stroke();
+
+ const angle = time * c.k + c.phase;
+ x += radius * Math.cos(angle);
+ y += radius * Math.sin(angle);
+ }
+
+ // Ponto final brilhante
+ ctx.fillStyle = '#ffff00';
+ ctx.shadowBlur = 25;
+ ctx.shadowColor = '#ffff00';
+ ctx.beginPath();
+ ctx.arc(x, y, 8, 0, Math.PI*2);
+ ctx.fill();
+ ctx.shadowBlur = 0;
+
+ // === LINHA AMARELA MUITO MAIS FINA ===
+ path.push({x, y});
+ if (path.length > 1600) path.shift();
+
+ ctx.strokeStyle = '#ffdd66';
+ ctx.lineWidth = 2.2; // ← ainda mais fina
+ ctx.lineJoin = "round";
+ ctx.lineCap = "round";
+
+ ctx.beginPath();
+ path.forEach((p,i) => i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+ ctx.stroke();
+
+ document.getElementById('t').textContent = time.toFixed(2);
+ }
+
+ function animate() {
+ if (!isPaused) {
+ if (currentHarmonics < 70) currentHarmonics++;
+ time += 0.02;
+ draw();
+ document.getElementById('h').textContent = currentHarmonics;
+ }
+ requestAnimationFrame(animate);
+ }
+
+ function togglePause() {
+ isPaused = !isPaused;
+ }
+
+ window.addEventListener('resize', resize);
+ resize();
+ computeFourier();
+ animate();
+ </script>
+</body>
+</html>
