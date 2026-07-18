@@ -122,7 +122,7 @@
  if (path.length > 1600) path.shift();
 
  ctx.strokeStyle = '#ffdd66';
- ctx.lineWidth = 2.2; // ← ainda mais fina
+ ctx.lineWidth = 2.2;
  ctx.lineJoin = "round";
  ctx.lineCap = "round";
 
@@ -133,24 +133,25 @@
  document.getElementById('t').textContent = time.toFixed(2);
  }
 
- function animate() {
+ function loop() {
  if (!isPaused) {
- if (currentHarmonics < 70) currentHarmonics++;
- time += 0.02;
- draw();
+ time += 0.021;
+ currentHarmonics = Math.min(70, Math.floor(time * 7.5) + 4);
  document.getElementById('h').textContent = currentHarmonics;
  }
- requestAnimationFrame(animate);
+ draw();
+ requestAnimationFrame(loop);
  }
 
- function togglePause() {
- isPaused = !isPaused;
- }
+ window.togglePause = () => { isPaused = !isPaused; };
 
- window.addEventListener('resize', resize);
+ window.onload = () => {
  resize();
  computeFourier();
- animate();
+ loop();
+ };
+
+ window.addEventListener('resize', resize);
  </script>
 </body>
 </html>
