@@ -140,17 +140,136 @@ $(function() {
 </script>
 
 <script>
-// Forçar estilos corretos para touch (reforço)
-window.addEventListener('load', function() {
-  var blocks = document.querySelector('[data-htmler-blocks]');
-  if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
+// ============================================
+// HANDLERS NATIVOS DE TOUCH/MOUSE
+// ============================================
+// Fallback para quando o Draggable do GSAP nao funciona no touch
+
+(function() {
+  // Forcar estilos corretos
+  function fixStyles() {
+    var blocks = document.querySelector('[data-htmler-blocks]');
+    if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
+    var sliders = document.querySelectorAll('[data-slider]');
+    sliders.forEach(function(s) {
+      s.style.setProperty('touch-action', 'none', 'important');
+      s.style.setProperty('pointer-events', 'auto', 'important');
+      s.style.setProperty('cursor', 'grab', 'important');
+    });
+  }
   
-  var sliders = document.querySelectorAll('[data-slider]');
-  sliders.forEach(function(s) {
-    s.style.setProperty('touch-action', 'none', 'important');
-    s.style.setProperty('pointer-events', 'auto', 'important');
-  });
-});
+  fixStyles();
+  window.addEventListener('load', function() { setTimeout(fixStyles, 100); });
+  window.addEventListener('load', function() { setTimeout(fixStyles, 1000); });
+  
+  // Variaveis do drag
+  var activeSlider = null;
+  var startX = 0;
+  var startSliderX = 0;
+  var sliderWidth = 770;
+  
+  function getSliderWidth() {
+    var marker = document.querySelector('#svg-marker-path');
+    if (marker) {
+      try {
+        var bbox = marker.getBBox();
+        if (bbox && bbox.width) sliderWidth = bbox.width;
+      } catch(e) {}
+    }
+    return sliderWidth;
+  }
+  
+  function findSlider(clientX, clientY) {
+    var sliders = document.querySelectorAll('[data-slider]');
+    var best = null;
+    var bestDist = 100;
+    
+    sliders.forEach(function(s) {
+      var rect = s.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2;
+      var cy = rect.top + rect.height / 2;
+      var dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = s;
+      }
+    });
+    
+    return best;
+  }
+  
+  function onPointerDown(e) {
+    var clientX, clientY;
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
+    var slider = findSlider(clientX, clientY);
+    if (!slider) return;
+    
+    e.preventDefault();
+    activeSlider = slider;
+    
+    var rect = slider.getBoundingClientRect();
+    startX = clientX;
+    
+    var gs = slider._gsTransform;
+    startSliderX = gs ? gs.x : 0;
+    
+    getSliderWidth();
+    slider.style.cursor = 'grabbing';
+  }
+  
+  function onPointerMove(e) {
+    if (!activeSlider) return;
+    e.preventDefault();
+    
+    var clientX;
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+    
+    var deltaX = clientX - startX;
+    var scale = 0.512987;
+    var deltaScaled = deltaX / scale;
+    var newX = startSliderX + deltaScaled;
+    
+    newX = Math.max(0, Math.min(sliderWidth, newX));
+    
+    TweenMax.set(activeSlider, { x: newX });
+    
+    // Chamar a funcao de update do main.min.js
+    if (typeof dt === 'function') {
+      dt();
+    }
+  }
+  
+  function onPointerUp(e) {
+    if (!activeSlider) return;
+    if (e) e.preventDefault();
+    activeSlider.style.cursor = 'grab';
+    activeSlider = null;
+  }
+  
+  var container = document.querySelector('[data-htmler]') || document.body;
+  
+  container.addEventListener('touchstart', onPointerDown, { passive: false });
+  container.addEventListener('touchmove', onPointerMove, { passive: false });
+  container.addEventListener('touchend', onPointerUp, { passive: false });
+  container.addEventListener('touchcancel', onPointerUp, { passive: false });
+  
+  container.addEventListener('mousedown', onPointerDown);
+  document.addEventListener('mousemove', onPointerMove);
+  document.addEventListener('mouseup', onPointerUp);
+  
+  console.log('Touch handlers nativos instalados');
+})();
 </script>
 </body>
 </html>
