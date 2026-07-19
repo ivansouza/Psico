@@ -177,9 +177,7 @@
         // Altura do blocks = altura do SVG / scale
         blocks.style.height = "900px";
         // Ajustar top dos sliders proporcional à altura do SVG
-        var topViewBox = Math.round(772 * sy / sx);
-        sliderLeft.style.top = Math.min(880, topViewBox + 40) + 'px';
-        sliderRight.style.top = Math.min(880, topViewBox + 40) + 'px';
+        // Top fixo definido no HTML
       }
     }
   }
