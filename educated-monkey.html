@@ -109,8 +109,8 @@ $(function() {
 </script>
 
 <script>
-// Forçar estilos corretos para touch
-window.addEventListener('load', function() {
+// Forçar estilos corretos para touch nos sliders
+function fixSliderTouch() {
   var blocks = document.querySelector('[data-htmler-blocks]');
   if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
   
@@ -119,7 +119,17 @@ window.addEventListener('load', function() {
     s.style.setProperty('touch-action', 'none', 'important');
     s.style.setProperty('pointer-events', 'auto', 'important');
   });
-});
+}
+
+// Executar várias vezes pra garantir que pega depois do Draggable
+fixSliderTouch();
+window.addEventListener('load', function() { setTimeout(fixSliderTouch, 500); });
+window.addEventListener('load', function() { setTimeout(fixSliderTouch, 1500); });
+
+// Monitorar mudanças nos sliders
+var observer = new MutationObserver(fixSliderTouch);
+var target = document.querySelector('[data-htmler]') || document.body;
+observer.observe(target, { attributes: true, subtree: true, attributeFilter: ['style'] });
 </script>
 </body>
 </html>
