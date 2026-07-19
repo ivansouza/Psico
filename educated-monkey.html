@@ -112,12 +112,12 @@ $(function() {
 // Forçar estilos corretos para touch
 window.addEventListener('load', function() {
   var blocks = document.querySelector('[data-htmler-blocks]');
-  if (blocks) blocks.style.pointerEvents = 'auto';
+  if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
   
   var sliders = document.querySelectorAll('[data-slider]');
   sliders.forEach(function(s) {
-    s.style.touchAction = 'none';
-    s.style.pointerEvents = 'auto';
+    s.style.setProperty('touch-action', 'none', 'important');
+    s.style.setProperty('pointer-events', 'auto', 'important');
   });
 });
 </script>
