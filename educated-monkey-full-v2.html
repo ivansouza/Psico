@@ -230,9 +230,9 @@
     TweenMax.set(activeSlider, { x: newX * sx });
     
     if (activeSlider === sliderLeft) {
-      leftX = newX;
+      leftX = Math.min(newX, rightX - step);
     } else {
-      rightX = newX;
+      rightX = Math.max(newX, leftX + step);
     }
     update();
   }
