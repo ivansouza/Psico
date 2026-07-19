@@ -90,6 +90,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/svg.js@2.7.1/dist/svg.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/utils/Draggable.min.js"></script>
+<script>
+// Interceptar Draggable.create para forçar touch-action:none nos sliders
+var origCreate = Draggable.create;
+Draggable.create = function() {
+  var result = origCreate.apply(this, arguments);
+  // Forçar touch-action:none nos targets
+  var targets = arguments[0];
+  if (targets) {
+    var arr = targets.length ? Array.from(targets) : [targets];
+    arr.forEach(function(el) {
+      if (el && el.style) {
+        el.style.setProperty('touch-action', 'none', 'important');
+        el.style.setProperty('pointer-events', 'auto', 'important');
+      }
+    });
+  }
+  return result;
+};
+</script>
 <script src="https://en.etudes.ru/.data/models/educated-monkey/main.min.js?v=5.3.2&ts=1784481220"></script>
 <script>
 // Forçar modo Monkey e esconder botão de mode
@@ -109,22 +128,17 @@ $(function() {
 </script>
 
 <script>
-// Forçar estilos corretos para touch nos sliders
-function fixSliderTouch() {
+// Forçar estilos corretos para touch (reforço)
+window.addEventListener('load', function() {
   var blocks = document.querySelector('[data-htmler-blocks]');
   if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
   
   var sliders = document.querySelectorAll('[data-slider]');
   sliders.forEach(function(s) {
-    s.style.touchAction = 'none';
-    s.style.pointerEvents = 'auto';
+    s.style.setProperty('touch-action', 'none', 'important');
+    s.style.setProperty('pointer-events', 'auto', 'important');
   });
-}
-
-// Executar repetidamente até o Draggable parar de sobrescrever
-fixSliderTouch();
-var fixInterval = setInterval(fixSliderTouch, 200);
-setTimeout(function() { clearInterval(fixInterval); }, 5000);
+});
 </script>
 </body>
 </html>
