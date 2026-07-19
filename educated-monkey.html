@@ -55,6 +55,18 @@
   .button.grey { background: #e0e0e0; color: #666; }
   .button.grey.is-disabled { opacity: 0.4; pointer-events: none; }
   .align-center { text-align: center; }
+
+  /* Esconder botão de Mode - só queremos Monkey */
+  [data-action="mode"],
+  label[for="swmode"] {
+    display: none !important;
+  }
+  /* Garantir touch nos sliders */
+  [data-slider] {
+    touch-action: none !important;
+    pointer-events: auto !important;
+  }
+
 </style>
 </head>
 <body>
@@ -89,6 +101,20 @@
 <script src="https://static.etudes.ru/core/js/jquery-3.5.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/svg.js@2.7.1/dist/svg.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/utils/Draggable.min.js"></script>
+<script>
+// Garantir touch-action:none antes do Draggable criar os sliders
+(function() {
+  var sliders = document.querySelectorAll('[data-slider]');
+  sliders.forEach(function(s) {
+    s.style.setProperty('touch-action', 'none', 'important');
+    s.style.setProperty('pointer-events', 'auto', 'important');
+  });
+  var blocks = document.querySelector('[data-htmler-blocks]');
+  if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
+})();
+</script>
+<script src="https://en.etudes.ru/.data/models/educated-monkey/main.min.js?v=5.3.2&ts=1784481220"></script>
 <script>
 // Forçar modo Monkey e esconder botão de mode
 $(function() {
@@ -106,382 +132,6 @@ $(function() {
 });
 </script>
 
-<script>
-// ============================================
-// SIMULACAO COMPLETA DO EDUCATED MONKEY
-// ============================================
-// Implementacao propria, sem depender do Draggable do GSAP
-// que tem bugs com touch no celular.
 
-(function() {
-  // Forcar estilos
-  var blocks = document.querySelector('[data-htmler-blocks]');
-  if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
-  
-  var sliders = document.querySelectorAll('[data-slider]');
-  sliders.forEach(function(s) {
-    s.style.setProperty('touch-action', 'none', 'important');
-    s.style.setProperty('pointer-events', 'auto', 'important');
-    s.style.setProperty('cursor', 'grab', 'important');
-  });
-  
-  // ==========================================
-  // REFERENCIAS DO SVG
-  // ==========================================
-  var canvas = document.querySelector('[data-canvas="monkey"]');
-  var svg = canvas ? canvas.querySelector('svg') : null;
-  if (!svg) return;
-  
-  var $svg = $(svg);
-  
-  // Grupos do SVG
-  var svgMeches = $svg.find('#svg-meches');
-  var svgMechA = $svg.find('#svg-mech-a');
-  var svgMechB = $svg.find('#svg-mech-b');
-  var svgMechL = $svg.find('#svg-mech-l');
-  var svgMechR = $svg.find('#svg-mech-r');
-  var svgMonkey = $svg.find('#svg-monkey');
-  var svgMonkeyA = $svg.find('#svg-monkey-a');
-  var svgMonkeyB = $svg.find('#svg-monkey-b');
-  var svgMonkeyL = $svg.find('#svg-monkey-l');
-  var svgMonkeyR = $svg.find('#svg-monkey-r');
-  var svgMonkeyL1 = $svg.find('#svg-monkey-l1');
-  var svgMonkeyR1 = $svg.find('#svg-monkey-r1');
-  var svgMonkeyT = $svg.find('#svg-monkey-t');
-  var svgMonkeyH = $svg.find('#svg-monkey-h');
-  var svgMonkeyDotL = $svg.find('#svg-monkey-dot-left');
-  var svgMonkeyDotR = $svg.find('#svg-monkey-dot-right');
-  var svgMonkeyDotM = $svg.find('#svg-monkey-dot-middle');
-  var svgMonkeyDotT = $svg.find('#svg-monkey-dot-top');
-  var svgMonkeyDotBL = $svg.find('#svg-monkey-dot-btm-left');
-  var svgMonkeyDotBR = $svg.find('#svg-monkey-dot-btm-right');
-  var svgMechDotL = $svg.find('#svg-mech-dot-left');
-  var svgMechDotR = $svg.find('#svg-mech-dot-right');
-  var svgMechDotM = $svg.find('#svg-mech-dot-middle');
-  var svgMechDotT = $svg.find('#svg-mech-dot-top');
-  var svgMechDotBL = $svg.find('#svg-mech-dot-btm-left');
-  var svgMechDotBR = $svg.find('#svg-mech-dot-btm-right');
-  var svgNumbers = $svg.find('#svg-numbers');
-  var svgNumbersMult = $svg.find('#svg-numbers-multiply');
-  var svgNumbersAdd = $svg.find('#svg-numbers-add');
-  var svgNumbersDots = $svg.find('#svg-numbers-dots');
-  
-  // Sliders (pés do macaco)
-  var sliderLeft = document.querySelector('[data-slider="left"]');
-  var sliderRight = document.querySelector('[data-slider="right"]');
-  
-  // Botoes
-  var btnOp = document.querySelector('[data-action="op"]');
-  var btnReset = document.querySelector('[type="reset"]');
-  
-  // ==========================================
-  // CALCULAR PARAMETROS
-  // ==========================================
-  var adoptedSvg = SVG.adopt(svg);
-  var markerPath = adoptedSvg.select('#svg-marker-path').first();
-  var markerBBox = markerPath ? markerPath.bbox() : { x: 0, y: 0, width: 770 };
-  
-  var markerX = markerBBox.x;
-  var markerY = markerBBox.y;
-  var totalWidth = markerBBox.width;
-  var step = totalWidth / 12;
-  
-  var mechL = adoptedSvg.select('#svg-mech-l').first();
-  var mechLBBox = mechL ? mechL.bbox() : { width: 100 };
-  var mechWidth = mechLBBox.width;
-  var diagonal = Math.sqrt(2) * mechWidth;
-  
-  // Posicoes de snap (0 a 12)
-  var snapPositions = [];
-  for (var i = 0; i < 13; i++) {
-    snapPositions.push(i * step);
-  }
-  
-  // Estado
-  var currentOp = 0; // 0 = multiplicacao, 1 = adicao
-  var leftX = 0;
-  var rightX = totalWidth;
-  
-  // ==========================================
-  // POSICIONAR SLIDERS INICIALMENTE
-  // ==========================================
-  sliderLeft.style.left = markerX + 'px';
-  sliderLeft.style.top = (markerY - 10) + 'px';
-  sliderRight.style.left = markerX + 'px';
-  sliderRight.style.top = (markerY - 10) + 'px';
-  
-  TweenMax.set(sliderRight, { x: totalWidth });
-  
-  // ==========================================
-  // PONTOS DE ORIGEM DOS GRUPOS
-  // ==========================================
-  TweenMax.set(svgMechA.get(0), { transformOrigin: 'left bottom' });
-  TweenMax.set(svgMechB.get(0), { transformOrigin: 'right bottom' });
-  TweenMax.set(svgMechL.get(0), { transformOrigin: 'left bottom' });
-  TweenMax.set(svgMechR.get(0), { transformOrigin: 'right bottom' });
-  TweenMax.set(svgMonkeyA.get(0), { transformOrigin: '32.256px 55.925px' });
-  TweenMax.set(svgMonkeyB.get(0), { transformOrigin: '328.244px 55.925px' });
-  TweenMax.set(svgMonkeyT.get(0), { transformOrigin: 'center bottom' });
-  TweenMax.set(svgMonkeyL.get(0), { transformOrigin: '72px 439px' });
-  TweenMax.set(svgMonkeyR.get(0), { transformOrigin: '392px 439px' });
-  
-  // ==========================================
-  // FUNCAO DE UPDATE DO MECANISMO
-  // ==========================================
-  function updateMechanism() {
-    var l = leftX;
-    var u = rightX;
-    var e = u - l;
-    var f = e / 4;
-    
-    var x = Math.sqrt(diagonal * diagonal - e * e / 4) / 2;
-    
-    var n = { x: 0, y: 2 * x };
-    var o = { x: 0, y: 2 * f };
-    var c = { x: 2 * f, y: 0 };
-    var m = { x: x + f, y: x + f };
-    
-    var angle = Math.atan2(m.x - c.x, m.y - c.y) * (180 / Math.PI);
-    
-    // Mecanismo (scheme)
-    TweenMax.set(svgMeches.get(0), { x: l });
-    TweenMax.set(svgMechL.get(0), { rotation: -angle });
-    TweenMax.set(svgMechR.get(0), { rotation: angle, x: e - totalWidth });
-    TweenMax.set(svgMechA.get(0), { rotation: angle, x: -(m.x - c.x), y: mechWidth - m.y });
-    TweenMax.set(svgMechB.get(0), { rotation: -angle, x: e - totalWidth + (m.x - c.x), y: mechWidth - m.y });
-    
-    // Macaco
-    TweenMax.set(svgMonkey.get(0), { x: l });
-    TweenMax.set(svgMonkeyL.get(0), { rotation: -angle });
-    TweenMax.set(svgMonkeyR.get(0), { rotation: angle, x: e - totalWidth });
-    TweenMax.set(svgMonkeyL1.get(0), { x: 0 });
-    TweenMax.set(svgMonkeyR1.get(0), { x: e });
-    TweenMax.set(svgMonkeyA.get(0), { rotation: angle, x: -(m.x - c.x), y: mechWidth - m.y });
-    TweenMax.set(svgMonkeyB.get(0), { rotation: -angle, x: e - totalWidth + (m.x - c.x), y: mechWidth - m.y });
-    TweenMax.set(svgMonkeyT.get(0), { x: e / 2, y: -o.y - 25 });
-    TweenMax.set(svgMonkeyH.get(0), { x: e / 2, y: -n.y });
-    
-    // Pontos do macaco
-    TweenMax.set([svgMonkeyDotL.get(0), svgMechDotL.get(0)], { x: c.x - m.x, y: -m.y });
-    TweenMax.set([svgMonkeyDotR.get(0), svgMechDotR.get(0)], { x: e + m.x - c.x, y: -m.y });
-    TweenMax.set([svgMonkeyDotM.get(0), svgMechDotM.get(0)], { x: e / 2, y: -o.y });
-    TweenMax.set([svgMonkeyDotT.get(0), svgMechDotT.get(0)], { x: e / 2, y: -n.y });
-    TweenMax.set([svgMonkeyDotBL.get(0), svgMechDotBL.get(0)], { x: 0, y: 0 });
-    TweenMax.set([svgMonkeyDotBR.get(0), svgMechDotBR.get(0)], { x: e, y: 0 });
-    
-    // Atualizar botao reset
-    if (btnReset) {
-      if (l < 0.01 && Math.abs(u - totalWidth) < 0.01) {
-        btnReset.classList.add('is-disabled');
-      } else {
-        btnReset.classList.remove('is-disabled');
-      }
-    }
-  }
-  
-  // ==========================================
-  // SNAP PARA O VALOR MAIS PROXIMO
-  // ==========================================
-  function snapToNearest(value) {
-    var nearest = snapPositions[0];
-    var minDist = Math.abs(value - nearest);
-    for (var i = 1; i < snapPositions.length; i++) {
-      var dist = Math.abs(value - snapPositions[i]);
-      if (dist < minDist) {
-        minDist = dist;
-        nearest = snapPositions[i];
-      }
-    }
-    return nearest;
-  }
-  
-  // ==========================================
-  // HANDLERS DE TOUCH/MOUSE
-  // ==========================================
-  var activeSlider = null;
-  var dragStartX = 0;
-  var dragStartSliderX = 0;
-  var scale = 0.512987;
-  
-  function findSliderAt(clientX, clientY) {
-    var all = document.querySelectorAll('[data-slider]');
-    var best = null;
-    var bestDist = 120;
-    
-    all.forEach(function(s) {
-      var rect = s.getBoundingClientRect();
-      var cx = rect.left + rect.width / 2;
-      var cy = rect.top + rect.height / 2;
-      var dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = s;
-      }
-    });
-    
-    return best;
-  }
-  
-  function getPointerPos(e) {
-    if (e.touches && e.touches.length > 0) {
-      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-    if (e.changedTouches && e.changedTouches.length > 0) {
-      return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-    }
-    return { x: e.clientX, y: e.clientY };
-  }
-  
-  function onDragStart(e) {
-    var pos = getPointerPos(e);
-    var slider = findSliderAt(pos.x, pos.y);
-    if (!slider) return;
-    
-    e.preventDefault();
-    activeSlider = slider;
-    dragStartX = pos.x;
-    
-    var gs = slider._gsTransform;
-    dragStartSliderX = gs ? gs.x : 0;
-    
-    slider.style.cursor = 'grabbing';
-  }
-  
-  function onDragMove(e) {
-    if (!activeSlider) return;
-    e.preventDefault();
-    
-    var pos = getPointerPos(e);
-    var deltaX = pos.x - dragStartX;
-    var deltaScaled = deltaX / scale;
-    var newX = dragStartSliderX + deltaScaled;
-    
-    newX = Math.max(0, Math.min(totalWidth, newX));
-    
-    TweenMax.set(activeSlider, { x: newX });
-    
-    // Atualizar leftX/rightX
-    if (activeSlider === sliderLeft) {
-      leftX = newX;
-      // Limitar o direito para nao passar do esquerdo
-      if (rightX < leftX + step) {
-        rightX = leftX + step;
-        TweenMax.set(sliderRight, { x: rightX });
-      }
-    } else {
-      rightX = newX;
-      if (leftX > rightX - step) {
-        leftX = rightX - step;
-        TweenMax.set(sliderLeft, { x: leftX });
-      }
-    }
-    
-    updateMechanism();
-  }
-  
-  function onDragEnd(e) {
-    if (!activeSlider) return;
-    if (e) e.preventDefault();
-    
-    // Snap para o valor mais proximo
-    var gs = activeSlider._gsTransform;
-    var currentX = gs ? gs.x : 0;
-    var snapped = snapToNearest(currentX);
-    
-    TweenMax.to(activeSlider, 0.15, { x: snapped, onUpdate: function() {
-      if (activeSlider === sliderLeft) {
-        leftX = snapped;
-      } else {
-        rightX = snapped;
-      }
-      updateMechanism();
-    }});
-    
-    activeSlider.style.cursor = 'grab';
-    activeSlider = null;
-  }
-  
-  // ==========================================
-  // BOTOES
-  // ==========================================
-  function toggleOp() {
-    currentOp = currentOp === 0 ? 1 : 0;
-    if (btnOp) {
-      btnOp.classList.remove('mode-0', 'mode-1');
-      btnOp.classList.add('mode-' + currentOp);
-    }
-    
-    if (currentOp === 0) {
-      TweenMax.to(svgNumbersAdd.get(0), 0.25, { opacity: 0 });
-      TweenMax.to(svgNumbersMult.get(0), 0.25, { opacity: 1 });
-    } else {
-      TweenMax.to(svgNumbersMult.get(0), 0.25, { opacity: 0 });
-      TweenMax.to(svgNumbersAdd.get(0), 0.25, { opacity: 1 });
-    }
-  }
-  
-  function resetSliders() {
-    TweenMax.to(sliderRight, 0.5, { x: totalWidth, onUpdate: function() {
-      rightX = totalWidth;
-      updateMechanism();
-    }});
-    TweenMax.to(sliderLeft, 0.5, { x: 0, onUpdate: function() {
-      leftX = 0;
-      updateMechanism();
-    }});
-  }
-  
-  // ==========================================
-  // INICIALIZACAO
-  // ==========================================
-  
-  // Esconder elementos que nao sao do modo Monkey
-  TweenMax.set(svgNumbersDots.get(0), { opacity: 0 });
-  TweenMax.set(svgMeches.get(0), { opacity: 0 });
-  
-  // Mostrar apenas multiplicacao inicialmente
-  TweenMax.set(svgNumbersAdd.get(0), { opacity: 0 });
-  TweenMax.set(svgNumbersMult.get(0), { opacity: 1 });
-  
-  // Posicao inicial
-  leftX = 0;
-  rightX = totalWidth;
-  TweenMax.set(sliderLeft, { x: 0 });
-  TweenMax.set(sliderRight, { x: totalWidth });
-  updateMechanism();
-  
-  // Adicionar hint
-  var htmlerBox = document.querySelector('[data-htmler-box]');
-  if (htmlerBox) htmlerBox.classList.add('is-active', 'is-hinted');
-  
-  // ==========================================
-  // EVENT LISTENERS
-  // ==========================================
-  var container = document.querySelector('[data-htmler]') || document.body;
-  
-  // Touch
-  container.addEventListener('touchstart', onDragStart, { passive: false });
-  container.addEventListener('touchmove', onDragMove, { passive: false });
-  container.addEventListener('touchend', onDragEnd, { passive: false });
-  container.addEventListener('touchcancel', onDragEnd, { passive: false });
-  
-  // Mouse
-  container.addEventListener('mousedown', onDragStart);
-  document.addEventListener('mousemove', onDragMove);
-  document.addEventListener('mouseup', onDragEnd);
-  
-  // Botoes
-  if (btnOp) btnOp.addEventListener('click', toggleOp);
-  if (btnReset) btnReset.addEventListener('click', resetSliders);
-  
-  // Esconder botao de mode
-  var modeBtn = document.querySelector('[data-action="mode"]');
-  if (modeBtn) modeBtn.style.display = 'none';
-  var modeLabel = document.querySelector('label[for="swmode"]');
-  if (modeLabel) modeLabel.style.display = 'none';
-  
-  console.log('Educated Monkey - implementacao propria carregada');
-})();
-</script>
 </body>
 </html>
