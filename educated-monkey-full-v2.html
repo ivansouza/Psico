@@ -227,7 +227,7 @@
     var dx = (pos.x - dragStartX) / 0.512987;
     var newX = Math.max(0, Math.min(totalWidth, dragStartVal + dx));
     
-    TweenMax.set(activeSlider, { x: newX * sx });
+    TweenMax.set(activeSlider, { x: newX * sx * (activeSlider === sliderRight ? -1 : 1) });
     
     if (activeSlider === sliderLeft) {
       leftX = newX;
@@ -244,7 +244,9 @@
     var cur = gs ? gs.x / sx : 0;
     var snapped = snap(cur);
     
-    TweenMax.to(activeSlider, 0.15, { x: snapped * sx, onUpdate: function() {
+        TweenMax.to(activeSlider, 0.15, { x: snapped * sx * (activeSlider === sliderRight ? -1 : 1), onUpdate: function() {
+      if (activeSlider === sliderLeft) leftX = snapped;
+      else rightX = snapped;
       if (activeSlider === sliderLeft) leftX = snapped;
       else rightX = snapped;
       update();
@@ -268,7 +270,7 @@
   });
   
   document.getElementById('btn-reset').addEventListener('click', function() {
-    TweenMax.to(sliderRight, 0.5, { x: totalWidth * sx, onUpdate: function() { rightX = totalWidth; update(); } });
+    TweenMax.to(sliderRight, 0.5, { x: -totalWidth * sx, onUpdate: function() { rightX = totalWidth; update(); } });
     TweenMax.to(sliderLeft, 0.5, { x: 0, onUpdate: function() { leftX = 0; update(); } });
   });
   
