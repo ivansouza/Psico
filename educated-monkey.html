@@ -91,11 +91,23 @@
 <script src="https://cdn.jsdelivr.net/npm/svg.js@2.7.1/dist/svg.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/utils/Draggable.min.js"></script>
 <script>
-// Interceptar Draggable.create para forçar touch-action:none nos sliders
+// Forçar touch-action:none nos sliders antes do Draggable inicializar
+(function() {
+  var sliders = document.querySelectorAll('[data-slider]');
+  sliders.forEach(function(s) {
+    s.style.setProperty('touch-action', 'none', 'important');
+    s.style.setProperty('pointer-events', 'auto', 'important');
+  });
+  
+  // Também no data-htmler-blocks
+  var blocks = document.querySelector('[data-htmler-blocks]');
+  if (blocks) blocks.style.setProperty('pointer-events', 'auto', 'important');
+})();
+
+// Interceptar Draggable.create
 var origCreate = Draggable.create;
 Draggable.create = function() {
   var result = origCreate.apply(this, arguments);
-  // Forçar touch-action:none nos targets
   var targets = arguments[0];
   if (targets) {
     var arr = targets.length ? Array.from(targets) : [targets];
