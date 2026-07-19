@@ -37,8 +37,8 @@
   [data-height-limiter] { position: relative; }
   [data-height-limiter] [data-cnt] { position: relative; }
   .ratio-7x6 [data-cnt] { max-width: 100%; }
-  [data-htmler-blocks] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-  [data-slider] { position: absolute; cursor: grab; touch-action: pan-y; user-select: none; z-index: 10; }
+  [data-htmler-blocks] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  [data-slider] { position: absolute; cursor: grab; touch-action: none; user-select: none; z-index: 10; }
   [data-slider]:active { cursor: grabbing; }
   [data-slider] div { width: 60px; height: 60px; border-radius: 50%; background: rgba(0,0,0,0.05); border: 2px dashed rgba(0,0,0,0.2); }
   [data-hints] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -105,6 +105,20 @@ $(function() {
     var modeLabel = document.querySelector('label[for="swmode"]');
     if (modeLabel) modeLabel.style.display = 'none';
   }, 100);
+});
+</script>
+
+<script>
+// Forçar estilos corretos para touch
+window.addEventListener('load', function() {
+  var blocks = document.querySelector('[data-htmler-blocks]');
+  if (blocks) blocks.style.pointerEvents = 'auto';
+  
+  var sliders = document.querySelectorAll('[data-slider]');
+  sliders.forEach(function(s) {
+    s.style.touchAction = 'none';
+    s.style.pointerEvents = 'auto';
+  });
 });
 </script>
 </body>
