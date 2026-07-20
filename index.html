@@ -1,25 +1,1293 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Consul, The Educated Monkey</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psico Portfolio — Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg: #060816;
+            --bg-soft: #0c1224;
+            --panel: rgba(10, 15, 31, 0.78);
+            --panel-strong: rgba(15, 23, 42, 0.94);
+            --line: rgba(148, 163, 184, 0.14);
+            --text: #e5eefc;
+            --muted: #8b9bb7;
+            --cyan: #38bdf8;
+            --violet: #8b5cf6;
+            --emerald: #34d399;
+            --amber: #f59e0b;
+            --rose: #fb7185;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: calc(100vh - 80px);
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 28%),
+                radial-gradient(circle at top right, rgba(139,92,246,0.16), transparent 25%),
+                radial-gradient(circle at bottom center, rgba(52,211,153,0.10), transparent 30%),
+                linear-gradient(180deg, #03050d 0%, #070b17 40%, #060816 100%);
+        }
+
+        .app-shell {
+            width: min(1680px, calc(100vw - 24px));
+            margin: 12px auto;
+            display: block;
+        }
+
+        .glass {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.38);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .pill-filters {
+            cursor: pointer;
+            height: 40px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(56,189,248,0.28);
+            background: rgba(56,189,248,0.08);
+            color: #93c5fd;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all .18s ease;
+        }
+
+        .pill-filters:hover {
+            background: rgba(56,189,248,0.14);
+            border-color: rgba(56,189,248,0.45);
+            color: #dbeafe;
+        }
+
+        @media (max-width: 640px) {
+            .pill-filters {
+                height: 36px;
+                padding: 0 12px;
+                font-size: 10px;
+            }
+        }
+
+        .content-area { padding-top: 200px; 
+            padding-top: 2px;
+        }
+
+        .filters-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .28s ease;
+            z-index: 70;
+        }
+
+        .filters-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .filters-shell {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: min(420px, 92vw);
+            height: calc(100vh - 80px);
+            border-radius: 0 28px 28px 0;
+            padding: 18px;
+            overflow-y: auto;
+            margin: 0;
+            transform: translateX(-105%);
+            opacity: 1;
+            transition: transform .32s cubic-bezier(.22,.8,.2,1);
+            z-index: 80;
+            pointer-events: none;
+        }
+
+        .filters-shell.open {
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+
+        .filters-panel {
+            overflow: visible;
+            transition: none;
+        }
+
+        .filters-panel.collapsed {
+            max-height: none !important;
+            opacity: 1;
+            transform: none;
+            margin-top: 0 !important;
+            pointer-events: auto;
+        }
+
+        .filters-shell::before,
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(140deg, rgba(56,189,248,0.10), transparent 35%, rgba(139,92,246,0.10));
+        }
+
+        .toolbar, .gallery-card { position: relative; }
+
+        .brand-mark {
+            width: 52px;
+            height: 52px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(56,189,248,0.95), rgba(139,92,246,0.95));
+            color: white;
+            box-shadow: 0 20px 50px rgba(56,189,248,0.24);
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            letter-spacing: .24em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .hero {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 40;
+            width: min(1680px, calc(100vw - 24px));
+            border-radius: 28px;
+            padding: 14px 18px;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .hero-spacer {
+            height: 92px;
+            width: 100%;
+        }
+
+        @media (max-width: 1180px) {
+            .hero {
+                width: calc(100vw - 24px);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                top: 8px;
+                width: calc(100vw - 16px);
+                padding: 12px 14px;
+                left: 8px;
+                transform: translateX(0);
+            }
+
+            .hero-spacer {
+                height: 78px;
+            }
+        }
+
+        .hero-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .hero-left { min-width: 0; flex: 1 1 0; }
+
+        .hero-title {
+            margin: 6px 0 8px;
+            font-weight: 900;
+            letter-spacing: -.04em;
+            line-height: 1;
+        }
+
+        .hero-title-sm {
+            font-size: clamp(1.25rem, 3.5vw, 2rem);
+        }
+
+        .hero-metrics {
+            display: flex;
+            gap: 20px;
+            align-items: baseline;
+            margin-top: 10px;
+        }
+
+        .hero-metric-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            letter-spacing: -.03em;
+        }
+
+        .hero-metric-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .18em;
+        }
+
+        .mode-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px 8px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.08);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, #9bdcff 35%, #c4b5fd 70%, #fff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+
+
+
+
+        .toolbar {
+            margin-top: 12px;
+            border-radius: 24px;
+            padding: 12px;
+        }
+
+        .toolbar-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-wrap { position: relative; }
+        .search-wrap i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #55627f;
+            font-size: 13px;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 54px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.04);
+            color: white;
+            padding: 0 48px 0 42px;
+            outline: none;
+            transition: .2s ease;
+        }
+        .search-input:focus { border-color: rgba(56,189,248,0.48); box-shadow: 0 0 0 4px rgba(56,189,248,0.08); }
+
+        .clear-btn, .action-btn, .sidebar-toggle {
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            border-radius: 18px;
+            transition: .22s ease;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .action-btn, .sidebar-toggle {
+            height: 54px;
+            padding: 0 18px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .action-btn:hover, .sidebar-toggle:hover, .filter-btn:hover, .quick-chip:hover {
+            transform: translateY(-1px);
+            border-color: rgba(56,189,248,0.28);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+        }
+
+        .action-btn.active {
+            background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(251,191,36,.12));
+            border-color: rgba(245,158,11,.42);
+            color: #fde68a;
+        }
+
+        .side-section + .side-section { margin-top: 14px; }
+
+        .side-box {
+            padding: 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .filter-stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+        .filter-btn, .quick-chip {
+            cursor: pointer;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.03);
+            color: #c8d5e8;
+            padding: 9px 12px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            transition: .2s ease;
+            white-space: nowrap;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, rgba(56,189,248,.22), rgba(139,92,246,.18));
+            border-color: rgba(56,189,248,.38);
+            color: white;
+            box-shadow: 0 10px 30px rgba(56,189,248,.16);
+        }
+
+        .quick-chip { padding: 10px 14px; }
+
+        .content-area { padding-top: 200px;  min-width: 0; }
+        .active-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; }
+
+        .active-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(56,189,248,.10);
+            border: 1px solid rgba(56,189,248,.18);
+            color: #dff5ff;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0 14px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .gallery-card {
+            border-radius: 28px;
+            padding: 18px;
+            min-height: 255px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025)),
+                radial-gradient(circle at top right, rgba(56,189,248,.12), transparent 35%);
+            border: 1px solid rgba(255,255,255,.07);
+            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(56,189,248,.34);
+            box-shadow: 0 24px 50px rgba(0,0,0,.32);
+        }
+
+        .gallery-card.dev-card {
+            background:
+                linear-gradient(180deg, rgba(245,158,11,.08), rgba(255,255,255,.03)),
+                radial-gradient(circle at top right, rgba(245,158,11,.14), transparent 34%);
+            border-color: rgba(245,158,11,.22);
+        }
+
+        .card-top { display: flex; justify-content: space-between; gap: 12px; align-items: start; margin-bottom: 16px; }
+        .category-dot { width: 11px; height: 11px; border-radius: 999px; box-shadow: 0 0 20px currentColor; }
+        .card-title { font-size: 1.16rem; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 10px 0 10px; }
+        .card-desc { color: #94a3b8; font-size: 13px; line-height: 1.55; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .card-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+        .tag { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+        .card-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 20px; }
+        .primary-link, .secondary-link {
+            min-height: 46px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+        .primary-link {
+            background: linear-gradient(135deg, #38bdf8, #6366f1);
+            color: white;
+            box-shadow: 0 18px 34px rgba(56,189,248,.22);
+        }
+        .secondary-link {
+            border: 1px solid rgba(255,255,255,.08);
+            color: #d9e5f9;
+            background: rgba(255,255,255,.03);
+            padding: 0 14px;
+        }
+
+        .empty-state {
+            padding: 36px 22px;
+            border-radius: 28px;
+            border: 1px dashed rgba(255,255,255,.12);
+            background: rgba(255,255,255,.025);
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .sidebar-toggle { display: none; width: 100%; justify-content: center; margin-bottom: 12px; }
+
+        @media (max-width: 1180px) {
+            .toolbar-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 900px) {
+            .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 640px) {
+            .app-shell { width: min(100vw - 16px, 1680px); margin: 8px auto; gap: 12px; }
+            .hero, .toolbar { border-radius: 22px; padding: 14px 12px; }
+            .gallery { grid-template-columns: 1fr; gap: 12px; }
+            .gallery-card { border-radius: 24px; min-height: 230px; padding: 16px; }
+            .hero-title-sm { font-size: 1.35rem; }
+            .mode-pill { font-size: 10px; padding: 6px 12px; }
+            .hero-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    
+        .quick-nav-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        .quick-nav-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    </style>
 </head>
 <body>
-<div id="canvas-wrap">
-  <object data="monkey.svg" type="image/svg+xml" id="svg-object"></object>
-  <div data-htmler-blocks style="transform:scale(0.512987);transform-origin:left top;position:absolute;top:0;left:0;width:1050px;height:900px;pointer-events:none;">
-    <div class="slider" id="slider-left"><div class="slider-handle"></div></div>
-    <div class="slider" id="slider-right"><div class="slider-handle"></div></div>
-  </div>
-</div>
-<div class="controls">
-  <button id="btn-op">×</button>
-  <button id="btn-reset" disabled>Reset</button>
-</div>
-<p class="footer">Baseado no brinquedo de 1916 de William Henry Robertson</p>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
-<script src="script.js"></script>
+    <div class="app-shell">
+        <main class="content-area">
+            <div id="filters-backdrop" class="filters-backdrop"></div>
+            <section id="filters-shell" class="filters-shell glass" aria-hidden="true">
+                <div class="toolbar-grid">
+                    <div class="search-wrap">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input id="search-input" class="search-input" type="text" placeholder="Buscar por nome, descrição, categoria ou ficheiro...">
+                        <button id="clear-search" class="clear-btn" type="button">&times;</button>
+                    </div>
+
+                    <button id="filters-toggle" class="action-btn"><i class="fas fa-xmark"></i> Fechar</button>
+                </div>
+
+                <div id="active-filters" class="active-strip"></div>
+
+                <div id="filters-panel" class="filters-panel collapsed mt-2">
+                    <div class="side-section">
+                        <div class="side-box">
+                            <div class="eyebrow">Navegação rápida</div>
+                            <div class="filter-stack">
+                                <button class="quick-chip" onclick="scrollToSection('hero')">Overview</button>
+                                <button class="quick-chip" onclick="scrollToSection('gallery-section')">Galeria</button>
+                                <button class="quick-chip" onclick="applyPreset('recent')">Mais Recentes</button>
+                                <button class="quick-chip" onclick="applyPreset('picks')">Fresh Picks</button>
+                                <button class="quick-chip" onclick="applyPreset('ai')">IA & LLMs</button>
+                        </div>
+                    </div>
+
+                    <div class="side-section">
+                        <div class="side-box">
+                            <div class="eyebrow">Categorias</div>
+                            <div id="filters-cat" class="filter-stack"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 side-section">
+                        <div class="side-box">
+                            <div class="eyebrow">Ano</div>
+                            <div id="filters-year" class="filter-stack"></div>
+                        </div>
+                        <div class="side-box">
+                            <div class="eyebrow">Mês</div>
+                            <div id="filters-month" class="filter-stack"></div>
+                        </div>
+                    </div>
+
+                    <div class="side-section">
+                        <div class="side-box">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="eyebrow">Modo laboratório</div>
+                                    <div class="text-sm text-slate-300 mt-1">Mostrar experiments em desenvolvimento</div>
+                                </div>
+                                <button id="mock-toggle" onclick="toggleMockCards(this)" class="action-btn">
+                                    <i class="fas fa-flask"></i>
+                                    <span>Mock <span id="mock-count">(0)</span></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="hero" class="hero glass">
+                <div class="hero-inner">
+                    <div class="hero-left">
+                        <div class="eyebrow">Psico Portfolio — <span style="color:var(--cyan)">Creative coding</span></div>
+                        <div style="display: flex; align-items: center; gap: 20px; justify-content: center; flex-wrap: wrap;">
+            <img src="psico-logo-final.png" alt="Psico Logo" style="height: 60px; width: auto; filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8)); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.15) rotate(8deg)'" onmouseout="this.style.transform='scale(1) rotate(0deg)'">
+            <h1 class="hero-title hero-title-sm gradient-text">Laboratório interativo de Ivan Souza</h1>
+        </div>
+                        <div class="hero-metrics">
+                            <div>
+                                <span id="cards-total" class="hero-metric-value">0</span>
+                                <div class="hero-metric-label">Total</div>
+                            </div>
+                            <div>
+                                <span id="cat-total" class="hero-metric-value">0</span>
+                                <div class="hero-metric-label">Categorias</div>
+                            </div>
+                            <div>
+                                <span id="visible-total" class="hero-metric-value">0</span>
+                                <div class="hero-metric-label">Visíveis</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mode-pill">
+                        <span id="mode-label" class="font-bold">Produção</span>
+                        <button id="filters-open" class="pill-filters" title="Buscar e filtrar"><i class="fas fa-sliders"></i> Filtros</button>
+                    </div>
+                </div>
+            </section>
+            <div class="hero-spacer"></div>
+
+            <section id="gallery-section">
+                <div class="section-head">
+                    <div>
+                        <div class="eyebrow">Experiments</div>
+                        <h2 class="text-2xl md:text-3xl font-black tracking-tight mt-1">Galeria curada</h2>
+                    </div>
+                    <div id="stats" class="text-right text-xs md:text-sm text-slate-400 font-semibold"></div>
+                </div>
+                <div id="gallery" class="gallery"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const username = "ivansouza";
+        const repo = "Psico";
+        const baseUrl = `https://${username}.github.io/${repo}`;
+        const sourceUrl = `https://github.com/${username}/${repo}/blob/main`;
+
+        let activeCategory = "Todos";
+        let activeMonth = "Todos";
+        let activeYear = "Todos";
+        let searchQuery = "";
+        let showMockCards = false;
+
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        let experiments = [
+
+            { name: "Kitaoka Bulge — Ilusão de Abaulamento", file: "kitaoka-bulge.html", pick: true, cat: "Efeitos", date: "12/07/2026", desc: "Ilusão óptica de tabuleiro xadrez com pontos direcionais que criam efeito de abaulamento (Kitaoka)." },
+            { name: "Gerador de Citações Aleatórias", file: "teste88.html", cat: "Util", date: "20/04/2026", desc: "Aplicativo que gera citações inspiradoras aleatórias com autores famosos, categorias temáticas e opções de compartilhamento" },
+            { name: "Quiz Master 200", file: "quiz.html", cat: "Jogos", date: "20/04/2026", desc: "Quiz interativo com 200 perguntas desafiadoras, múltiplas categorias e sistema de pontuação em tempo real" },
+            { name: "EML Star Engine 3D", file: "eml-estar.html", cat: "3D", date: "20/04/2026", desc: "Motor 3D EML Star com edição paramétrica, visualização em tempo real e exportação de modelos" },
+            { name: "EML Engine v2.5", file: "hipo-eml.html", cat: "Matemática", date: "20/04/2026", desc: "Engine EML v2.5 para cálculo de hipotenusa com visualização geométrica e fórmulas explicadas" },
+            { name: "Psico Dashboard v4", file: "index4.html", cat: "Util", date: "20/04/2026", desc: "Versão 4 do dashboard Psico com interface redesenhada, performance otimizada e novos filtros" },
+            { name: "Psico Neural Dashboard", file: "indexnovo2.html", cat: "IA", date: "20/04/2026", desc: "PSICO LAB Neural Dashboard com visualização de dados em tempo real, analytics e machine learning" },
+            { name: "Psico Neural Dashboard v3", file: "indexnovo3.html", cat: "IA", date: "20/04/2026", desc: "PSICO LAB Neural Dashboard v3 com machine learning integrado, predições e interface neural" },
+            { name: "TTS Local", file: "tts-local.html", pick: true, cat: "Util", date: "03/04/2026", desc: "Utilitário prático para tts local com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Sólidos Platónicos", file: "solidos-platonicos.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador interativo dos 5 sólidos perfeitos." },
+            { name: "A-lorenz", file: "A-lorenz.html", cat: "Física", date: "02/12/2025", desc: "Simulação do sistema caótico de Lorenz." },
+            { name: "Sacred Dodecahedron", file: "Sacred-Dodecahedron.html", cat: "Geometria", date: "19/12/2025", desc: "Exploração interativa de geometria sagrada usando o dodecaedro, símbolo do universo na filosofia platônica" },
+            { name: "Truchet Tiles", file: "Truchet.html", cat: "Matemática", date: "12/12/2025", desc: "Demonstração de truchet tiles com fórmulas e aplicações." },
+            { name: "Faraday 3D", file: "3d-faraday.html", cat: "Física", date: "19/01/2026", desc: "Simulação interativa de faraday 3d com controles de parâmetros e visualização científica detalhada." },
+            { name: "3D Water 1", file: "3dwater.html", cat: "Física", date: "28/01/2026", desc: "Simulação básica de água 3D com ondas simples e reflexos de luz" },
+            { name: "3D Water 2", file: "3dwater2.html", cat: "Física", date: "28/01/2026", desc: "Água 3D com física melhorada, espuma e interação com objetos flutuantes" },
+            { name: "3D Water 3", file: "3dwater3.html", cat: "Física", date: "28/01/2026", desc: "Simulação avançada com turbulência, splash effects e controle de viscosidade" },
+            { name: "Astroguia", file: "Astroguia.html", cat: "Util", date: "07/01/2026", desc: "Utilitário prático para astroguia com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Audio Visualizer", file: "audio.html", cat: "Áudio", date: "28/02/2026", desc: "Visualizador de áudio em tempo real (onda + espectro)." },
+            { name: "Aqua Shader", file: "aqua-shader.html", cat: "Shaders", date: "15/03/2026", desc: "Shader WebGL responsivo que simula água fluida no mobile." },
+            { name: "WuSquare", file: "wusquare.html", cat: "Matemática", date: "17/03/2026", desc: "Truque mental de Scott Wu para quadrados instantâneos." },
+            { name: "Aizawa Neon", file: "aizawa-neon.html", cat: "Física", date: "17/03/2026", desc: "Atrator de Aizawa com órbita neon gerada em three.js." },
+            { name: "Laser no Triângulo", file: "laser-triangulo.html", cat: "Animação", date: "20/03/2026", desc: "Laser refletindo em triângulo de espelhos no estilo do vídeo viral." },
+            { name: "RSVP Reader", file: "RSVP.html", cat: "Util", date: "14/01/2026", desc: "Utilitário para rsvp reader com interface limpa e funcionalidades." },
+            { name: "Tusi Couple", file: "Tusi.html", cat: "Matemática", date: "08/01/2026", desc: "Demonstração de tusi couple com fórmulas e aplicações." },
+            { name: "Tusi Minimal", file: "tusi-minimal.html", cat: "Geometria", date: "21/03/2026", desc: "Versão minimalista e neon da ilusão de Tusi com painel lateral." },
+            { name: "Tusi Lines", file: "tusi-lines.html", cat: "Geometria", date: "21/03/2026", desc: "Variante com offset ajustável, múltiplos pontos e modo 3D giratório." },
+            { name: "Aerocast", file: "aerocast.html", cat: "Util", date: "10/02/2026", desc: "Utilitário prático para aerocast com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Art Sky", file: "art-sky.html", cat: "Arte", date: "31/12/2025", desc: "Ferramenta criativa para art sky com brushes e layers." },
+            { name: "Árvore Primos", file: "arvore-primos-palindromos.html", cat: "Matemática", date: "11/01/2026", desc: "Árvore de números primos palíndromos." },
+            { name: "Espiral de Primos", file: "espiral-primos.html", cat: "Matemática", date: "23/03/2026", desc: "Espiral responsiva de números primos com painel touch." },
+            { name: "Duas Circunferências", file: "duas-circunferencias.html", cat: "Matemática", date: "25/03/2026 13:29:00", desc: "Dois círculos ajustáveis com cálculo visual da projeção x entre os centros." },
+            { name: "Two Circles", file: "two-circles.html", cat: "Matemática", date: "25/03/2026 13:35:00", desc: "English counterpart showing the same x span with live readout." },
+            { name: "Forbidden Spiral 3D", file: "forbidden-spiral.html", cat: "Animação", date: "18/07/2026", desc: "Espiral matemática 3D com controle de frequência, velocidade e rotação automática." },
+            { name: "Forbidden Spiral 3D EN", file: "forbidden-spiral-en.html", cat: "Animação", date: "18/07/2026", desc: "3D math spiral with frequency, speed and auto-rotation controls." },
+            { name: "Fractal Dance", file: "fractal-dance.html", cat: "Fractal", date: "25/03/2026 15:20:00", desc: "Touch-friendly Koch snowflake performance with bilingual UI and rotation control." },
+            { name: "Voice AI WebGPU", file: "voice-ai-webgpu.html", pick: true, cat: "IA", date: "25/03/2026 19:18:00", desc: "Studio STT local usando Whisper tiny, WebGPU e visualizador espectral em tempo real." },
+            { name: "Whisper Live v4.3", file: "whisper-live-v4-3.html", cat: "IA", date: "25/03/2026 20:26:00", desc: "Sistema de transcrição de voz em tempo real com Whisper, cache inteligente e processamento via WebGPU/WASM" },
+            { name: "ASCII Art", file: "ascii.html", cat: "Efeitos", date: "01/01/2025", desc: "Editor ASCII art com importação de imagens e exportação como texto." },
+            { name: "ASCII Studio", file: "ascii-studio.html", cat: "Efeitos", date: "15/01/2026", desc: "Aplicador de efeitos visuais para ascii studio com ajustes finos, preview em tempo real e resultados criativos." },
+            { name: "Back in Black", file: "backinblack.html", cat: "Arte", date: "02/12/2025", desc: "Ferramenta criativa para back in black com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Balls v1", file: "balls-animation.html", cat: "Física", date: "12/12/2025", desc: "Simulação básica de colisões elásticas entre esferas 2D com física newtoniana" },
+            { name: "Balls v2", file: "balls-animation2.html", cat: "Física", date: "12/12/2025", desc: "Colisões com gravidade, atrito e conservação de momento em ambiente 2D" },
+            { name: "Balls v3", file: "balls-animation3.html", cat: "Física", date: "12/12/2025", desc: "Sistema de partículas com colisões em cadeia e efeitos visuais de impacto" },
+            { name: "Bíblia Quote", file: "biblia-quote.html", cat: "Util", date: "07/02/2026", desc: "Gerador de versículos bíblicos com contexto, comentários e plano de leitura" },
+            { name: "Binaural BPM", file: "binaurais-bpm.html", cat: "Áudio", date: "26/12/2025", desc: "Processador de áudio para binaural bpm com visualização espectral, efeitos em tempo real e equalização." },
+            { name: "Binaural BPM 2", file: "binaurais-bpm2.html", cat: "Áudio", date: "26/12/2025", desc: "Variante avançada de batidas binaurais." },
+            { name: "Binaurais Base", file: "binaurais.html", cat: "Áudio", date: "26/12/2025", desc: "Batidas binaurais básicas para relaxamento (theta waves 4-7 Hz)" },
+            { name: "Binaurais 2", file: "binaurais2.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências alfa (8-12 Hz) para concentração e meditação leve" },
+            { name: "Binaurais 3", file: "binaurais3.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências beta (13-30 Hz) para energia, foco e atividade mental intensa" },
+            { name: "Binaurais 4", file: "binaurais4.html", cat: "Áudio", date: "26/12/2025", desc: "Theta-delta mix (1-7 Hz) para indução de sono profundo e relaxamento total" },
+            { name: "Binaurais 5", file: "binaurais5.html", cat: "Áudio", date: "26/12/2025", desc: "Frequências personalizáveis com equalizador visual e timer programável" },
+            { name: "Binaurais 6", file: "binaurais6.html", cat: "Áudio", date: "26/12/2025", desc: "Sequências programáveis para diferentes estados mentais (estudo, meditação, sono)" },
+            { name: "Binet Formula", file: "binet.html", cat: "Matemática", date: "26/01/2026", desc: "Explorador da sequência de Fibonacci com visualização espiral." },
+            { name: "BitNet", file: "bitnet.html", cat: "IA", date: "27/03/2026", desc: "Ferramenta de IA para bitnet com explicações e casos de uso.", dev: true },
+            { name: "BitNet 2", file: "bitnet2.html", cat: "IA", date: "27/03/2026", desc: "Segunda variação visual para experimentos com BitNet.", dev: true },
+            { name: "BitNet 3", file: "bitnet3.html", cat: "IA", date: "27/03/2026", desc: "Terceira versão do demo BitNet com interface dedicada.", dev: true },
+            { name: "BPMN", file: "bpmn.html", cat: "Util", date: "27/03/2026", desc: "Editor visual de diagramas BPMN para modelagem de processos de negócio com exportação" },
+            { name: "Quantization", file: "quantization.html", cat: "IA", date: "27/03/2026", desc: "Demonstração visual de quantização para modelos e sinais." },
+            { name: "Blackhole", file: "blackhole.html", cat: "Física", date: "02/11/2025", desc: "Simulação de blackhole com física realista e controles." },
+            { name: "Bola de Cristal", file: "bola-de-cristal.html", cat: "Efeitos", date: "02/11/2025", desc: "Aplicador de efeitos visuais para bola de cristal com ajustes finos, preview em tempo real e resultados criativos." },
+            { name: "Brain", file: "brain.html", cat: "IA", date: "02/12/2025", desc: "Ferramenta de IA para brain usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "Bubble Display 1", file: "bubble-display.html", cat: "Animação", date: "19/12/2025", desc: "Bolhas flutuantes com física básica, cores aleatórias e efeito de flutuação realista" },
+            { name: "Bubble Display 2", file: "bubble-display2.html", cat: "Animação", date: "19/12/2025", desc: "Bolhas que se fundem, dividem e respondem ao toque/mouse com física de superfície" },
+            { name: "Bubble Display 3", file: "bubble-display3.html", cat: "Animação", date: "19/12/2025", desc: "Sistema de partículas com bolhas que carregam texto/imagens e criam padrões emergentes" },
+            { name: "C Experiment", file: "c.html", cat: "Geometria", date: "19/12/2025", desc: "Exploração geométrica da letra C em 3D com transformações, rotações e projeções" },
+            { name: "Cabo de Guerra", file: "cabodeguerra.html", cat: "Física", date: "11/02/2026", desc: "Simulação de forças em cabo de guerra." },
+{ name: "Cat Art", file: "cat-art.html", cat: "Arte", date: "12/12/2025", desc: "Ferramenta criativa para cat art com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Chat LFM", file: "chat-lfm.html", cat: "IA", date: "29/01/2026", desc: "Ferramenta de IA para chat lfm usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "Chat Qwen", file: "chat-qwen.html", cat: "IA", date: "29/01/2026", desc: "Ferramenta de IA para chat qwen usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "Chat Qwen 0.5B", file: "chat-qwen05b.html", cat: "IA", date: "29/01/2026", desc: "Ferramenta de IA para chat qwen 0.5b usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "AI Explorer v4", file: "ai-explorer-v4.html", pick: true, cat: "IA", date: "30/03/2026", desc: "Assistente de IA local que roda diretamente no navegador usando WebGPU/WASM, sem necessidade de servidor externo" },
+            { name: "AI Explorer v5", file: "ai-explorer-v5.html", cat: "IA", date: "03/04/2026", desc: "Interface conectada ao Ollama (Gemma 4 E2B) via rede local para uso em desktop e Android." },
+            { name: "Color Lab", file: "color-lab.html", cat: "Util", date: "26/01/2026", desc: "Utilitário prático para color lab com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Calculadora Científica", file: "calculadora.html", cat: "Util", date: "09/03/2026", desc: "Calculadora científica responsiva com visual clássico." },
+            { name: "Calculadora Científica Pro", file: "calc.html", cat: "Util", date: "10/03/2026", desc: "Versão avançada com funções trigonométricas, memória e expoentes." },
+            { name: "Phonebook CRUD", file: "phonebook-crud.html", cat: "Util", date: "10/03/2026", desc: "Agenda telefônica com cadastro, edição e busca em tempo real." },
+            { name: "Agenda CRUD Simples", file: "testecrud.html", cat: "Util", date: "19/03/2026", desc: "Sistema completo de gerenciamento de contatos (Create, Read, Update, Delete) com interface moderna" },
+            { name: "Cube Wheel EN", file: "cube-wheel.html", cat: "Geometria", date: "08/01/2026", desc: "Visualizador 3D/2D de cube wheel en com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Cubo Roda PT", file: "cubo-roda.html", cat: "Geometria", date: "08/01/2026", desc: "Visualizador 3D/2D de cubo roda pt com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Curlycue", file: "curlycue.html", cat: "Matemática", date: "02/12/2025", desc: "Demonstração visual de curlycue com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Dices 3D", file: "dices.html", cat: "Animação", date: "07/02/2026", desc: "Visualização interativa de dados 3D com múltiplos formatos e ferramentas de análise" },
+            { name: "Diminuir Regra", file: "diminuir-regra.html", cat: "Util", date: "03/01/2026", desc: "Utilitário para diminuir regra com interface limpa e funcionalidades." },
+            { name: "Diminuir", file: "diminuir.html", cat: "Util", date: "03/01/2026", desc: "Otimizador de tamanho de arquivos com múltiplos algoritmos e pré-visualização" },
+            { name: "Dodeca Fractal", file: "dodefractal.html", cat: "Fractal", date: "19/12/2025", desc: "Explorador de fractais para dodeca fractal com zoom infinito, parâmetros ajustáveis e padrões complexos." },
+            { name: "Droplets", file: "droplets.html", cat: "Física", date: "09/01/2026", desc: "Simulação de droplets com física realista e controles." },
+            { name: "Shader Editor", file: "edshader.html", cat: "Shaders", date: "22/01/2026", desc: "Editor interativo de shaders WebGL com pré-visualização em tempo real e biblioteca de exemplos" },
+            { name: "Elipse Jardim", file: "elipse-jardim.html", cat: "Matemática", date: "08/01/2026", desc: "Demonstração visual de elipse jardim com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Engs3", file: "engs3.html", cat: "Engenharia", date: "19/12/2025", desc: "Simulação de estruturas de engenharia com análise de tensões, deformações e pontos críticos" },
+            { name: "Eraser 40", file: "eraser-40.html", cat: "Eraser", date: "02/12/2025", desc: "Revelação progressiva de imagens com efeitos de transição suave e controle de velocidade" },
+            { name: "Eraser 41", file: "eraser-41.html", cat: "Eraser", date: "02/12/2025", desc: "Apagamento inteligente que detecta bordas, preserva detalhes e oferece pincéis especiais" },
+            { name: "Eraser 5", file: "eraser-5.html", cat: "Eraser", date: "02/11/2025", desc: "Sistema de revelação por camadas com diferentes modos de mistura e intensidade ajustável" },
+            { name: "Eraser v3", file: "eraser-v3.html", cat: "Eraser", date: "02/11/2025", desc: "Motor de desenho/apagamento com pincéis personalizáveis, pressão sensível e histórico de ações" },
+            { name: "Eraser v5", file: "eraser-v5.html", cat: "Eraser", date: "02/11/2025", desc: "Sistema de camadas avançado com modos de mistura, máscaras e efeitos especiais" },
+            { name: "Eraser Base", file: "eraser.html", cat: "Eraser", date: "02/11/2025", desc: "Motor básico de desenho e apagamento com ferramentas essenciais e interface intuitiva" },
+            { name: "Escher 3D", file: "escher-3d.html", cat: "Arte", date: "15/01/2026", desc: "Arte impossível inspirada em Escher." },
+            { name: "Fatos de Gatos", file: "fatosdegatos.html", cat: "Util", date: "07/02/2026", desc: "Coleção interativa de curiosidades felinas com fotos, vídeos e quizzes" },
+            { name: "Feliz 2026", file: "feliz2026.html", cat: "Especial", date: "31/12/2025", desc: "Aplicativo especial para feliz 2026 com tema personalizado, funcionalidades exclusivas e design único." },
+            { name: "Natal 3D", file: "feliznatal3d.html", cat: "Especial", date: "19/12/2025", desc: "Cartão de Natal 3D interativo com neve caindo, luzes piscando e música festiva" },
+            { name: "Natal 3D v2", file: "feliznatal3d2.html", cat: "Especial", date: "19/12/2025", desc: "Versão avançada com mais efeitos 3D, personalização de mensagens e animações suaves" },
+            { name: "Fibonacci Sopa", file: "fibonacci-sopa.html", cat: "Matemática", date: "29/12/2025", desc: "Explorador da sequência de Fibonacci com visualização espiral." },
+            { name: "Fibonacci Stew", file: "fibonacci-stew.html", cat: "Matemática", date: "29/12/2025", desc: "Demonstração visual de fibonacci stew com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Fourier Machine", file: "fourier-machine.html", cat: "Física", date: "19/12/2025", desc: "Simulação interativa de fourier machine com controles de parâmetros e visualização científica detalhada." },
+            { name: "Fourier Heart ❤️", file: "fourier-heart.html", cat: "Matemática", date: "17/07/2026", desc: "Coração desenhado por 70 epiciclos de Fourier com círculos azuis e rastro dourado." },
+            { name: "Fourier Heart 3D ❤️", file: "fourier-heart-3d.html", cat: "Matemática", date: "17/07/2026", desc: "Coração 3D de Fourier com epiciclos, espiral no eixo Z, órbita livre e auto-rotação." },
+            { name: "3D Fire 🔥", file: "3d-fire.html", cat: "Shaders", date: "17/07/2026", desc: "Fogo 3D volumétrico por @XorDev — shader GLSL golfado em tempo real. <a href='https://x.com/XorDev/status/1915054299773645249' target='_blank' style='color:#38bdf8;text-decoration:underline'>Post original</a>" },
+            { name: "Frases Famosas", file: "frases-famosas.html", cat: "Util", date: "11/02/2026", desc: "Biblioteca de citações inspiradoras com busca, favoritos e compartilhamento" },
+            { name: "Gauss Mod EN", file: "gaussian-modulated-oscillation-en.html", cat: "Física", date: "19/12/2025", desc: "Simulação interativa de gauss mod en com controles de parâmetros e visualização científica detalhada." },
+            { name: "Gauss Mod PT", file: "gaussian-modulated-oscillation-pt.html", cat: "Física", date: "19/12/2025", desc: "Simulação interativa de gauss mod pt com controles de parâmetros e visualização científica detalhada." },
+            { name: "Gaussian Waves", file: "gaussian-waves.html", cat: "Física", date: "16/01/2026", desc: "Simulação interativa de gaussian waves com controles de parâmetros e visualização científica detalhada." },
+            { name: "Geocíclico", file: "geociclico.html", cat: "Geometria", date: "01/01/2026", desc: "Visualizador 3D/2D de geocíclico com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Geo Procedural", file: "geo-procedural.html", cat: "Geometria", date: "15/01/2026", desc: "Visualizador 3D/2D de geo procedural com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Geo Desafio", file: "geo-desafio.html", cat: "Geometria", date: "08/03/2026", desc: "Desafio interativo de ângulos com pontuação e histórico." },
+            { name: "GLSL Shader 1", file: "glsl-1.html", cat: "Shaders", date: "02/12/2025", desc: "Shader WebGL para glsl shader 1 com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "GLSL Shader 2", file: "glsl-2.html", cat: "Shaders", date: "02/12/2025", desc: "Shader WebGL para glsl shader com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Gravity", file: "gravity.html", cat: "Física", date: "31/12/2025", desc: "Simulação interativa de gravity com controles de parâmetros e visualização científica detalhada." },
+            { name: "Gravity EN", file: "gravity-en.html", cat: "Física", date: "08/02/2026", desc: "Simulação interativa de gravity en com controles de parâmetros e visualização científica detalhada." },
+            { name: "Grok", file: "grok.html", cat: "IA", date: "02/12/2025", desc: "Sistema básico de reconhecimento visual de objetos usando redes neurais simples" },
+            { name: "Grok 2", file: "grok2.html", cat: "IA", date: "02/12/2025", desc: "Reconhecimento avançado com múltiplas categorias, confiança e visualização de features" },
+            { name: "Hand Control", file: "handcontrol.html", cat: "Interação", date: "02/11/2025", desc: "Ferramenta para hand control com interface moderna e resultados úteis." },
+            { name: "Harshad Numbers", file: "harshad.html", cat: "Matemática", date: "08/02/2026", desc: "Demonstração visual de harshad numbers com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Hypnotic Waves EN", file: "hypnoticwaves3d-en.html", cat: "Arte", date: "12/12/2025", desc: "Ferramenta criativa para hypnotic waves en com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Hypnotic Waves PT", file: "hypnoticwaves3d.html", cat: "Arte", date: "12/12/2025", desc: "Ferramenta criativa para hypnotic waves pt com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Icosaedro Ball", file: "icosaedro-ball.html", cat: "Geometria", date: "12/12/2025", desc: "Visualizador 3D/2D de icosaedro ball com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Ivan Perfil", file: "ivan.html", cat: "Util", date: "01/01/2025", desc: "Utilitário prático para ivan perfil com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Térmico 1", file: "jobs-termico.html", cat: "Engenharia", date: "19/12/2025", desc: "Simulação básica de dissipação de calor em materiais com gradiente de temperatura" },
+            { name: "Térmico 2", file: "jobs-termico2.html", cat: "Engenharia", date: "19/12/2025", desc: "Modelo avançado com múltiplas fontes de calor e materiais com condutividade variável" },
+            { name: "Térmico 3", file: "jobs-termico3.html", cat: "Engenharia", date: "19/12/2025", desc: "Simulação 3D de fluxo de calor com visualização termográfica e análise de pontos críticos" },
+            { name: "Jobs Dia", file: "jobsdia.html", cat: "Engenharia", date: "19/12/2025", desc: "Ferramenta para jobs dia com interface moderna e resultados úteis." },
+            { name: "Joy Division", file: "joy.html", cat: "Arte", date: "12/12/2025", desc: "Ferramenta criativa para joy division com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Julia Set", file: "julia.html", cat: "Fractal", date: "02/12/2025", desc: "Explorador de fractais para julia set com zoom infinito, parâmetros ajustáveis e padrões complexos." },
+            { name: "Kaleidoscope", file: "kaleidoscope.html", cat: "Arte", date: "02/12/2025", desc: "Ferramenta criativa para kaleidoscope com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Kaprekar Routine EN", file: "kaprekar-e.html", cat: "Matemática", date: "08/02/2026", desc: "Demonstração visual de kaprekar routine en com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Kaprekar Routine PT", file: "kaprekar.html", cat: "Matemática", date: "08/02/2026", desc: "Demonstração visual de kaprekar routine pt com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Energy KE", file: "ke.html", cat: "Física", date: "26/12/2025", desc: "Simulação interativa de energy ke com controles de parâmetros e visualização científica detalhada." },
+            { name: "Landscapes", file: "landscapes.html", cat: "Arte", date: "20/01/2026", desc: "Ferramenta criativa para landscapes com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Montanhas", file: "montanhas.html", cat: "Arte", date: "28/02/2026", desc: "Ferramenta de IA para montanhas com explicações e casos de uso." },
+            { name: "Montanhas 2", file: "montanhas2.html", cat: "Arte", date: "28/02/2026", desc: "Versão com céu dinâmico e estrelas noturnas." },
+            { name: "Lenticular", file: "lenticular.html", cat: "Efeitos", date: "02/12/2025", desc: "Efeito lenticular básico que cria ilusão de profundidade 3D a partir de imagens 2D" },
+            { name: "Lenticular 2", file: "lenticular2.html", cat: "Efeitos", date: "02/12/2025", desc: "Efeito avançado com múltiplas camadas, animação suave e controle de perspectiva" },
+            { name: "Game of Life 1", file: "life.html", cat: "Animação", date: "01/01/2025", desc: "Implementação básica do Jogo da Vida de Conway com regras clássicas e grid simples" },
+            { name: "Game of Life 2", file: "life2.html", cat: "Animação", date: "01/01/2025", desc: "Versão com grid maior, velocidade ajustável e padrões pré-definidos para estudo" },
+            { name: "Game of Life 3", file: "life3.html", cat: "Animação", date: "01/01/2025", desc: "Implementação avançada com múltiplas regras personalizáveis, estatísticas e exportação" },
+            { name: "Limpeza", file: "limpeza.html", cat: "Util", date: "09/01/2026", desc: "Utilitário prático para limpeza com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Lissajous 1", file: "lissajous.html", cat: "Matemática", date: "19/12/2025", desc: "Figuras de Lissajous básicas geradas por osciladores harmônicos simples" },
+            { name: "Lissajous 2", file: "lissajous2.html", cat: "Matemática", date: "19/12/2025", desc: "Padrões complexos com múltiplos osciladores, frequências ajustáveis e cores dinâmicas" },
+            { name: "Lissajous 3", file: "lissajous3.html", cat: "Matemática", date: "28/12/2025", desc: "Visualização 3D de figuras de Lissajous com rotação, zoom e controle de parâmetros" },
+            { name: "Lissajous 4", file: "lissajous4.html", cat: "Matemática", date: "28/12/2025", desc: "Sistema avançado com animação em tempo real, gravação de padrões e análise matemática" },
+            { name: "Logo SEABI", file: "logo-SEABI.html", cat: "Logo", date: "19/12/2025", desc: "Ferramenta para logo seabi com interface moderna e resultados úteis." },
+            { name: "Logo v1", file: "logo.html", cat: "Logo", date: "19/12/2025", desc: "Logo animado básico do Psico com efeitos psicodélicos simples e cores vibrantes" },
+            { name: "Logo v2", file: "logo2.html", cat: "Logo", date: "19/12/2025", desc: "Logo interativo que responde ao mouse/touch com partículas e efeitos de luz" },
+            { name: "Logo v3", file: "logo3.html", cat: "Logo", date: "19/12/2025", desc: "Logo 3D avançado com shaders personalizados, animações complexas e modo imersivo" },
+            { name: "Lorenz EN", file: "lorenz-en.html", cat: "Física", date: "26/12/2025", desc: "Simulação do atrator de Lorenz (sistema caótico) com controles e visualização em inglês" },
+            { name: "Lorenz PT", file: "lorenz.html", cat: "Física", date: "26/12/2025", desc: "Simulação do atrator de Lorenz com interface em português e explicações detalhadas" },
+            { name: "Mandelbrot", file: "mandelbrot.html", cat: "Fractal", date: "02/12/2025", desc: "Explorador de fractais para mandelbrot com zoom infinito, parâmetros ajustáveis e padrões complexos." },
+            { name: "Map2Poster", file: "map2poster.html", cat: "Mapas", date: "01/03/2026", desc: "Gerador de pôster de mapa (HTML único)." },
+            { name: "Fourier Machine PT", file: "maquina-de-Fourier.html", cat: "Física", date: "19/12/2025", desc: "Simulação interativa de fourier machine pt com controles de parâmetros e visualização científica detalhada." },
+            { name: "Matemágica", file: "matemagica.html", cat: "Matemática", date: "05/01/2026", desc: "Demonstração visual de matemágica com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Potências t^t", file: "potencias-ttx.html", cat: "Matemática", date: "01/03/2026", desc: "Analisador da equação t^t = x com Newton-Raphson." },
+            { name: "Mandelbrot Motor", file: "mb1.html", cat: "Fractal", date: "02/12/2025", desc: "Motor gráfico leve para visualizações 2D/3D com performance otimizada" },
+            { name: "Mobius Strip", file: "mobius.html", cat: "Geometria", date: "02/12/2025", desc: "Fita de Möbius tridimensional com animação contínua e exploração interativa" },
+            { name: "Möbius Trip EN", file: "mobius-trip-en.html", cat: "Geometria", date: "21/01/2026", desc: "Visualizador 3D/2D de möbius trip en com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Möbius Trip PT", file: "mobius-trip-pt.html", cat: "Geometria", date: "21/01/2026", desc: "Visualizador 3D/2D de möbius trip pt com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Moiré Lab", file: "moirelab.html", cat: "Efeitos", date: "04/02/2026", desc: "Aplicador de efeitos visuais para moiré lab com ajustes finos, preview em tempo real e resultados criativos." },
+            { name: "Molas Cinético", file: "molas-cinetico.html", cat: "Física", date: "07/01/2026", desc: "Simulação interativa de molas cinético com controles de parâmetros e visualização científica detalhada." },
+            { name: "Nebulabrot", file: "nebulabrot.html", cat: "Fractal", date: "15/01/2026", desc: "Explorador de fractais para nebulabrot com zoom infinito, parâmetros ajustáveis e padrões complexos." },
+            { name: "Nexus 3D", file: "nexus3d.html", cat: "Geometria", date: "01/01/2026", desc: "Visualização interativa de redes neurais 3D com conexões dinâmicas e análise de camadas" },
+            { name: "Nó Toral", file: "no-toral.html", cat: "Geometria", date: "08/01/2026", desc: "Visualizador 3D/2D de nó toral com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Orbiter 3D", file: "orbiter-3d.html", cat: "Física", date: "13/01/2026", desc: "Simulação 3D de órbitas planetárias com física newtoniana e controles interativos" },
+            { name: "Organic Flow", file: "organic.html", cat: "Arte", date: "28/12/2025", desc: "Ferramenta criativa para organic flow com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Pêndulos", file: "pendulums.html", cat: "Física", date: "20/01/2026", desc: "Simulação interativa de pêndulos com controles de parâmetros e visualização científica detalhada." },
+            { name: "Pi Rods", file: "pi-rods.html", cat: "Matemática", date: "06/01/2026", desc: "Demonstração visual de pi rods com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Pi Rods 3D v1", file: "pi-rods3d.html", cat: "Matemática", date: "06/01/2026", desc: "Varetas de Pi 3D v1." },
+            { name: "Pi Rods 3D v2", file: "pi-rods3d2.html", cat: "Matemática", date: "06/01/2026", desc: "Varetas de Pi 3D v2." },
+            { name: "Player Base", file: "player.html", cat: "Util", date: "02/11/2025", desc: "Reprodutor de mídia completo com suporte a múltiplos formatos, equalizador e temas" },
+            { name: "Player IT", file: "playerIT.html", cat: "Util", date: "02/11/2025", desc: "Utilitário prático para player it com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Player YouTube", file: "playerYT.html", cat: "Util", date: "02/11/2025", desc: "Player de vídeo personalizado com controles avançados, playlists e modo teatro" },
+            { name: "Prime Tree", file: "prime-tree.html", cat: "Matemática", date: "11/01/2026", desc: "Visualização em árvore da distribuição de números primos com padrões matemáticos" },
+            { name: "Perfil Usuário Mapa", file: "perfil-usuario-mapa.html", cat: "Dashboard", date: "02/03/2026", desc: "Dashboard com mapa usando dados de perfil do usuário." },
+            { name: "Pulley Simulator", file: "pulley-simulator.html", cat: "Física", date: "12/01/2026", desc: "Simulação interativa de pulley simulator com controles de parâmetros e visualização científica detalhada." },
+            { name: "Punchcard", file: "punchcard.html", cat: "Arte", date: "05/01/2026", desc: "Ferramenta criativa para punchcard com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Textstring Pro", file: "textstring-pro.html", cat: "Interativo", date: "31/03/2026", desc: "Partículas de texto interativas com dispersão e agrupamento." },
+            { name: "Rede Neural", file: "redeneural.html", cat: "IA", date: "02/11/2025", desc: "Ferramenta de IA para rede neural usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "Resistor Colors", file: "resistor-colors.html", cat: "Engenharia", date: "28/02/2026", desc: "Calculadora visual de cores de resistores (4/5 bandas)." },
+            { name: "Ressonador", file: "ressonador.html", cat: "Física", date: "07/01/2026", desc: "Simulação interativa de ressonador com controles de parâmetros e visualização científica detalhada." },
+            { name: "Riemann Sphere", file: "riemann.html", cat: "Matemática", date: "15/01/2026", desc: "Demonstração visual de riemann sphere com explicações interativas, ajuste de variáveis e análise." },
+            { name: "Roldanas PT", file: "roldanas-pt.html", cat: "Física", date: "12/01/2026", desc: "Simulação interativa de roldanas pt com controles de parâmetros e visualização científica detalhada." },
+            { name: "Rose Collatz", file: "rose-collatz.html", cat: "Matemática", date: "13/01/2026", desc: "Demonstração de rose collatz com fórmulas e aplicações." },
+            { name: "Samambaia Fern", file: "samambaia.html", cat: "Fractal", date: "02/12/2025", desc: "Gerador do fractal Barnsley Fern com parâmetros ajustáveis e visualização em tempo real" },
+            { name: "SDF Shapes", file: "sdf.html", cat: "Geometria", date: "19/01/2026", desc: "Visualizador 3D de sdf shapes com rotação e medidas." },
+            { name: "Dirac / Feynman Belt Trick", file: "dirac-feynman-belt.html", cat: "Shaders", date: "18/07/2026", desc: "Raymarched SDF do Belt Trick de Feynman — rotação de 720° e topologia do spin 1/2." },
+            { name: "Shader Art 1", file: "shader-art.html", cat: "Shaders", date: "15/01/2026", desc: "Shader WebGL para shader art 1 com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Shader Art 2", file: "shader-art2.html", cat: "Shaders", date: "15/01/2026", desc: "Shader WebGL para shader art com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Shader Art 3", file: "shader-art3.html", cat: "Shaders", date: "15/01/2026", desc: "Shader WebGL para shader art com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Shader Editor 1", file: "shader-editor.html", cat: "Shaders", date: "21/01/2026", desc: "Shader WebGL para shader editor 1 com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Shader Editor 2", file: "shader-editor2.html", cat: "Shaders", date: "22/01/2026", desc: "Shader WebGL para shader editor com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Shader Editor 3", file: "shader-editor3.html", cat: "Shaders", date: "22/01/2026", desc: "Shader WebGL para shader editor com performance otimizada, controles visuais e efeitos impressionantes." },
+            { name: "Snowglobe", file: "snowglobe.html", cat: "Animação", date: "12/12/2025", desc: "Criador de animações para snowglobe com timeline flexível, keyframes precisos e preview suave." },
+            { name: "SP Particle 1", file: "sp1.html", cat: "Física", date: "02/12/2025", desc: "Simulação interativa de sp particle 1 com controles de parâmetros e visualização científica detalhada." },
+            { name: "SP Particle 2", file: "sp2.html", cat: "Física", date: "02/12/2025", desc: "Simulação interativa de sp particle com controles de parâmetros e visualização científica detalhada." },
+            { name: "Sphere 1", file: "sphere.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera 3D básica com rotação, zoom e visualização de superfície lisa" },
+            { name: "Sphere 2", file: "sphere2.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera com texturas dinâmicas, reflexos e sistema de iluminação realista" },
+            { name: "Sphere 3", file: "sphere3.html", cat: "Geometria", date: "01/01/2025", desc: "Esfera interativa que responde ao toque com deformações e efeitos físicos" },
+            { name: "Sphere 4", file: "sphere4.html", cat: "Geometria", date: "01/01/2025", desc: "Sistema de múltiplas esferas com física, colisões e padrões emergentes" },
+            { name: "Spiral 2D-3D", file: "spiral-2d-3d.html", cat: "Geometria", date: "13/01/2026", desc: "Visualizador 3D/2D de spiral 2d-3d com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Spirograph 3D EN", file: "spiro-3d-en.html", cat: "Geometria", date: "03/01/2026", desc: "Visualizador 3D/2D de spirograph 3d en com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Espirógrafo PT", file: "spiro-pt.html", cat: "Geometria", date: "03/01/2026", desc: "Visualizador 3D/2D de espirógrafo pt com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Springs & Balls", file: "springs-and-balls.html", cat: "Física", date: "07/01/2026", desc: "Simulação interativa de springs & balls com controles de parâmetros e visualização científica detalhada." },
+            { name: "Stereo Visual", file: "stereo.html", cat: "Efeitos", date: "02/12/2025", desc: "Aplicador de efeitos visuais para stereo visual com ajustes finos, preview em tempo real e resultados criativos." },
+            { name: "Stereogram", file: "stereogram.html", cat: "Efeitos", date: "02/12/2025", desc: "Aplicador de efeitos visuais para stereogram com ajustes finos, preview em tempo real e resultados criativos." },
+            { name: "Tesseract 4D", file: "tesseract4d.html", cat: "Geometria", date: "26/12/2025", desc: "Projeção 3D de um hipercubo 4D (tesseract) com rotação e animação educativa" },
+            { name: "Teste Sandbox 1", file: "teste1.html", cat: "Util", date: "01/01/2025", desc: "Ambiente sandbox básico para experimentos visuais com ferramentas simples" },
+            { name: "Teste Sandbox 2", file: "teste2.html", cat: "Util", date: "01/01/2025", desc: "Sandbox avançado com múltiplas ferramentas, salvamento e compartilhamento" },
+            { name: "They Do It 1", file: "they-do-It.html", cat: "IA", date: "02/12/2025", desc: "Ferramenta de IA para they do it 1 usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "They Do It 2", file: "theydoit.html", cat: "IA", date: "02/12/2025", desc: "Ferramenta de IA para they do it usando modelos modernos com interface amigável e resultados precisos." },
+            { name: "Timer EN", file: "timer-en.html", cat: "Util", date: "09/01/2026", desc: "Utilitário prático para timer en com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Timer PT", file: "timer-pt.html", cat: "Util", date: "09/01/2026", desc: "Utilitário prático para timer pt com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "Torus v1", file: "torus.html", cat: "Geometria", date: "19/12/2025", desc: "Simulação básica de torus (rosquinha) 3D com rotação e visualização de superfície" },
+            { name: "Torus v2", file: "torus2.html", cat: "Geometria", date: "19/12/2025", desc: "Torus avançado com texturas, iluminação dinâmica e deformações interativas" },
+            { name: "Troxler Effect", file: "troxler.html", cat: "Efeitos", date: "22/01/2026", desc: "Aplicador de efeitos visuais para troxler effect com ajustes finos, preview em tempo real e resultados criativos." },
+            { name: "TTS GPU", file: "tts-webgpu.html", cat: "Util", date: "26/12/2025", desc: "Síntese de voz via WebGPU com múltiplas vozes, emoções e controle em tempo real" },
+            { name: "Edge TTS Voices Lab", file: "edge-tts-voices.html", cat: "Util", date: "31/03/2026", desc: "Laboratório focado em vozes pt-BR do navegador, destacando vozes Microsoft Edge e neurais quando disponíveis.", dev: true },
+            { name: "Vibevoice WebGPU", file: "vibevoice-webgpu.html", cat: "Áudio", date: "01/04/2026", desc: "Processador de áudio para vibevoice webgpu com equalização e efeitos.", dev: true },
+            { name: "Tunnel 1", file: "tunnel.html", cat: "Arte", date: "26/12/2025", desc: "Efeito de túnel psicodélico básico com cores em espiral e movimento infinito" },
+            { name: "Tunnel 2", file: "tunnel2.html", cat: "Arte", date: "26/12/2025", desc: "Túnel 3D avançado com múltiplas camadas, partículas e efeitos de distorção" },
+            { name: "Viviani Curve EN", file: "viviani-en.html", cat: "Geometria", date: "20/01/2026", desc: "Visualizador 3D/2D de viviani curve en com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Viviani Curve PT", file: "viviani-pt.html", cat: "Geometria", date: "20/01/2026", desc: "Visualizador 3D/2D de viviani curve pt com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Vortex Ouroboros", file: "vortex-ouroboros.html", cat: "Física", date: "19/12/2025", desc: "Simulação de vórtice fluido com física realista, partículas e efeitos visuais hipnóticos" },
+            { name: "Vortex Symphony 1", file: "vortex-symphony.html", cat: "Arte", date: "11/01/2026", desc: "Ferramenta criativa para vortex symphony 1 com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Vortex Symphony 2", file: "vortex-symphony2.html", cat: "Arte", date: "11/01/2026", desc: "Ferramenta criativa para vortex symphony com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Vórtice Sagrado", file: "vortice-sagrado.html", cat: "Arte", date: "11/01/2026", desc: "Ferramenta criativa para vórtice sagrado com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "VR Experience 1", file: "vr.html", cat: "Interação", date: "07/01/2026", desc: "Ferramenta para vr experience 1 com interface moderna e resultados úteis." },
+            { name: "VR Experience 2", file: "vr2.html", cat: "Interação", date: "07/01/2026", desc: "Ferramenta para vr experience com interface moderna e resultados úteis." },
+            { name: "Waterfall", file: "waterfall.html", cat: "Animação", date: "19/12/2025", desc: "Visualização em cascata (waterfall) de dados com animação fluida e interação detalhada" },
+            { name: "Zen Spinner", file: "zen-spinner.html", cat: "Arte", date: "12/01/2026", desc: "Ferramenta criativa para zen spinner com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Zen Garden", file: "zen.html", cat: "Arte", date: "24/01/2026", desc: "Ferramenta criativa para zen garden com paletas coloridas, brushes variados e exportação de alta qualidade." },
+            { name: "Brasil", file: "Brasil.html", cat: "Geometria", date: "24/02/2026", desc: "Visualizador 3D/2D de brasil com rotação livre, zoom suave e análise de propriedades geométricas." },
+            { name: "Aerocast Brasil", file: "aerocast-brasil.html", cat: "Util", date: "24/02/2026", desc: "Previsão aeronáutica focada no Brasil." },
+            { name: "Aerocast Brasil 2", file: "aerocast-brasil2.html", cat: "Util", date: "24/02/2026", desc: "Variante Aerocast para cenário brasileiro." },
+            { name: "Bíblia 2", file: "biblia2.html", cat: "Util", date: "18/02/2026", desc: "Leitor bíblico com navegação simplificada." },
+            { name: "Brasil 2", file: "brasil2.html", cat: "Geometria", date: "24/02/2026", desc: "Exploração visual do mapa do Brasil v2." },
+            { name: "Brasil 3", file: "brasil3.html", cat: "Geometria", date: "24/02/2026", desc: "Exploração visual do mapa do Brasil v3." },
+            { name: "Bíblia", file: "bíblia.html", cat: "Util", date: "18/02/2026", desc: "Utilitário prático para bíblia com interface intuitiva, múltiplos formatos e processamento rápido." },
+
+            { name: "Phoenix", file: "phoenix.html", cat: "Arte", date: "19/02/2026", desc: "Ferramenta criativa para phoenix com brushes e layers." },
+            { name: "Pineal", file: "pineal.html", cat: "Arte", date: "24/02/2026", desc: "Ferramenta criativa para pineal com brushes e layers." },
+            { name: "QR Code", file: "qrcode.html", cat: "Util", date: "25/02/2026", desc: "Utilitário prático para qr code com interface intuitiva, múltiplos formatos e processamento rápido." },
+            { name: "QR Code 2", file: "qrcode2.html", cat: "Util", date: "25/02/2026", desc: "Gerador de QR Code v2." },
+            { name: "N1089", file: "n1089.html", cat: "Matemática", date: "08/03/2026", desc: "Exploração interativa da rotina 1089 com números de três dígitos." },
+            { name: "Vortex Shader PT", file: "vortex-shader-pt.html", cat: "Shaders", date: "08/03/2026", desc: "Versão em português do shader de vórtice com partículas concêntricas." },
+            { name: "Dígitos e Divisores", file: "digitos-multiplicador-divisores.html", cat: "Matemática", date: "05/03/2026", desc: "App educativo sobre bloco repetido, multiplicador (10^k+1) e fatores." },
+            { name: "Dígitos e Divisores v2", file: "digitos-multiplicador-divisores-v2.html", cat: "Matemática", date: "05/03/2026", desc: "Versão animada com explicação visual passo a passo da fórmula N = X(10^k+1)." }
+            ,{ name: "Palheta Vibrante", file: "palheta-site.html", cat: "Util", date: "09/03/2026", desc: "Escolha paletas criativas para site com preview ao vivo, presets e cópia de variáveis CSS.", dev: false },
+            { name: "Kororo2", file: "kororo2.html", cat: "Animação", date: "01/04/2026", desc: "Projeto Kororo2 - card de desenvolvimento.", dev: true },
+            { name: "Kororo", file: "kororo.html", cat: "Animação", date: "01/04/2026", desc: "Ferramenta animação para kororo com funcionalidades específicas e interface prática.", dev: true },
+            { name: "Sistema Solar 3D", file: "sistema-solar-3d.html", pick: true, cat: "Física", date: "02/04/2026", desc: "Simulador 3D do sistema solar com órbitas, foco nos planetas, drawer lateral e controles de velocidade/câmera." },
+            { name: "Química", file: "quimica.html", cat: "Educação", date: "06/06/2026", desc: "Tabela periódica interativa com 118 elementos, cores por categoria, modal com detalhes e séries de lantanídeos/actinídeos." },
+            { name: "🧠 LLM para Adolescentes", file: "llm-praadolescentes.html", cat: "Educação", date: "17/06/2026", desc: "Você já conversou com uma IA, mas sabe o que realmente está acontecendo lá dentro? Um guia direto ao ponto sobre LLMs — autocompletar gigante, tokens, treinamento em 3 etapas, alucinação e dicas de uso. Feito pra ler no celular." },
+            { name: "🐶 Zé Pequeno e Sua Turma", file: "ZePequeno-e-turma.html", cat: "Educação", date: "17/06/2026", desc: "Zé Pequeno, Raimundo, Tonhão, James e Bibi tentam fazer coisas de humanos — nomear cores, cozinhar, paquerar, compor música. Tudo dá errado. É hilário. Estilo Janelle Shane." },
+            { name: "🌧️ Choveu Hoje?", file: "choveu-hoje.html", pick: true, cat: "Util", date: "13/06/2026", desc: "Descubra se choveu nos últimos 10 anos em qualquer lugar. Busca por nome do local, geocoding automático via OpenStreetMap, dados NASA POWER. Modo dark." },
+        ];
+
+        const categoryPalette = {
+            'IA': '#8b5cf6', 'Física': '#38bdf8', 'Matemática': '#34d399', 'Geometria': '#f59e0b', 'Arte': '#fb7185',
+            'Áudio': '#22c55e', 'Shaders': '#60a5fa', 'Fractal': '#a78bfa', 'Util': '#94a3b8', 'Animação': '#f97316',
+            'Engenharia': '#eab308', 'Efeitos': '#c084fc', 'Especial': '#f43f5e', 'Interação': '#14b8a6', 'Logo': '#f472b6',
+            'Mapas': '#2dd4bf', 'Dashboard': '#38bdf8', 'Eraser': '#fb923c'
+        };
+
+        function parseDateBR(dateStr) {
+            if (!dateStr) return new Date(0);
+            const [datePart, timePart] = dateStr.split(' ');
+            const [day, month, year] = datePart.split('/').map(Number);
+            if (timePart) {
+                const [hour = 0, minute = 0, second = 0] = timePart.split(':').map(Number);
+                return new Date(year, month - 1, day, hour || 0, minute || 0, second || 0);
+            }
+            return new Date(year, month - 1, day);
+        }
+
+        function formatDateBR(date = new Date()) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function getYearFromDate(dateStr) { return String(parseDateBR(dateStr).getFullYear()); }
+        function getMonthFromDate(dateStr) { return monthNames[parseDateBR(dateStr).getMonth()]; }
+        function getCategoryColor(cat) { return categoryPalette[cat] || '#94a3b8'; }
+
+        function sortExperiments() {
+            experiments.sort((a, b) => parseDateBR(b.date) - parseDateBR(a.date));
+        }
+
+        function initFilters() {
+            const cats = ['Todos', ...new Set(experiments.map(e => e.cat))];
+            const years = ['Todos', ...new Set(experiments.map(e => getYearFromDate(e.date)))].sort();
+            const months = ['Todos', ...new Set(experiments.map(e => getMonthFromDate(e.date)))].sort((a, b) => a === 'Todos' ? -1 : b === 'Todos' ? 1 : monthNames.indexOf(a) - monthNames.indexOf(b));
+
+            document.getElementById('cat-total').textContent = cats.length - 1;
+            document.getElementById('filters-cat').innerHTML = cats.map(cat => `<button onclick="applyFilter('cat', '${cat}', this)" class="filter-btn ${cat === activeCategory ? 'active' : ''}">${cat}</button>`).join('');
+            document.getElementById('filters-year').innerHTML = years.map(year => `<button onclick="applyFilter('year', '${year}', this)" class="filter-btn ${year === activeYear ? 'active' : ''}">${year}</button>`).join('');
+            document.getElementById('filters-month').innerHTML = months.map(month => `<button onclick="applyFilter('month', '${month}', this)" class="filter-btn ${month === activeMonth ? 'active' : ''}">${month}</button>`).join('');
+        }
+
+        function applyFilter(type, value, btn) {
+            if (type === 'cat') activeCategory = value;
+            if (type === 'year') activeYear = value;
+            if (type === 'month') activeMonth = value;
+            btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderActiveFilters();
+            renderCards();
+        }
+
+        function toggleMockCards(btn) {
+            showMockCards = !showMockCards;
+            btn.classList.toggle('active', showMockCards);
+            const modeLabel = document.getElementById('mode-label');
+            if (modeLabel) modeLabel.textContent = showMockCards ? 'Mock' : 'Produção';
+            renderActiveFilters();
+            renderCards();
+        }
+
+        function applyPreset(kind) {
+            if (kind === 'fresh') { return p.pick; } if (kind === 'recent') {
+                activeYear = '2026';
+                activeMonth = 'Todos';
+                activeCategory = 'Todos';
+            } else if (kind === 'ai') {
+                activeCategory = 'IA';
+                activeYear = 'Todos';
+                activeMonth = 'Todos';
+            }
+            initFilters();
+            renderActiveFilters();
+            renderCards();
+        }
+
+        function renderActiveFilters() {
+            const bits = [];
+            if (activeCategory !== 'Todos') bits.push(`Categoria: ${activeCategory}`);
+            if (activeYear !== 'Todos') bits.push(`Ano: ${activeYear}`);
+            if (activeMonth !== 'Todos') bits.push(`Mês: ${activeMonth}`);
+            if (searchQuery) bits.push(`Busca: ${searchQuery}`);
+            if (showMockCards) bits.push('Mock');
+
+            document.getElementById('active-filters').innerHTML = bits.length
+                ? bits.map(bit => `<span class="active-pill">${bit}</span>`).join('')
+                : `<span class="active-pill" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);color:#cbd5e1"><i class="fas fa-layer-group"></i> Sem filtros</span>`;
+        }
+
+        function getFilteredExperiments() {
+            const q = searchQuery.trim().toLowerCase();
+            return experiments.filter(exp => {
+                const matchCat = activeCategory === 'Todos' || exp.cat === activeCategory;
+                const matchYear = activeYear === 'Todos' || getYearFromDate(exp.date) === activeYear;
+                const matchMonth = activeMonth === 'Todos' || getMonthFromDate(exp.date) === activeMonth;
+                const matchSearch = !q || [exp.name, exp.desc, exp.cat, exp.file].filter(Boolean).some(v => String(v).toLowerCase().includes(q));
+                const matchDev = showMockCards ? !!exp.dev : !exp.dev;
+                return matchCat && matchYear && matchMonth && matchSearch && matchDev;
+            });
+        }
+
+        function renderCards() {
+            const filtered = getFilteredExperiments();
+            const normalTotal = experiments.filter(e => !e.dev).length;
+            const devTotal = experiments.filter(e => e.dev).length;
+            document.getElementById('cards-total').textContent = experiments.length;
+            document.getElementById('visible-total').textContent = filtered.length;
+            document.getElementById('mock-count').textContent = `(${devTotal})`;
+            document.getElementById('stats').innerHTML = showMockCards
+                ? `<span class="mono">${filtered.length}</span> de <span class="mono">${devTotal}</span> mock cards visíveis`
+                : `<span class="mono">${filtered.length}</span> de <span class="mono">${normalTotal}</span> experiments em produção`;
+
+            const gallery = document.getElementById('gallery');
+            if (!filtered.length) {
+                gallery.innerHTML = `<div class="empty-state" style="grid-column:1 / -1"><div class="text-2xl mb-3">🫥</div><div class="text-lg font-bold text-slate-200 mb-2">Nada apareceu com esse recorte</div><div>Tenta limpar a busca ou abrir mais categorias.</div></div>`;
+                return;
+            }
+
+            gallery.innerHTML = filtered.map(exp => {
+                const color = getCategoryColor(exp.cat);
+                const isDev = !!exp.dev;
+                return `
+                    <article class="gallery-card ${isDev ? 'dev-card' : ''}">
+                        <div>
+                            <div class="card-top">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="category-dot" style="color:${color};background:${color}"></span>
+                                        <span class="tag" style="color:${color}">${exp.cat}</span>
+                                    </div>
+                                    <div class="mono text-[11px] text-slate-500 mt-3">${formatDateBR(parseDateBR(exp.date))}</div>
+                                </div>
+                                <div class="tag">${isDev ? 'dev preview' : 'live'} </div>
+                            </div>
+
+                            <h3 class="card-title">${exp.name}</h3>
+                            <p class="card-desc">${exp.desc}</p>
+
+                            <div class="card-tags">
+                                <span class="tag mono">/${exp.file}</span>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <a class="primary-link" target="_blank" href="${baseUrl}/${exp.file}"><i class="fas fa-play"></i> Abrir demo</a>
+                            <a class="secondary-link" target="_blank" href="${sourceUrl}/${exp.file}"><i class="fas fa-code"></i></a>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function initSearch() {
+            const input = document.getElementById('search-input');
+            const clear = document.getElementById('clear-search');
+            const sync = () => {
+                clear.style.opacity = searchQuery ? '1' : '0';
+                clear.style.pointerEvents = searchQuery ? 'auto' : 'none';
+            };
+            input.addEventListener('input', () => {
+                searchQuery = input.value.trim();
+                sync();
+                renderActiveFilters();
+                renderCards();
+            });
+            clear.addEventListener('click', () => {
+                searchQuery = '';
+                input.value = '';
+                sync();
+                renderActiveFilters();
+                renderCards();
+                input.focus();
+            });
+            sync();
+        }
+
+        function initFiltersPanel() {
+            const shell = document.getElementById('filters-shell');
+            const backdrop = document.getElementById('filters-backdrop');
+            const openBtn = document.getElementById('filters-open');
+            const closeBtn = document.getElementById('filters-toggle');
+            const panel = document.getElementById('filters-panel');
+            if (!shell || !backdrop || !openBtn || !closeBtn || !panel) return;
+
+            panel.classList.remove('collapsed');
+
+            const openShell = () => {
+                shell.classList.add('open');
+                shell.setAttribute('aria-hidden', 'false');
+                backdrop.classList.add('open');
+                openBtn.style.display = 'none';
+                document.getElementById('search-input')?.focus();
+            };
+
+            const closeShell = () => {
+                shell.classList.remove('open');
+                shell.setAttribute('aria-hidden', 'true');
+                backdrop.classList.remove('open');
+                openBtn.style.display = 'inline-flex';
+            };
+
+            closeShell();
+
+            openBtn.addEventListener('click', openShell);
+            closeBtn.addEventListener('click', closeShell);
+            backdrop.addEventListener('click', closeShell);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeShell();
+            });
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function fetchLastCommitDate(file) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/commits?path=${file}&per_page=1`);
+                if (!res.ok) return null;
+                const commits = await res.json();
+                if (!Array.isArray(commits) || !commits.length) return null;
+                return new Date(commits[0].commit.author.date);
+            } catch { return null; }
+        }
+
+                function prettyNameFromFile(file) {
+            const base = file.replace(/\.html$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            // Mapeamento de nomes para versões mais amigáveis
+            const nameMap = {
+                'quiz': 'Quiz Master 200',
+                'tts local': 'TTS Local',
+                'rsvp': 'RSVP Reader',
+                'ascii': 'ASCII Art',
+                'binet': 'Binet Formula',
+                'tusi': 'Tusi Couple',
+                'faraday 3d': 'Faraday 3D',
+                'art sky': 'Art Sky',
+                'ascii studio': 'ASCII Studio',
+                'back in black': 'Back in Black',
+                'binaural bpm': 'Binaural BPM',
+                'voice ai webgpu': 'Voice AI WebGPU',
+                'whisper live v4 3': 'Whisper Live v4.3',
+                'solidos platonicos': 'Sólidos Platónicos',
+                'sacred dodecahedron': 'Sacred Dodecahedron',
+                'truchet tiles': 'Truchet Tiles',
+                'a lorenz': 'A-lorenz',
+                '3d water 1': '3D Water 1',
+                '3d water 2': '3D Water 2',
+                '3d water 3': '3D Water 3',
+                'audio visualizer': 'Audio Visualizer',
+                'aqua shader': 'Aqua Shader',
+                'wu square': 'WuSquare',
+                'aizawa neon': 'Aizawa Neon',
+                'laser no triangulo': 'Laser no Triângulo',
+                'tusi minimal': 'Tusi Minimal',
+                'tusi lines': 'Tusi Lines',
+                'arvore primos': 'Árvore Primos',
+                'espiral de primos': 'Espiral de Primos',
+                'duas circunferencias': 'Duas Circunferências',
+                'two circles': 'Two Circles',
+                'fractal dance': 'Fractal Dance',
+                'balls v1': 'Balls v1',
+                'balls v2': 'Balls v2',
+                'balls v3': 'Balls v3',
+                'biblia quote': 'Bíblia Quote',
+                'binaurais base': 'Binaurais Base',
+                'binaurais 2': 'Binaurais 2',
+                'binaurais 3': 'Binaurais 3',
+                'binaurais 4': 'Binaurais 4',
+                'binaurais 5': 'Binaurais 5',
+                'binaurais 6': 'Binaurais 6',
+                'bitnet': 'BitNet',
+                'bitnet 2': 'BitNet 2',
+                'bitnet 3': 'BitNet 3',
+                'bpmn': 'BPMN',
+            };
+            
+            const lower = base.toLowerCase();
+            return nameMap[lower] || base.replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function classifyByFileName(file) {
+            const f = file.toLowerCase();
+            if (/(shader|glsl|sdf)/.test(f)) return 'Shaders';
+            if (/(fractal|mandelbrot|julia|nebulabrot|samambaia)/.test(f)) return 'Fractal';
+            if (/(audio|binaur|tts|player|stereo)/.test(f)) return 'Áudio';
+            if (/(lorenz|gravity|faraday|water|pendulum|orbiter|resson|molas|roldanas|pulley|blackhole|vortex|sp|springs)/.test(f)) return 'Física';
+            if (/(n1089|prime|kaprekar|fibonacci|lissajous|riemann|harshad|collatz|pi-|tusi|matem|binet)/.test(f)) return 'Matemática';
+            if (/(geo|torus|mobius|sphere|icosa|dode|tesseract|viviani|escher|spiral|spiro|solidos|cubo|cube)/.test(f)) return 'Geometria';
+            if (/(chat|grok|neural|brain|qwen|whisper|bitnet|quantization|ai-)/.test(f)) return 'IA';
+            if (/(logo|qrcode|timer|map|perfil|color|astro|limpeza|rsvp|fatos|biblia|keep|index)/.test(f)) return 'Util';
+            return 'Util';
+        }
+
+        
+        function generateDescription(name, category, fileName) {
+            // Templates por categoria
+            const templates = {
+                'IA': `Ferramenta de IA para ${name.toLowerCase()} com modelos modernos, explicações interativas e casos de uso práticos.`,
+                'Util': `Utilitário prático para ${name.toLowerCase()} com interface intuitiva, múltiplas funcionalidades e processamento eficiente.`,
+                'Física': `Simulação interativa de ${name.toLowerCase()} com física realista, controles ajustáveis e visualização científica.`,
+                'Matemática': `Demonstração visual de ${name.toLowerCase()} com fórmulas explicadas, interatividade e aplicações práticas.`,
+                'Geometria': `Visualizador 3D/2D de ${name.toLowerCase()} com rotação livre, medidas precisas e análise geométrica.`,
+                'Áudio': `Processador de áudio para ${name.toLowerCase()} com equalização, efeitos em tempo real e análise espectral.`,
+                'Shaders': `Shader WebGL para ${name.toLowerCase()} com performance otimizada, parâmetros editáveis e efeitos visuais.`,
+                'Arte': `Ferramenta criativa para ${name.toLowerCase()} com brushes variados, layers, blend modes e exportação.`,
+                'Animação': `Animação interativa de ${name.toLowerCase()} com controles de tempo, efeitos visuais e exportação.`,
+                'Fractal': `Explorador de fractal ${name.toLowerCase()} com zoom infinito, paletas personalizáveis e análise matemática.`,
+                'Efeitos': `Aplicador de efeitos visuais para ${name.toLowerCase()} com ajustes finos, preview em tempo real e resultados criativos.`,
+                'Eraser': `Motor de desenho e apagamento para ${name.toLowerCase()} com ferramentas essenciais e interface intuitiva.`,
+                'Especial': `Aplicativo especial para ${name.toLowerCase()} com tema personalizado, funcionalidades exclusivas e design único.`,
+            };
+            
+            // Descrições específicas para nomes conhecidos
+            const specificDescriptions = {
+                'Quiz Master 200': 'Quiz interativo com 200 perguntas desafiadoras, múltiplas categorias e sistema de pontuação',
+                'TTS Local': 'Servidor local de síntese de voz offline que converte texto em áudio em português',
+                'RSVP Reader': 'Leitor de velocidade de leitura RSVP com ajuste de velocidade, tamanho de fonte e timer',
+                'ASCII Art': 'Editor ASCII art com importação de imagens, múltiplos caracteres e exportação como texto',
+                'Binet Formula': 'Explorador da sequência de Fibonacci usando a fórmula de Binet com visualização espiral',
+                'Tusi Couple': 'Demonstração do teorema de Tusi com círculos em movimento e explicações matemáticas',
+                'Faraday 3D': 'Simulação 3D de uma gaiola de Faraday bloqueando campos eletromagnéticos',
+                'Art Sky': 'Gerador de céus artísticos com paletas de cores, nuvens procedural e efeitos atmosféricos',
+                'ASCII Studio': 'Estúdio avançado de ASCII art com múltiplos efeitos, layers e exportação em alta resolução',
+                'Binaural BPM': 'Gerador de frequências binaurais sincronizadas com BPM para meditação e foco',
+                'Voice AI WebGPU': 'Sistema de transcrição de voz em tempo real usando Whisper e WebGPU',
+                'Sólidos Platónicos': 'Visualizador interativo dos 5 sólidos platônicos perfeitos com rotação 3D',
+                'Sacred Dodecahedron': 'Exploração interativa de geometria sagrada usando o dodecaedro platônico',
+                'Truchet Tiles': 'Gerador de padrões Truchet tiles com múltiplos algoritmos e simetrias',
+                'A-lorenz': 'Simulação do atrator de Lorenz, sistema caótico com parâmetros ajustáveis',
+            };
+            
+            // Retornar descrição específica se existir, senão usar template da categoria
+            return specificDescriptions[name] || templates[category] || `Ferramenta ${category.toLowerCase()} para ${name.toLowerCase()} com funcionalidades específicas e interface amigável.`;
+        }
+async function syncMissingCardsFromGitHub() {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents`);
+                if (!res.ok) return;
+                const items = await res.json();
+                const remoteHtml = items.filter(item => item.type === 'file' && /\.html$/i.test(item.name) && !/(^dev[\/\\])/.test(item.name) && !['index.html', 'index.html.bkp'].includes(item.name.toLowerCase())).map(item => item.name);
+                const known = new Set(experiments.map(e => e.file.toLowerCase()));
+                const missing = remoteHtml.filter(file => !known.has(file.toLowerCase()));
+                if (!missing.length) return;
+                const generated = await Promise.all(missing.map(async file => {
+                    const commitDate = await fetchLastCommitDate(file);
+                    return {
+                        name: prettyNameFromFile(file),
+                        file,
+                        cat: classifyByFileName(file),
+                        date: formatDateBR(commitDate || new Date()),
+                        desc: generateDescription(prettyNameFromFile(file), classifyByFileName(file), file),
+                    };
+                }));
+                experiments = [...generated, ...experiments];
+                sortExperiments();
+                initFilters();
+                renderActiveFilters();
+                renderCards();
+            } catch (err) { console.warn('Sync falhou:', err); }
+        }
+
+        sortExperiments();
+        initFilters();
+        initSearch();
+        initFiltersPanel();
+        renderActiveFilters();
+        renderCards();
+        syncMissingCardsFromGitHub();
+    </script>
 </body>
 </html>
