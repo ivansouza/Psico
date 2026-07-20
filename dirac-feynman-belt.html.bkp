@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Dirac / Feynman Belt Trick - Raymarched SDF</title>
+
+ <!-- Configuração e Importação do MathJax para renderizar fórmulas matemáticas em LaTeX -->
+ <script>
+ window.MathJax = {
+ tex: {
+ inlineMath: [['$', '$'], ['\\(', '\\)']],
+ displayMath: [['$$', '$$'], ['\\[', '\\]']]
+ },
+ options: {
+ enableMenu: false
+ }
+ };
+ </script>
+ <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+ <style>
+ :root {
+ --bg-color: #0b0d10;
+ --panel-bg: rgba(15, 20, 28, 0.75);
+ --border-color: rgba(255, 255, 255, 0.08);
+ --text-color: #f3f4f6;
+ --accent-color: #ff9d00;
+ }
+
+ html, body {
+ margin: 0;
+ padding: 0;
+ width: 100%;
+ height: 100%;
+ overflow: hidden;
+ background-color: var(--bg-color);
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+ color: var(--text-color);
+ user-select: none;
+ -webkit-user-select: none;
+ }
+
+ canvas {
+ width: 100vw;
+ height: 100vh;
+ display: block;
+ position: absolute;
+ top: 0;
+ left: 0;
+ z-index: 1;
+ }
+
+ /* Botão de Engrenagem (Abrir Explicação) */
+ .gear-button {
+ position: absolute;
+ top: 16px;
+ right: 16px;
+ z-index: 15;
+ background: var(--panel-bg);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ border: 1px solid var(--border-color);
+ color: var(--text-color);
+ border-radius: 50%;
+ width: 36px;
+ height: 36px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+ pointer-events: auto;
+ }
+
+ .gear-button:hover {
+ border-color: var(--accent-color);
+ color: var(--accent-color);
+ transform: rotate(45deg);
+ }
+
+ .gear-button:active {
+ transform: scale(0.92) rotate(45deg);
+ }
+
+ /* Janela Modal (Overlay) */
+ .modal-overlay {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100vw;
+ height: 100vh;
+ background: rgba(0, 0, 0, 0.4);
+ backdrop-filter: blur(6px);
+ -webkit-backdrop-filter: blur(6px);
+ z-index: 100;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.3s ease;
+ }
+
+ .modal-overlay.show {
+ opacity: 1;
+ pointer-events: auto;
+ }
+
+ /* Cartão de Conteúdo da Modal */
+ .modal-card {
+ background: var(--panel-bg);
+ border: 1px solid var(--border-color);
+ border-radius: 16px;
+ padding: 24px;
+ max-width: 400px;
+ width: 88%;
+ box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+ transform: scale(0.9);
+ transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+ position: relative;
+ }
+
+ .modal-overlay.show .modal-card {
+ transform: scale(1);
+ }
+
+ /* Botão Fechar Modal */
+ .close-button {
+ position: absolute;
+ top: 16px;
+ right: 16px;
+ background: none;
+ border: none;
+ color: #9ca3af;
+ cursor: pointer;
+ padding: 4px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ border-radius: 50%;
+ transition: all 0.2s;
+ }
+
+ .close-button:hover {
+ color: var(--text-color);
+ background: rgba(255, 255, 255, 0.08);
+ }
+
+ .modal-card h1 {
+ font-size: 1.15rem;
+ margin: 0 0 10px 0;
+ font-weight: 600;
+ letter-spacing: 0.5px;
+ color: var(--accent-color);
+ text-transform: uppercase;
+ }
+
+ .modal-card p {
+ font-size: 0.88rem;
+ line-height: 1.45;
+ margin: 0 0 16px 0;
+ color: #d1d5db;
+ }
+
+ .modal-card .credit-link {
+ font-size: 0.8rem;
+ margin-top: 14px;
+ border-top: 1px solid var(--border-color);
+ padding-top: 12px;
+ color: #9ca3af;
+ }
+
+ .modal-card .credit-link a {
+ color: var(--accent-color);
+ text-decoration: underline;
+ transition: color 0.2s;
+ }
+
+ .modal-card .credit-link a:hover {
+ color: #ffb74d;
+ }
+
+ .modal-card .hint {
+ font-size: 0.78rem;
+ color: #9ca3af;
+ display: flex;
+ flex-direction: column;
+ gap: 6px;
+ border-top: 1px dashed var(--border-color);
+ padding-top: 12px;
+ margin-top: 12px;
+ }
+
+ .modal-card .hint-item {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ }
+
+ /* Controles de Zoom Flutuantes (Acesso Rápido) */
+ .floating-zoom {
+ position: absolute;
+ bottom: 24px;
+ right: 24px;
+ z-index: 10;
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+ background: var(--panel-bg);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ border: 1px solid var(--border-color);
+ border-radius: 10px;
+ padding: 6px;
+ box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+ }
+
+ .zoom-btn {
+ background: rgba(255, 255, 255, 0.05);
+ border: 1px solid var(--border-color);
+ color: var(--text-color);
+ border-radius: 6px;
+ width: 32px;
+ height: 32px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ transition: background 0.2s, border-color 0.2s, color 0.2s;
+ }
+
+ .zoom-btn:hover {
+ background: rgba(255, 255, 255, 0.12);
+ border-color: var(--accent-color);
+ color: var(--accent-color);
+ }
+
+ .zoom-btn:active {
+ transform: scale(0.95);
+ }
+
+ /* Indicador de Carregamento */
+ #loader {
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%);
+ z-index: 20;
+ font-size: 0.9rem;
+ color: #9ca3af;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 12px;
+ transition: opacity 0.5s ease;
+ pointer-events: none;
+ }
+
+ .spinner {
+ width: 32px;
+ height: 32px;
+ border: 3px solid rgba(255, 255, 255, 0.1);
+ border-radius: 50%;
+ border-top-color: var(--accent-color);
+ animation: spin 1s ease-in-out infinite;
+ }
+
+ @keyframes spin {
+ to { transform: rotate(360deg); }
+ }
+
+ @media (max-width: 600px) {
+ .floating-zoom {
+ bottom: 16px;
+ right: 16px;
+ }
+ }
+ </style>
+</head>
+<body>
+
+ <div id="loader">
+ <div class="spinner"></div>
+ <span>Compilando o Raymarcher SDF...</span>
+ </div>
+
+ <!-- Botão de Engrenagem (Abrir Modal) -->
+ <button class="gear-button" id="gear-btn" title="Explicar Experimento">
+ <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+ <circle cx="12" cy="12" r="3"></circle>
+ <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+ </svg>
+ </button>
+
+ <!-- Modal de Explicação -->
+ <div class="modal-overlay" id="modal-overlay">
+ <div class="modal-card">
+ <button class="close-button" id="close-modal" title="Fechar">
+ <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+ </button>
+ <h1>Dirac / Feynman Belt Trick</h1>
+ <p>
+ Demonstração topológica de que uma rotação de $720^\circ$ (2 voltas completas) de um corpo rígido conectado a fitas pode ser continuamente destorcida sem mover as extremidades fixas.
+ </p>
+ <p>
+ Este experimento mental ilustra como o spin semi-inteiro de partículas quânticas (como os elétrons, que necessitam de 2 voltas completas para retornar ao mesmo estado de fase) opera matematicamente através do grupo especial de rotação quântica $SU(2)$.
+ </p>
+
+ <p class="credit-link">
+ Baseado no shader de <a href="https://www.shadertoy.com/view/ffd3Rl" target="_blank" rel="noopener noreferrer">https://www.shadertoy.com/view/ffd3Rl</a>
+ </p>
+
+ <div class="hint">
+ <div class="hint-item">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+ <span>Arraste na tela para orbitar a câmera.</span>
+ </div>
+ <div class="hint-item">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+ <span>Use a roda do mouse ou faça o gesto de pinça para Zoom.</span>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Controles de Zoom Flutuantes no Canto -->
+ <div class="floating-zoom">
+ <button class="zoom-btn" id="zoom-in" title="Aproximar">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+ </button>
+ <button class="zoom-btn" id="zoom-out" title="Afastar">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+ </button>
+ </div>
+
+ <canvas id="glcanvas"></canvas>
+
+ <script>
+ const canvas = document.getElementById('glcanvas');
+ const loader = document.getElementById('loader');
+ const gl = canvas.getContext('webgl2');
+
+ if (!gl) {
+ alert('Este experimento exige suporte a WebGL 2. Tente em um navegador moderno atualizado.');
+ loader.style.display = 'none';
+ }
+
+ // --- Código do Vertex Shader ---
+ const vsSource = `#version 300 es
+ in vec2 position;
+ void main() {
+ gl_Position = vec4(position, 0.0, 1.0);
+ }
+ `;
+
+ // --- Código do Fragment Shader ---
+ const fsSource = `#version 300 es
+ precision highp float;
+ precision highp int;
+
+ uniform vec3 iResolution;
+ uniform float iTime;
+ uniform vec4 iMouse;
+ uniform float uCameraDist;
+
+ out vec4 fragColor;
+
+ // CONFIGURAÇÕES DO SHADER ORIGINAL
+ #define TURNS 2.0
+ #define HOMOTOPY 0
+ #define TWIST_PROFILE 0
+ #define USE_SLACK 0
+ #define SLACK 0.7
+ #define REPEAT 1
+ #define REMOVE_CENTER 0
+ #define EXACT_SDF 0
+ #define SLABS 64
+ #define SHOW_STRETCH 0
+ #define STRETCH_MAX 6.0
+ #define AA 1
+ #define FOG 0.1
+ #define SHADOWS 0
+ #define DO_AO 0
+ #define ITER 220
+ #define CYCLE 16.0
+ #define FREEZE -1.0
+ #define RMAX 5.00
+ #define FOCAL 1.8
+ #define AUTOROTATE 0.05
+
+ #define PI 3.14159265359
+ #define TAU 6.28318530718
+
+ const float H = 0.62;
+ const float R0 = 1.15;
+ const float R1 = 4.40;
+ const float WID = 0.30;
+ const float THK = 0.06;
+ const float PADL = 0.20;
+
+ #define PERIOD (2.0*R1)
+ #if TWIST_PROFILE==0
+ #define UMAX 1.0
+ #elif TWIST_PROFILE==1
+ #define UMAX 1.5
+ #else
+ #define UMAX 3.0
+ #endif
+
+ float gS; vec2 gA; float gLip;
+ #if REPEAT && REMOVE_CENTER
+ vec3 gCamCell;
+ #endif
+
+ // Quatérnios
+ vec4 qmul (vec4 a, vec4 b){
+ return vec4(a.w*b.xyz+b.w*a.xyz+cross(a.xyz,b.xyz), a.w*b.w-dot(a.xyz,b.xyz)); }
+ vec4 qconj(vec4 q){ return vec4(-q.xyz,q.w); }
+ vec3 qrot (vec4 q, vec3 v){ return v+2.0*cross(q.xyz,cross(q.xyz,v)+q.w*v); }
+
+ // Campo de spinores
+ float uOf(float t){
+ #if TWIST_PROFILE==0
+ return 1.0-t;
+ #elif TWIST_PROFILE==1
+ return 1.0-smoothstep(0.0,1.0,t);
+ #else
+ return 1.0-t*t*t;
+ #endif
+ }
+
+ vec3 auxAxis(){
+ #if HOMOTOPY==1
+ return vec3(cos(TAU*gS),0.0,sin(TAU*gS));
+ #else
+ return vec3(1,0,0);
+ #endif
+ }
+
+ vec4 spinor(float t){
+ vec4 q;
+ #if HOMOTOPY==2
+ float ang=PI*TURNS*gS*t;
+ q=vec4(0,sin(ang),0,cos(ang));
+ #else
+ float u=uOf(t), c=cos(.5*PI*u), d=sin(.5*PI*u);
+ vec3 m=auxAxis();
+ vec4 A=vec4(0,gA.y,0,gA.x);
+ q=qmul(c*A+vec4(d*m,0), qconj(vec4(d*m,c)));
+ #endif
+ #if USE_SLACK
+ float psi=SLACK*sin(PI*t);
+ q=qmul(q,vec4(0,sin(.5*psi),0,cos(.5*psi)));
+ #endif
+ return q;
+ }
+
+ float tOf(float r){ return clamp((R1-r)/(R1-R0),0.0,1.0); }
+
+ float lipschitz(){
+ float phi=PI*TURNS*gS;
+ #if HOMOTOPY==2
+ float w=2.0*phi;
+ #else
+ float w=TAU*UMAX*abs(sin(.5*phi));
+ #endif
+ #if USE_SLACK
+ w+=PI*SLACK;
+ #endif
+ return 1.0+R1*w/(R1-R0);
+ }
+
+ // Repetição de domínio
+ vec3 localP(vec3 p){
+ #if REPEAT
+ return mod(p+.5*PERIOD,PERIOD)-.5*PERIOD;
+ #else
+ return p;
+ #endif
+ }
+
+ vec3 undeformL(vec3 lp){ return qrot(qconj(spinor(tOf(length(lp)))),lp); }
+ vec3 undeform (vec3 p ){ return undeformL(localP(p)); }
+
+ float stretchAt(vec3 p){
+ vec3 lp=localP(p); float r=max(length(lp),1e-3), h=.02;
+ vec4 q0=spinor(tOf(r)), q1=spinor(tOf(r+h));
+ vec3 Om=2.0*qmul(q1,qconj(q0)).xyz/h;
+ return length(lp/r+cross(Om,lp));
+ }
+
+ // SDF da figura estática
+ float sdBox(vec3 p, vec3 b){
+ vec3 q=abs(p)-b;
+ return length(max(q,0.0))+min(max(q.x,max(q.y,q.z)),0.0);
+ }
+
+ vec2 sdStatic(vec3 p){
+ vec2 res=vec2(sdBox(p,vec3(H)),1);
+ vec3 a=abs(p); float m=.5*(H+R1),e=.5*(R1-H);
+ float db= sdBox(a-vec3(m,0,0),vec3(e,THK,WID));
+ db=min(db, sdBox(a-vec3(0,m,0),vec3(WID,e,THK)));
+ db=min(db, sdBox(a-vec3(0,0,m),vec3(THK,WID,e)));
+ if(db<res.x) res=vec2(db,2);
+ #if !REPEAT
+ float pm=R1+PADL; vec3 pb=vec3(PADL,WID*1.7,WID*1.7);
+ float dp= sdBox(a-vec3(pm,0,0),pb.xyz);
+ dp=min(dp, sdBox(a-vec3(0,pm,0),pb.yxz));
+ dp=min(dp, sdBox(a-vec3(0,0,pm),pb.yzx));
+ if(dp<res.x) res=vec2(dp,3);
+ #endif
+ return res;
+ }
+
+ #if EXACT_SDF
+ float slabDist(int i, vec3 p, float seg, float ov){
+ float r0=H+seg*float(i), t=tOf(r0+.5*seg);
+ vec3 y=qrot(qconj(spinor(t)),p), a=abs(y);
+ float lo=max(H,r0-ov), hi=min(R1,r0+seg+ov);
+ float m2=.5*(lo+hi), e2=.5*(hi-lo);
+ float d= sdBox(a-vec3(m2,0,0),vec3(e2,THK,WID));
+ d=min(d, sdBox(a-vec3(0,m2,0),vec3(WID,e2,THK)));
+ d=min(d, sdBox(a-vec3(0,0,m2),vec3(THK,WID,e2)));
+ return d;
+ }
+ float slabLB(int i, float rp, float seg, float ov){
+ float lo=max(H,H+seg*float(i)-ov);
+ float hi=min(R1,H+seg*float(i+1)+ov);
+ return max(0.0,max(rp-sqrt(hi*hi+THK*THK+WID*WID), lo-rp));
+ }
+ vec2 sdExact(vec3 lp){
+ vec2 res=vec2(sdBox(qrot(qconj(spinor(1.0)),lp),vec3(H)),1);
+ #if !REPEAT
+ vec3 a0=abs(lp); float pm=R1+PADL; vec3 pb=vec3(PADL,WID*1.7,WID*1.7);
+ float dp= sdBox(a0-vec3(pm,0,0),pb.xyz);
+ dp=min(dp, sdBox(a0-vec3(0,pm,0),pb.yxz));
+ dp=min(dp, sdBox(a0-vec3(0,0,pm),pb.yzx));
+ if(dp<res.x) res=vec2(dp,3);
+ #endif
+ float rp=length(lp), seg=(R1-H)/float(SLABS), ov=.5*seg;
+ int i0=int(clamp(floor((rp-H)/seg),0.0,float(SLABS)-1.0));
+ float db=1e9;
+ for(int k=0;k<SLABS;k++){int i=i0+k;if(i>=SLABS)break;
+ if(slabLB(i,rp,seg,ov)>db)break; db=min(db,slabDist(i,lp,seg,ov));}
+ for(int k=1;k<SLABS;k++){int i=i0-k;if(i<0)break;
+ if(slabLB(i,rp,seg,ov)>db)break; db=min(db,slabDist(i,lp,seg,ov));}
+ if(db<res.x) res=vec2(db,2);
+ return res;
+ }
+ #endif
+
+ vec2 mapLocal(vec3 lp){
+ #if EXACT_SDF
+ return sdExact(lp);
+ #else
+ return sdStatic(undeformL(lp));
+ #endif
+ }
+
+ vec2 map(vec3 p){
+ vec3 lp=localP(p);
+ #if REPEAT && REMOVE_CENTER
+ vec3 cid=floor(p/PERIOD+.5);
+ if(length(cid-gCamCell)<.5)
+ return vec2(max(-sdBox(lp,vec3(R1-.01)),.01), -1.0);
+ #endif
+ return mapLocal(lp);
+ }
+
+ vec3 calcNormal(vec3 p){
+ const vec2 k=vec2(1,-1); float h=.0015;
+ return normalize(k.xyy*map(p+k.xyy*h).x+k.yyx*map(p+k.yyx*h).x+
+ k.yxy*map(p+k.yxy*h).x+k.xxx*map(p+k.xxx*h).x);
+ }
+
+ float calcAO(vec3 p, vec3 n){
+ #if DO_AO
+ float occ=0.0,sca=1.0;
+ for(int i=0;i<5;i++){float hr=.012+.15*float(i)/4.0;
+ occ+=-(map(p+n*hr).x/gLip-hr)*sca; sca*=.85;}
+ return clamp(1.0-1.5*occ,0.0,1.0);
+ #else
+ return 1.0;
+ #endif
+ }
+
+ float softShadow(vec3 ro, vec3 rd){
+ #if SHADOWS
+ float res=1.0,t=.03;
+ for(int i=0;i<40;i++){
+ float h=map(ro+rd*t).x/gLip;
+ res=min(res,9.0*h/t); t+=clamp(h,.03,.30);
+ if(res<.005||t>9.0)break;}
+ return clamp(res,0.0,1.0);
+ #else
+ return 1.0;
+ #endif
+ }
+
+ vec2 hitSphere(vec3 ro, vec3 rd, float R){
+ float b=dot(ro,rd),c=dot(ro,ro)-R*R,h=b*b-c;
+ if(h<0.0)return vec2(-1); h=sqrt(h); return vec2(-b-h,-b+h);
+ }
+
+ vec2 trace(vec3 ro, vec3 rd){
+ #if REPEAT
+ float t=.01, tEnd=min(80.0, 6.0/max(FOG,.001));
+ #else
+ vec2 bb=hitSphere(ro,rd,RMAX);
+ if(bb.y<0.0)return vec2(-1);
+ float t=max(bb.x,0.0), tEnd=bb.y;
+ #endif
+ for(int i=0;i<ITER;i++){
+ vec2 h =map(ro+rd*t);
+ float eps=.0015+.00035*t;
+ if(h.x<eps && h.y>=0.0) return vec2(t,h.y);
+ float st=(h.y<0.0)?h.x : .95*h.x/gLip;
+ t+=max(st,.6*eps);
+ if(t>tEnd)break;
+ }
+ return vec2(-1);
+ }
+
+ vec3 heat(float x){x=clamp(x,0.0,1.0);
+ return clamp(vec3(1.5*x-.1,1.0-2.2*abs(x-.5),1.3-2.0*x),0.0,1.0);}
+
+ vec3 material(vec3 p, float id){
+ #if SHOW_STRETCH
+ return heat((stretchAt(p)-1.0)/STRETCH_MAX);
+ #else
+ vec3 pr=undeform(p), ap=abs(pr);
+ if(id<1.5){
+ if(ap.x>ap.y&&ap.x>ap.z) return pr.x>0.?vec3(.90,.24,.18):vec3(.16,.52,.95);
+ else if(ap.y>ap.z) return pr.y>0.?vec3(.96,.82,.20):vec3(.58,.24,.88);
+ else return pr.z>0.?vec3(.22,.80,.42):vec3(.93,.93,.90);
+ }
+ if(id>2.5) return vec3(.14);
+ bool isX=(ap.x>ap.y&&ap.x>ap.z), isY=(!isX)&&(ap.y>ap.z);
+ float wide =isX?pr.z:(isY?pr.x:pr.y);
+ #if REPEAT
+ vec3 col = isX ? vec3(.97,.46,.10)
+ : isY ? vec3(.25,.70,.35)
+ : vec3(.08,.55,.62);
+ #endif
+ col = mix(col, vec3(.85), smoothstep(WID*.95,WID*.99,abs(wide)));
+ return col;
+ #endif
+ }
+
+ vec3 background(vec3 rd){
+ return mix(vec3(0),vec3(.13,.16,.21),.2+.5*rd.y);}
+
+ vec3 render(vec3 ro, vec3 rd){
+ vec3 col=background(rd);
+ vec2 h=trace(ro,rd);
+ if(h.x>0.0 && h.y>=0.0){
+ vec3 p=ro+rd*h.x, n=calcNormal(p), alb=material(p,h.y);
+ vec3 L1=normalize(vec3(.60,.78,.40)), L2=normalize(vec3(-.55,.20,-.60));
+ float sh=softShadow(p+n*.012,L1), ao=calcAO(p,n);
+ float fre=pow(clamp(1.0+dot(rd,n),0.0,1.0),4.0);
+ vec3 lin =2.5*max(dot(n,L1),0.0)*sh*vec3(1,.95,.86);
+ lin+=.55*max(dot(n,L2),0.0)*ao*vec3(.45,.62,1);
+ lin+=.25*max(dot(n,-L1),0.0)*ao*vec3(.30,.33,.40);
+ lin+=.40*ao*vec3(.34,.42,.58); lin+=.50*fre*ao;
+ col=alb*lin+1.1*pow(max(dot(n,normalize(L1-rd)),0.0),52.0)*sh;
+ #if REPEAT
+ col=mix(col,background(rd),1.0-exp(-FOG*h.x));
+ #else
+ col=mix(col,background(rd),1.0-exp(-FOG*max(0.0,h.x-(uCameraDist-RMAX))));
+ #endif
+ }
+ return col;
+ }
+
+ void main() {
+ vec2 F = gl_FragCoord.xy;
+ gS =FREEZE>=0.0?FREEZE:fract(iTime/CYCLE);
+ gA =vec2(cos(PI*TURNS*gS),sin(PI*TURNS*gS));
+ #if EXACT_SDF
+ gLip=1.0;
+ #else
+ gLip=lipschitz();
+ #endif
+
+ // Controle de órbita
+ float an=.75+AUTOROTATE*iTime;
+ float el=.40;
+ if(iMouse.z>.001){
+ an=TAU*(iMouse.x/iResolution.x-.5);
+ el=2.2*(iMouse.y/iResolution.y-.5)+.15;
+ }
+ el=clamp(el,-1.25,1.25);
+ vec3 ro=uCameraDist*vec3(cos(an)*cos(el),sin(el),sin(an)*cos(el));
+ vec3 ww=normalize(-ro),uu=normalize(cross(ww,vec3(0,1,0))),vv=cross(uu,ww);
+ #if REPEAT
+ vec3 lr=localP(ro);
+ float cs=sdBox(lr,vec3(H+.25));
+ if(cs<0.0)ro-=normalize(lr+1e-5)*cs;
+ #endif
+ #if REPEAT && REMOVE_CENTER
+ gCamCell=floor(ro/PERIOD+.5);
+ #endif
+ vec3 col=vec3(0);
+ for(int m=0;m<AA;m++) for(int n=0;n<AA;n++){
+ vec2 o=vec2(float(m),float(n))/float(AA)-.5;
+ vec2 uv=(2.0*(F+o)-iResolution.xy)/iResolution.y;
+ col+=render(ro,normalize(uv.x*uu+uv.y*vv+FOCAL*ww));
+ }
+ col/=float(AA*AA);
+ #if !REPEAT
+ float bH=.011*iResolution.y;
+ if(F.y<bH){float x=F.x/iResolution.x;
+ vec3 b=x<gS?vec3(.95,.52,.14):vec3(.10);
+ if(abs(x-.5)<.0015)b=vec3(1); col=mix(col,b,.9);}
+ #endif
+ col=pow(clamp(col,0.0,1.0),vec3(.4545));
+ col*=1.0-.06*dot((2.0*F-iResolution.xy)/iResolution.y,
+ (2.0*F-iResolution.xy)/iResolution.y);
+ fragColor = vec4(col,1);
+ }
+ `;
+
+ // Compilação dos Shaders
+ function createShader(gl, type, source) {
+ const shader = gl.createShader(type);
+ gl.shaderSource(shader, source);
+ gl.compileShader(shader);
+ if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+ console.error(gl.getShaderInfoLog(shader));
+ gl.deleteShader(shader);
+ return null;
+ }
+ return shader;
+ }
+
+ const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+ const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+ const program = gl.createProgram();
+ gl.attachShader(program, vertexShader);
+ gl.attachShader(program, fragmentShader);
+ gl.linkProgram(program);
+
+ if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+ console.error('Falha ao linkar o programa do shader:', gl.getProgramInfoLog(program));
+ }
+
+ // Setup da geometria da tela (Quad screen-space)
+ const positionBuffer = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+ -1, -1, 1, -1, -1, 1,
+ -1, 1, 1, -1, 1, 1,
+ ]), gl.STATIC_DRAW);
+
+ const positionAttributeLocation = gl.getAttribLocation(program, 'position');
+ const vao = gl.createVertexArray();
+ gl.bindVertexArray(vao);
+ gl.enableVertexAttribArray(positionAttributeLocation);
+ gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+ // Uniforms
+ const resolutionUniformLocation = gl.getUniformLocation(program, 'iResolution');
+ const timeUniformLocation = gl.getUniformLocation(program, 'iTime');
+ const mouseUniformLocation = gl.getUniformLocation(program, 'iMouse');
+ const cameraDistUniformLocation = gl.getUniformLocation(program, 'uCameraDist');
+
+ // Estado do Mouse, Toque e Câmera
+ let cameraDist = 9.5;
+ const minCameraDist = 4.5;
+ const maxCameraDist = 24.0;
+
+ let mouseX = canvas.clientWidth * 0.55;
+ let mouseY = canvas.clientHeight * 0.50;
+ let mouseZ = 0.0;
+ let mouseW = 0.0;
+ let isMouseDown = false;
+
+ // Oculta loader após compilação bem-sucedida
+ loader.style.opacity = '0';
+ setTimeout(() => loader.style.display = 'none', 500);
+
+ // --- Controle do Modal de Explicação ---
+ const gearBtn = document.getElementById('gear-btn');
+ const

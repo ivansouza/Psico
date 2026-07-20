@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌙 Mapa Astral - Cristine Xavier Souza</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #0a0a1a; color: #e2e8f0; }
+        .glass { background: rgba(15,23,42,0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        .glow { box-shadow: 0 0 30px rgba(233,69,96,0.15); }
+        .planet-card { transition: all 0.3s ease; }
+        .planet-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.2); }
+        .aspect-tag { transition: all 0.2s; }
+        .aspect-tag:hover { transform: scale(1.05); }
+        .tab-btn.active { background: #e94560; color: white; }
+        .section { display: none; }
+        .section.active { display: block; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black text-white mb-2">🌙 Mapa Astral</h1>
+            <p class="text-xl text-gray-400">Cristine Xavier Souza</p>
+            <div class="flex justify-center gap-4 mt-2 text-sm text-gray-500">
+                <span>📅 26/11/1991</span>
+                <span>⏰ 08:15</span>
+                <span>📍 Brasília, DF</span>
+            </div>
+        </div>
+
+        <!-- Botão Guia -->
+        <div class="text-center mb-4">
+            <button onclick="toggleGuia()" class="px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-600">
+                📖 Entender o Mapa Astral
+            </button>
+        </div>
+        <div id="guia-container" class="glass rounded-2xl p-6 glow mb-8" style="display:none">
+            <div class="flex justify-center">
+                <img src="guia_mapa_astral_cristine.jpg" alt="Guia do Mapa Astral" style="max-width:100%;height:auto;border-radius:12px">
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex justify-center gap-2 mb-8 flex-wrap" id="tab-bar">
+            <button class="tab-btn active px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="mapa">🔄 Mapa</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="planetas">📊 Planetas</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="aspectos">🔗 Aspectos</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="interpretacao">🔮 Interpretação</button>
+            <button class="tab-btn px-6 py-2 rounded-full text-sm font-medium transition-all bg-gray-800 text-gray-300 hover:bg-gray-700" data-tab="transitos">📅 Trânsitos</button>
+        </div>
+
+        <!-- Section: Mapa SVG -->
+        <div id="section-mapa" class="section active">
+            <div class="glass rounded-2xl p-6 glow flex justify-center">
+                <div id="svg-container" class="w-full" style="max-width:800px"></div>
+            </div>
+        </div>
+
+        <!-- Section: Planetas -->
+        <div id="section-planetas" class="section">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="planetas-container"></div>
+        </div>
+
+        <!-- Section: Aspectos -->
+        <div id="section-aspectos" class="section">
+            <div class="glass rounded-2xl p-6 glow">
+                <h2 class="text-2xl font-bold mb-6">🔗 Aspectos Planetários</h2>
+                <div class="space-y-3" id="aspectos-container"></div>
+            </div>
+        </div>
+
+        <!-- Section: Interpretação -->
+        <div id="section-interpretacao" class="section">
+            <div class="glass rounded-2xl p-6 glow">
+                <h2 class="text-2xl font-bold mb-6">🔮 Interpretação Astrológica</h2>
+                <div class="prose prose-invert max-w-none text-gray-300 leading-relaxed" id="interpretacao-container"></div>
+            </div>
+        </div>
+
+        <!-- Section: Trânsitos -->
+        <div id="section-transitos" class="section">
+            <div class="glass rounded-2xl p-6 glow">
+                <div class="text-gray-300 leading-relaxed" id="transitos-container">
+                    <h2 class="text-e94560 text-xl font-bold mb-4">🔮 Horóscopo de 07/06/2026</h2>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed">O dia começa com uma energia de estrutura e reflexão para Cristine. Com a Lua transitando por Peixes e seu Sol em Sagitário na Casa 12, você pode sentir uma forte conexão com seu mundo interior e uma necessidade de recolhimento para processar suas emoções. É um momento propício para <span class="text-e94560 font-semibold">introspecção e planejamento estratégico</span>, permitindo que sua intuição guie seus próximos passos.</p>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed">O Sol em Gêmeos ativa sua Casa 6, trazendo à tona questões de rotina, saúde e organização do dia a dia. Este é um período de <span class="text-e94560 font-semibold">reestruturação de hábitos e métodos de trabalho</span>, onde sua mente sagitariana encontra novas formas de otimizar sua vida prática.</p>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed">Marte em Leão transita sua Casa 8, acendendo sua intensidade emocional e poder de transformação. A chave para o sucesso hoje reside na <span class="text-e94560 font-semibold">coragem de mergulhar fundo nas próprias emoções</span>. Permita-se sentir sem medo e confie na sua capacidade de renascer mais forte.</p>
+                    <div class="bg-gray-800 rounded-xl p-4 mt-4"><span class="text-e94560 font-semibold">💡 Dica prática:</span> Aproveite a energia de Vênus em Câncer para fortalecer laços familiares. Com seu Vênus em Libra na Casa 10, encontre equilíbrio entre sua vida profissional e afetiva — ambos merecem sua atenção.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12 text-gray-600 text-sm">
+            <p>Gerado por ZePequeno 🐶 · Skill de Astrologia · Kerykeion + James (Gemma 4 31B)</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // DADOS DO MAPA DE NADIR
+        // ============================================================
+                        const PLANETAS = [
+            { nome:"Sol", glifo:"☉", pos:243.70, signo:"Sagitário", graus:"3°42'", casa:12, elemento:"Fogo", qualidade:"Mutável", retrogrado:false, cor:"#FFD700" },
+            { nome:"Lua", glifo:"☽", pos:124.70, signo:"Leão", graus:"4°42'", casa:8, elemento:"Fogo", qualidade:"Fixo", retrogrado:false, cor:"#C0C0C0" },
+            { nome:"Mercúrio", glifo:"☿", pos:263.80, signo:"Sagitário", graus:"23°48'", casa:12, elemento:"Fogo", qualidade:"Mutável", retrogrado:false, cor:"#4FC3F7" },
+            { nome:"Vênus", glifo:"♀", pos:198.70, signo:"Libra", graus:"18°42'", casa:10, elemento:"Ar", qualidade:"Cardinal", retrogrado:false, cor:"#FF69B4" },
+            { nome:"Marte", glifo:"♂", pos:238.10, signo:"Escorpião", graus:"28°06'", casa:11, elemento:"Água", qualidade:"Fixo", retrogrado:false, cor:"#FF4444" },
+            { nome:"Júpiter", glifo:"♃", pos:162.80, signo:"Virgem", graus:"12°48'", casa:9, elemento:"Terra", qualidade:"Mutável", retrogrado:false, cor:"#FFB74D" },
+            { nome:"Saturno", glifo:"♄", pos:302.40, signo:"Aquário", graus:"2°24'", casa:2, elemento:"Ar", qualidade:"Fixo", retrogrado:false, cor:"#616161" },
+            { nome:"Urano", glifo:"♅", pos:281.70, signo:"Capricórnio", graus:"11°42'", casa:1, elemento:"Terra", qualidade:"Cardinal", retrogrado:false, cor:"#00BCD4" },
+            { nome:"Netuno", glifo:"♆", pos:285.00, signo:"Capricórnio", graus:"15°00'", casa:1, elemento:"Terra", qualidade:"Cardinal", retrogrado:false, cor:"#7E57C2" },
+            { nome:"Plutão", glifo:"♇", pos:230.80, signo:"Escorpião", graus:"20°48'", casa:11, elemento:"Água", qualidade:"Fixo", retrogrado:false, cor:"#8D6E63" }
+        ];
+
+        const ASPECTOS = [
+            { p1:0, p2:1, tipo:"Trígono", cor:"#4CAF50" },
+            { p1:0, p2:6, tipo:"Sextil", cor:"#4CAF50" },
+            { p1:1, p2:3, tipo:"Quintil", cor:"#9C27B0" },
+            { p1:1, p2:6, tipo:"Oposição", cor:"#FF4444" },
+            { p1:2, p2:9, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:3, p2:9, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:4, p2:5, tipo:"Quintil", cor:"#9C27B0" },
+            { p1:5, p2:7, tipo:"Trígono", cor:"#4CAF50" },
+            { p1:5, p2:8, tipo:"Trígono", cor:"#4CAF50" },
+            { p1:7, p2:8, tipo:"Conjunção", cor:"#2196F3" },
+            { p1:3, p2:8, tipo:"Quadratura", cor:"#FF4444" },
+            { p1:5, p2:9, tipo:"Quintil", cor:"#9C27B0" },
+            { p1:4, p2:6, tipo:"Sextil", cor:"#4CAF50" },
+            { p1:2, p2:4, tipo:"Semisextil", cor:"#4CAF50" },
+            { p1:0, p2:4, tipo:"Conjunção", cor:"#2196F3" }
+        ];
+
+        const SIGNOS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
+
+        // ============================================================
+        // SVG PROFISSIONAL
+        // ============================================================
+        function gerarSVG() {
+            const cx=400, cy=400, rExt=300, rInt=260, rPlan=245, rAsp=220;
+            let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">`;
+            s += `<defs><radialGradient id="bg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a1a3e"/><stop offset="100%" stop-color="#0a0a1a"/></radialGradient></defs>`;
+            s += `<rect width="800" height="800" fill="url(#bg)"/>`;
+            s += `<circle cx="${cx}" cy="${cy}" r="${rExt}" fill="none" stroke="#333" stroke-width="2"/>`;
+            s += `<circle cx="${cx}" cy="${cy}" r="${rInt}" fill="none" stroke="#333" stroke-width="1"/>`;
+
+            // Signos
+            for(let i=0;i<12;i++){
+                const a=(i*30-90)*Math.PI/180;
+                s+=`<line x1="${cx+rInt*Math.cos(a)}" y1="${cy+rInt*Math.sin(a)}" x2="${cx+rExt*Math.cos(a)}" y2="${cy+rExt*Math.sin(a)}" stroke="#333" stroke-width="1"/>`;
+                const am=((i+0.5)*30-90)*Math.PI/180;
+                s+=`<text x="${cx+(rExt-12)*Math.cos(am)}" y="${cy+(rExt-12)*Math.sin(am)}" fill="#e94560" font-size="14" text-anchor="middle" dominant-baseline="central">${SIGNOS[i]}</text>`;
+            }
+
+            // Casas
+            for(let i=0;i<12;i++){
+                const a=(i*30-90)*Math.PI/180;
+                const sw=i%3===0?2:1;
+                s+=`<line x1="${cx+rInt*Math.cos(a)}" y1="${cy+rInt*Math.sin(a)}" x2="${cx+rExt*Math.cos(a)}" y2="${cy+rExt*Math.sin(a)}" stroke="#555" stroke-width="${sw}"/>`;
+                s+=`<text x="${cx+(rInt+10)*Math.cos(a)}" y="${cy+(rInt+10)*Math.sin(a)}" fill="#888" font-size="9" text-anchor="middle" dominant-baseline="central">${i+1}</text>`;
+            }
+
+            // Ângulos
+            const angASC=(163.74-90)*Math.PI/180, angMC=(77.43-90)*Math.PI/180;
+            for(const[n,a,c] of[["ASC",angASC,"#FFD700"],["MC",angMC,"#FFD700"],["DC",angASC+Math.PI,"#FFD700"],["IC",angMC+Math.PI,"#FFD700"]]){
+                s+=`<text x="${cx+rInt*Math.cos(a)}" y="${cy+rInt*Math.sin(a)}" fill="${c}" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="central">${n}</text>`;
+            }
+
+            // Aspectos
+            for(const a of ASPECTOS){
+                const a1=(PLANETAS[a.p1].pos-90)*Math.PI/180, a2=(PLANETAS[a.p2].pos-90)*Math.PI/180;
+                const dash=a.tipo==="Conjunção"?"none":"6,3";
+                s+=`<line x1="${cx+rAsp*Math.cos(a1)}" y1="${cy+rAsp*Math.sin(a1)}" x2="${cx+rAsp*Math.cos(a2)}" y2="${cy+rAsp*Math.sin(a2)}" stroke="${a.cor}" stroke-width="1.5" stroke-dasharray="${dash}" opacity="0.6"/>`;
+            }
+
+            // Planetas
+            for(const p of PLANETAS){
+                const a=(p.pos-90)*Math.PI/180;
+                s+=`<text x="${cx+rPlan*Math.cos(a)}" y="${cy+rPlan*Math.sin(a)}" fill="#fff" font-size="16" text-anchor="middle" dominant-baseline="central">${p.glifo}</text>`;
+                s+=`<text x="${cx+(rPlan+12)*Math.cos(a)}" y="${cy+(rPlan+4)*Math.sin(a)}" fill="#aaa" font-size="8" text-anchor="start">${p.graus.split("°")[0]}°</text>`;
+            }
+
+            // Centro
+            s+=`<text x="${cx}" y="${cy-8}" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">Cristine</text>`;
+            s+=`<text x="${cx}" y="${cy+10}" fill="#e94560" font-size="10" text-anchor="middle">ASC 1.3° ♑</text>`;
+
+            // Tabela de posições
+            let tx=30, ty=30;
+            s+=`<text x="${tx}" y="${ty}" fill="#e94560" font-size="16" font-weight="bold">🌙 Mapa Astral</text>`;
+            s+=`<text x="${tx}" y="${ty+22}" fill="#aaa" font-size="11">Cristine Xavier Souza</text>`;
+            s+=`<text x="${tx}" y="${ty+38}" fill="#888" font-size="10">26/11/1991 08:15 Ibipeba-BA</text>`;
+            let y0=ty+65;
+            s+=`<text x="${tx}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Planeta</text>`;
+            s+=`<text x="${tx+70}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Signo</text>`;
+            s+=`<text x="${tx+130}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Posição</text>`;
+            s+=`<text x="${tx+190}" y="${y0}" fill="#e94560" font-size="11" font-weight="bold">Casa</text>`;
+            s+=`<line x1="${tx}" y1="${y0+3}" x2="${tx+240}" y2="${y0+3}" stroke="#333" stroke-width="1"/>`;
+            PLANETAS.forEach((p,i)=>{
+                const y=y0+20+i*18;
+                s+=`<text x="${tx}" y="${y}" fill="#fff" font-size="11">${p.glifo} ${p.nome}</text>`;
+                s+=`<text x="${tx+70}" y="${y}" fill="#ccc" font-size="11">${p.signo}</text>`;
+                s+=`<text x="${tx+130}" y="${y}" fill="#ccc" font-size="11">${p.graus}</text>`;
+                s+=`<text x="${tx+190}" y="${y}" fill="#ccc" font-size="11">Casa ${p.casa}${p.retrogrado?" R":""}</text>`;
+            });
+
+            // Grade de aspectos
+            let gx=30, gy=520;
+            s+=`<text x="${gx}" y="${gy}" fill="#e94560" font-size="12" font-weight="bold">🔗 Aspectos</text>`;
+            const nc=["Sol","Lua","Mer","Vên","Mar","Jup","Sat","Ura","Net","Plu"];
+            const simb={Conjunção:"☌",Sextil:"⚹",Semisextil:"⚺",Biquintil:"⩩",Trígono:"△",Quadratura:"□",Oposição:"☍",Quintil:"⩩"};
+            for(let i=0;i<10;i++){
+                s+=`<text x="${gx+30+i*22}" y="${gy+18}" fill="#888" font-size="8" text-anchor="middle">${nc[i]}</text>`;
+                s+=`<text x="${gx+12}" y="${gy+18+i*18}" fill="#888" font-size="8" text-anchor="end">${nc[i]}</text>`;
+            }
+            for(const a of ASPECTOS){
+                s+=`<text x="${gx+30+a.p2*22}" y="${gy+18+a.p1*18}" fill="${a.cor}" font-size="10" text-anchor="middle">${simb[a.tipo]||"•"}</text>`;
+            }
+            let ly=gy+210;
+            s+=`<text x="${gx}" y="${ly}" fill="#4CAF50" font-size="9">△ Trígono</text>`;
+            s+=`<text x="${gx+80}" y="${ly}" fill="#4CAF50" font-size="9">⚹ Sextil</text>`;
+            s+=`<text x="${gx+160}" y="${ly}" fill="#4CAF50" font-size="9">⚺ Semisextil</text>`;
+            s+=`<text x="${gx+250}" y="${ly}" fill="#2196F3" font-size="9">☌ Conjunção</text>`;
+            s+=`<text x="${gx}" y="${ly+16}" fill="#FF4444" font-size="9">□ Quadratura</text>`;
+            s+=`<text x="${gx+100}" y="${ly+16}" fill="#FF4444" font-size="9">☍ Oposição</text>`;
+            s+=`<text x="${gx+200}" y="${ly+16}" fill="#9C27B0" font-size="9">⩩ Quintil/Biquintil</text>`;
+
+            s+='</svg>';
+            return s;
+        }
+
+        // ============================================================
+        // TABS
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', ()=>{
+            document.querySelectorAll('.tab-btn').forEach(btn=>{
+                btn.addEventListener('click', ()=>{
+                    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+                    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('section-'+btn.dataset.tab).classList.add('active');
+                });
+            });
+
+            // Renderizar SVG
+            document.getElementById('svg-container').innerHTML = gerarSVG();
+
+            // Planetas
+            const pc = document.getElementById('planetas-container');
+            PLANETAS.forEach(p=>{
+                const ret = p.retrogrado?'<span class="text-yellow-400 text-xs ml-1">℞</span>':'';
+                pc.innerHTML += `<div class="planet-card glass rounded-xl p-4 border-l-4" style="border-left-color:${p.cor}">
+                    <div class="flex items-center justify-between mb-2"><span class="text-2xl">${p.glifo}</span><span class="text-xs text-gray-500">Casa ${p.casa}</span></div>
+                    <h3 class="font-bold text-lg">${p.nome}${ret}</h3>
+                    <p class="text-gray-400">${p.signo} ${p.graus}</p>
+                    <div class="flex gap-2 mt-2 text-xs"><span class="px-2 py-1 rounded-full bg-gray-800 text-gray-400">${p.elemento}</span><span class="px-2 py-1 rounded-full bg-gray-800 text-gray-400">${p.qualidade}</span></div>
+                </div>`;
+            });
+
+            // Aspectos
+            const ac = document.getElementById('aspectos-container');
+            const nomes = PLANETAS.map(p=>p.nome);
+            ASPECTOS.forEach(a=>{
+                ac.innerHTML += `<div class="aspect-tag glass rounded-lg px-4 py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3"><span class="font-medium">${nomes[a.p1]}</span><span class="text-lg">●</span><span class="text-gray-400">${a.tipo}</span><span class="font-medium">${nomes[a.p2]}</span></div>
+                </div>`;
+            });
+
+            // Interpretação
+                                    document.getElementById('interpretacao-container').innerHTML = `<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">⬆️ Ascendente em Capricórnio</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Você projeta ao mundo uma imagem de seriedade, responsabilidade e ambição estruturada. Sua primeira reação diante da vida é a de planejamento e construção sólida, transmitindo a impressão de alguém madura, disciplinada e com um senso de propósito que não se satisfaz com superficialidades.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">☀️ Sol em Sagitário (Casa 12)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Sua essência é vibrante, mas opera nos bastidores. Há uma forte necessidade de solitude para recarregar as energias e processar sua busca por sentido; você encontra sua força e identidade através da espiritualidade, do inconsciente e de atividades que ocorram longe dos holofotes, revelando um lado místico e introspectivo.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">🌙 Lua em Leão (Casa 8)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Suas emoções são intensas, orgulhosas e profundas. Você sente a necessidade de ser valorizada e admirada, mas isso se manifesta em crises transformadoras e vínculos emocionais viscerais; há um talento natural para lidar com as sombras humanas e a capacidade de renascer das cinzas com dignidade.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">☿️ Mercúrio em Sagitário (Casa 12)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Sua mente é filosófica e intuitiva, mas seus pensamentos muitas vezes permanecem guardados em seu mundo interno. Você capta informações sutis que outros ignoram, preferindo a compreensão holística e espiritual do que a lógica linear, podendo ter facilidade com sonhos lúcidos ou comunicação intuitiva.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♀️ Vênus em Libra (Casa 10)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">No campo profissional e social, você exala charme, diplomacia e um senso estético apurado. A harmonia e a justiça são fundamentais para o seu sucesso, e você tende a ser vista publicamente como alguém elegante, equilibrada e capaz de mediar conflitos com extrema graça.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♂️ Marte em Escorpião (Casa 11)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Sua força de vontade é intensa e magnética, e você a direciona para transformar seus círculos sociais e amizades. Você possui uma resiliência psicológica extraordinária e prefere agir com estratégia, transformando grupos e conexões com sua intensidade e poder de regeneração.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♃ Júpiter em Virgem (Casa 9)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">A expansão da sua consciência vem através do método, do estudo detalhado e da organização do conhecimento. Você encontra sorte e crescimento ao aplicar a precisão e a análise crítica em seus estudos superiores, viagens ou na busca por uma verdade filosófica que seja útil e prática.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♄ Saturno em Aquário (Casa 2)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Existe um senso de responsabilidade rigoroso e, por vezes, restritivo em relação às finanças e ao seu valor pessoal. Você aprende a construir sua estabilidade material através da inovação, da disciplina e de caminhos não convencionais, entendendo que a segurança financeira exige desapego e originalidade.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♅ Urano em Capricórnio (Casa 1)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Você rompe com tradições de forma estruturada, trazendo um toque de excentricidade e originalidade à sua própria personalidade. Sua presença é marcante por misturar a seriedade da ambição com lampejos de genialidade e independência, desafiando as expectativas alheias sobre quem você deve ser.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♆ Netuno em Capricórnio (Casa 1)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Há uma aura de mistério e certa fluidez na forma como você se apresenta ao mundo, podendo alternar entre a pragmática e a sonhadora. Essa energia confere a você uma sensibilidade artística e empática que suaviza sua imagem externa, embora possa gerar dúvidas ocasionais sobre sua própria identidade.</p>
+</div>
+
+<div class="mb-6">
+  <h3 class="text-e94560 font-bold text-lg mb-1">♇ Plutão em Escorpião (Casa 11)</h3>
+  <p class="text-gray-300 text-sm leading-relaxed">Suas amizades e círculos sociais passam por ciclos profundos de morte e renascimento. Você exerce um magnetismo poderoso sobre grupos e tem a capacidade de transformar a vida das pessoas ao seu redor, mas pode atrair dinâmicas de poder ou lealdades intensas e complexas em seus projetos coletivos.</p>
+</div>`;
+
+        });
+    
+        function toggleGuia() {
+            const el = document.getElementById('guia-container');
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
