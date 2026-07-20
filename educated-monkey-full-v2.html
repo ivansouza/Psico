@@ -110,16 +110,12 @@
   for (var i = 0; i < 13; i++) snapPos.push(i * step);
   
   var currentOp = 0;
-  var leftX = 0;
-  var rightX = totalWidth;
-  var sx = 1;
-  var sy = 1;
   
-  function calcScale() {
-    sx = svg.clientWidth / 1050 || 0.76;
-    sy = svg.clientHeight / 900 || 0.44;
-  }
-  calcScale();
+  // Posicionar sliders no início do marcador
+  sliderLeft.style.left = markerX + 'px';
+  sliderLeft.style.top = (markerY - 10) + 'px';
+  sliderRight.style.left = markerX + 'px';
+  sliderRight.style.top = (markerY - 10) + 'px';
   
   TweenMax.set(mechA, { transformOrigin: 'left bottom' });
   TweenMax.set(mechB, { transformOrigin: 'right bottom' });
@@ -136,8 +132,10 @@
   TweenMax.set(numbersAdd, { opacity: 0 });
   TweenMax.set(numbersMult, { opacity: 1 });
   
-  function update() {
-    var l = leftX, u = rightX, e = u - l, f = e / 4;
+  function doUpdate() {
+    var l = sliderLeft._gsTransform.x;
+    var u = sliderRight._gsTransform.x;
+    var e = u - l, f = e / 4;
     var x = Math.sqrt(diagonal * diagonal - e * e / 4) / 2;
     var n = { x: 0, y: 2 * x }, o = { x: 0, y: 2 * f };
     var c = { x: 2 * f, y: 0 }, m = { x: x + f, y: x + f };
@@ -145,16 +143,16 @@
     
     TweenMax.set(meches, { x: l });
     TweenMax.set(mechL, { rotation: -angle });
-    TweenMax.set(mechR, { rotation: angle, x: u - totalWidth });
+    TweenMax.set(mechR, { rotation: angle, x: e - totalWidth });
     TweenMax.set(mechA, { rotation: angle, x: -(m.x - c.x), y: mechWidth - m.y });
-    TweenMax.set(mechB, { rotation: -angle, x: u - totalWidth + (m.x - c.x), y: mechWidth - m.y });
+    TweenMax.set(mechB, { rotation: -angle, x: e - totalWidth + (m.x - c.x), y: mechWidth - m.y });
     TweenMax.set(monkey, { x: l });
     TweenMax.set(monkeyL, { rotation: -angle });
-    TweenMax.set(monkeyR, { rotation: angle, x: u - totalWidth });
+    TweenMax.set(monkeyR, { rotation: angle, x: e - totalWidth });
     TweenMax.set(monkeyL1, { x: 0 });
     TweenMax.set(monkeyR1, { x: e });
     TweenMax.set(monkeyA, { rotation: angle, x: -(m.x - c.x), y: mechWidth - m.y });
-    TweenMax.set(monkeyB, { rotation: -angle, x: u - totalWidth + (m.x - c.x), y: mechWidth - m.y });
+    TweenMax.set(monkeyB, { rotation: -angle, x: e - totalWidth + (m.x - c.x), y: mechWidth - m.y });
     TweenMax.set(monkeyT, { x: e / 2, y: -o.y - 25 });
     TweenMax.set(monkeyH, { x: e / 2, y: -n.y });
     TweenMax.set([dotL, mDotL], { x: c.x - m.x, y: -m.y });
@@ -166,20 +164,6 @@
     
     var resetBtn = document.getElementById('btn-reset');
     if (resetBtn) resetBtn.disabled = (l < 0.01 && Math.abs(u - totalWidth) < 0.01);
-    
-    // Ajustar scale e posição dos sliders
-    var blocks = document.querySelector('[data-htmler-blocks]');
-    if (blocks && svg) {
-      var sx = svg.clientWidth / 1050;
-      var sy = svg.clientHeight / 900;
-      if (sx > 0) {
-        blocks.style.transform = "scale(" + sx + ")";
-        // Altura do blocks = altura do SVG / scale
-        blocks.style.height = "900px";
-        // Ajustar top dos sliders proporcional à altura do SVG
-        // Top fixo definido no HTML
-      }
-    }
   }
   
   function snap(val) {
@@ -224,17 +208,21 @@
     if (!activeSlider) return;
     e.preventDefault();
     var pos = getPos(e);
-    var dx = (pos.x - dragStartX) / 0.512987;
+    // Converter pixels da tela para coordenadas SVG
+    var blocks = document.querySelector('[data-htmler-blocks]');
+    var scale = blocks ? svg.clientWidth / 1050 : 1;
+    var dx = (pos.x - dragStartX) / scale;
     var newX = Math.max(0, Math.min(totalWidth, dragStartVal + dx));
     
-    TweenMax.set(activeSlider, { x: newX * sx });
-    
+    // Travar para não passar do outro slider
     if (activeSlider === sliderLeft) {
-      leftX = Math.min(newX, rightX - step);
+      newX = Math.min(newX, sliderRight._gsTransform.x - step);
     } else {
-      rightX = Math.max(newX, leftX + step);
+      newX = Math.max(newX, sliderLeft._gsTransform.x + step);
     }
-    update();
+    
+    TweenMax.set(activeSlider, { x: newX });
+    doUpdate();
   }
   
   function onUp(e) {
@@ -244,11 +232,7 @@
     var cur = gs ? gs.x : 0;
     var snapped = snap(cur);
     
-    TweenMax.to(activeSlider, 0.15, { x: snapped, onUpdate: function() {
-      if (activeSlider === sliderLeft) leftX = snapped;
-      else rightX = snapped;
-      update();
-    } });
+    TweenMax.to(activeSlider, 0.15, { x: snapped, onUpdate: doUpdate });
     activeSlider = null;
   }
   
@@ -268,8 +252,8 @@
   });
   
   document.getElementById('btn-reset').addEventListener('click', function() {
-    TweenMax.to(sliderRight, 0.5, { x: totalWidth * sx, onUpdate: function() { rightX = totalWidth; update(); } });
-    TweenMax.to(sliderLeft, 0.5, { x: 0, onUpdate: function() { leftX = 0; update(); } });
+    TweenMax.to(sliderLeft, 0.5, { x: 0, onUpdate: doUpdate });
+    TweenMax.to(sliderRight, 0.5, { x: totalWidth, onUpdate: doUpdate });
   });
   
   // Calcular scale do data-htmler-blocks baseado no SVG
@@ -277,11 +261,9 @@
     var blocks = document.querySelector('[data-htmler-blocks]');
     if (blocks && svg) {
       var sx = svg.clientWidth / 1050;
-      var sy = svg.clientHeight / 900;
       if (sx > 0) {
-        blocks.style.transform = "scale(" + sx + ")";
-        // Ajustar altura do blocks pra não ultrapassar o SVG
-        blocks.style.height = "900px";
+        blocks.style.transform = 'scale(' + sx + ')';
+        blocks.style.height = '900px';
       }
     }
   }
@@ -290,7 +272,7 @@
   
   TweenMax.set(sliderLeft, { x: 0 });
   TweenMax.set(sliderRight, { x: totalWidth });
-  update();
+  doUpdate();
 })();
 </script>
 </body>
