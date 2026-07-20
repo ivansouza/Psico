@@ -113,9 +113,10 @@
   
   // Posicionar sliders no início do marcador
   sliderLeft.style.left = markerX + 'px';
-  sliderLeft.style.top = (markerY - 10) + 'px';
+  var sliderY = markerY + 80;
+  sliderLeft.style.top = sliderY + 'px';
   sliderRight.style.left = markerX + 'px';
-  sliderRight.style.top = (markerY - 10) + 'px';
+  sliderRight.style.top = sliderY + 'px';
   
   TweenMax.set(mechA, { transformOrigin: 'left bottom' });
   TweenMax.set(mechB, { transformOrigin: 'right bottom' });
