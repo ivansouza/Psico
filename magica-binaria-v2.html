@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mágica Binária — Vou adivinhar o número</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card-bg: #1a1a24;
+      --accent: #7c5cff;
+      --accent-hover: #9b82ff;
+      --yes: #22c55e;
+      --yes-hover: #16a34a;
+      --no: #ef4444;
+      --no-hover: #dc2626;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --border: #2a2a3a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Intro */
+    .intro-title {
+      font-size: clamp(1.6rem, 6vw, 2.1rem);
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #c4b5fd, #7c5cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .intro-sub {
+      color: var(--muted);
+      text-align: center;
+      font-size: 1.05rem;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .magic-icon {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.5));
+    }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: 14px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 16px 28px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
+      width: 100%;
+      max-width: 280px;
+      color: white;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      box-shadow: 0 4px 20px rgba(124, 92, 255, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-yes {
+      background: var(--yes);
+      box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-yes:hover { background: var(--yes-hover); }
+
+    .btn-no {
+      background: var(--no);
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-no:hover { background: var(--no-hover); }
+
+    .btn-row {
+      display: flex;
+      gap: 14px;
+      width: 100%;
+      max-width: 340px;
+      margin-top: 8px;
+    }
+
+    .btn-row .btn {
+      flex: 1;
+      max-width: none;
+    }
+
+    /* Progress */
+    .progress {
+      width: 100%;
+      max-width: 340px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c5cff, #a78bfa);
+      border-radius: 99px;
+      transition: width 0.35s ease;
+    }
+
+    .progress-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* Card header */
+    .card-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .card-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .card-header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    /* Numbers grid */
+    .numbers-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 14px;
+      width: 100%;
+      margin-bottom: 22px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    }
+
+    .numbers-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px 4px;
+      justify-items: center;
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(0.85rem, 3.6vw, 1.05rem);
+      font-weight: 600;
+      color: #e4e4e7;
+      padding: 4px 2px;
+      min-width: 2.1em;
+      text-align: center;
+    }
+
+    /* Result */
+    .result-box {
+      background: linear-gradient(145deg, #1e1b4b, #2e1065);
+      border: 1px solid #4c1d95;
+      border-radius: 24px;
+      padding: 36px 24px;
+      text-align: center;
+      width: 100%;
+      margin-bottom: 28px;
+      box-shadow: 0 0 40px rgba(124, 92, 255, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.15), transparent 60%);
+      pointer-events: none;
+    }
+
+    .result-label {
+      font-size: 1.1rem;
+      color: #c4b5fd;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .result-number {
+      font-size: clamp(3.5rem, 15vw, 5rem);
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(135deg, #f5f3ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(167, 139, 250, 0.4);
+    }
+
+    .result-sub {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .sparkle {
+      position: absolute;
+      font-size: 1.4rem;
+      opacity: 0.7;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.75rem;
+      color: #52525b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- INTRO -->
+  <div id="screen-intro" class="screen active">
+    <div class="magic-icon">✨</div>
+    <h1 class="intro-title">Vou adivinhar o número que você pensou</h1>
+    <p class="intro-sub">
+      Pense em um número inteiro<br>de <strong>1 a 100</strong>.<br><br>
+      Depois diga se ele aparece (ou não) em cada uma das 7 cartas.
+    </p>
+    <button class="btn btn-primary" onclick="startMagic()">Começar a mágica</button>
+  </div>
+
+  <!-- CARD SCREENS (generated by JS) -->
+  <div id="screen-card" class="screen">
+    <div class="progress">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="progress-text" id="progress-text">1 / 7</span>
+    </div>
+
+    <div class="card-header">
+      <h2 id="card-title">Carta 1</h2>
+      <p>O seu número aparece nesta carta?</p>
+    </div>
+
+    <div class="numbers-card">
+      <div class="numbers-grid" id="numbers-grid"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-no" onclick="answer(false)">Não</button>
+      <button class="btn btn-yes" onclick="answer(true)">Sim</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="result-box">
+      <span class="sparkle" style="top:18px;left:22px;">✨</span>
+      <span class="sparkle" style="top:28px;right:26px;animation-delay:0.6s;">✨</span>
+      <span class="sparkle" style="bottom:24px;left:30px;animation-delay:1.2s;">✨</span>
+      <div class="result-label">O número que você pensou foi</div>
+      <div class="result-number" id="result-number">?</div>
+      <div class="result-sub">Mágica binária ✨</div>
+    </div>
+    <button class="btn btn-primary" onclick="restart()">Jogar de novo</button>
+  </div>
+
+  <footer>Mágica Binária · baseado no clássico de Mathematical Etudes</footer>
+
+  <script>
+    // Os 7 conjuntos de números do PDF (Binary Magic)
+    // O valor de cada carta é o primeiro número (potência de 2)
+    const cards = [
+      {
+        value: 1,
+        numbers: [
+          1,21,41,61,81,
+          3,23,43,63,83,
+          5,25,45,65,85,
+          7,27,47,67,87,
+          9,29,49,69,89,
+          11,31,51,71,91,
+          13,33,53,73,93,
+          15,35,55,75,95,
+          17,37,57,77,97,
+          19,39,59,79,99
+        ]
+      },
+      {
+        value: 2,
+        numbers: [
+          2,22,42,62,82,
+          3,23,43,63,83,
+          6,26,46,66,86,
+          7,27,47,67,87,
+          10,30,50,70,90,
+          11,31,51,71,91,
+          14,34,54,74,94,
+          15,35,55,75,95,
+          18,38,58,78,98,
+          19,39,59,79,99
+        ]
+      },
+      {
+        value: 4,
+        numbers: [
+          4,22,44,62,84,
+          5,23,45,63,85,
+          6,28,46,68,86,
+          7,29,47,69,87,
+          12,30,52,70,92,
+          13,31,53,71,93,
+          14,36,54,76,94,
+          15,37,55,77,95,
+          20,38,60,78,100,
+          21,39,61,79
+        ]
+      },
+      {
+        value: 8,
+        numbers: [
+          8,26,44,62,88,
+          9,27,45,63,89,
+          10,28,46,72,90,
+          11,29,47,73,91,
+          12,30,56,74,92,
+          13,31,57,75,93,
+          14,40,58,76,94,
+          15,41,59,77,95,
+          24,42,60,78,
+          25,43,61,79
+        ]
+      },
+      {
+        value: 16,
+        numbers: [
+          16,26,52,62,88,
+          17,27,53,63,89,
+          18,28,54,80,90,
+          19,29,55,81,91,
+          20,30,56,82,92,
+          21,31,57,83,93,
+          22,48,58,84,94,
+          23,49,59,85,95,
+          24,50,60,86,
+          25,51,61,87
+        ]
+      },
+      {
+        value: 32,
+        numbers: [
+          32,40,48,56,96,
+          33,41,49,57,97,
+          34,42,50,58,98,
+          35,43,51,59,99,
+          36,44,52,60,100,
+          37,45,53,61,
+          38,46,54,62,
+          39,47,55,63
+        ]
+      },
+      {
+        value: 64,
+        numbers: [
+          64,72,80,88,96,
+          65,73,81,89,97,
+          66,74,82,90,98,
+          67,75,83,91,99,
+          68,76,84,92,100,
+          69,77,85,93,
+          70,78,86,94,
+          71,79,87,95
+        ]
+      }
+    ];
+
+    let current = 0;
+    let sum = 0;
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function startMagic() {
+      current = 0;
+      sum = 0;
+      renderCard();
+      showScreen('screen-card');
+    }
+
+    function renderCard() {
+      const card = cards[current];
+      document.getElementById('card-title').textContent = `Carta ${current + 1}`;
+      document.getElementById('progress-text').textContent = `${current + 1} / 7`;
+      document.getElementById('progress-fill').style.width = `${((current + 1) / 7) * 100}%`;
+
+      const grid = document.getElementById('numbers-grid');
+      grid.innerHTML = '';
+      card.numbers.forEach(n => {
+        const span = document.createElement('span');
+        span.className = 'num';
+        span.textContent = n;
+        grid.appendChild(span);
+      });
+    }
+
+    function answer(yes) {
+      if (yes) {
+        sum += cards[current].value;
+      }
+      current++;
+
+      if (current >= cards.length) {
+        // Atualiza a barra para 100%
+        document.getElementById('progress-fill').style.width = '100%';
+        setTimeout(() => {
+          document.getElementById('result-number').textContent = sum;
+          showScreen('screen-result');
+        }, 250);
+      } else {
+        // Pequena animação de saída
+        const screen = document.getElementById('screen-card');
+        screen.style.opacity = '0';
+        screen.style.transform = 'translateY(8px)';
+        setTimeout(() => {
+          renderCard();
+          screen.style.opacity = '1';
+          screen.style.transform = 'translateY(0)';
+        }, 180);
+      }
+    }
+
+    function restart() {
+      showScreen('screen-intro');
+    }
+  </script>
+</body>
+</html>
