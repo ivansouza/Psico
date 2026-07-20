@@ -237,11 +237,11 @@
     activeSlider = null;
   }
   
-  canvas.addEventListener('touchstart', onDown, { passive: false });
-  canvas.addEventListener('touchmove', onMove, { passive: false });
-  canvas.addEventListener('touchend', onUp, { passive: false });
-  canvas.addEventListener('touchcancel', onUp, { passive: false });
-  canvas.addEventListener('mousedown', onDown);
+  document.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onUp, { passive: false });
+  document.addEventListener('touchcancel', onUp, { passive: false });
+  document.addEventListener('mousedown', onDown);
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
   
