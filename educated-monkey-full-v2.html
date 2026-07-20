@@ -133,8 +133,8 @@
   TweenMax.set(numbersMult, { opacity: 1 });
   
   function doUpdate() {
-    var l = sliderLeft._gsTransform.x;
-    var u = sliderRight._gsTransform.x;
+    var l = sliderLeft._gsTransform ? sliderLeft._gsTransform.x : 0;
+    var u = sliderRight._gsTransform ? sliderRight._gsTransform.x : totalWidth;
     var e = u - l, f = e / 4;
     var x = Math.sqrt(diagonal * diagonal - e * e / 4) / 2;
     var n = { x: 0, y: 2 * x }, o = { x: 0, y: 2 * f };
