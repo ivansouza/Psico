@@ -270,10 +270,14 @@
   updateBlocksScale();
   window.addEventListener('resize', updateBlocksScale);
   
-  TweenMax.set(sliderLeft, { x: 0.001 });
+  // Forçar criação do _gsTransform
   TweenMax.set(sliderLeft, { x: 0 });
   TweenMax.set(sliderRight, { x: totalWidth });
-  setTimeout(doUpdate, 50);
+  // Garantir que o GSAP processou
+  TweenMax.ticker.addEventListener('tick', function() {
+    TweenMax.ticker.removeEventListener('tick', arguments.callee);
+    doUpdate();
+  });
 })();
 </script>
 </body>
