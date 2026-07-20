@@ -242,9 +242,9 @@
     if (e) e.preventDefault();
     var gs = activeSlider._gsTransform;
     var cur = gs ? gs.x : 0;
-    var snapped = snap(cur / sx);
+    var snapped = snap(cur);
     
-    TweenMax.to(activeSlider, 0.15, { x: snapped * sx, onUpdate: function() {
+    TweenMax.to(activeSlider, 0.15, { x: snapped, onUpdate: function() {
       if (activeSlider === sliderLeft) leftX = snapped;
       else rightX = snapped;
       update();
