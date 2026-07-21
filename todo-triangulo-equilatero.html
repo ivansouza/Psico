@@ -160,11 +160,15 @@
 
                 <!-- Botões de Ação de Visualização Principal -->
                 <div class="grid grid-cols-12 gap-2">
-                    <button onclick="alignCamera()" class="col-span-8 py-3 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-cyan-500/10">
+                    <button onclick="alignCamera()" class="col-span-5 py-3 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-cyan-500/10">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        Ver Perspetiva Perfeita
+                        Perspetiva Perfeita
                     </button>
-                    <button onclick="resetCameraView()" class="col-span-4 py-3 px-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs rounded-xl transition-all border border-slate-800">
+                    <button onclick="overlapView()" class="col-span-4 py-3 px-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/10">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        Sobrepor
+                    </button>
+                    <button onclick="resetCameraView()" class="col-span-3 py-3 px-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs rounded-xl transition-all border border-slate-800">
                         Giro Livre
                     </button>
                 </div>
@@ -635,6 +639,28 @@
 
             document.getElementById('camera-status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
             document.getElementById('camera-status-text').textContent = "Perspetiva Livre";
+        }
+
+        // Visão de Sobreposição: câmara exatamente na direção do plano para ver triângulos sobrepostos
+        function overlapView() {
+            isAnimatingCamera = true;
+            controls.enabled = false;
+
+            const centroid = new THREE.Vector3().add(p3D_A).add(p3D_B).add(p3D_C).divideScalar(3);
+
+            // Distância fixa para visão de sobreposição
+            const distance = 7.0;
+
+            // Posiciona a câmara exatamente na direção oposta à normal do plano
+            cameraTargetPos.copy(centroid).addScaledVector(optimalNormal, distance);
+            cameraTargetLookAt.copy(centroid);
+
+            // Alinha o up com a mediana do triângulo para manter orientação estável
+            const midAB = new THREE.Vector3().addVectors(p3D_A, p3D_B).multiplyScalar(0.5);
+            cameraTargetUp.copy(p3D_C).sub(midAB).normalize();
+
+            document.getElementById('camera-status-dot').className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+            document.getElementById('camera-status-text').textContent = "Sobreposição Ativa";
         }
 
         // Presets Rápidos
