@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Todo Triângulo é Equilátero</title>
+    <!-- Tailwind CSS para design ágil e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #080c14;
+            color: #f3f4f6;
+            touch-action: manipulation;
+        }
+        /* Ajuste fino para evitar seleção acidental ao arrastar nos telemóveis */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        /* Efeito de brilho neon */
+        .neon-shadow-orange {
+            filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.7));
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden no-select">
+
+    <!-- Cabeçalho Compacto (Perfeito para telemóvel) -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shrink-0 h-[6vh]">
+        <span class="text-sm font-black bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+            Todo Triângulo é Equilátero
+        </span>
+        <span class="text-[10px] text-slate-400 font-medium">Teorema de Cavallaro</span>
+    </header>
+
+    <!-- Visualizador 3D (Ocupa a metade superior) -->
+    <section id="3d-section" class="relative h-[42vh] w-full bg-[#090d16] border-b border-slate-800 shrink-0">
+        <!-- Indicador de status da câmara -->
+        <div class="absolute top-2.5 left-2.5 z-10 bg-slate-950/85 border border-slate-800/80 px-2 py-1.5 rounded-lg pointer-events-none flex items-center gap-1.5">
+            <span id="camera-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="camera-status-text" class="text-[9px] font-bold text-slate-300 tracking-wider uppercase">Perspetiva Livre</span>
+        </div>
+
+        <!-- Indicador de Alinhamento Perfeito -->
+        <div class="absolute bottom-2.5 right-2.5 z-10 bg-slate-950/85 border border-slate-800/80 px-2.5 py-1.5 rounded-lg pointer-events-none flex items-center gap-2">
+            <div class="text-right">
+                <span class="block text-[8px] text-slate-500 uppercase tracking-widest font-bold">Simetria Visual</span>
+                <span id="alignment-percentage" class="text-sm font-black font-mono text-orange-400">0.0%</span>
+            </div>
+            <div class="w-7 h-7 rounded-full border border-slate-800 flex items-center justify-center relative overflow-hidden">
+                <div id="alignment-radial-fill" class="absolute inset-0 bg-cyan-500/20 origin-bottom transition-all scale-y-0"></div>
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4"/></svg>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div id="canvas-container" class="w-full h-full"></div>
+    </section>
+
+    <!-- Painel de Controlo e Abas (Ocupa a metade inferior) -->
+    <section class="h-[52vh] w-full flex flex-col bg-slate-950 shrink-0">
+        
+        <!-- Barra de Abas (Fácil alcance do polegar) -->
+        <div class="flex border-b border-slate-800 bg-slate-900/40 shrink-0">
+            <button onclick="switchTab('tab-adjust')" id="btn-tab-adjust" class="flex-1 py-3 text-xs font-bold text-cyan-400 border-b-2 border-cyan-500 transition-all flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+                1. Modelar 2D
+            </button>
+            <button onclick="switchTab('tab-stats')" id="btn-tab-stats" class="flex-1 py-3 text-xs font-bold text-slate-400 border-b-2 border-transparent transition-all flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2zm12-3a2 2 0 00-2-2h-2a2 2 0 00-2 2v3a2 2 0 002 2h2a2 2 0 002-2v-3zm0 0V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v11a2 2 0 002 2h2a2 2 0 002-2z"/></svg>
+                2. Métricas e Teoria
+            </button>
+        </div>
+
+        <!-- Conteúdo das Abas (Flexível e sem scroll exterior) -->
+        <div class="flex-1 overflow-y-auto px-4 py-3 flex flex-col justify-between">
+            
+            <!-- ABA 1: Ajustar Forma 2D -->
+            <div id="tab-adjust" class="flex flex-col items-center gap-2 my-auto">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest text-center">Arraste os vértices do triângulo abaixo</span>
+                
+                <div class="bg-slate-900 border border-slate-800 p-1.5 rounded-xl shadow-lg relative">
+                    <!-- SVG Interativo -->
+                    <svg id="svg-sandbox" width="210" height="210" class="cursor-crosshair select-none rounded-lg bg-slate-950">
+                        <defs>
+                            <pattern id="grid" width="15" height="15" patternUnits="userSpaceOnUse">
+                                <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#141b2d" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                        
+                        <!-- Linhas centrais de guia -->
+                        <line x1="105" y1="0" x2="105" y2="210" stroke="#1e293b" stroke-dasharray="2,3" />
+                        <line x1="0" y1="105" x2="210" y2="105" stroke="#1e293b" stroke-dasharray="2,3" />
+                        
+                        <!-- Triângulo 2D -->
+                        <polygon id="svg-triangle" fill="rgba(249, 115, 22, 0.05)" stroke="#f97316" stroke-width="2" class="neon-shadow-orange" />
+                        
+                        <!-- Alças interativas (A, B, C) -->
+                        <g id="svg-handles">
+                            <circle id="handle-A" r="14" fill="rgba(249, 115, 22, 0.25)" stroke="#f97316" stroke-width="1.5" class="cursor-pointer hover:fill-orange-500/40 transition-colors" />
+                            <text id="label-A" fill="#ffffff" font-size="10" font-weight="black" text-anchor="middle" dominant-baseline="central" pointer-events="none">A</text>
+                            
+                            <circle id="handle-B" r="14" fill="rgba(249, 115, 22, 0.25)" stroke="#f97316" stroke-width="1.5" class="cursor-pointer hover:fill-orange-500/40 transition-colors" />
+                            <text id="label-B" fill="#ffffff" font-size="10" font-weight="black" text-anchor="middle" dominant-baseline="central" pointer-events="none">B</text>
+                            
+                            <circle id="handle-C" r="14" fill="rgba(249, 115, 22, 0.25)" stroke="#f97316" stroke-width="1.5" class="cursor-pointer hover:fill-orange-500/40 transition-colors" />
+                            <text id="label-C" fill="#ffffff" font-size="10" font-weight="black" text-anchor="middle" dominant-baseline="central" pointer-events="none">C</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- ABA 2: Estatísticas e Teoria -->
+            <div id="tab-stats" class="hidden flex-col gap-3 my-auto">
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Painel 2D -->
+                    <div class="p-2.5 bg-orange-950/10 rounded-lg border border-orange-500/10">
+                        <span class="block text-[9px] font-black uppercase text-orange-400 mb-1">Projeção no Chão (2D)</span>
+                        <div class="text-[11px] font-mono space-y-0.5 text-slate-300">
+                            <p class="flex justify-between"><span>AB:</span> <strong id="val-2d-ab">0.00</strong></p>
+                            <p class="flex justify-between"><span>BC:</span> <strong id="val-2d-bc">0.00</strong></p>
+                            <p class="flex justify-between"><span>CA:</span> <strong id="val-2d-ca">0.00</strong></p>
+                        </div>
+                    </div>
+                    <!-- Painel 3D -->
+                    <div class="p-2.5 bg-cyan-950/10 rounded-lg border border-cyan-500/10">
+                        <span class="block text-[9px] font-black uppercase text-cyan-400 mb-1">No Espaço (3D)</span>
+                        <div class="text-[11px] font-mono space-y-0.5 text-slate-300">
+                            <p class="flex justify-between"><span>AB:</span> <strong id="val-3d-ab" class="text-cyan-300">0.00</strong></p>
+                            <p class="flex justify-between"><span>BC:</span> <strong id="val-3d-bc" class="text-cyan-300">0.00</strong></p>
+                            <p class="flex justify-between"><span>CA:</span> <strong id="val-3d-ca" class="text-cyan-300">0.00</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800 text-[10px] text-slate-400 leading-normal">
+                    <strong class="text-slate-300 block mb-1 text-xs">O Teorema de Cavallaro</strong>
+                    Qualquer triângulo plano pode ser visto como a projeção ortogonal de um triângulo perfeitamente equilátero inclinado no espaço 3D. O gradiente do plano é recalculado instantaneamente.
+                </div>
+            </div>
+
+            <!-- Painel de Ações de Base -->
+            <div class="space-y-2 mt-2 shrink-0">
+                <!-- Presets Rápidos de Formas -->
+                <div class="flex justify-between gap-1.5 overflow-x-auto py-1">
+                    <button onclick="setPreset('scalene')" class="px-2.5 py-1 text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 rounded border border-slate-800 flex-1 whitespace-nowrap">
+                        Escaleno
+                    </button>
+                    <button onclick="setPreset('right')" class="px-2.5 py-1 text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 rounded border border-slate-800 flex-1 whitespace-nowrap">
+                        Retângulo
+                    </button>
+                    <button onclick="setPreset('flat')" class="px-2.5 py-1 text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 rounded border border-slate-800 flex-1 whitespace-nowrap">
+                        Achatado
+                    </button>
+                    <button onclick="setPreset('equilateral')" class="px-2.5 py-1 text-[10px] bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 rounded border border-cyan-900/30 flex-1 whitespace-nowrap">
+                        Equilátero
+                    </button>
+                </div>
+
+                <!-- Botões de Ação de Visualização Principal -->
+                <div class="grid grid-cols-12 gap-2">
+                    <button onclick="alignCamera()" class="col-span-8 py-3 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-cyan-500/10">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        Ver Perspetiva Perfeita
+                    </button>
+                    <button onclick="resetCameraView()" class="col-span-4 py-3 px-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs rounded-xl transition-all border border-slate-800">
+                        Giro Livre
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Importações estáveis do Three.js de CDN legado para maior compatibilidade móvel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- CONSTANTES E CONFIGURAÇÕES DE COORDENADAS ---
+        let vertices2D = {
+            A: { x: 50,  y: 155 },
+            B: { x: 160, y: 150 },
+            C: { x: 90,  y: 50  }
+        };
+
+        const svg = document.getElementById('svg-sandbox');
+        const handles = {
+            A: document.getElementById('handle-A'),
+            B: document.getElementById('handle-B'),
+            C: document.getElementById('handle-C')
+        };
+        const labels = {
+            A: document.getElementById('label-A'),
+            B: document.getElementById('label-B'),
+            C: document.getElementById('label-C')
+        };
+        const svgTriangle = document.getElementById('svg-triangle');
+        let selectedVertex = null;
+
+        const SCALE_FACTOR = 15;
+        function svgTo3D(coord) {
+            return {
+                x: (coord.x - 105) / SCALE_FACTOR,
+                y: -(coord.y - 105) / SCALE_FACTOR
+            };
+        }
+
+        // --- SISTEMA DE NAVEGAÇÃO DE ABAS ---
+        function switchTab(tabId) {
+            document.getElementById('tab-adjust').classList.add('hidden');
+            document.getElementById('tab-stats').classList.add('hidden');
+            document.getElementById(tabId).classList.remove('hidden');
+
+            const btnAdjust = document.getElementById('btn-tab-adjust');
+            const btnStats = document.getElementById('btn-tab-stats');
+
+            if (tabId === 'tab-adjust') {
+                btnAdjust.className = "flex-1 py-3 text-xs font-bold text-cyan-400 border-b-2 border-cyan-500 transition-all flex items-center justify-center gap-1.5";
+                btnStats.className = "flex-1 py-3 text-xs font-bold text-slate-400 border-b-2 border-transparent transition-all flex items-center justify-center gap-1.5";
+            } else {
+                btnAdjust.className = "flex-1 py-3 text-xs font-bold text-slate-400 border-b-2 border-transparent transition-all flex items-center justify-center gap-1.5";
+                btnStats.className = "flex-1 py-3 text-xs font-bold text-cyan-400 border-b-2 border-cyan-500 transition-all flex items-center justify-center gap-1.5";
+            }
+        }
+
+        // --- INTERAÇÕES DO USUÁRIO NO SVG 2D (Touch & Mouse) ---
+        function initSVGInteraction() {
+            Object.keys(handles).forEach(key => {
+                const handle = handles[key];
+                
+                handle.addEventListener('mousedown', (e) => {
+                    selectedVertex = key;
+                    e.preventDefault();
+                });
+
+                handle.addEventListener('touchstart', (e) => {
+                    selectedVertex = key;
+                    if (e.touches.length > 0) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!selectedVertex) return;
+                moveVertex(e.clientX, e.clientY);
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!selectedVertex) return;
+                if (e.touches.length > 0) {
+                    moveVertex(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            window.addEventListener('mouseup', () => { selectedVertex = null; });
+            window.addEventListener('touchend', () => { selectedVertex = null; });
+        }
+
+        function moveVertex(clientX, clientY) {
+            const rect = svg.getBoundingClientRect();
+            let x = clientX - rect.left;
+            let y = clientY - rect.top;
+            
+            x = Math.max(12, Math.min(198, x));
+            y = Math.max(12, Math.min(198, y));
+
+            vertices2D[selectedVertex].x = x;
+            vertices2D[selectedVertex].y = y;
+
+            updateAll();
+        }
+
+        function updateSVG() {
+            Object.keys(handles).forEach(key => {
+                handles[key].setAttribute('cx', vertices2D[key].x);
+                handles[key].setAttribute('cy', vertices2D[key].y);
+                labels[key].setAttribute('x', vertices2D[key].x);
+                labels[key].setAttribute('y', vertices2D[key].y);
+            });
+
+            const pointsString = `${vertices2D.A.x},${vertices2D.A.y} ${vertices2D.B.x},${vertices2D.B.y} ${vertices2D.C.x},${vertices2D.C.y}`;
+            svgTriangle.setAttribute('points', pointsString);
+        }
+
+        // --- ALGORITMO RESOLVEDOR ANALÍTICO (FÓRMULA FECHADA ABSOLUTA) ---
+        // Calcula instantaneamente e sem iterações as alturas tridimensionais exatas para que o triângulo 3D seja equilátero.
+        function solveOptimalHeights(A, B, C) {
+            const pA = svgTo3D(A);
+            const pB = svgTo3D(B);
+            const pC = svgTo3D(C);
+
+            const dxAB = pB.x - pA.x;
+            const dyAB = pB.y - pA.y;
+            const dxBC = pC.x - pB.x;
+            const dyBC = pC.y - pB.y;
+            const dxCA = pA.x - pC.x;
+            const dyCA = pA.y - pC.y;
+
+            const c2 = dxAB*dxAB + dyAB*dyAB; // AB^2
+            const a2 = dxBC*dxBC + dyBC*dyBC; // BC^2
+            const b2 = dxCA*dxCA + dyCA*dyCA; // CA^2
+
+            const A_coeff = a2 - b2;
+            const B_coeff = b2 - c2;
+
+            // Discriminante do polinómio quadrático derivado das distâncias de Cavallaro
+            const delta = Math.pow(2 * A_coeff + 4 * B_coeff, 2) + 12 * A_coeff * A_coeff;
+            const U = (2 * A_coeff + 4 * B_coeff + Math.sqrt(delta)) / 6;
+
+            let zA = 0;
+            let zB = 0;
+            let zC = 0;
+
+            if (U > 1e-9) {
+                const X = Math.sqrt(U);
+                const Y = (U + A_coeff) / (2 * X);
+                zA = 0;
+                zB = X;
+                zC = Y;
+            }
+
+            // Centralização das coordenadas de altura para visualização ideal no plano zero
+            const avg = (zA + zB + zC) / 3;
+            zA -= avg;
+            zB -= avg;
+            zC -= avg;
+
+            const abVec = new THREE.Vector3(pB.x - pA.x, zB - zA, -pB.y - (-pA.y));
+            const acVec = new THREE.Vector3(pC.x - pA.x, zC - zA, -pC.y - (-pA.y));
+            const normalVec = new THREE.Vector3().crossVectors(abVec, acVec).normalize();
+            if (normalVec.y < 0) normalVec.negate();
+
+            return { hA: zA, hB: zB, hC: zC, normal: normalVec };
+        }
+
+
+        // --- MOTOR TRIDIMENSIONAL (THREE.JS) ---
+        let scene, camera, renderer, controls;
+        let p3D_A, p3D_B, p3D_C;
+        let geometryFloor, meshFloor, edgesFloor;
+        let geometrySpace, meshSpace, edgesSpace;
+        let projLineA, projLineB, projLineC;
+        let sphereA1, sphereB1, sphereC1;
+        let sphereA2, sphereB2, sphereC2;
+        let diskPlane;
+
+        let optimalNormal = new THREE.Vector3(0, 1, 0);
+        let isAnimatingCamera = false;
+        let isAligned = false; 
+        let cameraTargetPos = new THREE.Vector3();
+        let cameraTargetLookAt = new THREE.Vector3();
+        let cameraTargetUp = new THREE.Vector3(0, 1, 0);
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x090d16);
+
+            camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+            camera.position.set(6, 5, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+            scene.add(ambient);
+
+            const dLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            dLight.position.set(4, 12, 5);
+            scene.add(dLight);
+
+            const grid = new THREE.GridHelper(16, 16, 0x1e293b, 0x0f172a);
+            grid.position.y = -0.01;
+            scene.add(grid);
+
+            p3D_A = new THREE.Vector3();
+            p3D_B = new THREE.Vector3();
+            p3D_C = new THREE.Vector3();
+
+            // 1. Triângulo do Chão (Projeção 2D em Laranja)
+            geometryFloor = new THREE.BufferGeometry();
+            const posFloor = new Float32Array(9);
+            geometryFloor.setAttribute('position', new THREE.BufferAttribute(posFloor, 3));
+            
+            meshFloor = new THREE.Mesh(geometryFloor, new THREE.MeshBasicMaterial({
+                color: 0xf97316,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.15
+            }));
+            scene.add(meshFloor);
+
+            edgesFloor = new THREE.LineLoop(geometryFloor, new THREE.LineBasicMaterial({
+                color: 0xf97316,
+                linewidth: 2
+            }));
+            scene.add(edgesFloor);
+
+            // 2. Triângulo no Espaço (Equilátero em Ciano)
+            geometrySpace = new THREE.BufferGeometry();
+            const posSpace = new Float32Array(9);
+            geometrySpace.setAttribute('position', new THREE.BufferAttribute(posSpace, 3));
+
+            meshSpace = new THREE.Mesh(geometrySpace, new THREE.MeshStandardMaterial({
+                color: 0x00f0ff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.5,
+                roughness: 0.1,
+                metalness: 0.1
+            }));
+            scene.add(meshSpace);
+
+            edgesSpace = new THREE.LineLoop(geometrySpace, new THREE.LineBasicMaterial({
+                color: 0x22d3ee,
+                linewidth: 2.5
+            }));
+            scene.add(edgesSpace);
+
+            // 3. Hastes Verticais de Projeção (Tracejadas amarelas)
+            const matProj = new THREE.LineDashedMaterial({
+                color: 0xeab308,
+                dashSize: 0.15,
+                gapSize: 0.1
+            });
+            projLineA = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)), matProj);
+            projLineB = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)), matProj);
+            projLineC = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)), matProj);
+            scene.add(projLineA, projLineB, projLineC);
+
+            // 4. Esferas de Marcadores de Vértices
+            const sGeom1 = new THREE.SphereGeometry(0.12, 16, 16);
+            const sGeom2 = new THREE.SphereGeometry(0.15, 16, 16);
+            const sMat1 = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+            const sMat2 = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+
+            sphereA1 = new THREE.Mesh(sGeom1, sMat1);
+            sphereB1 = new THREE.Mesh(sGeom1, sMat1);
+            sphereC1 = new THREE.Mesh(sGeom1, sMat1);
+
+            sphereA2 = new THREE.Mesh(sGeom2, sMat2);
+            sphereB2 = new THREE.Mesh(sGeom2, sMat2);
+            sphereC2 = new THREE.Mesh(sGeom2, sMat2);
+
+            scene.add(sphereA1, sphereB1, sphereC1, sphereA2, sphereB2, sphereC2);
+
+            // 5. Disco de representação do plano inclinado
+            diskPlane = new THREE.Mesh(
+                new THREE.RingGeometry(0.001, 4.5, 48),
+                new THREE.MeshBasicMaterial({
+                    color: 0x00f0ff,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.04,
+                    depthWrite: false
+                })
+            );
+            scene.add(diskPlane);
+
+            // Controlo Orbital
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.maxPolarAngle = Math.PI / 2 - 0.01;
+            controls.minDistance = 2;
+            controls.maxDistance = 25;
+
+            // Se o utilizador tocar ou clicar na secção 3D enquanto estiver alinhado, liberta a rotação livre
+            const section3D = document.getElementById('canvas-container');
+            const handler = () => { if (isAligned || isAnimatingCamera) breakAlignment(); };
+            section3D.addEventListener('mousedown', handler);
+            section3D.addEventListener('touchstart', handler, { passive: true });
+
+            animate();
+        }
+
+        // --- SISTEMA DE ATUALIZAÇÃO REATIVA ---
+        function updateAll() {
+            updateSVG();
+
+            const pA = svgTo3D(vertices2D.A);
+            const pB = svgTo3D(vertices2D.B);
+            const pC = svgTo3D(vertices2D.C);
+
+            const sol = solveOptimalHeights(vertices2D.A, vertices2D.B, vertices2D.C);
+            optimalNormal.copy(sol.normal);
+
+            const ax = pA.x, az = -pA.y;
+            const bx = pB.x, bz = -pB.y;
+            const cx = pC.x, cz = -pC.y;
+
+            const posF = geometryFloor.attributes.position.array;
+            posF[0] = ax; posF[1] = 0; posF[2] = az;
+            posF[3] = bx; posF[4] = 0; posF[5] = bz;
+            posF[6] = cx; posF[7] = 0; posF[8] = cz;
+            geometryFloor.attributes.position.needsUpdate = true;
+
+            const posS = geometrySpace.attributes.position.array;
+            posS[0] = ax; posS[1] = sol.hA; posS[2] = az;
+            posS[3] = bx; posS[4] = sol.hB; posS[5] = bz;
+            posS[6] = cx; posS[7] = sol.hC; posS[8] = cz;
+            geometrySpace.attributes.position.needsUpdate = true;
+
+            p3D_A.set(ax, sol.hA, az);
+            p3D_B.set(bx, sol.hB, bz);
+            p3D_C.set(cx, sol.hC, cz);
+
+            updateLine(projLineA, ax, sol.hA, az);
+            updateLine(projLineB, bx, sol.hB, bz);
+            updateLine(projLineC, cx, sol.hC, cz);
+
+            sphereA1.position.set(ax, 0, az);
+            sphereB1.position.set(bx, 0, bz);
+            sphereC1.position.set(cx, 0, cz);
+
+            sphereA2.position.set(ax, sol.hA, az);
+            sphereB2.position.set(bx, sol.hB, bz);
+            sphereC2.position.set(cx, sol.hC, cz);
+
+            const centroid = new THREE.Vector3().add(p3D_A).add(p3D_B).add(p3D_C).divideScalar(3);
+            diskPlane.position.copy(centroid);
+            diskPlane.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), optimalNormal);
+
+            updateStats(pA, pB, pC, sol);
+        }
+
+        function updateLine(line, x, y, z) {
+            const arr = line.geometry.attributes.position.array;
+            arr[0] = x; arr[1] = 0; arr[2] = z;
+            arr[3] = x; arr[4] = y; arr[5] = z;
+            line.geometry.attributes.position.needsUpdate = true;
+            if (line.computeLineDistances) line.computeLineDistances();
+        }
+
+        function updateStats(pa, pb, pc, sol) {
+            const d2_ab = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+            const d2_bc = Math.hypot(pb.x - pc.x, pb.y - pc.y);
+            const d2_ca = Math.hypot(pc.x - pa.x, pc.y - pa.y);
+
+            document.getElementById('val-2d-ab').textContent = d2_ab.toFixed(2);
+            document.getElementById('val-2d-bc').textContent = d2_bc.toFixed(2);
+            document.getElementById('val-2d-ca').textContent = d2_ca.toFixed(2);
+
+            const d3_ab = Math.sqrt(d2_ab**2 + (sol.hA - sol.hB)**2);
+            const d3_bc = Math.sqrt(d2_bc**2 + (sol.hB - sol.hC)**2);
+            const d3_ca = Math.sqrt(d2_ca**2 + (sol.hC - sol.hA)**2);
+
+            document.getElementById('val-3d-ab').textContent = d3_ab.toFixed(2);
+            document.getElementById('val-3d-bc').textContent = d3_bc.toFixed(2);
+            document.getElementById('val-3d-ca').textContent = d3_ca.toFixed(2);
+
+            calculateAlignment();
+        }
+
+        function calculateAlignment() {
+            if (!camera) return;
+
+            const camDir = new THREE.Vector3();
+            camera.getWorldDirection(camDir);
+            camDir.normalize();
+
+            const dot = camDir.dot(optimalNormal);
+            const angle = Math.acos(Math.abs(dot));
+
+            let pct = Math.max(0, 1 - (angle / (Math.PI / 4.5))) * 100;
+            if (isAligned) pct = 100.0; 
+
+            const alignText = document.getElementById('alignment-percentage');
+            alignText.textContent = pct.toFixed(1) + "%";
+
+            const fill = document.getElementById('alignment-radial-fill');
+            fill.style.transform = `scaleY(${pct / 100})`;
+
+            if (pct > 92) {
+                alignText.className = "text-sm font-black font-mono text-cyan-400";
+            } else if (pct > 65) {
+                alignText.className = "text-sm font-black font-mono text-yellow-500";
+            } else {
+                alignText.className = "text-sm font-black font-mono text-orange-400";
+            }
+        }
+
+        // --- SISTEMA CINEMÁTICO DE ENQUADRAMENTO SEGURO ---
+        function alignCamera() {
+            isAnimatingCamera = true;
+            controls.enabled = false;
+
+            const centroid = new THREE.Vector3().add(p3D_A).add(p3D_B).add(p3D_C).divideScalar(3);
+            
+            const sideMax = Math.max(p3D_A.distanceTo(p3D_B), p3D_B.distanceTo(p3D_C), p3D_C.distanceTo(p3D_A));
+            const distance = Math.max(8.0, sideMax * 2.2);
+
+            cameraTargetPos.copy(centroid).addScaledVector(optimalNormal, distance);
+            cameraTargetLookAt.copy(centroid);
+
+            // Alinha o vetor superior com a mediana principal do triângulo (médio de AB até C)
+            // para garantir um alinhamento perfeitamente vertical e impedir o colapso dos eixos geométricos.
+            const midAB = new THREE.Vector3().addVectors(p3D_A, p3D_B).multiplyScalar(0.5);
+            cameraTargetUp.copy(p3D_C).sub(midAB).normalize();
+
+            document.getElementById('camera-status-dot').className = "w-2 h-2 rounded-full bg-cyan-400 animate-pulse";
+            document.getElementById('camera-status-text').textContent = "Perspetiva Alinhada";
+        }
+
+        function breakAlignment() {
+            if (!isAligned && !isAnimatingCamera) return;
+            isAligned = false;
+            isAnimatingCamera = false;
+
+            camera.up.set(0, 1, 0);
+            controls.target.copy(cameraTargetLookAt);
+            controls.enabled = true;
+            controls.update();
+
+            document.getElementById('camera-status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+            document.getElementById('camera-status-text').textContent = "Perspetiva Livre";
+        }
+
+        function resetCameraView() {
+            isAnimatingCamera = true;
+            controls.enabled = false;
+
+            const centroid = new THREE.Vector3().add(p3D_A).add(p3D_B).add(p3D_C).divideScalar(3);
+            cameraTargetPos.set(6, 5, 10);
+            cameraTargetLookAt.copy(centroid);
+            cameraTargetUp.set(0, 1, 0);
+
+            document.getElementById('camera-status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+            document.getElementById('camera-status-text').textContent = "Perspetiva Livre";
+        }
+
+        // Presets Rápidos
+        const PRESETS = {
+            scalene: { A: { x: 45, y: 155 }, B: { x: 175, y: 140 }, C: { x: 80, y: 45 } },
+            right: { A: { x: 45, y: 165 }, B: { x: 165, y: 165 }, C: { x: 45, y: 55 } },
+            flat: { A: { x: 30, y: 110 }, B: { x: 180, y: 105 }, C: { x: 105, y: 112 } },
+            equilateral: { A: { x: 45, y: 165 }, B: { x: 165, y: 165 }, C: { x: 105, y: 61 } }
+        };
+
+        function setPreset(key) {
+            if (!PRESETS[key]) return;
+            vertices2D.A = { ...PRESETS[key].A };
+            vertices2D.B = { ...PRESETS[key].B };
+            vertices2D.C = { ...PRESETS[key].C };
+            updateAll();
+
+            if (key === 'equilateral') {
+                resetCameraView();
+            } else {
+                alignCamera();
+            }
+        }
+
+        // Loop de Renderização e Animação
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (controls && controls.enabled) {
+                controls.update();
+                calculateAlignment();
+            }
+
+            if (isAnimatingCamera) {
+                camera.position.lerp(cameraTargetPos, 0.08);
+                camera.up.lerp(cameraTargetUp, 0.08).normalize();
+                camera.lookAt(cameraTargetLookAt);
+                calculateAlignment();
+
+                if (camera.position.distanceTo(cameraTargetPos) < 0.015) {
+                    isAnimatingCamera = false;
+                    camera.position.copy(cameraTargetPos);
+                    camera.up.copy(cameraTargetUp);
+                    camera.lookAt(cameraTargetLookAt);
+                    isAligned = true; 
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            initSVGInteraction();
+            init3D();
+            updateAll();
+        }
+    </script>
+</body>
+</html>
