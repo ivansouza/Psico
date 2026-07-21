@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="w-full h-full m-0 p-0 overflow-hidden bg-[#020408]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visualizador 3D de Desigualdade Matemática</title>
+    
+    <!-- Bibliotecas Importadas (Estáveis) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fontes e Ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020408;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar para o painel de controlo */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(244, 63, 94, 0.3);
+            border-radius: 99px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(244, 63, 94, 0.6);
+        }
+    </style>
+</head>
+<body class="relative w-full h-full select-none">
+
+    <!-- Contentor Principal do Canvas 3D (Garantido em ecrã inteiro) -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Painel de Controlo Flutuante (Esquerda) -->
+    <aside id="sidebar" class="absolute top-4 left-4 z-10 w-[calc(100%-2rem)] sm:w-[380px] max-h-[calc(100vh-2rem)] bg-slate-950/85 backdrop-blur-lg border border-slate-800 rounded-2xl flex flex-col shadow-2xl transition-all duration-300">
+        
+        <!-- Cabeçalho do Painel -->
+        <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+                    <i class="fa-solid fa-chart-area text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-white tracking-wide">MathArt 3D Explorer</h1>
+                    <p class="text-[10px] text-slate-400">Interativo & Tempo Real</p>
+                </div>
+            </div>
+            <!-- Botão de Colapsar -->
+            <button id="btn-minimize" class="text-slate-400 hover:text-white p-1.5 hover:bg-slate-900 rounded-lg transition-colors">
+                <i id="minimize-icon" class="fa-solid fa-chevron-up"></i>
+            </button>
+        </div>
+
+        <!-- Área de Opções Colapsável -->
+        <div id="sidebar-content" class="flex-1 overflow-y-auto p-4 space-y-5 custom-scroll max-h-[60vh] sm:max-h-[70vh]">
+            
+            <!-- Equação e Descrição -->
+            <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800 shadow-inner">
+                <span class="text-[9px] font-bold text-rose-500 tracking-wider uppercase">Fórmula Visualizada</span>
+                <div class="mt-1.5 text-center py-2 bg-black/40 rounded-lg border border-slate-900">
+                    <div class="code-font text-xs sm:text-sm font-semibold text-rose-400">
+                        cos(sin(x² + y²)) &le; cos(x + y)
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                    Visualização em 3D da famosa desigualdade matemática. A zona vermelha representa a região onde a condição é satisfeita.
+                </p>
+            </div>
+
+            <!-- Modos de Renderização -->
+            <div class="space-y-2">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-layer-group text-rose-500"></i> Modo 3D
+                </h3>
+                <div class="grid grid-cols-3 gap-1">
+                    <button id="btn-mode-diff" class="py-2 px-1 rounded-lg bg-rose-600 text-white font-semibold text-[10px] border border-rose-500 transition-all flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-wave-square"></i>
+                        <span>Diferença</span>
+                    </button>
+                    <button id="btn-mode-dual" class="py-2 px-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-semibold text-[10px] border border-slate-800 transition-all flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-clone"></i>
+                        <span>Duas Ondas</span>
+                    </button>
+                    <button id="btn-mode-solid" class="py-2 px-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-semibold text-[10px] border border-slate-800 transition-all flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-cube"></i>
+                        <span>Relevo Fixo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ajustes e Parâmetros -->
+            <div class="space-y-3.5">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-rose-500"></i> Modificadores de Onda
+                </h3>
+
+                <!-- Resolução -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[11px]">
+                        <span class="text-slate-300">Resolução da Malha</span>
+                        <span id="lbl-res" class="code-font text-rose-400">140x140</span>
+                    </div>
+                    <input type="range" id="range-res" min="80" max="200" step="10" value="140" class="w-full accent-rose-500 bg-slate-900 h-1 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Amplitude Vertical -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[11px]">
+                        <span class="text-slate-300">Escala Z (Altura)</span>
+                        <span id="lbl-amp" class="code-font text-rose-400">2.0</span>
+                    </div>
+                    <input type="range" id="range-amp" min="0.5" max="3.5" step="0.1" value="2.0" class="w-full accent-rose-500 bg-slate-900 h-1 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Frequência Circular -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[11px]">
+                        <span class="text-slate-300">Densidade dos Anéis (Esq)</span>
+                        <span id="lbl-freq-circ" class="code-font text-rose-400">1.0</span>
+                    </div>
+                    <input type="range" id="range-freq-circ" min="0.3" max="2.0" step="0.1" value="1.0" class="w-full accent-rose-500 bg-slate-900 h-1 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Frequência Linear -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[11px]">
+                        <span class="text-slate-300">Frequência Linear (Dir)</span>
+                        <span id="lbl-freq-line" class="code-font text-rose-400">1.0</span>
+                    </div>
+                    <input type="range" id="range-freq-line" min="0.3" max="2.0" step="0.1" value="1.0" class="w-full accent-rose-500 bg-slate-900 h-1 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Dinâmica & Tempo -->
+            <div class="space-y-3">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock text-rose-500"></i> Dinâmica Temporal
+                </h3>
+                <div class="flex items-center gap-3">
+                    <button id="btn-play" class="w-10 h-10 rounded-xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all">
+                        <i id="play-icon" class="fa-solid fa-pause"></i>
+                    </button>
+                    <div class="flex-1 space-y-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-300">Velocidade da Animação</span>
+                            <span id="lbl-speed" class="code-font text-rose-400">1.0x</span>
+                        </div>
+                        <input type="range" id="range-speed" min="0" max="2.5" step="0.1" value="1.0" class="w-full accent-rose-500 bg-slate-900 h-1 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paleta de Cores -->
+            <div class="space-y-2">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-palette text-rose-500"></i> Esquema de Cores
+                </h3>
+                <div class="grid grid-cols-3 gap-1">
+                    <button id="btn-theme-original" class="py-1.5 px-1 rounded-lg bg-slate-900 border-2 border-rose-500 text-slate-200 text-[10px] font-medium flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span>Vermelho</span>
+                    </button>
+                    <button id="btn-theme-cyber" class="py-1.5 px-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-[10px] font-medium flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span>
+                        <span>Neon</span>
+                    </button>
+                    <button id="btn-theme-matrix" class="py-1.5 px-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-[10px] font-medium flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Matrix</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Opções de Renderização -->
+            <div class="space-y-2 border-t border-slate-900 pt-3">
+                <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white">
+                    <input type="checkbox" id="check-floor" checked class="rounded bg-slate-950 border-slate-800 text-rose-500 focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5">
+                    <span>Projetar Gráfico 2D no Chão</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white">
+                    <input type="checkbox" id="check-wireframe" class="rounded bg-slate-950 border-slate-800 text-rose-500 focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5">
+                    <span>Sobrepor Malha de Arame</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Rodapé do Painel -->
+        <div class="p-3 border-t border-slate-800/60 bg-black/20 rounded-b-2xl text-[10px] text-slate-500 flex items-center justify-between px-4">
+            <span>OpenGL / WebGL Ativo</span>
+            <button id="btn-reset-cam" class="text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-camera-rotate"></i> Resetar Câmara
+            </button>
+        </div>
+    </aside>
+
+    <!-- Sonda Interativa de Coordenadas (Canto inferior direito) -->
+    <div id="inspector-panel" class="absolute bottom-4 right-4 z-10 p-3 bg-slate-950/80 backdrop-blur-md border border-slate-800 rounded-xl w-60 shadow-2xl transition-all duration-300 hover:border-slate-700 pointer-events-none select-none">
+        <div class="flex items-center gap-2 border-b border-slate-800/80 pb-1.5 mb-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-[10px] font-semibold text-slate-300 tracking-wider uppercase">Sonda de Coordenadas</span>
+        </div>
+        <div class="space-y-1 text-xs">
+            <div class="flex justify-between">
+                <span class="text-slate-400">Ponto (X, Y):</span>
+                <span id="coord-xy" class="code-font font-medium text-slate-200">Mova o cursor</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-400">LHS (Círculos):</span>
+                <span id="val-lhs" class="code-font font-medium text-slate-200">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-400">RHS (Plana):</span>
+                <span id="val-rhs" class="code-font font-medium text-slate-200">-</span>
+            </div>
+            <div class="flex justify-between items-center border-t border-slate-800/80 pt-1.5 mt-1">
+                <span class="text-slate-400">Satisfaz?</span>
+                <span id="is-satisfied" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-400">AGUARDANDO</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instrução rápida -->
+    <div class="absolute bottom-4 left-4 z-10 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-950/60 backdrop-blur-sm border border-slate-900 rounded-lg text-[10px] text-slate-400">
+        <i class="fa-solid fa-circle-info text-rose-500"></i>
+        <span>Arrasta para rodar | Scroll para Zoom | Mova o rato no chão para ler dados</span>
+    </div>
+
+    <!-- Código Javascript do Sistema 3D -->
+    <script>
+        // --- CONSTANTES E DEFINIÇÕES ---
+        const CONFIG = {
+            domain: 13.0,      // Tamanho do plano de visualização (bade perfeitamente com a imagem)
+            ampScale: 2.0,     // Escala vertical
+            resolution: 140,   // Divisões da grelha
+            mode: 'difference',// difference, dual, solid
+            theme: 'original', // original, cyber, matrix
+            animated: true,
+            speed: 1.0,
+            freqCirc: 1.0,
+            freqLine: 1.0,
+            showFloor: true,
+            showWireframe: false
+        };
+
+        const TEMAS = {
+            original: {
+                met: new THREE.Color('#dc2626'),    // Vermelho Rosáceo do Desmos
+                notMet: new THREE.Color('#0f172a'), // Azul Escuro de fundo
+                lhs: new THREE.Color('#f59e0b'),    // Laranja
+                rhs: new THREE.Color('#06b6d4'),    // Ciano
+                bg: 0x020408                        // Fundo Escuro Real
+            },
+            cyber: {
+                met: new THREE.Color('#ff007f'),    // Rosa Choque
+                notMet: new THREE.Color('#1e003b'), // Violeta Profundo
+                lhs: new THREE.Color('#a855f7'),    // Roxo
+                rhs: new THREE.Color('#00f0ff'),    // Azul Neon
+                bg: 0x050010
+            },
+            matrix: {
+                met: new THREE.Color('#10b981'),    // Verde Esmeralda
+                notMet: new THREE.Color('#06200f'), // Verde Escuro profundo
+                lhs: new THREE.Color('#22c55e'),    // Verde Claro
+                rhs: new THREE.Color('#15803d'),    // Verde Médio
+                bg: 0x010803
+            }
+        };
+
+        let activeColors = TEMAS.original;
+        let time = 0;
+
+        // --- INSTANCIAÇÃO DOS ELEMENTOS DO THREE.JS ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(activeColors.bg);
+        scene.fog = new THREE.FogExp2(activeColors.bg, 0.02);
+
+        // Câmara com perspetiva e posicionamento dinâmico
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        function resetCamera() {
+            camera.position.set(11, 10, 13);
+            if (window.innerWidth < 640) {
+                camera.position.set(13, 13, 15);
+            }
+            if (controls) {
+                controls.target.set(0, 0, 0);
+                controls.update();
+            }
+        }
+
+        // Criando Renderizador com precisão
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Controlos orbitais adaptáveis ao toque de ecrã
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.1; // Impede a câmara de ir abaixo do solo
+        controls.minDistance = 4;
+        controls.maxDistance = 35;
+        resetCamera();
+
+        // --- ILUMINAÇÃO TOTAL ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+        scene.add(ambientLight);
+
+        // Luz direcionada primária
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
+        mainLight.position.set(15, 20, 15);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.bias = -0.0005;
+        scene.add(mainLight);
+
+        // Luz de preenchimento secundária para evitar sombras pretas estáticas
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+        fillLight.position.set(-15, 10, -15);
+        scene.add(fillLight);
+
+        // Ponto de luz pulsante sob o gráfico
+        const radialLight = new THREE.PointLight(0xdc2626, 1.5, 25);
+        radialLight.position.set(0, 3, 0);
+        scene.add(radialLight);
+
+        // --- AUXILIARES VISUAIS ---
+        // Grelha decorativa no nível do chão
+        const gridHelper = new THREE.GridHelper(20, 20, 0xf43f5e, 0x1e293b);
+        gridHelper.position.y = -3.99;
+        scene.add(gridHelper);
+
+        // --- MODELAÇÃO MATEMÁTICA ---
+        // LHS: cos(sin(x² + y²))
+        function getLHS(x, y, t) {
+            const r2 = (x * x + y * y) * CONFIG.freqCirc;
+            return Math.cos(Math.sin(r2 - t));
+        }
+
+        // RHS: cos(x + y)
+        function getRHS(x, y, t) {
+            const val = (x + y) * CONFIG.freqLine;
+            return Math.cos(val - t);
+        }
+
+        // --- GEOMETRIAS DINÂMICAS ---
+        let graphGroup = new THREE.Group();
+        scene.add(graphGroup);
+
+        let surfaceGeo, wireframeGeo, floorGeo;
+        let surfaceMesh, wireframeMesh, floorMesh;
+        let surfaceMesh2, wireframeMesh2; // Modo dual
+
+        // Materiais com configurações corretas de dupla face para evitar transparência acidental
+        const surfaceMat = new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            side: THREE.DoubleSide,
+            shininess: 45,
+            flatShading: false
+        });
+
+        const wireframeMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.1
+        });
+
+        const floorMat = new THREE.MeshBasicMaterial({
+            vertexColors: true,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        // Materiais do modo Dual (sobreposição de ondas independentes)
+        const lhsMat = new THREE.MeshPhongMaterial({
+            color: activeColors.lhs,
+            transparent: true,
+            opacity: 0.7,
+            shininess: 40,
+            side: THREE.DoubleSide
+        });
+
+        const rhsMat = new THREE.MeshPhongMaterial({
+            color: activeColors.rhs,
+            transparent: true,
+            opacity: 0.7,
+            shininess: 40,
+            side: THREE.DoubleSide
+        });
+
+        // Reconstrói as malhas do gráfico de forma limpa e otimizada
+        function rebuildGraph() {
+            // Eliminar objetos anteriores
+            if (surfaceMesh) graphGroup.remove(surfaceMesh);
+            if (wireframeMesh) graphGroup.remove(wireframeMesh);
+            if (floorMesh) graphGroup.remove(floorMesh);
+            if (surfaceMesh2) graphGroup.remove(surfaceMesh2);
+            if (wireframeMesh2) graphGroup.remove(wireframeMesh2);
+
+            const res = CONFIG.resolution;
+
+            // Criar novo plano bidimensional
+            surfaceGeo = new THREE.PlaneGeometry(CONFIG.domain, CONFIG.domain, res, res);
+            
+            // Atribuir as cores iniciais
+            const colors = [];
+            for (let i = 0; i < surfaceGeo.attributes.position.count; i++) {
+                colors.push(1, 1, 1);
+            }
+            surfaceGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            // Configurar buffers como dinâmicos para escrita otimizada
+            surfaceGeo.attributes.position.usage = THREE.DynamicDrawUsage;
+            surfaceGeo.attributes.color.usage = THREE.DynamicDrawUsage;
+
+            // Criar malha principal e rodar o objeto para ficar deitado (Z vira altura no espaço de desenho local)
+            surfaceMesh = new THREE.Mesh(surfaceGeo, surfaceMat);
+            surfaceMesh.rotation.x = -Math.PI / 2;
+            surfaceMesh.castShadow = true;
+            surfaceMesh.receiveShadow = true;
+            graphGroup.add(surfaceMesh);
+
+            // Wireframe de suporte
+            wireframeGeo = surfaceGeo.clone();
+            wireframeMesh = new THREE.Mesh(wireframeGeo, wireframeMat);
+            wireframeMesh.rotation.x = -Math.PI / 2;
+            wireframeMesh.position.y = 0.005; // Pequeno desfasamento para prevenir bugs visuais de profundidade
+            graphGroup.add(wireframeMesh);
+
+            // Preparar modo dual (segunda superfície para RHS)
+            surfaceMesh2 = new THREE.Mesh(surfaceGeo.clone(), rhsMat);
+            surfaceMesh2.rotation.x = -Math.PI / 2;
+            graphGroup.add(surfaceMesh2);
+
+            wireframeMesh2 = new THREE.Mesh(wireframeGeo.clone(), wireframeMat);
+            wireframeMesh2.rotation.x = -Math.PI / 2;
+            wireframeMesh2.position.y = 0.005;
+            graphGroup.add(wireframeMesh2);
+
+            // Plano 2D achatado do chão
+            floorGeo = new THREE.PlaneGeometry(CONFIG.domain, CONFIG.domain, res, res);
+            floorGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors.slice(), 3));
+            floorGeo.attributes.color.usage = THREE.DynamicDrawUsage;
+
+            floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.position.y = -4.0; // Pousado logo acima da grelha de referência
+            graphGroup.add(floorMesh);
+
+            syncVisibilities();
+        }
+
+        function syncVisibilities() {
+            wireframeMesh.visible = CONFIG.showWireframe;
+            wireframeMesh2.visible = CONFIG.showWireframe && CONFIG.mode === 'dual';
+            floorMesh.visible = CONFIG.showFloor;
+
+            if (CONFIG.mode === 'dual') {
+                surfaceMesh.material = lhsMat;
+                surfaceMesh2.visible = true;
+            } else {
+                surfaceMesh.material = surfaceMat;
+                surfaceMesh2.visible = false;
+            }
+        }
+
+        // --- SISTEMA DE ATUALIZAÇÃO (ANIMATION & MATH PROCESSOR) ---
+        function updateGraphData() {
+            if (CONFIG.animated) {
+                time += 0.02 * CONFIG.speed;
+            }
+
+            const res = CONFIG.resolution;
+            const size = CONFIG.domain;
+            const halfSize = size / 2;
+
+            const posAttr = surfaceGeo.attributes.position;
+            const colorAttr = surfaceGeo.attributes.color;
+
+            const posAttr2 = surfaceMesh2.geometry.attributes.position; // Usado no modo dual
+
+            const floorColorAttr = floorGeo.attributes.color;
+
+            let index = 0;
+            const cMet = activeColors.met;
+            const cNotMet = activeColors.notMet;
+
+            for (let i = 0; i <= res; i++) {
+                const y = (i / res) * size - halfSize; // Eixo Y bidimensional original do plano
+                for (let j = 0; j <= res; j++) {
+                    const x = (j / res) * size - halfSize; // Eixo X bidimensional
+
+                    const lhs = getLHS(x, y, time);
+                    const rhs = getRHS(x, y, time);
+                    const satisfied = lhs <= rhs;
+
+                    // 1. Atualizar Superfície 3D principal (Z é a altura na geometria não-rodada)
+                    let zVal = 0;
+                    if (CONFIG.mode === 'difference') {
+                        zVal = (lhs - rhs) * CONFIG.ampScale;
+                        posAttr.setZ(index, zVal);
+
+                        if (zVal <= 0) {
+                            colorAttr.setXYZ(index, cMet.r, cMet.g, cMet.b);
+                        } else {
+                            colorAttr.setXYZ(index, cNotMet.r, cNotMet.g, cNotMet.b);
+                        }
+                    } else if (CONFIG.mode === 'dual') {
+                        // Superfície 1 (LHS)
+                        const zLHS = lhs * CONFIG.ampScale;
+                        posAttr.setZ(index, zLHS);
+
+                        // Superfície 2 (RHS)
+                        const zRHS = rhs * CONFIG.ampScale;
+                        posAttr2.setZ(index, zRHS);
+                    } else if (CONFIG.mode === 'solid') {
+                        zVal = satisfied ? CONFIG.ampScale : -1.0;
+                        posAttr.setZ(index, zVal);
+
+                        if (satisfied) {
+                            colorAttr.setXYZ(index, cMet.r, cMet.g, cMet.b);
+                        } else {
+                            colorAttr.setXYZ(index, cNotMet.r, cNotMet.g, cNotMet.b);
+                        }
+                    }
+
+                    // 2. Atualizar Cor do Gráfico 2D no Chão
+                    if (CONFIG.showFloor) {
+                        if (satisfied) {
+                            floorColorAttr.setXYZ(index, cMet.r, cMet.g, cMet.b);
+                        } else {
+                            // Escurecer um pouco a zona inativa para maior legibilidade
+                            floorColorAttr.setXYZ(index, cNotMet.r * 0.15, cNotMet.g * 0.15, cNotMet.b * 0.15);
+                        }
+                    }
+
+                    index++;
+                }
+            }
+
+            // Flag de notificação para o GPU atualizar renderização
+            posAttr.needsUpdate = true;
+            colorAttr.needsUpdate = true;
+            surfaceGeo.computeVertexNormals();
+
+            if (CONFIG.showFloor) {
+                floorColorAttr.needsUpdate = true;
+            }
+
+            if (CONFIG.mode === 'dual') {
+                posAttr2.needsUpdate = true;
+                surfaceMesh2.geometry.computeVertexNormals();
+            }
+
+            // Sincronizar o wireframe se ativo
+            if (CONFIG.showWireframe) {
+                wireframeGeo.attributes.position.copy(posAttr);
+                wireframeGeo.attributes.position.needsUpdate = true;
+                if (CONFIG.mode === 'dual') {
+                    wireframeMesh2.geometry.attributes.position.copy(posAttr2);
+                    wireframeMesh2.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+        }
+
+        // --- SONDA E EVENTOS DE DETEÇÃO (RAYCASTER) ---
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        // Cursor de esfera de luz no plano 3D
+        const probeGeo = new THREE.SphereGeometry(0.12, 32, 32);
+        const probeMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+        const probeMesh = new THREE.Mesh(probeGeo, probeMat);
+        probeMesh.visible = false;
+        scene.add(probeMesh);
+
+        function trackCoordProbe(event) {
+            // Obter coordenadas normalizadas com salvaguarda de ecrãs de todos os rácios
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+            pointer.x = (clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+            // Testa apenas contra o plano plano do chão para obter as coordenadas X, Y 2D da imagem
+            const hits = raycaster.intersectObject(floorMesh);
+
+            if (hits.length > 0) {
+                const pt = hits[0].point;
+                probeMesh.position.copy(pt);
+                probeMesh.position.y = -3.9; // Flutuar ligeiramente para evitar colisão do renderizador
+                probeMesh.visible = true;
+
+                // Eixo Z do Three.js representa o nosso eixo Y 2D
+                const x = pt.x;
+                const y = pt.z;
+
+                const lhs = getLHS(x, y, time);
+                const rhs = getRHS(x, y, time);
+                const satisfied = lhs <= rhs;
+
+                // Atualizar dados da sonda na interface
+                document.getElementById('coord-xy').innerText = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}`;
+                document.getElementById('val-lhs').innerText = lhs.toFixed(3);
+                document.getElementById('val-rhs').innerText = rhs.toFixed(3);
+
+                const badge = document.getElementById('is-satisfied');
+                if (satisfied) {
+                    badge.innerText = "SIM";
+                    badge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+                } else {
+                    badge.innerText = "NÃO";
+                    badge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30";
+                }
+            } else {
+                probeMesh.visible = false;
+            }
+        }
+
+        // Ouvintes de entrada adaptados para telemóvel e desktop
+        window.addEventListener('mousemove', trackCoordProbe);
+        window.addEventListener('touchmove', trackCoordProbe, { passive: true });
+
+        // --- SISTEMA INTERFACE (EVENT LISTENERS) ---
+        
+        // Minimizar / Colapsar barra de ferramentas
+        const btnMinimize = document.getElementById('btn-minimize');
+        const minIcon = document.getElementById('minimize-icon');
+        const sidebarContent = document.getElementById('sidebar-content');
+        let isMinimized = false;
+
+        btnMinimize.addEventListener('click', () => {
+            isMinimized = !isMinimized;
+            if (isMinimized) {
+                sidebarContent.style.display = 'none';
+                minIcon.className = 'fa-solid fa-chevron-down';
+            } else {
+                sidebarContent.style.display = 'block';
+                minIcon.className = 'fa-solid fa-chevron-up';
+            }
+        });
+
+        // Seletores de Modo 3D
+        function selectMode(m) {
+            CONFIG.mode = m;
+            document.querySelectorAll('[id^="btn-mode-"]').forEach(btn => {
+                btn.className = "py-2 px-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-semibold text-[10px] border border-slate-800 transition-all flex flex-col items-center gap-1";
+            });
+            const selected = document.getElementById(`btn-mode-${m}`);
+            selected.className = "py-2 px-1 rounded-lg bg-rose-600 text-white font-semibold text-[10px] border border-rose-500 transition-all flex flex-col items-center gap-1";
+            syncVisibilities();
+        }
+
+        document.getElementById('btn-mode-diff').addEventListener('click', () => selectMode('difference'));
+        document.getElementById('btn-mode-dual').addEventListener('click', () => selectMode('dual'));
+        document.getElementById('btn-mode-solid').addEventListener('click', () => selectMode('solid'));
+
+        // Controlos deslizantes (Sliders)
+        document.getElementById('range-res').addEventListener('input', (e) => {
+            CONFIG.resolution = parseInt(e.target.value);
+            document.getElementById('lbl-res').innerText = `${CONFIG.resolution}x${CONFIG.resolution}`;
+            rebuildGraph();
+        });
+
+        document.getElementById('range-amp').addEventListener('input', (e) => {
+            CONFIG.ampScale = parseFloat(e.target.value);
+            document.getElementById('lbl-amp').innerText = CONFIG.ampScale.toFixed(1);
+        });
+
+        document.getElementById('range-freq-circ').addEventListener('input', (e) => {
+            CONFIG.freqCirc = parseFloat(e.target.value);
+            document.getElementById('lbl-freq-circ').innerText = CONFIG.freqCirc.toFixed(1);
+        });
+
+        document.getElementById('range-freq-line').addEventListener('input', (e) => {
+            CONFIG.freqLine = parseFloat(e.target.value);
+            document.getElementById('lbl-freq-line').innerText = CONFIG.freqLine.toFixed(1);
+        });
+
+        // Botão de Play/Pausa e Velocidade
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        btnPlay.addEventListener('click', () => {
+            CONFIG.animated = !CONFIG.animated;
+            playIcon.className = CONFIG.animated ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+        });
+
+        document.getElementById('range-speed').addEventListener('input', (e) => {
+            CONFIG.speed = parseFloat(e.target.value);
+            document.getElementById('lbl-speed').innerText = `${CONFIG.speed.toFixed(1)}x`;
+        });
+
+        // Esquemas de Cores
+        function selectTheme(t) {
+            CONFIG.theme = t;
+            activeColors = TEMAS[t];
+
+            // Limpar bordas ativas
+            document.querySelectorAll('[id^="btn-theme-"]').forEach(btn => {
+                btn.className = "py-1.5 px-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-[10px] font-medium flex items-center justify-center gap-1";
+            });
+
+            const activeBtn = document.getElementById(`btn-theme-${t}`);
+            activeBtn.className = "py-1.5 px-1 rounded-lg bg-slate-900 border-2 text-slate-200 text-[10px] font-medium flex items-center justify-center gap-1";
+            
+            if (t === 'original') activeBtn.classList.add('border-rose-500');
+            if (t === 'cyber') activeBtn.classList.add('border-fuchsia-500');
+            if (t === 'matrix') activeBtn.classList.add('border-emerald-500');
+
+            // Atualizar cores do motor 3D
+            scene.background.set(activeColors.bg);
+            scene.fog.color.set(activeColors.bg);
+            radialLight.color.copy(activeColors.met);
+            lhsMat.color.copy(activeColors.lhs);
+            rhsMat.color.copy(activeColors.rhs);
+        }
+
+        document.getElementById('btn-theme-original').addEventListener('click', () => selectTheme('original'));
+        document.getElementById('btn-theme-cyber').addEventListener('click', () => selectTheme('cyber'));
+        document.getElementById('btn-theme-matrix').addEventListener('click', () => selectTheme('matrix'));
+
+        // Checkboxes adicionais
+        document.getElementById('check-floor').addEventListener('change', (e) => {
+            CONFIG.showFloor = e.target.checked;
+            syncVisibilities();
+        });
+
+        document.getElementById('check-wireframe').addEventListener('change', (e) => {
+            CONFIG.showWireframe = e.target.checked;
+            syncVisibilities();
+        });
+
+        // Resetar Câmara
+        document.getElementById('btn-reset-cam').addEventListener('click', resetCamera);
+
+        // --- RESIZE DO ECRÃ SEGURO ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- LAÇO DE ANIMACÃO PRINCIPAL ---
+        function runLoop() {
+            requestAnimationFrame(runLoop);
+
+            // Processamento matemático a cada frame
+            updateGraphData();
+
+            // Rotação subtil automática para dar vida ao gráfico se estiver a correr
+            if (CONFIG.animated) {
+                graphGroup.rotation.y = Math.sin(time * 0.05) * 0.04;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Inicialização
+        rebuildGraph();
+        runLoop();
+
+    </script>
+</body>
+</html>
