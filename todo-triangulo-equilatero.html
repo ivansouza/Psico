@@ -650,16 +650,23 @@
 
             const centroid = new THREE.Vector3().add(p3D_A).add(p3D_B).add(p3D_C).divideScalar(3);
 
-            // Distância fixa para visão de sobreposição
-            const distance = 7.0;
+            // Calcula o tamanho do triângulo para ajustar a distância
+            const sideMax = Math.max(p3D_A.distanceTo(p3D_B), p3D_B.distanceTo(p3D_C), p3D_C.distanceTo(p3D_A));
+            const distance = Math.max(5.0, sideMax * 1.8);
 
-            // Posiciona a câmara exatamente na direção oposta à normal do plano
+            // Câmera exatamente na direção da normal do plano (visão perpendicular de cima)
             cameraTargetPos.copy(centroid).addScaledVector(optimalNormal, distance);
             cameraTargetLookAt.copy(centroid);
 
-            // Alinha o up com a mediana do triângulo para manter orientação estável
-            const midAB = new THREE.Vector3().addVectors(p3D_A, p3D_B).multiplyScalar(0.5);
-            cameraTargetUp.copy(p3D_C).sub(midAB).normalize();
+            // Up: projeta o eixo Y global no plano do triângulo para orientação estável
+            const worldUp = new THREE.Vector3(0, 1, 0);
+            const right = new THREE.Vector3().crossVectors(optimalNormal, worldUp).normalize();
+            if (right.length() < 0.001) {
+                // Se a normal é paralela ao Y, usa o eixo Z como referência
+                const altUp = new THREE.Vector3(0, 0, 1);
+                right.crossVectors(optimalNormal, altUp).normalize();
+            }
+            cameraTargetUp.copy(new THREE.Vector3().crossVectors(right, optimalNormal).normalize());
 
             document.getElementById('camera-status-dot').className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
             document.getElementById('camera-status-text').textContent = "Sobreposição Ativa";
