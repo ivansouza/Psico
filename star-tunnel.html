@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generative Star Tunnel Shader Studio</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+      color: #f3f4f6;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    #defaultCanvas0 {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.5);
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.8);
+    }
+    input[type=range] {
+      accent-color: #8b5cf6;
+    }
+  </style>
+</head>
+<body class="select-none">
+
+  <!-- HUD Overlay -->
+  <div class="relative z-10 flex flex-col h-screen pointer-events-none p-4 justify-between">
+    
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center w-full">
+      <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-xl px-4 py-2 pointer-events-auto flex items-center gap-3 shadow-lg">
+        <i class="fa-solid font-bold fa-meteor text-purple-400 text-xl"></i>
+        <div>
+          <h1 class="text-sm font-bold tracking-wide text-gray-100">Star Tunnel Studio</h1>
+          <p class="text-xs text-slate-400">Interactive Generative Shader</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pointer-events-auto">
+        <button id="toggleControlsBtn" class="bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl px-3 py-2 text-sm flex items-center gap-2 backdrop-blur-md transition-all shadow-lg">
+          <i class="fa-solid fa-sliders text-purple-400"></i>
+          <span class="hidden sm:inline">Controls</span>
+        </button>
+        <button id="fullscreenBtn" class="bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl p-2.5 text-sm flex items-center justify-center backdrop-blur-md transition-all shadow-lg">
+          <i class="fa-solid fa-expand text-slate-300"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating Control Panel -->
+    <div id="controlPanel" class="pointer-events-auto absolute top-16 right-4 w-80 sm:w-96 max-h-[calc(100vh-5rem)] bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-4 shadow-2xl flex flex-col gap-4 transition-all duration-300 custom-scrollbar overflow-y-auto">
+      
+      <!-- Panel Header -->
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <span class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Shader Parameters</span>
+        <button id="resetDefaultsBtn" class="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition">
+          <i class="fa-solid fa-rotate-left"></i> Reset
+        </button>
+      </div>
+
+      <!-- Presets Selector -->
+      <div>
+        <label class="text-xs text-slate-400 mb-1.5 block">Presets</label>
+        <div class="grid grid-cols-3 gap-1.5" id="presetsContainer">
+          <!-- Preset buttons inserted via JS -->
+        </div>
+      </div>
+
+      <!-- Main Sliders -->
+      <div class="space-y-3.5">
+        
+        <!-- P1: Speed -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Flight Speed (P1)</span>
+            <span id="p1Val" class="text-purple-400 font-mono">-1.80</span>
+          </div>
+          <input type="range" id="p1" min="-5" max="5" step="0.05" value="-1.8" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- P2: Angular Density -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Angular Density (P2)</span>
+            <span id="p2Val" class="text-purple-400 font-mono">9.0</span>
+          </div>
+          <input type="range" id="p2" min="1" max="24" step="0.5" value="9" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- P3: Depth Density -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Depth Density (P3)</span>
+            <span id="p3Val" class="text-purple-400 font-mono">1.00</span>
+          </div>
+          <input type="range" id="p3" min="0.1" max="5" step="0.05" value="1" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- P4: Streak Length -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Streak Length (P4)</span>
+            <span id="p4Val" class="text-purple-400 font-mono">0.20</span>
+          </div>
+          <input type="range" id="p4" min="0.01" max="1.5" step="0.01" value="0.2" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- P5 Toggle & Manual Slider -->
+        <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="text-xs text-slate-300 font-medium">Star Sharpness (P5)</span>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="p5Dynamic" checked class="sr-only peer">
+              <div class="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600 relative"></div>
+              <span class="text-[10px] text-slate-400 uppercase font-bold">Oscillate</span>
+            </label>
+          </div>
+          <div class="flex justify-between text-xs mb-1">
+            <span id="p5Label" class="text-slate-400 text-[11px]">Dynamic Pulse</span>
+            <span id="p5Val" class="text-purple-400 font-mono">45.0</span>
+          </div>
+          <input type="range" id="p5" min="1" max="120" step="1" value="45" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer" disabled>
+        </div>
+
+        <!-- P6: Twinkle Speed -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Twinkle Speed (P6)</span>
+            <span id="p6Val" class="text-purple-400 font-mono">5.30</span>
+          </div>
+          <input type="range" id="p6" min="0" max="20" step="0.1" value="5.3" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- P7: Color Density -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Color Spectrum (P7)</span>
+            <span id="p7Val" class="text-purple-400 font-mono">0.73</span>
+          </div>
+          <input type="range" id="p7" min="0" max="3" step="0.01" value="0.73" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- P8: Brightness -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300 font-medium">Brightness (P8)</span>
+            <span id="p8Val" class="text-purple-400 font-mono">5.00</span>
+          </div>
+          <input type="range" id="p8" min="0.5" max="15" step="0.1" value="5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+        <button id="pauseBtn" class="bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded-xl flex items-center justify-center gap-1.5 transition border border-slate-700">
+          <i class="fa-solid fa-pause text-purple-400"></i> <span>Pause Animation</span>
+        </button>
+        <button id="screenshotBtn" class="bg-purple-600 hover:bg-purple-500 text-xs py-2 rounded-xl flex items-center justify-center gap-1.5 transition text-white font-medium shadow-md shadow-purple-600/30">
+          <i class="fa-solid fa-camera"></i> Capture Image
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Bottom Controls & Hints -->
+    <div class="flex justify-between items-end w-full pointer-events-auto">
+      <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-slate-400 shadow-lg hidden sm:block">
+        <i class="fa-solid fa-mouse text-purple-400 mr-1"></i> Drag to move camera offset • Click canvas to toggle UI
+      </div>
+      
+      <div id="fpsCounter" class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs font-mono text-purple-400 shadow-lg">
+        60 FPS
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // State management
+    const params = {
+      p1: -1.8,
+      p2: 9.0,
+      p3: 1.0,
+      p4: 0.2,
+      p5: 45.0,
+      p5Dynamic: true,
+      p6: 5.3,
+      p7: 0.73,
+      p8: 5.0,
+      isPaused: false,
+      offsetX: 0.0,
+      offsetY: 0.0
+    };
+
+    const presets = [
+      { name: "Default", p1: -1.8, p2: 9.0, p3: 1.0, p4: 0.2, p5Dynamic: true, p6: 5.3, p7: 0.73, p8: 5.0 },
+      { name: "Hyperspace", p1: -4.5, p2: 16.0, p3: 0.5, p4: 0.8, p5Dynamic: false, p5: 15, p6: 12.0, p7: 0.35, p8: 8.0 },
+      { name: "Nebula Pulse", p1: 0.8, p2: 6.0, p3: 2.5, p4: 0.1, p5Dynamic: true, p6: 2.0, p7: 1.85, p8: 6.5 },
+      { name: "Cosmic Portal", p1: -2.2, p2: 18.0, p3: 1.8, p4: 0.3, p5Dynamic: false, p5: 80, p6: 8.0, p7: 1.25, p8: 4.5 },
+      { name: "Deep Drift", p1: -0.5, p2: 12.0, p3: 0.8, p4: 0.05, p5Dynamic: true, p6: 1.5, p7: 0.5, p8: 3.5 },
+      { name: "Supernova", p1: -3.0, p2: 24.0, p3: 3.0, p4: 0.4, p5Dynamic: false, p5: 35, p6: 15.0, p7: 2.2, p8: 10.0 }
+    ];
+
+    let shaderProgram;
+    let accumulatedTime = 0;
+    let lastTime = 0;
+
+    // Vertex Shader
+    const vShader = `precision mediump float;
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+varying vec2 vTexCoord;
+void main() {
+  vTexCoord = aTexCoord;
+  gl_Position = vec4(aPosition * 2.0 - 1.0, 1.0);
+}`;
+
+    // Fragment Shader
+    const fShader = `precision mediump float;
+#define PI 3.14159265359
+#define TAU 6.28318530718
+
+varying vec2 vTexCoord;
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform vec2 u_offset;
+uniform float u_p1; uniform float u_p2; uniform float u_p3; uniform float u_p4;
+uniform float u_p5; uniform float u_p6; uniform float u_p7; uniform float u_p8;
+
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+vec3 palette(float value) {
+  vec3 baseColor = vec3(0.5);
+  vec3 amplitude = vec3(0.5);
+  vec3 frequency = vec3(1.0);
+  vec3 phase = vec3(0.0, 0.18, 0.38);
+  return baseColor + amplitude * cos(TAU * (frequency * value + phase));
+}
+
+vec2 centeredCoordinate(vec2 uv) {
+  float aspectRatio = u_resolution.x / u_resolution.y;
+  return (uv - 0.5) * vec2(aspectRatio, 1.0) + u_offset;
+}
+
+vec3 starTunnelScene(vec2 uv) { 
+  vec2 p = centeredCoordinate(uv);
+  float radius = length(p) + 0.015;
+  float angle = atan(p.y, p.x);
+  float timeValue = u_time * u_p1;
+  float depth = 1.0 / radius;
+  
+  vec2 tunnelCoordinate = vec2(angle / TAU * u_p2, depth * u_p3 - timeValue); 
+  vec2 cellIdentifier = floor(tunnelCoordinate);
+  vec2 localPosition = fract(tunnelCoordinate) - 0.5;
+  
+  float seed = hash21(cellIdentifier);
+  localPosition.x += (seed - 0.5) * 0.7;
+  localPosition.y *= u_p4;
+  
+  float star = exp(-length(localPosition) * u_p5); 
+  float twinkle = 0.5 + 0.5 * sin(timeValue * u_p6 + seed * TAU); 
+  vec3 starColor = palette(seed * u_p7 + depth * 0.03); 
+  float centerFade = smoothstep(0.0, 0.05, radius); 
+  
+  return starColor * star * twinkle * u_p8 * centerFade; 
+}
+
+void main() { 
+  vec2 uv = vTexCoord;
+  vec3 finalColor = starTunnelScene(uv);
+  finalColor = pow(max(finalColor, vec3(0.0)), vec3(0.85));
+  gl_FragColor = vec4(finalColor, 1.0);
+}
+`;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      pixelDensity(1);
+      shaderProgram = createShader(vShader, fShader);
+      noStroke();
+      lastTime = millis() / 1000.0;
+      
+      initUI();
+    }
+
+    function draw() {
+      let currentTime = millis() / 1000.0;
+      let dt = currentTime - lastTime;
+      lastTime = currentTime;
+
+      if (!params.isPaused) {
+        accumulatedTime += dt;
+      }
+
+      shader(shaderProgram);
+
+      shaderProgram.setUniform('u_resolution', [width, height]);
+      shaderProgram.setUniform('u_time', accumulatedTime);
+      shaderProgram.setUniform('u_offset', [params.offsetX, params.offsetY]);
+
+      // Calculate dynamic P5 if toggled
+      let currentP5 = params.p5;
+      if (params.p5Dynamic) {
+        currentP5 = map(sin(accumulatedTime * 0.5), -1, 1, 1, 99);
+        document.getElementById('p5Val').innerText = currentP5.toFixed(1);
+        document.getElementById('p5').value = currentP5;
+      }
+
+      shaderProgram.setUniform('u_p1', params.p1);
+      shaderProgram.setUniform('u_p2', params.p2);
+      shaderProgram.setUniform('u_p3', params.p3);
+      shaderProgram.setUniform('u_p4', params.p4);
+      shaderProgram.setUniform('u_p5', currentP5);
+      shaderProgram.setUniform('u_p6', params.p6);
+      shaderProgram.setUniform('u_p7', params.p7);
+      shaderProgram.setUniform('u_p8', params.p8);
+
+      rect(-width / 2, -height / 2, width, height);
+
+      // Smooth camera pan decay back to center if mouse is released
+      if (!mouseIsPressed) {
+        params.offsetX *= 0.95;
+        params.offsetY *= 0.95;
+      }
+
+      // Update FPS UI periodically
+      if (frameCount % 30 === 0) {
+        document.getElementById('fpsCounter').innerText = `${Math.round(frameRate())} FPS`;
+      }
+    }
+
+    function mouseDragged() {
+      // Pan tunnel offset with mouse/touch dragging
+      if (event.target.tagName === 'CANVAS') {
+        params.offsetX -= (mouseX - pmouseX) * 0.002;
+        params.offsetY += (mouseY - pmouseY) * 0.002;
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    // Interactive UI Handlers
+    function initUI() {
+      const p1Input = document.getElementById('p1');
+      const p2Input = document.getElementById('p2');
+      const p3Input = document.getElementById('p3');
+      const p4Input = document.getElementById('p4');
+      const p5Input = document.getElementById('p5');
+      const p5DynamicInput = document.getElementById('p5Dynamic');
+      const p6Input = document.getElementById('p6');
+      const p7Input = document.getElementById('p7');
+      const p8Input = document.getElementById('p8');
+
+      // Bind slider inputs
+      p1Input.addEventListener('input', (e) => {
+        params.p1 = parseFloat(e.target.value);
+        document.getElementById('p1Val').innerText = params.p1.toFixed(2);
+      });
+
+      p2Input.addEventListener('input', (e) => {
+        params.p2 = parseFloat(e.target.value);
+        document.getElementById('p2Val').innerText = params.p2.toFixed(1);
+      });
+
+      p3Input.addEventListener('input', (e) => {
+        params.p3 = parseFloat(e.target.value);
+        document.getElementById('p3Val').innerText = params.p3.toFixed(2);
+      });
+
+      p4Input.addEventListener('input', (e) => {
+        params.p4 = parseFloat(e.target.value);
+        document.getElementById('p4Val').innerText = params.p4.toFixed(2);
+      });
+
+      p5Input.addEventListener('input', (e) => {
+        params.p5 = parseFloat(e.target.value);
+        document.getElementById('p5Val').innerText = params.p5.toFixed(1);
+      });
+
+      p5DynamicInput.addEventListener('change', (e) => {
+        params.p5Dynamic = e.target.checked;
+        p5Input.disabled = params.p5Dynamic;
+        document.getElementById('p5Label').innerText = params.p5Dynamic ? "Dynamic Pulse" : "Manual Sharpness";
+      });
+
+      p6Input.addEventListener('input', (e) => {
+        params.p6 = parseFloat(e.target.value);
+        document.getElementById('p6Val').innerText = params.p6.toFixed(2);
+      });
+
+      p7Input.addEventListener('input', (e) => {
+        params.p7 = parseFloat(e.target.value);
+        document.getElementById('p7Val').innerText = params.p7.toFixed(2);
+      });
+
+      p8Input.addEventListener('input', (e) => {
+        params.p8 = parseFloat(e.target.value);
+        document.getElementById('p8Val').innerText = params.p8.toFixed(2);
+      });
+
+      // Presets
+      const presetsContainer = document.getElementById('presetsContainer');
+      presets.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] py-1.5 px-2 rounded-lg border border-slate-700/60 truncate transition';
+        btn.innerText = p.name;
+        btn.onclick = () => applyPreset(p);
+        presetsContainer.appendChild(btn);
+      });
+
+      // Pause/Play Toggle
+      const pauseBtn = document.getElementById('pauseBtn');
+      pauseBtn.onclick = () => {
+        params.isPaused = !params.isPaused;
+        pauseBtn.innerHTML = params.isPaused 
+          ? `<i class="fa-solid fa-play text-purple-400"></i> <span>Resume</span>` 
+          : `<i class="fa-solid fa-pause text-purple-400"></i> <span>Pause Animation</span>`;
+      };
+
+      // Screenshot Capture
+      document.getElementById('screenshotBtn').onclick = () => {
+        saveCanvas('star-tunnel-' + Date.now(), 'png');
+      };
+
+      // Control Panel Toggle
+      const controlPanel = document.getElementById('controlPanel');
+      document.getElementById('toggleControlsBtn').onclick = () => {
+        controlPanel.classList.toggle('hidden');
+      };
+
+      // Fullscreen Toggle
+      document.getElementById('fullscreenBtn').onclick = () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      };
+
+      // Reset Defaults
+      document.getElementById('resetDefaultsBtn').onclick = () => {
+        applyPreset(presets[0]);
+      };
+    }
+
+    function applyPreset(p) {
+      params.p1 = p.p1;
+      params.p2 = p.p2;
+      params.p3 = p.p3;
+      params.p4 = p.p4;
+      params.p6 = p.p6;
+      params.p7 = p.p7;
+      params.p8 = p.p8;
+      params.p5Dynamic = p.p5Dynamic;
+
+      document.getElementById('p1').value = p.p1;
+      document.getElementById('p1Val').innerText = p.p1.toFixed(2);
+
+      document.getElementById('p2').value = p.p2;
+      document.getElementById('p2Val').innerText = p.p2.toFixed(1);
+
+      document.getElementById('p3').value = p.p3;
+      document.getElementById('p3Val').innerText = p.p3.toFixed(2);
+
+      document.getElementById('p4').value = p.p4;
+      document.getElementById('p4Val').innerText = p.p4.toFixed(2);
+
+      document.getElementById('p6').value = p.p6;
+      document.getElementById('p6Val').innerText = p.p6.toFixed(2);
+
+      document.getElementById('p7').value = p.p7;
+      document.getElementById('p7Val').innerText = p.p7.toFixed(2);
+
+      document.getElementById('p8').value = p.p8;
+      document.getElementById('p8Val').innerText = p.p8.toFixed(2);
+
+      document.getElementById('p5Dynamic').checked = p.p5Dynamic;
+      document.getElementById('p5').disabled = p.p5Dynamic;
+      document.getElementById('p5Label').innerText = p.p5Dynamic ? "Dynamic Pulse" : "Manual Sharpness";
+
+      if (!p.p5Dynamic && p.p5 !== undefined) {
+        params.p5 = p.p5;
+        document.getElementById('p5').value = p.p5;
+        document.getElementById('p5Val').innerText = p.p5.toFixed(1);
+      }
+    }
+  </script>
+</body>
+</html>
