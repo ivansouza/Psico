@@ -42,6 +42,9 @@
 </head>
 <body class="select-none">
 
+  <!-- Hidden File Input -->
+  <input type="file" id="imgInput" accept="image/*" class="hidden">
+
   <!-- HUD Overlay -->
   <div class="relative z-10 flex flex-col h-screen pointer-events-none p-4 justify-between">
     
@@ -51,7 +54,7 @@
         <i class="fa-solid font-bold fa-meteor text-purple-400 text-xl"></i>
         <div>
           <h1 class="text-sm font-bold tracking-wide text-gray-100">Star Tunnel Studio</h1>
-          <p class="text-xs text-slate-400">Interactive Generative Shader</p>
+          <p class="text-xs text-slate-400">Image Sampling & Shader Synthesis</p>
         </div>
       </div>
 
@@ -77,6 +80,34 @@
         </button>
       </div>
 
+      <!-- Custom Image Texture Section -->
+      <div class="bg-slate-800/60 border border-purple-500/30 p-3 rounded-xl flex flex-col gap-2.5">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-image"></i> Custom Image Colors
+          </span>
+          <span id="imgStatus" class="text-[10px] text-slate-400">Default Texture</span>
+        </div>
+        
+        <div class="flex gap-2">
+          <button id="uploadImgBtn" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition shadow-sm">
+            <i class="fa-solid fa-upload"></i> Upload Image
+          </button>
+          <button id="clearImgBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-2 px-3 rounded-lg transition hidden">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Image Color Mix Slider -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-300">Image Color Blend</span>
+            <span id="textureMixVal" class="text-purple-400 font-mono">0.00</span>
+          </div>
+          <input type="range" id="textureMix" min="0" max="1" step="0.05" value="0" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+      </div>
+
       <!-- Presets Selector -->
       <div>
         <label class="text-xs text-slate-400 mb-1.5 block">Presets</label>
@@ -86,7 +117,7 @@
       </div>
 
       <!-- Main Sliders -->
-      <div class="space-y-3.5">
+      <div class="space-y-3">
         
         <!-- P1: Speed -->
         <div>
@@ -153,7 +184,7 @@
         <!-- P7: Color Density -->
         <div>
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-slate-300 font-medium">Color Spectrum (P7)</span>
+            <span class="text-slate-300 font-medium">Palette Frequency (P7)</span>
             <span id="p7Val" class="text-purple-400 font-mono">0.73</span>
           </div>
           <input type="range" id="p7" min="0" max="3" step="0.01" value="0.73" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
@@ -173,7 +204,7 @@
       <!-- Action Buttons -->
       <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
         <button id="pauseBtn" class="bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded-xl flex items-center justify-center gap-1.5 transition border border-slate-700">
-          <i class="fa-solid fa-pause text-purple-400"></i> <span>Pause Animation</span>
+          <i class="fa-solid fa-pause text-purple-400"></i> <span>Pause</span>
         </button>
         <button id="screenshotBtn" class="bg-purple-600 hover:bg-purple-500 text-xs py-2 rounded-xl flex items-center justify-center gap-1.5 transition text-white font-medium shadow-md shadow-purple-600/30">
           <i class="fa-solid fa-camera"></i> Capture Image
@@ -185,7 +216,7 @@
     <!-- Bottom Controls & Hints -->
     <div class="flex justify-between items-end w-full pointer-events-auto">
       <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-slate-400 shadow-lg hidden sm:block">
-        <i class="fa-solid fa-mouse text-purple-400 mr-1"></i> Drag to move camera offset • Click canvas to toggle UI
+        <i class="fa-solid fa-mouse text-purple-400 mr-1"></i> Drag canvas to pan camera offset
       </div>
       
       <div id="fpsCounter" class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs font-mono text-purple-400 shadow-lg">
@@ -196,7 +227,7 @@
   </div>
 
   <script>
-    // State management
+    // App State
     const params = {
       p1: -1.8,
       p2: 9.0,
@@ -207,13 +238,14 @@
       p6: 5.3,
       p7: 0.73,
       p8: 5.0,
+      textureMix: 0.0,
       isPaused: false,
       offsetX: 0.0,
       offsetY: 0.0
     };
 
     const presets = [
-      { name: "Default", p1: -1.8, p2: 9.0, p3: 1.0, p4: 0.2, p5Dynamic: true, p6: 5.3, p7: 0.73, p8: 5.0 },
+      { name: "Default", p1: -1.8, p2: 9.0, p3: 1.0, p4: 0.2, p5Dynamic: true, p6: 5.3, p7: 0.73, p8: 5.0, textureMix: 0.0 },
       { name: "Hyperspace", p1: -4.5, p2: 16.0, p3: 0.5, p4: 0.8, p5Dynamic: false, p5: 15, p6: 12.0, p7: 0.35, p8: 8.0 },
       { name: "Nebula Pulse", p1: 0.8, p2: 6.0, p3: 2.5, p4: 0.1, p5Dynamic: true, p6: 2.0, p7: 1.85, p8: 6.5 },
       { name: "Cosmic Portal", p1: -2.2, p2: 18.0, p3: 1.8, p4: 0.3, p5Dynamic: false, p5: 80, p6: 8.0, p7: 1.25, p8: 4.5 },
@@ -224,6 +256,8 @@
     let shaderProgram;
     let accumulatedTime = 0;
     let lastTime = 0;
+    let userTexture = null;
+    let defaultTexture = null;
 
     // Vertex Shader
     const vShader = `precision mediump float;
@@ -244,6 +278,9 @@ varying vec2 vTexCoord;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec2 u_offset;
+uniform sampler2D u_texture;
+uniform float u_textureMix;
+
 uniform float u_p1; uniform float u_p2; uniform float u_p3; uniform float u_p4;
 uniform float u_p5; uniform float u_p6; uniform float u_p7; uniform float u_p8;
 
@@ -283,7 +320,17 @@ vec3 starTunnelScene(vec2 uv) {
   
   float star = exp(-length(localPosition) * u_p5); 
   float twinkle = 0.5 + 0.5 * sin(timeValue * u_p6 + seed * TAU); 
-  vec3 starColor = palette(seed * u_p7 + depth * 0.03); 
+  
+  // Sample custom image texture across polar tunnel mapping
+  vec2 imgUv = vec2(angle / TAU + 0.5, fract(depth * u_p3 * 0.08 - timeValue * 0.05));
+  vec3 sampledImageColor = texture2D(u_texture, imgUv).rgb * 1.4;
+
+  // Procedural Cosine Palette
+  vec3 proceduralColor = palette(seed * u_p7 + depth * 0.03); 
+
+  // Blend between procedural palette and custom uploaded image colors
+  vec3 starColor = mix(proceduralColor, sampledImageColor, u_textureMix);
+  
   float centerFade = smoothstep(0.0, 0.05, radius); 
   
   return starColor * star * twinkle * u_p8 * centerFade; 
@@ -301,9 +348,24 @@ void main() {
       createCanvas(windowWidth, windowHeight, WEBGL);
       pixelDensity(1);
       shaderProgram = createShader(vShader, fShader);
+      
+      // Generate vibrant default fallback texture
+      defaultTexture = createGraphics(512, 512);
+      defaultTexture.background(10, 15, 30);
+      for(let i = 0; i < 80; i++) {
+        defaultTexture.noStroke();
+        defaultTexture.fill(
+          random(100, 255), 
+          random(50, 220), 
+          random(150, 255), 
+          random(180, 255)
+        );
+        defaultTexture.ellipse(random(512), random(512), random(40, 160));
+      }
+      userTexture = defaultTexture;
+
       noStroke();
       lastTime = millis() / 1000.0;
-      
       initUI();
     }
 
@@ -321,6 +383,12 @@ void main() {
       shaderProgram.setUniform('u_resolution', [width, height]);
       shaderProgram.setUniform('u_time', accumulatedTime);
       shaderProgram.setUniform('u_offset', [params.offsetX, params.offsetY]);
+      
+      // Bind active image texture
+      if (userTexture) {
+        shaderProgram.setUniform('u_texture', userTexture);
+      }
+      shaderProgram.setUniform('u_textureMix', params.textureMix);
 
       // Calculate dynamic P5 if toggled
       let currentP5 = params.p5;
@@ -341,20 +409,17 @@ void main() {
 
       rect(-width / 2, -height / 2, width, height);
 
-      // Smooth camera pan decay back to center if mouse is released
       if (!mouseIsPressed) {
         params.offsetX *= 0.95;
         params.offsetY *= 0.95;
       }
 
-      // Update FPS UI periodically
       if (frameCount % 30 === 0) {
         document.getElementById('fpsCounter').innerText = `${Math.round(frameRate())} FPS`;
       }
     }
 
     function mouseDragged() {
-      // Pan tunnel offset with mouse/touch dragging
       if (event.target.tagName === 'CANVAS') {
         params.offsetX -= (mouseX - pmouseX) * 0.002;
         params.offsetY += (mouseY - pmouseY) * 0.002;
@@ -365,66 +430,100 @@ void main() {
       resizeCanvas(windowWidth, windowHeight);
     }
 
-    // Interactive UI Handlers
+    // Interactive UI Setup
     function initUI() {
-      const p1Input = document.getElementById('p1');
-      const p2Input = document.getElementById('p2');
-      const p3Input = document.getElementById('p3');
-      const p4Input = document.getElementById('p4');
-      const p5Input = document.getElementById('p5');
-      const p5DynamicInput = document.getElementById('p5Dynamic');
-      const p6Input = document.getElementById('p6');
-      const p7Input = document.getElementById('p7');
-      const p8Input = document.getElementById('p8');
+      const imgInput = document.getElementById('imgInput');
+      const uploadImgBtn = document.getElementById('uploadImgBtn');
+      const clearImgBtn = document.getElementById('clearImgBtn');
+      const imgStatus = document.getElementById('imgStatus');
+      const textureMix = document.getElementById('textureMix');
 
-      // Bind slider inputs
-      p1Input.addEventListener('input', (e) => {
+      // Upload Image Event Handlers
+      uploadImgBtn.onclick = () => imgInput.click();
+
+      imgInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            loadImage(event.target.result, (loadedImg) => {
+              userTexture = loadedImg;
+              params.textureMix = 1.0;
+              textureMix.value = 1.0;
+              document.getElementById('textureMixVal').innerText = "1.00";
+              imgStatus.innerText = "Custom Image Loaded";
+              imgStatus.className = "text-[10px] text-purple-400 font-bold";
+              clearImgBtn.classList.remove('hidden');
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      clearImgBtn.onclick = () => {
+        userTexture = defaultTexture;
+        params.textureMix = 0.0;
+        textureMix.value = 0.0;
+        document.getElementById('textureMixVal').innerText = "0.00";
+        imgStatus.innerText = "Default Texture";
+        imgStatus.className = "text-[10px] text-slate-400";
+        clearImgBtn.classList.add('hidden');
+        imgInput.value = "";
+      };
+
+      textureMix.addEventListener('input', (e) => {
+        params.textureMix = parseFloat(e.target.value);
+        document.getElementById('textureMixVal').innerText = params.textureMix.toFixed(2);
+      });
+
+      // Bind Parameter Sliders
+      document.getElementById('p1').addEventListener('input', (e) => {
         params.p1 = parseFloat(e.target.value);
         document.getElementById('p1Val').innerText = params.p1.toFixed(2);
       });
 
-      p2Input.addEventListener('input', (e) => {
+      document.getElementById('p2').addEventListener('input', (e) => {
         params.p2 = parseFloat(e.target.value);
         document.getElementById('p2Val').innerText = params.p2.toFixed(1);
       });
 
-      p3Input.addEventListener('input', (e) => {
+      document.getElementById('p3').addEventListener('input', (e) => {
         params.p3 = parseFloat(e.target.value);
         document.getElementById('p3Val').innerText = params.p3.toFixed(2);
       });
 
-      p4Input.addEventListener('input', (e) => {
+      document.getElementById('p4').addEventListener('input', (e) => {
         params.p4 = parseFloat(e.target.value);
         document.getElementById('p4Val').innerText = params.p4.toFixed(2);
       });
 
-      p5Input.addEventListener('input', (e) => {
+      document.getElementById('p5').addEventListener('input', (e) => {
         params.p5 = parseFloat(e.target.value);
         document.getElementById('p5Val').innerText = params.p5.toFixed(1);
       });
 
-      p5DynamicInput.addEventListener('change', (e) => {
+      document.getElementById('p5Dynamic').addEventListener('change', (e) => {
         params.p5Dynamic = e.target.checked;
-        p5Input.disabled = params.p5Dynamic;
+        document.getElementById('p5').disabled = params.p5Dynamic;
         document.getElementById('p5Label').innerText = params.p5Dynamic ? "Dynamic Pulse" : "Manual Sharpness";
       });
 
-      p6Input.addEventListener('input', (e) => {
+      document.getElementById('p6').addEventListener('input', (e) => {
         params.p6 = parseFloat(e.target.value);
         document.getElementById('p6Val').innerText = params.p6.toFixed(2);
       });
 
-      p7Input.addEventListener('input', (e) => {
+      document.getElementById('p7').addEventListener('input', (e) => {
         params.p7 = parseFloat(e.target.value);
         document.getElementById('p7Val').innerText = params.p7.toFixed(2);
       });
 
-      p8Input.addEventListener('input', (e) => {
+      document.getElementById('p8').addEventListener('input', (e) => {
         params.p8 = parseFloat(e.target.value);
         document.getElementById('p8Val').innerText = params.p8.toFixed(2);
       });
 
-      // Presets
+      // Populate Presets
       const presetsContainer = document.getElementById('presetsContainer');
       presets.forEach(p => {
         const btn = document.createElement('button');
@@ -434,38 +533,31 @@ void main() {
         presetsContainer.appendChild(btn);
       });
 
-      // Pause/Play Toggle
+      // Control Actions
       const pauseBtn = document.getElementById('pauseBtn');
       pauseBtn.onclick = () => {
         params.isPaused = !params.isPaused;
         pauseBtn.innerHTML = params.isPaused 
           ? `<i class="fa-solid fa-play text-purple-400"></i> <span>Resume</span>` 
-          : `<i class="fa-solid fa-pause text-purple-400"></i> <span>Pause Animation</span>`;
+          : `<i class="fa-solid fa-pause text-purple-400"></i> <span>Pause</span>`;
       };
 
-      // Screenshot Capture
       document.getElementById('screenshotBtn').onclick = () => {
         saveCanvas('star-tunnel-' + Date.now(), 'png');
       };
 
-      // Control Panel Toggle
-      const controlPanel = document.getElementById('controlPanel');
       document.getElementById('toggleControlsBtn').onclick = () => {
-        controlPanel.classList.toggle('hidden');
+        document.getElementById('controlPanel').classList.toggle('hidden');
       };
 
-      // Fullscreen Toggle
       document.getElementById('fullscreenBtn').onclick = () => {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen();
         } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          }
+          if (document.exitFullscreen) document.exitFullscreen();
         }
       };
 
-      // Reset Defaults
       document.getElementById('resetDefaultsBtn').onclick = () => {
         applyPreset(presets[0]);
       };
@@ -480,6 +572,12 @@ void main() {
       params.p7 = p.p7;
       params.p8 = p.p8;
       params.p5Dynamic = p.p5Dynamic;
+
+      if (p.textureMix !== undefined) {
+        params.textureMix = p.textureMix;
+        document.getElementById('textureMix').value = p.textureMix;
+        document.getElementById('textureMixVal').innerText = p.textureMix.toFixed(2);
+      }
 
       document.getElementById('p1').value = p.p1;
       document.getElementById('p1Val').innerText = p.p1.toFixed(2);
