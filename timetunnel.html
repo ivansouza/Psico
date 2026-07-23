@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="h-full w-full overflow-hidden">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+ <title>Túnel Óptico - Listras Radiais Op-Art</title>
+ <!-- Tailwind CSS -->
+ <script src="https://cdn.tailwindcss.com"></script>
+ <!-- Lucide Icons -->
+ <script src="https://unpkg.com/lucide@latest"></script>
+ <!-- Three.js -->
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+ <style>
+ body {
+ margin: 0;
+ padding: 0;
+ background-color: #000000;
+ font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+ user-select: none;
+ -webkit-user-select: none;
+ }
+ canvas {
+ display: block;
+ width: 100vw;
+ height: 100vh;
+ }
+ .glass-panel {
+ background: rgba(15, 15, 20, 0.6);
+ backdrop-filter: blur(16px);
+ -webkit-backdrop-filter: blur(16px);
+ border: 1px solid rgba(255, 255, 255, 0.15);
+ }
+ input[type=range] {
+ accent-color: #ffffff;
+ }
+ </style>
+</head>
+<body class="h-full w-full overflow-hidden text-white">
+
+ <!-- Contentor do Canvas 3D -->
+ <div id="canvas-container" class="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"></div>
+
+ <!-- Interface Limpa (Apenas Ícones Flutuantes) -->
+ <div id="hud" class="relative z-10 flex justify-end p-4 md:p-6 pointer-events-none">
+ <div class="flex items-center space-x-2 pointer-events-auto">
+ <button id="btn-sound" class="glass-panel p-3 rounded-2xl hover:bg-white/20 transition-all text-gray-200 hover:text-white active:scale-95" title="Som">
+ <i data-lucide="volume-x" class="w-5 h-5"></i>
+ </button>
+ <button id="btn-config" class="glass-panel p-3 rounded-2xl hover:bg-white/20 transition-all text-gray-200 hover:text-white active:scale-95" title="Definições">
+ <i data-lucide="sliders" class="w-5 h-5"></i>
+ </button>
+ <button id="btn-fullscreen" class="glass-panel p-3 rounded-2xl hover:bg-white/20 transition-all text-gray-200 hover:text-white active:scale-95" title="Ecrã Inteiro">
+ <i data-lucide="maximize" class="w-5 h-5"></i>
+ </button>
+ </div>
+ </div>
+
+ <!-- Painel de Definições -->
+ <div id="settings-panel" class="fixed inset-0 z-20 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden pointer-events-auto">
+ <div class="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/20 shadow-2xl relative space-y-5">
+
+ <div class="flex justify-between items-center border-b border-white/10 pb-4">
+ <div class="flex items-center space-x-2">
+ <i data-lucide="settings" class="w-5 h-5 text-white"></i>
+ <h2 class="font-bold text-lg text-white">Ajustes das Listras Radiais</h2>
+ </div>
+ <button id="btn-close-config" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10">
+ <i data-lucide="x" class="w-5 h-5"></i>
+ </button>
+ </div>
+
+ <div class="space-y-4 text-sm font-sans">
+ <!-- Tipo de Padrão Óptico -->
+ <div>
+ <label class="text-gray-300 block mb-1.5 font-medium">Estilo de Padrão Óptico</label>
+ <select id="select-pattern" class="w-full bg-slate-900 border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none">
+ <option value="0">Puramente Radial (Raios Convergentes)</option>
+ <option value="1">Xadrez Radial (Radial Checkerboard)</option>
+ <option value="2">Grelha Híbrida Op-Art</option>
+ </select>
+ </div>
+
+ <!-- Esquema de Cores -->
+ <div>
+ <label class="text-gray-300 block mb-1.5 font-medium">Esquema de Cores</label>
+ <select id="select-mode" class="w-full bg-slate-900 border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none">
+ <option value="classic">Preto e Branco Op-Art (Original)</option>
+ <option value="inverted">Preto e Branco Invertido</option>
+ <option value="sepia" selected>Sépia Vintage / Fotográfico</option>
+ <option value="red">Vermelho e Preto Hipnótico</option>
+ <option value="cyan">Ciano e Preto Cibernético</option>
+ </select>
+ </div>
+
+ <!-- Número de Listras Radiais -->
+ <div>
+ <div class="flex justify-between mb-1">
+ <label class="text-gray-300">Densidade de Listras Radiais</label>
+ <span id="val-radials" class="text-white font-mono">152</span>
+ </div>
+ <input type="range" id="slider-radials" min="12" max="160" step="4" value="152" class="w-full">
+ </div>
+
+ <!-- Anéis de Profundidade (Intersecção) -->
+ <div>
+ <div class="flex justify-between mb-1">
+ <label class="text-gray-300">Anéis de Profundidade</label>
+ <span id="val-rings" class="text-white font-mono">30</span>
+ </div>
+ <input type="range" id="slider-rings" min="0" max="100" step="5" value="30" class="w-full">
+ </div>
+
+ <!-- Torção / Espiral -->
+ <div>
+ <div class="flex justify-between mb-1">
+ <label class="text-gray-300">Torção Espiral</label>
+ <span id="val-twist" class="text-white font-mono">0.3</span>
+ </div>
+ <input type="range" id="slider-twist" min="0.0" max="4.0" step="0.1" value="0.3" class="w-full">
+ </div>
+
+ <!-- Sombras e Profundidade 3D -->
+ <div>
+ <div class="flex justify-between mb-1">
+ <label class="text-gray-300">Sombras de Relevo 3D</label>
+ <span id="val-shadows" class="text-white font-mono">0.85</span>
+ </div>
+ <input type="range" id="slider-shadows" min="0.0" max="1.0" step="0.05" value="0.85" class="w-full">
+ </div>
+
+ <!-- Velocidade Cruzeiro -->
+ <div>
+ <div class="flex justify-between mb-1">
+ <label class="text-gray-300">Velocidade Cruzeiro</label>
+ <span id="val-speed" class="text-white font-mono">0.5</span>
+ </div>
+ <input type="range" id="slider-speed" min="0.2" max="3.0" step="0.1" value="0.5" class="w-full">
+ </div>
+ </div>
+
+ <button id="btn-apply-config" class="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-all">
+ Guardar e Fechar
+ </button>
+ </div>
+ </div>
+
+ <!-- Script Principal da Aplicação Three.js -->
+ <script>
+ // --- 1. ESTADO GLOBAL & CONFIGURAÇÕES ---
+ let scene, camera, renderer;
+ let tunnelMesh, tunnelCurve, tunnelMaterial;
+ let audioCtx, droneOsc, gainNode, isMuted = true;
+
+ let progress = 0;
+ let baseSpeed = 0.0015;
+ let currentSpeed = baseSpeed;
+ let targetSpeed = baseSpeed;
+ let isBoosting = false;
+
+ let mouseX = 0, mouseY = 0;
+ let targetMouseX = 0, targetMouseY = 0;
+
+ let params = {
+ speedMultiplier: 0.5,
+ radialCount: 152.0,
+ ringCount: 30.0,
+ twistAmount: 0.3,
+ shadowIntensity: 0.85,
+ patternType: 0, // 0: Radial, 1: Checkerboard, 2: Grelha Híbrida
+ colorMode: 'sepia'
+ };
+
+ const colorPalettes = {
+ classic: { colorA: new THREE.Color(0x000000), colorB: new THREE.Color(0xffffff) },
+ inverted: { colorA: new THREE.Color(0xffffff), colorB: new THREE.Color(0x000000) },
+ sepia: { colorA: new THREE.Color(0x1a120c), colorB: new THREE.Color(0xf4ebd9) },
+ red: { colorA: new THREE.Color(0x050000), colorB: new THREE.Color(0xff1a1a) },
+ cyan: { colorA: new THREE.Color(0x000a12), colorB: new THREE.Color(0x00f0ff) }
+ };
+
+ // --- 2. SHADER COM LISTRAS RADIAIS DE ALTA DENSIDADE ---
+ const TunnelVertexShader = `
+ varying vec2 vUv;
+ varying vec3 vNormal;
+ uniform float uTime;
+
+ void main() {
+ vUv = uv;
+ vNormal = normalize(normalMatrix * normal);
+
+ vec3 pos = position;
+
+ // Ondulação suave da curva do túnel
+ float wave = sin(pos.z * 0.04 + uTime * 1.5) * 2.0;
+ pos.x += wave;
+ pos.y += wave;
+
+ vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+ gl_Position = projectionMatrix * mvPosition;
+ }
+ `;
+
+ const TunnelFragmentShader = `
+ varying vec2 vUv;
+ varying vec3 vNormal;
+
+ uniform float uTime;
+ uniform float uRadialCount;
+ uniform float uRingCount;
+ uniform float uTwistAmount;
+ uniform float uShadowIntensity;
+ uniform int uPatternType;
+ uniform vec3 uColorA;
+ uniform vec3 uColorB;
+
+ void main() {
+ float angleTerm = vUv.x * uRadialCount * 6.28318530718;
+ float twistTerm = vUv.y * uTwistAmount * 6.28318530718;
+ float rotationTime = uTime * 1.5;
+
+ // Cálculo das listras radiais
+ float radialVal = sin(angleTerm + twistTerm + rotationTime);
+
+ // Cálculo dos anéis transversais
+ float ringVal = sin(vUv.y * uRingCount * 6.28318530718 - uTime * 3.0);
+
+ float combinedPattern = radialVal;
+
+ if (uPatternType == 1) {
+ // Xadrez Radial (Radial Checkerboard)
+ combinedPattern = radialVal * ringVal;
+ } else if (uPatternType == 2) {
+ // Grelha Híbrida Op-Art
+ combinedPattern = max(radialVal, ringVal);
+ }
+
+ // Suavização anti-aliasing das bordas
+ float delta = fwidth(combinedPattern) * 1.5;
+ float stripe = smoothstep(-delta, delta, combinedPattern);
+
+ // Transição entre cores da paleta selecionada
+ vec3 baseColor = mix(uColorA, uColorB, stripe);
+
+ // Iluminação e Sombras 3D
+ vec3 normal = normalize(vNormal);
+ vec3 lightDir = normalize(vec3(-0.4, 0.8, 0.5));
+ float diff = max(dot(-normal, lightDir), 0.0);
+
+ float ambient = 0.35;
+ float shadow = mix(1.0, ambient + diff * 0.65, uShadowIntensity);
+
+ // Névoa suave na extremidade opaca do tubo
+ float depthFade = smoothstep(0.0, 0.04, vUv.y) * (1.0 - smoothstep(0.92, 1.0, vUv.y));
+
+ vec3 finalColor = baseColor * shadow * depthFade;
+
+ gl_FragColor = vec4(finalColor, 1.0);
+ }
+ `;
+
+ // --- 3. INICIALIZAÇÃO DA CENA 3D ---
+ function initScene() {
+ const container = document.getElementById('canvas-container');
+
+ scene = new THREE.Scene();
+ scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+ camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+ renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ container.appendChild(renderer.domElement);
+
+ // Trajetória do Vórtice 3D
+ const curvePoints = [];
+ for (let i = 0; i < 60; i++) {
+ const angle = (i / 60) * Math.PI * 2;
+ const radius = 120;
+ const x = Math.sin(angle) * radius + Math.sin(angle * 2.5) * 35;
+ const y = Math.cos(angle * 2) * 40;
+ const z = Math.cos(angle) * radius + Math.sin(angle * 2) * 35;
+ curvePoints.push(new THREE.Vector3(x, y, z));
+ }
+ tunnelCurve = new THREE.CatmullRomCurve3(curvePoints, true);
+
+ // Material do Shader Radial
+ const currentPalette = colorPalettes[params.colorMode];
+ tunnelMaterial = new THREE.ShaderMaterial({
+ vertexShader: TunnelVertexShader,
+ fragmentShader: TunnelFragmentShader,
+ uniforms: {
+ uTime: { value: 0 },
+ uRadialCount: { value: params.radialCount },
+ uRingCount: { value: params.ringCount },
+ uTwistAmount: { value: params.twistAmount },
+ uShadowIntensity: { value: params.shadowIntensity },
+ uPatternType: { value: params.patternType },
+ uColorA: { value: currentPalette.colorA },
+ uColorB: { value: currentPalette.colorB }
+ },
+ side: THREE.BackSide
+ });
+
+ // Geometria do Tubo Op-Art
+ const tubeGeometry = new THREE.TubeGeometry(tunnelCurve, 350, 12, 64, true);
+ tunnelMesh = new THREE.Mesh(tubeGeometry, tunnelMaterial);
+ scene.add(tunnelMesh);
+
+ // Event Listeners
+ window.addEventListener('resize', onWindowResize);
+ window.addEventListener('mousemove', onMouseMove);
+ window.addEventListener('touchmove', onTouchMove, { passive: true });
+
+ window.addEventListener('mousedown', startBoost);
+ window.addEventListener('mouseup', endBoost);
+ window.addEventListener('touchstart', startBoost, { passive: true });
+ window.addEventListener('touchend', endBoost);
+
+ lucide.createIcons();
+ animate(0);
+ }
+
+ // --- 4. ÁUDIO SINTETIZADO BINAURAL ---
+ function initAudio() {
+ if (audioCtx) return;
+ try {
+ const AudioContext = window.AudioContext || window.webkitAudioContext;
+ audioCtx = new AudioContext();
+
+ droneOsc = audioCtx.createOscillator();
+ droneOsc.type = 'sine';
+ droneOsc.frequency.setValueAtTime(65, audioCtx.currentTime);
+
+ const filter = audioCtx.createBiquadFilter();
+ filter.type = 'lowpass';
+ filter.frequency.setValueAtTime(220, audioCtx.currentTime);
+
+ gainNode = audioCtx.createGain();
+ gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+
+ droneOsc.connect(filter);
+ filter.connect(gainNode);
+ gainNode.connect(audioCtx.destination);
+
+ droneOsc.start();
+ } catch (e) {
+ console.warn("Áudio não suportado neste navegador.");
+ }
+ }
+
+ function toggleSound() {
+ if (!audioCtx) initAudio();
+ if (audioCtx && audioCtx.state === 'suspended') {
+ audioCtx.resume();
+ }
+
+ isMuted = !isMuted;
+ const btnSound = document.getElementById('btn-sound');
+
+ if (isMuted) {
+ gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+ btnSound.innerHTML = `<i data-lucide="volume-x" class="w-5 h-5"></i>`;
+ } else {
+ gainNode.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.3);
+ btnSound.innerHTML = `<i data-lucide="volume-2" class="w-5 h-5"></i>`;
+ }
+ lucide.createIcons();
+ }
+
+ // --- 5. INTERAÇÕES E CONTROLO DE NAVEGAÇÃO ---
+ function onMouseMove(event) {
+ targetMouseX = (event.clientX / window.innerWidth) * 2 - 1;
+ targetMouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+ }
+
+ function onTouchMove(event) {
+ if (event.touches.length > 0) {
+ targetMouseX = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+ targetMouseY = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+ }
+ }
+
+ function startBoost(e) {
+ if (e.target.closest('#hud') === null && e.target.closest('#settings-panel') !== null) return;
+ isBoosting = true;
+ if (droneOsc && !isMuted) {
+ droneOsc.frequency.setTargetAtTime(130, audioCtx.currentTime, 0.2);
+ }
+ }
+
+ function endBoost() {
+ isBoosting = false;
+ if (droneOsc && !isMuted) {
+ droneOsc.frequency.setTargetAtTime(65, audioCtx.currentTime, 0.2);
+ }
+ }
+
+ function onWindowResize() {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ }
+
+ // --- 6. LOOP DE ANIMAÇÃO 3D (60 FPS) ---
+ let lastTime = 0;
+
+ function animate(time) {
+ requestAnimationFrame(animate);
+
+ lastTime = time;
+
+ mouseX += (targetMouseX - mouseX) * 0.05;
+ mouseY += (targetMouseY - mouseY) * 0.05;
+
+ const targetSpeedMult = isBoosting ? 4.0 : params.speedMultiplier;
+ targetSpeed = baseSpeed * targetSpeedMult;
+ currentSpeed += (targetSpeed - currentSpeed) * 0.05;
+
+ progress = (progress + currentSpeed) % 1;
+
+ const currentPoint = tunnelCurve.getPointAt(progress);
+ const lookAtPoint = tunnelCurve.getPointAt((progress + 0.02) % 1);
+
+ camera.position.copy(currentPoint);
+
+ const cameraOffset = new THREE.Vector3(mouseX * 3.5, mouseY * 3.5, 0);
+ cameraOffset.applyQuaternion(camera.quaternion);
+ camera.position.add(cameraOffset);
+
+ camera.lookAt(lookAtPoint);
+
+ const targetFov = isBoosting ? 92 : 75;
+ camera.fov += (targetFov - camera.fov) * 0.05;
+ camera.updateProjectionMatrix();
+
+ tunnelMaterial.uniforms.uTime.value = time * 0.001;
+
+ renderer.render(scene, camera);
+ }
+
+ // --- 7. GESTÃO DA INTERFACE E PAINEL ---
+ document.addEventListener('DOMContentLoaded', () => {
+ initScene();
+
+ document.getElementById('btn-sound').addEventListener('click', toggleSound);
+
+ const settingsPanel = document.getElementById('settings-panel');
+ document.getElementById('btn-config').addEventListener('click', () => {
+ settingsPanel.classList.remove('hidden');
+ });
+
+ document.getElementById('btn-close-config').addEventListener('click', () => {
+ settingsPanel.classList.add('hidden');
+ });
+
+ document.getElementById('btn-apply-config').addEventListener('click', () => {
+ settingsPanel.classList.add('hidden');
+ });
+
+ document.getElementById('btn-fullscreen').addEventListener('click', () => {
+ if (!document.fullscreenElement) {
+ document.documentElement.requestFullscreen();
+ } else {
+ if (document.exitFullscreen) {
+ document.exitFullscreen();
+ }
+ }
+ });
+
+ // Sliders e Seletores
+ document.getElementById('select-pattern').addEventListener('change', (e) => {
+ params.patternType = parseInt(e.target.value);
+ tunnelMaterial.uniforms.uPatternType.value = params.patternType;
+ });
+
+ document.getElementById('select-mode').addEventListener('change', (e) => {
+ params.colorMode = e.target.value;
+ const palette = colorPalettes[params.colorMode];
+ tunnelMaterial.uniforms.uColorA.value = palette.colorA;
+ tunnelMaterial.uniforms.uColorB.value = palette.colorB;
+ });
+
+ document.getElementById('slider-radials').addEventListener('input', (e) => {
+ params.radialCount = parseFloat(e.target.value);
+ tunnelMaterial.uniforms.uRadialCount.value = params.radialCount;
+ document.getElementById('val-radials').innerText = params.radialCount;
+ });
+
+ document.getElementById('slider-rings').addEventListener('input', (e) => {
+ params.ringCount = parseFloat(e.target.value);
+ tunnelMaterial.uniforms.uRingCount.value = params.ringCount;
+ document.getElementById('val-rings').innerText = params.ringCount;
+ });
+
+ document.getElementById('slider-twist').addEventListener('input', (e) => {
+ params.twistAmount = parseFloat(e.target.value);
+ tunnelMaterial.uniforms.uTwistAmount.value = params.twistAmount;
+ document.getElementById('val-twist').innerText = params.twistAmount.toFixed(1);
+ });
+
+ document.getElementById('slider-shadows').addEventListener('input', (e) => {
+ params.shadowIntensity = parseFloat(e.target.value);
+ tunnelMaterial.uniforms.uShadowIntensity.value = params.shadowIntensity;
+ document.getElementById('val-shadows').innerText = params.shadowIntensity.toFixed(2);
+ });
+
+ document.getElementById('slider-speed').addEventListener('input', (e) => {
+ params.speedMultiplier = parseFloat(e.target.value);
+ document.getElementById('val-speed').innerText = params.speedMultiplier.toFixed(1);
+ });
+ });
+ </script>
+</body>
+</html>
