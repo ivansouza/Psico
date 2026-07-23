@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Efeito Glitch de Retrato • Three.js</title>
+ <style>
+ * { margin: 0; padding: 0; box-sizing: border-box; }
+ body {
+ overflow: hidden;
+ background: #08080a;
+ font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+ color: #fff;
+ user-select: none;
+ }
+ canvas { display: block; width: 100vw; height: 100vh; }
+
+ /* Indicador de Gravação */
+ #rec-indicator {
+ position: fixed;
+ top: 20px;
+ left: 20px;
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ background: rgba(20, 10, 15, 0.85);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ border: 1px solid rgba(255, 50, 80, 0.4);
+ border-radius: 30px;
+ padding: 8px 16px;
+ z-index: 120;
+ opacity: 0;
+ pointer-events: none;
+ transform: translateY(-10px);
+ transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+ box-shadow: 0 0 20px rgba(255, 0, 80, 0.3);
+ }
+
+ #rec-indicator.active {
+ opacity: 1;
+ pointer-events: all;
+ transform: translateY(0);
+ }
+
+ .rec-dot {
+ width: 12px;
+ height: 12px;
+ background-color: #ff0055;
+ border-radius: 50%;
+ animation: pulse-red 1.2s infinite;
+ }
+
+ @keyframes pulse-red {
+ 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.7); }
+ 70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(255, 0, 85, 0); }
+ 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 85, 0); }
+ }
+
+ #rec-timer {
+ font-size: 13px;
+ font-weight: 700;
+ letter-spacing: 1px;
+ color: #fff;
+ font-mono: monospace;
+ }
+
+ /* Botão de Engrenagem (Topo Direito) */
+ #gear-btn {
+ position: fixed;
+ top: 20px;
+ right: 20px;
+ width: 44px;
+ height: 44px;
+ border-radius: 50%;
+ background: rgba(12, 12, 18, 0.75);
+ backdrop-filter: blur(16px);
+ -webkit-backdrop-filter: blur(16px);
+ border: 1px solid rgba(255, 255, 255, 0.18);
+ color: #fff;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ z-index: 150;
+ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+ transition: all 0.3s ease;
+ }
+
+ #gear-btn:hover {
+ background: rgba(0, 229, 255, 0.25);
+ border-color: rgba(0, 229, 255, 0.6);
+ transform: rotate(45deg);
+ box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+ }
+
+ #gear-btn svg {
+ width: 22px;
+ height: 22px;
+ fill: none;
+ stroke: currentColor;
+ stroke-width: 2;
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ }
+
+ /* Painel de Definições Popover */
+ #ui-panel {
+ position: fixed;
+ top: 74px;
+ right: 20px;
+ width: 310px;
+ background: rgba(12, 12, 18, 0.88);
+ backdrop-filter: blur(20px);
+ -webkit-backdrop-filter: blur(20px);
+ border: 1px solid rgba(255, 255, 255, 0.14);
+ border-radius: 16px;
+ padding: 20px;
+ z-index: 140;
+ box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+ opacity: 0;
+ pointer-events: none;
+ transform: translateY(-12px) scale(0.96);
+ transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+ }
+
+ #ui-panel.open {
+ opacity: 1;
+ pointer-events: all;
+ transform: translateY(0) scale(1);
+ }
+
+ .panel-header {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ margin-bottom: 16px;
+ padding-bottom: 10px;
+ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+ }
+
+ .panel-header h3 {
+ font-size: 14px;
+ font-weight: 700;
+ letter-spacing: 0.5px;
+ color: #00e5ff;
+ text-transform: uppercase;
+ }
+
+ .ui-group {
+ margin-bottom: 14px;
+ }
+
+ label {
+ display: flex;
+ justify-content: space-between;
+ font-size: 11px;
+ font-weight: 600;
+ text-transform: uppercase;
+ letter-spacing: 0.8px;
+ color: rgba(255, 255, 255, 0.75);
+ margin-bottom: 6px;
+ }
+
+ input[type="range"] {
+ width: 100%;
+ height: 4px;
+ border-radius: 2px;
+ background: rgba(255, 255, 255, 0.2);
+ appearance: none;
+ outline: none;
+ }
+
+ input[type="range"]::-webkit-slider-thumb {
+ appearance: none;
+ width: 14px;
+ height: 14px;
+ border-radius: 50%;
+ background: #00e5ff;
+ cursor: pointer;
+ box-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+ }
+
+ .file-upload-btn {
+ display: block;
+ width: 100%;
+ text-align: center;
+ background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(255, 0, 128, 0.18));
+ border: 1px dashed rgba(255, 255, 255, 0.35);
+ padding: 10px;
+ border-radius: 8px;
+ color: #fff;
+ font-size: 12px;
+ font-weight: 600;
+ cursor: pointer;
+ transition: all 0.2s ease;
+ }
+
+ .file-upload-btn:hover {
+ background: linear-gradient(135deg, rgba(0, 229, 255, 0.35), rgba(255, 0, 128, 0.35));
+ border-color: rgba(255, 255, 255, 0.8);
+ }
+
+ input[type="file"] { display: none; }
+
+ /* Secção do Gravador de Vídeo */
+ .video-section {
+ margin-top: 18px;
+ padding-top: 14px;
+ border-top: 1px solid rgba(255, 255, 255, 0.1);
+ }
+
+ .video-title {
+ font-size: 11px;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 0.8px;
+ color: #ff0077;
+ margin-bottom: 10px;
+ display: flex;
+ align-items: center;
+ gap: 6px;
+ }
+
+ .btn-record {
+ width: 100%;
+ padding: 10px;
+ border-radius: 8px;
+ border: none;
+ background: linear-gradient(135deg, #ff0055, #ff00aa);
+ color: #fff;
+ font-size: 12px;
+ font-weight: 700;
+ letter-spacing: 0.5px;
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 8px;
+ box-shadow: 0 4px 15px rgba(255, 0, 85, 0.4);
+ transition: all 0.2s ease;
+ }
+
+ .btn-record:hover {
+ transform: translateY(-1px);
+ box-shadow: 0 6px 20px rgba(255, 0, 85, 0.6);
+ }
+
+ .btn-record.recording {
+ background: linear-gradient(135deg, #222, #444);
+ box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+ }
+
+ .quick-rec-row {
+ display: flex;
+ gap: 8px;
+ margin-top: 8px;
+ }
+
+ .btn-quick-rec {
+ flex: 1;
+ padding: 6px;
+ border-radius: 6px;
+ border: 1px solid rgba(255, 255, 255, 0.15);
+ background: rgba(255, 255, 255, 0.06);
+ color: rgba(255, 255, 255, 0.85);
+ font-size: 11px;
+ font-weight: 600;
+ cursor: pointer;
+ transition: all 0.2s ease;
+ }
+
+ .btn-quick-rec:hover {
+ background: rgba(255, 255, 255, 0.18);
+ border-color: rgba(0, 229, 255, 0.5);
+ color: #fff;
+ }
+
+ /* Zona Drop */
+ #drop-zone {
+ position: fixed;
+ inset: 0;
+ background: rgba(0, 0, 0, 0.85);
+ backdrop-filter: blur(10px);
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ z-index: 200;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.25s ease;
+ border: 3px dashed rgba(0, 229, 255, 0.6);
+ margin: 20px;
+ border-radius: 20px;
+ }
+
+ #drop-zone.active {
+ opacity: 1;
+ pointer-events: all;
+ }
+
+ #drop-zone p {
+ font-size: 18px;
+ font-weight: 600;
+ letter-spacing: 1px;
+ color: #00e5ff;
+ }
+
+ #info {
+ position: fixed;
+ bottom: 16px;
+ left: 16px;
+ color: rgba(255,255,255,0.45);
+ font-size: 12px;
+ pointer-events: none;
+ z-index: 10;
+ }
+
+ .btn-reset {
+ background: transparent;
+ border: none;
+ color: rgba(255,255,255,0.5);
+ font-size: 11px;
+ cursor: pointer;
+ text-decoration: underline;
+ float: right;
+ }
+
+ .btn-reset:hover {
+ color: #00e5ff;
+ }
+ </style>
+</head>
+<body>
+ <div id="info">Glitch Portrait • Clique no ecrã para distorção instantânea</div>
+
+ <!-- Indicador de Gravação de Vídeo -->
+ <div id="rec-indicator">
+ <div class="rec-dot"></div>
+ <span id="rec-timer">00:00</span>
+ </div>
+
+ <!-- Botão da Engrenagem -->
+ <button id="gear-btn" title="Configurações">
+ <svg viewBox="0 0 24 24">
+ <circle cx="12" cy="12" r="3"></circle>
+ <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+ </svg>
+ </button>
+
+ <!-- Painel de Definições -->
+ <div id="ui-panel">
+ <div class="panel-header">
+ <h3>Configurações & Vídeo</h3>
+ </div>
+
+ <div class="ui-group">
+ <label for="file-input" class="file-upload-btn">
+ 📷 Carregar Imagem
+ </label>
+ <input type="file" id="file-input" accept="image/*">
+ </div>
+
+ <div class="ui-group">
+ <label>Intensidade Glitch <span id="val-intensity">1.0</span></label>
+ <input type="range" id="slider-intensity" min="0" max="3" step="0.1" value="1.0">
+ </div>
+
+ <div class="ui-group">
+ <label>Escala / Zoom <span id="val-scale">1.0</span></label>
+ <input type="range" id="slider-scale" min="0.5" max="2.0" step="0.05" value="1.0">
+ </div>
+
+ <div class="ui-group">
+ <label>Aberração RGB <span id="val-rgb">1.0</span></label>
+ <input type="range" id="slider-rgb" min="0" max="3" step="0.1" value="1.0">
+ </div>
+
+ <div class="video-section">
+ <div class="video-title">
+ <span>🎬 Exportar em Vídeo</span>
+ </div>
+ <button class="btn-record" id="btn-record-toggle">
+ <span id="rec-btn-icon">🔴</span> <span id="rec-btn-text">Iniciar Gravação</span>
+ </button>
+ <div class="quick-rec-row">
+ <button class="btn-quick-rec" id="btn-rec-5s">Clip 5s</button>
+ <button class="btn-quick-rec" id="btn-rec-10s">Clip 10s</button>
+ </div>
+ </div>
+
+ <div class="ui-group" style="margin-top: 14px;">
+ <button class="btn-reset" id="btn-reset-default">Restaurar Foto Padrão</button>
+ </div>
+ </div>
+
+ <!-- Zona Drop -->
+ <div id="drop-zone">
+ <p>Largue a sua imagem aqui para aplicar o efeito</p>
+ </div>
+
+ <script type="importmap">
+ {
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+ }
+ }
+ </script>
+
+ <script type="module">
+ import * as THREE from 'three';
+
+ // ──────────────────────────────────────────────
+ // 1. Criar Retrato Neon Procedural (Fallback)
+ // ──────────────────────────────────────────────
+ function createProceduralPortraitTexture() {
+ const size = 1024;
+ const canvas = document.createElement('canvas');
+ canvas.width = size;
+ canvas.height = size;
+ const ctx = canvas.getContext('2d');
+
+ ctx.fillStyle = '#050508';
+ ctx.fillRect(0, 0, size, size);
+
+ const cx = size / 2;
+ const cy = size / 2 - 40;
+
+ // Rosto
+ ctx.fillStyle = '#1c1518';
+ ctx.beginPath();
+ ctx.ellipse(cx, cy - 20, 190, 240, 0, 0, Math.PI * 2);
+ ctx.fill();
+
+ // Barba
+ ctx.fillStyle = '#121014';
+ ctx.beginPath();
+ ctx.ellipse(cx, cy + 90, 150, 130, 0, 0, Math.PI);
+ ctx.fill();
+
+ // Luz Azul Neon
+ const blueGrad = ctx.createRadialGradient(cx - 220, cy - 50, 20, cx - 100, cy, 320);
+ blueGrad.addColorStop(0, 'rgba(0, 180, 255, 0.95)');
+ blueGrad.addColorStop(0.5, 'rgba(0, 100, 220, 0.5)');
+ blueGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ ctx.fillStyle = blueGrad;
+ ctx.beginPath();
+ ctx.ellipse(cx - 40, cy, 220, 280, 0, 0, Math.PI * 2);
+ ctx.fill();
+
+ // Luz Vermelha Neon
+ const redGrad = ctx.createRadialGradient(cx + 220, cy - 50, 20, cx + 100, cy, 320);
+ redGrad.addColorStop(0, 'rgba(255, 20, 100, 0.95)');
+ redGrad.addColorStop(0.5, 'rgba(220, 0, 60, 0.5)');
+ redGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ ctx.fillStyle = redGrad;
+ ctx.beginPath();
+ ctx.ellipse(cx + 40, cy, 220, 280, 0, 0, Math.PI * 2);
+ ctx.fill();
+
+ // Óculos
+ ctx.strokeStyle = '#222';
+ ctx.lineWidth = 14;
+
+ ctx.beginPath();
+ ctx.roundRect(cx - 170, cy - 90, 130, 80, 12);
+ ctx.stroke();
+ ctx.fillStyle = 'rgba(0, 200, 255, 0.2)';
+ ctx.fill();
+
+ ctx.beginPath();
+ ctx.roundRect(cx + 40, cy - 90, 130, 80, 12);
+ ctx.stroke();
+ ctx.fillStyle = 'rgba(255, 30, 100, 0.2)';
+ ctx.fill();
+
+ ctx.beginPath();
+ ctx.moveTo(cx - 40, cy - 50);
+ ctx.lineTo(cx + 40, cy - 50);
+ ctx.stroke();
+
+ // Mão e relógio
+ ctx.fillStyle = '#221a20';
+ ctx.beginPath();
+ ctx.ellipse(cx, cy + 240, 120, 80, -0.2, 0, Math.PI * 2);
+ ctx.fill();
+
+ ctx.fillStyle = '#111';
+ ctx.beginPath();
+ ctx.ellipse(cx + 120, cy + 380, 50, 30, 0.4, 0, Math.PI * 2);
+ ctx.fill();
+
+ const texture = new THREE.CanvasTexture(canvas);
+ texture.minFilter = THREE.LinearFilter;
+ texture.magFilter = THREE.LinearFilter;
+ return texture;
+ }
+
+ // ──────────────────────────────────────────────
+ // 2. Setup do Three.js
+ // ──────────────────────────────────────────────
+ const scene = new THREE.Scene();
+ const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+ const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, preserveDrawingBuffer: true });
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ document.body.appendChild(renderer.domElement);
+
+ const textureLoader = new THREE.TextureLoader();
+ let currentTexture = createProceduralPortraitTexture();
+
+ // ──────────────────────────────────────────────
+ // 3. Shader Material do Glitch
+ // ──────────────────────────────────────────────
+ const uniforms = {
+ uTime: { value: 0 },
+ uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+ uTexture: { value: currentTexture },
+ uIntensity: { value: 1.0 },
+ uScale: { value: 1.0 },
+ uRgbShift: { value: 1.0 }
+ };
+
+ const material = new THREE.ShaderMaterial({
+ uniforms,
+ vertexShader: /* glsl */ `
+ varying vec2 vUv;
+ void main() {
+ vUv = uv;
+ gl_Position = vec4(position.xy, 0.0, 1.0);
+ }
+ `,
+ fragmentShader: /* glsl */ `
+ precision highp float;
+
+ uniform float uTime;
+ uniform vec2 uResolution;
+ uniform sampler2D uTexture;
+ uniform float uIntensity;
+ uniform float uScale;
+ uniform float uRgbShift;
+
+ varying vec2 vUv;
+
+ float random(float x) {
+ return fract(sin(x) * 43758.5453123);
+ }
+ float random2d(vec2 st) {
+ return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+ }
+
+ float noise(vec2 st) {
+ vec2 i = floor(st);
+ vec2 f = fract(st);
+ float a = random2d(i);
+ float b = random2d(i + vec2(1.0, 0.0));
+ float c = random2d(i + vec2(0.0, 1.0));
+ float d = random2d(i + vec2(1.0, 1.0));
+ vec2 u = f * f * (3.0 - 2.0 * f);
+ return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+ }
+
+ void main() {
+ vec2 uv = vUv;
+
+ float aspect = uResolution.x / uResolution.y;
+ vec2 texUv = uv;
+ texUv.x = (uv.x - 0.5) * (1.0 / uScale) + 0.5;
+ texUv.y = (uv.y - 0.5) * (1.0 / uScale) + 0.5;
+
+ float t = uTime;
+ float burst = step(0.91, random(floor(t * 2.8)));
+ float intensity = uIntensity * (0.6 + 0.4 * sin(t * 1.5) + burst * 1.7);
+
+ float band = floor(uv.y * (26.0 + 14.0 * intensity));
+ float bandRand = random(band + floor(t * 3.2));
+ float sliceShift = (bandRand - 0.5) * 0.055 * intensity;
+ sliceShift *= step(0.62, bandRand);
+
+ float wave = sin(uv.y * 45.0 + t * 8.0) * sin(t * 3.5);
+ wave = smoothstep(0.35, 0.85, wave) * 0.035 * intensity;
+
+ vec2 distortedUv = texUv + vec2(sliceShift + wave, 0.0);
+
+ float rgbAmount = (0.014 * intensity + burst * 0.028) * uRgbShift;
+
+ vec4 colR = texture2D(uTexture, distortedUv + vec2(rgbAmount * 1.4, 0.0));
+ vec4 colG = texture2D(uTexture, distortedUv);
+ vec4 colB = texture2D(uTexture, distortedUv - vec2(rgbAmount * 1.2, 0.0));
+
+ vec3 color = vec3(colR.r, colG.g, colB.b);
+
+ float grain = noise(uv * uResolution * 0.35 + t * 0.9) * 0.12;
+ float scan = sin(uv.y * uResolution.y * 1.3 + t * 4.5) * 0.04;
+ float bar = step(0.965, random(floor(uv.y * 70.0) + floor(t * 5.5))) * 0.25;
+
+ color -= grain;
+ color -= scan;
+ color += bar * vec3(0.1, 0.5, 0.8);
+
+ float block = step(0.982, random2d(floor(uv * vec2(45.0, 28.0)) + floor(t * 2.2)));
+ color += block * vec3(random(t * 1.1), random(t * 2.2), random(t * 3.3)) * 0.45 * intensity;
+
+ if (burst > 0.5 && random2d(floor(uv * 35.0) + t) > 0.72) {
+ color = mix(color, vec3(colG.g), 0.65);
+ }
+
+ float vig = 1.0 - smoothstep(0.35, 1.35, length(uv - 0.5) * 1.3);
+ color *= vig;
+
+ gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+ }
+ `
+ });
+
+ const geometry = new THREE.BufferGeometry();
+ geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3));
+ geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 0, 2, 0, 0, 2]), 2));
+
+ const mesh = new THREE.Mesh(geometry, material);
+ scene.add(mesh);
+
+ // ──────────────────────────────────────────────
+ // 4. Alternar Painel de Configurações (Engrenagem)
+ // ──────────────────────────────────────────────
+ const gearBtn = document.getElementById('gear-btn');
+ const uiPanel = document.getElementById('ui-panel');
+
+ gearBtn.addEventListener('click', (e) => {
+ e.stopPropagation();
+ uiPanel.classList.toggle('open');
+ });
+
+ // Fechar painel ao clicar fora dele
+ window.addEventListener('click', (e) => {
+ if (!uiPanel.contains(e.target) && !gearBtn.contains(e.target)) {
+ uiPanel.classList.remove('open');
+ }
+ });
+
+ // ──────────────────────────────────────────────
+ // 5. Gravador de Vídeo do Canvas
+ // ──────────────────────────────────────────────
+ let mediaRecorder = null;
+ let recordedChunks = [];
+ let isRecording = false;
+ let recordStartTime = 0;
+ let timerInterval = null;
+ let autoStopTimeout = null;
+
+ const recIndicator = document.getElementById('rec-indicator');
+ const recTimer = document.getElementById('rec-timer');
+ const recToggleBtn = document.getElementById('btn-record-toggle');
+ const recBtnIcon = document.getElementById('rec-btn-icon');
+ const recBtnText = document.getElementById('rec-btn-text');
+
+ function startRecording(durationSeconds = 0) {
+ if (isRecording) return;
+
+ const canvas = renderer.domElement;
+ const stream = canvas.captureStream(60);
+
+ const mimeTypes = [
+ 'video/webm;codecs=vp9',
+ 'video/webm;codecs=vp8',
+ 'video/webm',
+ 'video/mp4'
+ ];
+
+ let selectedType = '';
+ for (const type of mimeTypes) {
+ if (MediaRecorder.isTypeSupported(type)) {
+ selectedType = type;
+ break;
+ }
+ }
+
+ const options = selectedType ? { mimeType: selectedType } : {};
+
+ try {
+ mediaRecorder = new MediaRecorder(stream, options);
+ } catch (err) {
+ alert('Não foi possível iniciar a gravação de vídeo neste navegador.');
+ return;
+ }
+
+ recordedChunks = [];
+ mediaRecorder.ondataavailable = (e) => {
+ if (e.data && e.data.size > 0) {
+ recordedChunks.push(e.data);
+ }
+ };
+
+ mediaRecorder.onstop = () => {
+ clearInterval(timerInterval);
+ if (autoStopTimeout) clearTimeout(autoStopTimeout);
+
+ const blob = new Blob(recordedChunks, { type: selectedType || 'video/webm' });
+ if (blob.size === 0) return;
+
+ const url = URL.createObjectURL(blob);
+ const ext = selectedType.includes('mp4') ? 'mp4' : 'webm';
+
+ const a = document.createElement('a');
+ a.style.display = 'none';
+ a.href = url;
+ a.download = `glitch-portrait-${Date.now()}.${ext}`;
+ document.body.appendChild(a);
+ a.click();
+
+ setTimeout(() => {
+ document.body.removeChild(a);
+ window.URL.revokeObjectURL(url);
+ }, 500);
+
+ setRecordingState(false);
+ };
+
+ mediaRecorder.start(100);
+ isRecording = true;
+ recordStartTime = Date.now();
+ setRecordingState(true);
+
+ timerInterval = setInterval(() => {
+ const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+ const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+ const secs = String(elapsed % 60).padStart(2, '0');
+ recTimer.innerText = `${mins}:${secs}`;
+ }, 500);
+
+ if (durationSeconds > 0) {
+ autoStopTimeout = setTimeout(() => {
+ stopRecording();
+ }, durationSeconds * 1000);
+ }
+ }
+
+ function stopRecording() {
+ if (mediaRecorder && isRecording) {
+ mediaRecorder.stop();
+ isRecording = false;
+ }
+ }
+
+ function setRecordingState(active) {
+ if (active) {
+ recIndicator.classList.add('active');
+ recToggleBtn.classList.add('recording');
+ recBtnIcon.innerText = '⏹️';
+ recBtnText.innerText = 'Parar & Baixar Vídeo';
+ } else {
+ recIndicator.classList.remove('active');
+ recToggleBtn.classList.remove('recording');
+ recBtnIcon.innerText = '🔴';
+ recBtnText.innerText = 'Iniciar Gravação';
+ recTimer.innerText = '00:00';
+ }
+ }
+
+ recToggleBtn.addEventListener('click', () => {
+ if (isRecording) {
+ stopRecording();
+ } else {
+ startRecording(0);
+ }
+ });
+
+ document.getElementById('btn-rec-5s').addEventListener('click', () => startRecording(5));
+ document.getElementById('btn-rec-10s').addEventListener('click', () => startRecording(10));
+
+ // ──────────────────────────────────────────────
+ // 6. Carregamento de Ficheiros
+ // ──────────────────────────────────────────────
+ function loadTextureFromURL(url) {
+ textureLoader.load(url, (tex) => {
+ tex.minFilter = THREE.LinearFilter;
+ tex.magFilter = THREE.LinearFilter;
+ uniforms.uTexture.value = tex;
+ });
+ }
+
+ function handleImageFile(file) {
+ if (!file) return;
+ const reader = new FileReader();
+ reader.onload = (e) => {
+ loadTextureFromURL(e.target.result);
+ };
+ reader.readAsDataURL(file);
+ }
+
+ document.getElementById('file-input').addEventListener('change', (e) => {
+ if (e.target.files && e.target.files[0]) {
+ handleImageFile(e.target.files[0]);
+ }
+ });
+
+ const dropZone = document.getElementById('drop-zone');
+ window.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('active'); });
+ dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('active'); });
+ dropZone.addEventListener('drop', (e) => {
+ e.preventDefault();
+ dropZone.classList.remove('active');
+ if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+ handleImageFile(e.dataTransfer.files[0]);
+ }
+ });
+
+ document.getElementById('btn-reset-default').addEventListener('click', () => {
+ uniforms.uTexture.value = createProceduralPortraitTexture();
+ });
+
+ // Controlovos Sliders
+ document.getElementById('slider-intensity').addEventListener('input', (e) => {
+ const val = parseFloat(e.target.value);
+ uniforms.uIntensity.value = val;
+ document.getElementById('val-intensity').innerText = val.toFixed(1);
+ });
+
+ document.getElementById('slider-scale').addEventListener('input', (e) => {
+ const val = parseFloat(e.target.value);
+ uniforms.uScale.value = val;
+ document.getElementById('val-scale').innerText = val.toFixed(2);
+ });
+
+ document.getElementById('slider-rgb').addEventListener('input', (e) => {
+ const val = parseFloat(e.target.value);
+ uniforms.uRgbShift.value = val;
+ document.getElementById('val-rgb').innerText = val.toFixed(1);
+ });
+
+ // ──────────────────────────────────────────────
+ // 7. Redimensionamento e Animação
+ // ──────────────────────────────────────────────
+ function onResize() {
+ const w = window.innerWidth;
+ const h = window.innerHeight;
+ renderer.setSize(w, h);
+ uniforms.uResolution.value.set(w, h);
+ }
+ window.addEventListener('resize', onResize);
+
+ const clock = new THREE.Clock();
+
+ function animate() {
+ requestAnimationFrame(animate);
+ uniforms.uTime.value = clock.getElapsedTime();
+ renderer.render(scene, camera);
+ }
+ animate();
+
+ window.addEventListener('pointerdown', (e) => {
+ if (e.target.closest('#ui-panel') || e.target.closest('#gear-btn')) return;
+ const prev = uniforms.uIntensity.value;
+ uniforms.uIntensity.value = prev + 1.6;
+ setTimeout(() => { uniforms.uIntensity.value = prev; }, 350);
+ });
+ </script>
+</body>
+</html>
