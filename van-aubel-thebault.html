@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teorema de Van Aubel · 1º Problema de Thébault</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f0f6fc;
+    white-space: nowrap;
+  }
+  header h1 small {
+    font-weight: 400;
+    font-size: 12px;
+    color: #8b949e;
+    margin-left: 8px;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .toolbar button, .toolbar select {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .toolbar button:hover, .toolbar select:hover {
+    background: #30363d;
+  }
+  .toolbar button.active {
+    background: #1f6feb;
+    border-color: #1f6feb;
+    color: #fff;
+  }
+  .toolbar label {
+    font-size: 12px;
+    color: #8b949e;
+  }
+  #canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  #canvas-wrap canvas:active { cursor: grabbing; }
+  .panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(22,27,34,.92);
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    min-width: 200px;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+  .panel.visible { display: block; }
+  .panel h3 {
+    font-size: 13px;
+    color: #f0f6fc;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 6px;
+  }
+  .panel .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    font-size: 12px;
+  }
+  .panel .row .label { color: #8b949e; }
+  .panel .row .value { color: #e6edf3; font-family: 'JetBrains Mono', monospace; }
+  .status-bar {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(22,27,34,.85);
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .status-bar .ok { color: #3fb950; }
+  .status-bar .fail { color: #f85149; }
+  .status-bar .info { color: #8b949e; }
+  .hint {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    color: #484f58;
+    font-size: 11px;
+    text-align: right;
+    pointer-events: none;
+  }
+  @media (max-width: 700px) {
+    header h1 { font-size: 13px; }
+    header h1 small { display: none; }
+    .toolbar button, .toolbar select { font-size: 11px; padding: 4px 8px; }
+    .panel { right: 8px; top: 8px; min-width: 160px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Van Aubel <small>1º Problema de Thébault</small></h1>
+  <div class="toolbar">
+    <button id="btnProps" title="Propriedades">📐 Propriedades</button>
+    <button id="btnComplex" title="Números Complexos">🔢 N. Complexos</button>
+    <button id="btnFinsler" title="Modo Finsler-Hadwiger">🔷 Finsler-Hadwiger</button>
+    <select id="presetSelect">
+      <option value="convexo">Preset: Quadrilátero Convexo</option>
+      <option value="concavo">Preset: Quadrilátero Côncavo</option>
+      <option value="cruzado">Preset: Quadrilátero Cruzado</option>
+      <option value="paralelogramo">Preset: Paralelogramo (Thébault)</option>
+      <option value="trapezio">Preset: Trapézio</option>
+      <option value="pipa">Preset: Pipa / Deltoide</option>
+    </select>
+    <button id="btnReset" title="Resetar">🔄</button>
+  </div>
+</header>
+
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+
+  <div class="panel" id="panelProps">
+    <h3>📐 Propriedades</h3>
+    <div class="row"><span class="label">|PR| =</span><span class="value" id="valPR">—</span></div>
+    <div class="row"><span class="label">|QS| =</span><span class="value" id="valQS">—</span></div>
+    <div class="row"><span class="label">Ângulo PR⟂QS:</span><span class="value" id="valAngle">—</span></div>
+    <div style="margin-top:6px;border-top:1px solid #30363d;padding-top:6px">
+      <div class="row"><span class="label">Ortogonalidade:</span><span class="value" id="valOrtho">—</span></div>
+      <div class="row"><span class="label">Igualdade |PR|=|QS|:</span><span class="value" id="valEqual">—</span></div>
+      <div class="row"><span class="label">Quad. PQRS:</span><span class="value" id="valPQRS">—</span></div>
+    </div>
+    <div style="margin-top:6px;border-top:1px solid #30363d;padding-top:6px">
+      <div class="row"><span class="label">Lado PQ:</span><span class="value" id="valPQ">—</span></div>
+      <div class="row"><span class="label">Lado QR:</span><span class="value" id="valQR">—</span></div>
+      <div class="row"><span class="label">Lado RS:</span><span class="value" id="valRS">—</span></div>
+      <div class="row"><span class="label">Lado SP:</span><span class="value" id="valSP">—</span></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panelComplex">
+    <h3>🔢 Números Complexos</h3>
+    <div class="row"><span class="label">a =</span><span class="value" id="cmpA">—</span></div>
+    <div class="row"><span class="label">b =</span><span class="value" id="cmpB">—</span></div>
+    <div class="row"><span class="label">c =</span><span class="value" id="cmpC">—</span></div>
+    <div class="row"><span class="label">d =</span><span class="value" id="cmpD">—</span></div>
+    <div style="margin-top:4px;border-top:1px solid #30363d;padding-top:4px">
+      <div class="row"><span class="label">p = (a+ib)/2</span><span class="value" id="cmpP">—</span></div>
+      <div class="row"><span class="label">q = (b+ic)/2</span><span class="value" id="cmpQ">—</span></div>
+      <div class="row"><span class="label">r = (c+id)/2</span><span class="value" id="cmpR">—</span></div>
+      <div class="row"><span class="label">s = (d+ia)/2</span><span class="value" id="cmpS">—</span></div>
+    </div>
+    <div style="margin-top:4px;border-top:1px solid #30363d;padding-top:4px">
+      <div class="row"><span class="label">p−r =</span><span class="value" id="cmpPR">—</span></div>
+      <div class="row"><span class="label">q−s =</span><span class="value" id="cmpQS">—</span></div>
+      <div class="row"><span class="label">(p−r)·i =</span><span class="value" id="cmpPRi">—</span></div>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <span class="info">Arraste os vértices</span> <b>A, B, C, D</b> <span class="info">para explorar a invariância.</span>
+  </div>
+  <div class="hint">Inspirado por Ignacio Larrosa Cañestro · Van Aubel &amp; Thébault</div>
+</div>
+
+<script>
+// ============================================================
+//  Teorema de Van Aubel · 1º Problema de Thébault
+//  Geometria Dinâmica Interativa & Prova Visual
+// ============================================================
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// --- Painéis ---
+const panelProps = document.getElementById('panelProps');
+const panelComplex = document.getElementById('panelComplex');
+const btnProps = document.getElementById('btnProps');
+const btnComplex = document.getElementById('btnComplex');
+const btnFinsler = document.getElementById('btnFinsler');
+const btnReset = document.getElementById('btnReset');
+const presetSelect = document.getElementById('presetSelect');
+const statusBar = document.getElementById('statusBar');
+
+// --- Estado ---
+let W, H;
+let pts = []; // {x,y} A,B,C,D
+let dragIdx = -1;
+let showProps = true;
+let showComplex = false;
+let finslerMode = false;
+let scale = 1;
+let offsetX = 0, offsetY = 0;
+let isPanning = false;
+let panStartX, panStartY, panStartOffX, panStartOffY;
+
+// --- Presets ---
+const presets = {
+  convexo:   [{x:150,y:350},{x:450,y:380},{x:500,y:120},{x:200,y:100}],
+  concavo:   [{x:100,y:350},{x:500,y:300},{x:300,y:150},{x:150,y:100}],
+  cruzado:   [{x:100,y:100},{x:500,y:350},{x:100,y:350},{x:500,y:100}],
+  paralelogramo: [{x:150,y:350},{x:450,y:350},{x:500,y:100},{x:200,y:100}],
+  trapezio:  [{x:120,y:350},{x:480,y:350},{x:400,y:120},{x:200,y:120}],
+  pipa:      [{x:300,y:380},{x:500,y:200},{x:300,y:30},{x:100,y:200}]
+};
+
+function loadPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+  pts = p.map(pt => ({x: pt.x, y: pt.y}));
+  resetView();
+  draw();
+}
+
+// --- Utilitários ---
+function sub(a, b) { return {x: a.x-b.x, y: a.y-b.y}; }
+function add(a, b) { return {x: a.x+b.x, y: a.y+b.y}; }
+function scaleV(v, s) { return {x: v.x*s, y: v.y*s}; }
+function dot(a, b) { return a.x*b.x + a.y*b.y; }
+function cross(a, b) { return a.x*b.y - a.y*b.x; }
+function len(v) { return Math.hypot(v.x, v.y); }
+function normalize(v) { const l = len(v); return l===0 ? {x:0,y:0} : {x:v.x/l, y:v.y/l}; }
+function rot90(v) { return {x: -v.y, y: v.x}; } // rotate +90° (CCW)
+function rot90c(v) { return {x: v.y, y: -v.x}; } // rotate -90° (CW)
+function mid(a, b) { return {x: (a.x+b.x)/2, y: (a.y+b.y)/2}; }
+function angleBetween(a, b) {
+  const d = dot(a,b);
+  const c = cross(a,b);
+  return Math.atan2(c, d) * 180 / Math.PI;
+}
+
+// --- Centro do quadrado externo sobre segmento AB ---
+// Dado segmento AB, retorna o centro do quadrado construído externamente
+// (para fora do quadrilátero). "Para fora" = lado oposto ao centro do quadrilátero.
+function squareCenterOuter(A, B, center) {
+  const v = sub(B, A);
+  const m = mid(A, B);
+  // O centro do quadrado está a meia diagonal do ponto médio
+  // Vetor perpendicular (girado 90°)
+  const perp = rot90(v); // CCW = "para fora" dependendo da orientação
+  // Precisamos decidir direção: para fora do quadrilátero
+  const toCenter = sub(center, m);
+  // Se o produto escalar com perp for positivo, invertemos
+  if (dot(toCenter, perp) > 0) {
+    return {x: m.x - perp.x/2, y: m.y - perp.y/2};
+  }
+  return {x: m.x + perp.x/2, y: m.y + perp.y/2};
+}
+
+// Centro do quadrado "para dentro" (Finsler-Hadwiger)
+function squareCenterInner(A, B, center) {
+  const v = sub(B, A);
+  const m = mid(A, B);
+  const perp = rot90(v);
+  const toCenter = sub(center, m);
+  if (dot(toCenter, perp) > 0) {
+    return {x: m.x + perp.x/2, y: m.y + perp.y/2};
+  }
+  return {x: m.x - perp.x/2, y: m.y - perp.y/2};
+}
+
+// --- Cálculo dos centros dos quadrados ---
+function computeCenters(pts, inner=false) {
+  const ctr = {x: pts.reduce((s,p)=>s+p.x,0)/4, y: pts.reduce((s,p)=>s+p.y,0)/4};
+  const fn = inner ? squareCenterInner : squareCenterOuter;
+  return [
+    fn(pts[0], pts[1], ctr), // P
+    fn(pts[1], pts[2], ctr), // Q
+    fn(pts[2], pts[3], ctr), // R
+    fn(pts[3], pts[0], ctr)  // S
+  ];
+}
+
+// --- Desenho ---
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W/2 + offsetX, H/2 + offsetY);
+  ctx.scale(scale, scale);
+
+  const centers = computeCenters(pts, finslerMode);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.3)';
+  ctx.lineWidth = 0.5;
+  const gridSize = 50;
+  for (let x = -2000; x <= 2000; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, -2000); ctx.lineTo(x, 2000); ctx.stroke();
+  }
+  for (let y = -2000; y <= 2000; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(-2000, y); ctx.lineTo(2000, y); ctx.stroke();
+  }
+
+  // --- Quadrados sobre os lados ---
+  const colors = ['#f97583', '#79c0ff', '#7ee787', '#d2a8ff'];
+  const labels = ['P','Q','R','S'];
+  for (let i = 0; i < 4; i++) {
+    const A = pts[i];
+    const B = pts[(i+1)%4];
+    const v = sub(B, A);
+    const perp = rot90(v);
+    const ctr = pts.reduce((s,p)=>s+p.x,0)/4;
+    const cty = pts.reduce((s,p)=>s+p.y,0)/4;
+    const toCenter = {x: ctr - mid(A,B).x, y: cty - mid(A,B).y};
+    let dir = 1;
+    if (dot(toCenter, perp) > 0) dir = -1;
+    if (finslerMode) dir = -dir;
+
+    const C = {x: B.x + dir * perp.x, y: B.y + dir * perp.y};
+    const D = {x: A.x + dir * perp.x, y: A.y + dir * perp.y};
+
+    // Preenchimento do quadrado
+    ctx.beginPath();
+    ctx.moveTo(A.x, A.y);
+    ctx.lineTo(B.x, B.y);
+    ctx.lineTo(C.x, C.y);
+    ctx.lineTo(D.x, D.y);
+    ctx.closePath();
+    ctx.fillStyle = colors[i] + '18';
+    ctx.fill();
+    ctx.strokeStyle = colors[i] + '60';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Centro do quadrado
+    const cen = centers[i];
+    ctx.beginPath();
+    ctx.arc(cen.x, cen.y, 4, 0, Math.PI*2);
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+
+    // Label do centro
+    ctx.fillStyle = colors[i];
+    ctx.font = 'bold 14px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(labels[i], cen.x, cen.y - 8);
+  }
+
+  // --- Quadrilátero PQRS (centros) ---
+  ctx.beginPath();
+  ctx.moveTo(centers[0].x, centers[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(centers[i].x, centers[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = '#ffa657';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // --- Segmentos PR e QS ---
+  ctx.beginPath();
+  ctx.moveTo(centers[0].x, centers[0].y);
+  ctx.lineTo(centers[2].x, centers[2].y);
+  ctx.strokeStyle = '#f0883e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(centers[1].x, centers[1].y);
+  ctx.lineTo(centers[3].x, centers[3].y);
+  ctx.strokeStyle = '#d2a8ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // --- Quadrilátero base ABCD ---
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = '#e6edf3';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Vértices
+  const vLabels = ['A','B','C','D'];
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc(pts[i].x, pts[i].y, 6, 0, Math.PI*2);
+    ctx.fillStyle = '#f0f6fc';
+    ctx.fill();
+    ctx.strokeStyle = '#8b949e';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#f0f6fc';
+    ctx.font = 'bold 15px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(vLabels[i], pts[i].x, pts[i].y - 10);
+  }
+
+  // --- Modo Finsler: mostrar quadrados internos ---
+  if (finslerMode) {
+    for (let i = 0; i < 4; i++) {
+      const A = pts[i];
+      const B = pts[(i+1)%4];
+      const v = sub(B, A);
+      const perp = rot90(v);
+      const ctr = pts.reduce((s,p)=>s+p.x,0)/4;
+      const cty = pts.reduce((s,p)=>s+p.y,0)/4;
+      const toCenter = {x: ctr - mid(A,B).x, y: cty - mid(A,B).y};
+      let dir = 1;
+      if (dot(toCenter, perp) > 0) dir = -1;
+      dir = -dir; // Finsler = interno
+
+      const C = {x: B.x + dir * perp.x, y: B.y + dir * perp.y};
+      const D = {x: A.x + dir * perp.x, y: A.y + dir * perp.y};
+
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.lineTo(C.x, C.y);
+      ctx.lineTo(D.x, D.y);
+      ctx.closePath();
+      ctx.fillStyle = colors[i] + '0d';
+      ctx.fill();
+      ctx.strokeStyle = colors[i] + '30';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  ctx.restore();
+  updatePanels(centers);
+}
+
+// --- Atualizar painéis ---
+function updatePanels(centers) {
+  const P = centers[0], Q = centers[1], R = centers[2], S = centers[3];
+  const vPR = sub(R, P);
+  const vQS = sub(S, Q);
+  const lenPR = len(vPR);
+  const lenQS = len(vQS);
+  const angle = angleBetween(vPR, vQS);
+  const isOrtho = Math.abs(Math.abs(angle) - 90) < 1;
+  const isEqual = Math.abs(lenPR - lenQS) < 0.5;
+
+  // Propriedades
+  document.getElementById('valPR').textContent = lenPR.toFixed(1) + ' px';
+  document.getElementById('valQS').textContent = lenQS.toFixed(1) + ' px';
+  document.getElementById('valAngle').textContent = angle.toFixed(1) + '°';
+  document.getElementById('valOrtho').innerHTML = isOrtho
+    ? '<span style="color:#3fb950">✅ Perpendicular (PR ⟂ QS)</span>'
+    : '<span style="color:#f85149">❌ Não perpendicular</span>';
+  document.getElementById('valEqual').innerHTML = isEqual
+    ? '<span style="color:#3fb950">✅ Igual Comprimento (|PR| = |QS|)</span>'
+    : '<span style="color:#f85149">❌ Comprimentos diferentes</span>';
+
+  // Classificar PQRS
+  const sides = [
+    len(sub(Q, P)),
+    len(sub(R, Q)),
+    len(sub(S, R)),
+    len(sub(P, S))
+  ];
+  const diags = [lenPR, lenQS];
+  const allSidesEq = sides.every(s => Math.abs(s - sides[0]) < 1);
+  const allAngles90 = isOrtho; // aproximação
+  let pqrsType = 'Ortodiagonal';
+  if (allSidesEq && isOrtho && isEqual) pqrsType = 'Quadrado Perfeito! 🟨';
+  else if (allSidesEq) pqrsType = 'Losango';
+  else if (isOrtho) pqrsType = 'Ortodiagonal';
+  else pqrsType = 'Genérico';
+  document.getElementById('valPQRS').innerHTML = `<span style="color:#ffa657">${pqrsType}</span>`;
+
+  document.getElementById('valPQ').textContent = sides[0].toFixed(1) + ' px';
+  document.getElementById('valQR').textContent = sides[1].toFixed(1) + ' px';
+  document.getElementById('valRS').textContent = sides[2].toFixed(1) + ' px';
+  document.getElementById('valSP').textContent = sides[3].toFixed(1) + ' px';
+
+  // Números Complexos
+  const toCmp = (p) => `${p.x.toFixed(0)} ${p.y >= 0 ? '+' : '−'} ${Math.abs(p.y).toFixed(0)}i`;
+  document.getElementById('cmpA').textContent = toCmp(pts[0]);
+  document.getElementById('cmpB').textContent = toCmp(pts[1]);
+  document.getElementById('cmpC').textContent = toCmp(pts[2]);
+  document.getElementById('cmpD').textContent = toCmp(pts[3]);
+  document.getElementById('cmpP').textContent = toCmp(P);
+  document.getElementById('cmpQ').textContent = toCmp(Q);
+  document.getElementById('cmpR').textContent = toCmp(R);
+  document.getElementById('cmpS').textContent = toCmp(S);
+
+  // Prova: (p-r) * i = q-s
+  const prCmp = sub(R, P);
+  const qsCmp = sub(S, Q);
+  const prRot = rot90(prCmp); // (p-r) * i
+  document.getElementById('cmpPR').textContent = toCmp(prCmp);
+  document.getElementById('cmpQS').textContent = toCmp(qsCmp);
+  document.getElementById('cmpPRi').textContent = toCmp(prRot);
+
+  // Status bar
+  const statusHTML = isOrtho && isEqual
+    ? `<span class="ok">✅ Van Aubel: PR ⟂ QS e |PR| = |QS|</span>`
+    : `<span class="info">Arraste os vértices A, B, C, D para explorar</span>`;
+  statusBar.innerHTML = statusHTML;
+}
+
+// --- Resize ---
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+  draw();
+}
+
+// --- View ---
+function resetView() {
+  scale = 1;
+  offsetX = 0;
+  offsetY = 0;
+}
+
+// --- Hit test ---
+function hitTest(mx, my) {
+  // Converter mouse para coordenadas do canvas
+  const x = (mx - W/2 - offsetX) / scale;
+  const y = (my - H/2 - offsetY) / scale;
+  for (let i = 0; i < pts.length; i++) {
+    if (Math.hypot(pts[i].x - x, pts[i].y - y) < 15 / scale) return i;
+  }
+  return -1;
+}
+
+function getCanvasCoords(mx, my) {
+  return {
+    x: (mx - W/2 - offsetX) / scale,
+    y: (my - H/2 - offsetY) / scale
+  };
+}
+
+// --- Mouse / Touch ---
+let mouseDown = false;
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const idx = hitTest(mx, my);
+  if (idx >= 0) {
+    dragIdx = idx;
+    mouseDown = true;
+    canvas.style.cursor = 'grabbing';
+  } else {
+    isPanning = true;
+    panStartX = mx;
+    panStartY = my;
+    panStartOffX = offsetX;
+    panStartOffY = offsetY;
+    canvas.style.cursor = 'grabbing';
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  if (dragIdx >= 0 && mouseDown) {
+    const c = getCanvasCoords(mx, my);
+    pts[dragIdx].x = c.x;
+    pts[dragIdx].y = c.y;
+    draw();
+  } else if (isPanning) {
+    offsetX = panStartOffX + (mx - panStartX);
+    offsetY = panStartOffY + (my - panStartY);
+    draw();
+  } else {
+    const idx = hitTest(mx, my);
+    canvas.style.cursor = idx >= 0 ? 'grab' : 'default';
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  dragIdx = -1;
+  mouseDown = false;
+  isPanning = false;
+  canvas.style.cursor = 'default';
+});
+
+canvas.addEventListener('mouseleave', () => {
+  dragIdx = -1;
+  mouseDown = false;
+  isPanning = false;
+  canvas.style.cursor = 'default';
+});
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const mx = t.clientX - rect.left;
+  const my = t.clientY - rect.top;
+  const idx = hitTest(mx, my);
+  if (idx >= 0) {
+    dragIdx = idx;
+  } else {
+    isPanning = true;
+    panStartX = mx;
+    panStartY = my;
+    panStartOffX = offsetX;
+    panStartOffY = offsetY;
+  }
+}, {passive: false});
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const mx = t.clientX - rect.left;
+  const my = t.clientY - rect.top;
+  if (dragIdx >= 0) {
+    const c = getCanvasCoords(mx, my);
+    pts[dragIdx].x = c.x;
+    pts[dragIdx].y = c.y;
+    draw();
+  } else if (isPanning) {
+    offsetX = panStartOffX + (mx - panStartX);
+    offsetY = panStartOffY + (my - panStartY);
+    draw();
+  }
+}, {passive: false});
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  dragIdx = -1;
+  isPanning = false;
+}, {passive: false});
+
+// Scroll zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  scale *= delta;
+  scale = Math.max(0.1, Math.min(10, scale));
+  draw();
+}, {passive: false});
+
+// --- UI ---
+btnProps.addEventListener('click', () => {
+  showProps = !showProps;
+  panelProps.classList.toggle('visible', showProps);
+  btnProps.classList.toggle('active', showProps);
+});
+
+btnComplex.addEventListener('click', () => {
+  showComplex = !showComplex;
+  panelComplex.classList.toggle('visible', showComplex);
+  btnComplex.classList.toggle('active', showComplex);
+});
+
+btnFinsler.addEventListener('click', () => {
+  finslerMode = !finslerMode;
+  btnFinsler.classList.toggle('active', finslerMode);
+  draw();
+});
+
+btnReset.addEventListener('click', () => {
+  loadPreset(presetSelect.value);
+});
+
+presetSelect.addEventListener('change', () => {
+  loadPreset(presetSelect.value);
+});
+
+// --- Init ---
+loadPreset('convexo');
+panelProps.classList.add('visible');
+btnProps.classList.add('active');
+
+window.addEventListener('resize', resize);
+resize();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'r' || e.key === 'R') loadPreset(presetSelect.value);
+  if (e.key === 'f' || e.key === 'F') { btnFinsler.click(); }
+  if (e.key === 'p' || e.key === 'P') { btnProps.click(); }
+  if (e.key === 'c' || e.key === 'C') { btnComplex.click(); }
+});
+
+console.log('🧮 Teorema de Van Aubel & 1º Problema de Thébault');
+console.log('📐 Arraste os vértices A, B, C, D para explorar');
+console.log('⌨️  P=propriedades C=complexos F=Finsler R=reset');
+</script>
+</body>
+</html>
