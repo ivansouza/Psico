@@ -125,6 +125,72 @@
       justify-content: center;
       backdrop-filter: blur(8px);
     }
+
+    /* ── Seção de gravação de vídeo ── */
+    .video-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .video-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #ff0077;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-record {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #ff0055, #ff00aa);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(255, 0, 85, 0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-record:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255, 0, 85, 0.6);
+    }
+    .btn-record.recording {
+      background: linear-gradient(135deg, #222, #444);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+    .quick-rec-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-quick-rec {
+      flex: 1;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.85);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-quick-rec:hover {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(0, 229, 255, 0.5);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -155,6 +221,20 @@
     </div>
 
     <button class="btn secondary" id="btn-reset">Resetar glitch</button>
+
+    <!-- ── Gravador de Vídeo ── -->
+    <div class="video-section">
+      <div class="video-title">
+        <span>🎬 Exportar em Vídeo</span>
+      </div>
+      <button class="btn-record" id="btn-record-toggle">
+        <span id="rec-btn-icon">🔴</span> <span id="rec-btn-text">Iniciar Gravação</span>
+      </button>
+      <div class="quick-rec-row">
+        <button class="btn-quick-rec" id="btn-rec-5s">Clip 5s</button>
+        <button class="btn-quick-rec" id="btn-rec-10s">Clip 10s</button>
+      </div>
+    </div>
 
     <p class="hint">
       Arraste uma imagem ou clique em Carregar.<br>
@@ -396,9 +476,6 @@
         // image taller → fit height
         w = 2 * (imgAspect / viewAspect);
       }
-      mesh.scale.set(w / 2, h / 2, 1); // PlaneGeometry is already 2x2, so scale by half? Wait
-      // PlaneGeometry(2,2) goes from -1 to 1 in both, so size 2.
-      // To make visual size = w in x (where camera sees -1..1), scale.x = w/2
       mesh.scale.set(w / 2, h / 2, 1);
     }
 
@@ -503,6 +580,292 @@
     }, undefined, () => {
       // fail silently, keep placeholder
     });
+
+    // ──────────────────────────────────────────────
+    // Gravador de Vídeo do Canvas
+    // ──────────────────────────────────────────────
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let recordStartTime = 0;
+    let timerInterval = null;
+    let autoStopTimeout = null;
+
+    const recToggleBtn = document.getElementById('btn-record-toggle');
+    const recBtnIcon = document.getElementById('rec-btn-icon');
+    const recBtnText = document.getElementById('rec-btn-text');
+
+    function startRecording(durationSeconds = 0) {
+      if (isRecording) return;
+
+      const canvas = renderer.domElement;
+      const stream = canvas.captureStream(60);
+
+      // Tenta MediaRecorder com MP4 primeiro (fallback)
+      const mimeTypes = [
+        'video/mp4',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+
+      let selectedType = '';
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          selectedType = type;
+          break;
+        }
+      }
+
+      // Se MediaRecorder suportar MP4 nativo, usa ele direto
+      if (selectedType === 'video/mp4') {
+        startMediaRecorderRecording(durationSeconds, selectedType);
+        return;
+      }
+
+      // Fallback: MediaRecorder (WebM) + VideoEncoder para converter pra MP4 H.264
+      startEncoderRecording(durationSeconds);
+    }
+
+    // ── MediaRecorder direto (MP4 nativo) ──
+    function startMediaRecorderRecording(durationSeconds, mimeType) {
+      const canvas = renderer.domElement;
+      const stream = canvas.captureStream(60);
+
+      const options = { mimeType };
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (err) {
+        // Se falhar, tenta encoder
+        startEncoderRecording(durationSeconds);
+        return;
+      }
+
+      recordedChunks = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        clearInterval(timerInterval);
+        if (autoStopTimeout) clearTimeout(autoStopTimeout);
+
+        const blob = new Blob(recordedChunks, { type: mimeType });
+        if (blob.size === 0) return;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `glitch2-${Date.now()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 500);
+        setRecordingState(false);
+      };
+
+      mediaRecorder.start(100);
+      isRecording = true;
+      recordStartTime = Date.now();
+      setRecordingState(true);
+
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const secs = String(elapsed % 60).padStart(2, '0');
+        recBtnText.innerText = `⏹️ ${mins}:${secs}`;
+      }, 500);
+
+      if (durationSeconds > 0) {
+        autoStopTimeout = setTimeout(() => stopRecording(), durationSeconds * 1000);
+      }
+    }
+
+    // ── VideoEncoder H.264 (converte frames pra MP4) ──
+    async function startEncoderRecording(durationSeconds) {
+      const canvas = renderer.domElement;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      isRecording = true;
+      recordStartTime = Date.now();
+      setRecordingState(true);
+
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const secs = String(elapsed % 60).padStart(2, '0');
+        recBtnText.innerText = `⏹️ ${mins}:${secs}`;
+      }, 500);
+
+      let encoderConfig = {
+        codec: 'avc1.42001E', // H.264 baseline, level 3.0
+        width: w,
+        height: h,
+        bitrate: 5_000_000,
+        framerate: 30
+      };
+
+      // Verifica suporte
+      let supported = false;
+      try {
+        supported = await VideoEncoder.isConfigSupported(encoderConfig);
+      } catch(e) {}
+
+      if (!supported || !supported.supported) {
+        // Tenta codec mais leve
+        encoderConfig.codec = 'avc1.42001E';
+        encoderConfig.bitrate = 3_000_000;
+        try {
+          supported = await VideoEncoder.isConfigSupported(encoderConfig);
+        } catch(e) {}
+      }
+
+      if (!supported || !supported.supported) {
+        alert('Seu navegador não suporta codificação H.264. O vídeo será salvo em WebM.');
+        // Fallback pro MediaRecorder WebM
+        startMediaRecorderRecording(durationSeconds, 'video/webm;codecs=vp9');
+        return;
+      }
+
+      const chunks = [];
+      let encoder = new VideoEncoder({
+        output: (chunk) => {
+          chunks.push(chunk);
+        },
+        error: (e) => console.error('VideoEncoder error:', e)
+      });
+
+      encoder.configure(encoderConfig);
+
+      let frameCount = 0;
+      const fps = 30;
+      const frameDuration = 1_000_000 / fps; // microssegundos
+
+      async function captureFrame() {
+        if (!isRecording) return;
+
+        const frame = new VideoFrame(canvas, { timestamp: frameCount * frameDuration });
+        encoder.encode(frame);
+        frame.close();
+        frameCount++;
+
+        if (durationSeconds > 0 && frameCount >= durationSeconds * fps) {
+          await finishEncoding();
+          return;
+        }
+
+        requestAnimationFrame(captureFrame);
+      }
+
+      async function finishEncoding() {
+        await encoder.flush();
+
+        // Constrói MP4 container
+        const mp4Data = await buildMp4(chunks, w, h, fps);
+
+        const blob = new Blob([mp4Data], { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `glitch2-${Date.now()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 500);
+
+        encoder.close();
+        setRecordingState(false);
+      }
+
+      // Função para construir MP4 a partir dos chunks H.264
+      async function buildMp4(chunks, width, height, fps) {
+        // Importa MP4Box dinamicamente se necessário
+        if (typeof MP4Box === 'undefined') {
+          await loadMp4Box();
+        }
+
+        const file = MP4Box.createFile();
+        file.addTrack({
+          id: 1,
+          type: 'video',
+          width,
+          height,
+          timescale: fps,
+          hdlr: 'vide',
+          media_header: 'video',
+        });
+
+        // Adiciona cada chunk como sample
+        for (const chunk of chunks) {
+          const data = new Uint8Array(chunk.byteLength);
+          chunk.copyTo(data);
+          file.addSample(1, data, {
+            duration: 1,
+            is_sync: chunk.type === 'key'
+          });
+        }
+
+        const buffer = file.save();
+        return buffer;
+      }
+
+      async function loadMp4Box() {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/mp4box@0.5.3/build/mp4box.all.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Inicia captura
+      captureFrame();
+
+      if (durationSeconds > 0) {
+        autoStopTimeout = setTimeout(() => {
+          if (isRecording) {
+            isRecording = false;
+            finishEncoding();
+          }
+        }, durationSeconds * 1000 + 500);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        return;
+      }
+      // Se for encoder recording, só marca pra parar
+      isRecording = false;
+      if (autoStopTimeout) clearTimeout(autoStopTimeout);
+    }
+
+    function setRecordingState(active) {
+      if (active) {
+        recToggleBtn.classList.add('recording');
+        recBtnIcon.innerText = '⏹️';
+        recBtnText.innerText = 'Parar & Baixar';
+      } else {
+        recToggleBtn.classList.remove('recording');
+        recBtnIcon.innerText = '🔴';
+        recBtnText.innerText = 'Iniciar Gravação';
+      }
+    }
+
+    recToggleBtn.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording(0);
+      }
+    });
+
+    document.getElementById('btn-rec-5s').addEventListener('click', () => startRecording(5));
+    document.getElementById('btn-rec-10s').addEventListener('click', () => startRecording(10));
   </script>
 </body>
 </html>
