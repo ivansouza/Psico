@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Three.js Image Glitch</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #e0e0e0;
+    }
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    #ui {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 280px;
+      background: rgba(12, 12, 18, 0.82);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+      transition: opacity 0.3s;
+    }
+    #ui.hidden { opacity: 0; pointer-events: none; }
+
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .sub {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: #bbb;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: #7c5cff;
+      cursor: pointer;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #7c5cff;
+      cursor: pointer;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      background: linear-gradient(135deg, #7c5cff, #5a3fd4);
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s, filter 0.15s;
+      text-align: center;
+    }
+    .btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn.secondary {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    #file-input { display: none; }
+
+    .hint {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.35;
+      margin-top: 4px;
+    }
+
+    #toggle-ui {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 11;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(12,12,18,0.75);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #ccc;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <button id="toggle-ui" title="Mostrar/ocultar controles">☰</button>
+
+  <div id="ui">
+    <h1>Image Glitch</h1>
+    <div class="sub">Three.js · Digital Glitch</div>
+
+    <button class="btn" id="btn-load">Carregar imagem</button>
+    <input type="file" id="file-input" accept="image/*" />
+
+    <label>
+      Intensidade base
+      <input type="range" id="intensity" min="0" max="100" value="35" />
+    </label>
+
+    <div class="row">
+      <input type="checkbox" id="go-wild" checked />
+      <label for="go-wild" style="margin:0;cursor:pointer">Modo selvagem (goWild)</label>
+    </div>
+
+    <div class="row">
+      <input type="checkbox" id="auto-pulse" checked />
+      <label for="auto-pulse" style="margin:0;cursor:pointer">Pulsos aleatórios</label>
+    </div>
+
+    <button class="btn secondary" id="btn-reset">Resetar glitch</button>
+
+    <p class="hint">
+      Arraste uma imagem ou clique em Carregar.<br>
+      O efeito imita o glitch digital do vídeo (RGB split + blocos + noise).
+    </p>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ---------- DigitalGlitch (inline from three.js) ----------
+    const DigitalGlitch = {
+      uniforms: {
+        'tDiffuse': { value: null },
+        'tDisp': { value: null },
+        'byp': { value: 0 },
+        'amount': { value: 0.08 },
+        'angle': { value: 0.02 },
+        'seed': { value: 0.02 },
+        'seed_x': { value: 0.02 },
+        'seed_y': { value: 0.02 },
+        'distortion_x': { value: 0.5 },
+        'distortion_y': { value: 0.6 },
+        'col_s': { value: 0.05 }
+      },
+      vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }`,
+      fragmentShader: /* glsl */`
+        uniform int byp;
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDisp;
+        uniform float amount;
+        uniform float angle;
+        uniform float seed;
+        uniform float seed_x;
+        uniform float seed_y;
+        uniform float distortion_x;
+        uniform float distortion_y;
+        uniform float col_s;
+        varying vec2 vUv;
+
+        float rand(vec2 co){
+          return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+        void main() {
+          if(byp < 1) {
+            vec2 p = vUv;
+            float xs = floor(gl_FragCoord.x / 0.5);
+            float ys = floor(gl_FragCoord.y / 0.5);
+            float disp = texture2D(tDisp, p * seed * seed).r;
+            if(p.y < distortion_x + col_s && p.y > distortion_x - col_s * seed) {
+              if(seed_x > 0.){
+                p.y = 1. - (p.y + distortion_y);
+              } else {
+                p.y = distortion_y;
+              }
+            }
+            if(p.x < distortion_y + col_s && p.x > distortion_y - col_s * seed) {
+              if(seed_y > 0.){
+                p.x = distortion_x;
+              } else {
+                p.x = 1. - (p.x + distortion_x);
+              }
+            }
+            p.x += disp * seed_x * (seed / 5.);
+            p.y += disp * seed_y * (seed / 5.);
+            vec2 offset = amount * vec2( cos(angle), sin(angle) );
+            vec4 cr = texture2D(tDiffuse, p + offset);
+            vec4 cga = texture2D(tDiffuse, p);
+            vec4 cb = texture2D(tDiffuse, p - offset);
+            gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);
+            vec4 snow = 200. * amount * vec4( rand(vec2(xs * seed, ys * seed * 50.)) * 0.2 );
+            gl_FragColor = gl_FragColor + snow;
+          } else {
+            gl_FragColor = texture2D(tDiffuse, vUv);
+          }
+        }`
+    };
+
+    // ---------- Scene setup ----------
+    const container = document.getElementById('canvas-container');
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x0a0a0a);
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    // Displacement heightmap (same as GlitchPass)
+    function generateHeightmap(dt_size = 64) {
+      const data = new Float32Array(dt_size * dt_size);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random();
+      }
+      const tex = new THREE.DataTexture(data, dt_size, dt_size, THREE.RedFormat, THREE.FloatType);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    const tDisp = generateHeightmap(64);
+
+    // Material using DigitalGlitch
+    const uniforms = THREE.UniformsUtils.clone(DigitalGlitch.uniforms);
+    uniforms.tDisp.value = tDisp;
+    uniforms.byp.value = 0;
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: DigitalGlitch.vertexShader,
+      fragmentShader: DigitalGlitch.fragmentShader,
+      depthTest: false,
+      depthWrite: false
+    });
+
+    // Fullscreen quad (will be resized to image aspect)
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    // Placeholder texture (dark gradient + text-like noise)
+    function createPlaceholder() {
+      const c = document.createElement('canvas');
+      c.width = 1024;
+      c.height = 1024;
+      const ctx = c.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, 1024, 1024);
+      g.addColorStop(0, '#1a1a2e');
+      g.addColorStop(0.5, '#16213e');
+      g.addColorStop(1, '#0f0f1a');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // subtle noise
+      const imgData = ctx.getImageData(0, 0, 1024, 1024);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const n = (Math.random() - 0.5) * 18;
+        imgData.data[i] += n;
+        imgData.data[i+1] += n;
+        imgData.data[i+2] += n;
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = '600 42px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('Carregue uma imagem', 512, 480);
+      ctx.font = '28px system-ui';
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillText('para ver o glitch', 512, 530);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    let currentTexture = createPlaceholder();
+    uniforms.tDiffuse.value = currentTexture;
+
+    // ---------- Glitch state (mirrors GlitchPass) ----------
+    let curF = 0;
+    let randX = 120;
+    let goWild = true;
+    let autoPulse = true;
+    let intensityScale = 0.35; // from slider 0-1
+
+    function generateTrigger() {
+      randX = Math.floor(120 + Math.random() * 120);
+    }
+    generateTrigger();
+
+    function updateGlitchUniforms() {
+      uniforms.seed.value = Math.random();
+      uniforms.byp.value = 0;
+
+      const baseAmount = intensityScale;
+
+      if (curF % randX === 0 || goWild) {
+        // strong glitch
+        uniforms.amount.value = (Math.random() / 30) * (0.4 + baseAmount * 2.5);
+        uniforms.angle.value = (Math.random() * 2 - 1) * Math.PI;
+        uniforms.seed_x.value = (Math.random() * 2 - 1);
+        uniforms.seed_y.value = (Math.random() * 2 - 1);
+        uniforms.distortion_x.value = Math.random();
+        uniforms.distortion_y.value = Math.random();
+        curF = 0;
+        if (autoPulse) generateTrigger();
+      } else if (curF % randX < randX / 5) {
+        // mild glitch
+        uniforms.amount.value = (Math.random() / 90) * (0.3 + baseAmount * 2);
+        uniforms.angle.value = (Math.random() * 2 - 1) * Math.PI;
+        uniforms.distortion_x.value = Math.random();
+        uniforms.distortion_y.value = Math.random();
+        uniforms.seed_x.value = (Math.random() * 0.6 - 0.3);
+        uniforms.seed_y.value = (Math.random() * 0.6 - 0.3);
+      } else if (!goWild) {
+        uniforms.byp.value = 1;
+      }
+
+      curF++;
+    }
+
+    // ---------- Image loading ----------
+    function setTextureFromImage(img) {
+      if (currentTexture && currentTexture.isCanvasTexture === false) {
+        currentTexture.dispose();
+      }
+      const tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      currentTexture = tex;
+      uniforms.tDiffuse.value = tex;
+
+      // adjust plane to preserve aspect (fit inside view)
+      const imgAspect = img.width / img.height;
+      const viewAspect = window.innerWidth / window.innerHeight;
+
+      let w = 2, h = 2;
+      if (imgAspect > viewAspect) {
+        // image wider → fit width
+        h = 2 * (viewAspect / imgAspect);
+      } else {
+        // image taller → fit height
+        w = 2 * (imgAspect / viewAspect);
+      }
+      mesh.scale.set(w / 2, h / 2, 1); // PlaneGeometry is already 2x2, so scale by half? Wait
+      // PlaneGeometry(2,2) goes from -1 to 1 in both, so size 2.
+      // To make visual size = w in x (where camera sees -1..1), scale.x = w/2
+      mesh.scale.set(w / 2, h / 2, 1);
+    }
+
+    function loadImageFromFile(file) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        setTextureFromImage(img);
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
+
+    // drag & drop
+    document.body.addEventListener('dragover', e => { e.preventDefault(); });
+    document.body.addEventListener('drop', e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) loadImageFromFile(file);
+    });
+
+    // ---------- UI ----------
+    const fileInput = document.getElementById('file-input');
+    document.getElementById('btn-load').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) loadImageFromFile(fileInput.files[0]);
+    });
+
+    const intensitySlider = document.getElementById('intensity');
+    intensitySlider.addEventListener('input', () => {
+      intensityScale = intensitySlider.value / 100;
+    });
+
+    document.getElementById('go-wild').addEventListener('change', e => {
+      goWild = e.target.checked;
+    });
+
+    document.getElementById('auto-pulse').addEventListener('change', e => {
+      autoPulse = e.target.checked;
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      curF = 0;
+      generateTrigger();
+      uniforms.byp.value = 1;
+    });
+
+    const ui = document.getElementById('ui');
+    document.getElementById('toggle-ui').addEventListener('click', () => {
+      ui.classList.toggle('hidden');
+    });
+
+    // ---------- Resize ----------
+    function onResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h);
+      // re-fit current image if loaded
+      if (currentTexture && currentTexture.image && currentTexture.image.width) {
+        const img = currentTexture.image;
+        const imgAspect = img.width / img.height;
+        const viewAspect = w / h;
+        let pw = 2, ph = 2;
+        if (imgAspect > viewAspect) {
+          ph = 2 * (viewAspect / imgAspect);
+        } else {
+          pw = 2 * (imgAspect / viewAspect);
+        }
+        mesh.scale.set(pw / 2, ph / 2, 1);
+      }
+    }
+    window.addEventListener('resize', onResize);
+
+    // ---------- Animate ----------
+    function animate() {
+      requestAnimationFrame(animate);
+      updateGlitchUniforms();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Optional: try load a nice default portrait (CORS ok)
+    const defaultUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900&h=900&fit=crop&q=80';
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    loader.load(defaultUrl, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      if (currentTexture) currentTexture.dispose();
+      currentTexture = tex;
+      uniforms.tDiffuse.value = tex;
+      // trigger resize logic for aspect
+      const img = tex.image;
+      const imgAspect = img.width / img.height;
+      const viewAspect = window.innerWidth / window.innerHeight;
+      let pw = 2, ph = 2;
+      if (imgAspect > viewAspect) {
+        ph = 2 * (viewAspect / imgAspect);
+      } else {
+        pw = 2 * (imgAspect / viewAspect);
+      }
+      mesh.scale.set(pw / 2, ph / 2, 1);
+    }, undefined, () => {
+      // fail silently, keep placeholder
+    });
+  </script>
+</body>
+</html>
