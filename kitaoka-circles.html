@@ -258,48 +258,48 @@
  ctx.fill();
  }
 
- // Four small diamonds forming a cross (pointing outward: up, down, left, right)
+ // Four diamonds: each points to center with its tip, other tip forms the cross
  if (c < n - 1 && r < n - 1 && crossSize > 0) {
  const ix = margin + (c + 1) * cell;
  const iy = margin + (r + 1) * cell;
  const dSize = cell * crossSize * 0.5;
  const gap = dSize * 0.15;
  ctx.fillStyle = accentColors[(r + c) % 2];
- // Four diamonds pointing outward: up, down, left, right
+ // Four diamonds: tip points to center, base points outward
  const positions = [
- [0, -1], // top (points up)
- [0, 1],  // bottom (points down)
- [-1, 0], // left (points left)
- [1, 0]   // right (points right)
+ [0, -1], // top: tip at center, base up
+ [0, 1],  // bottom: tip at center, base down
+ [-1, 0], // left: tip at center, base left
+ [1, 0]   // right: tip at center, base right
  ];
  for (const [dx, dy] of positions) {
  const cx2 = ix + dx * gap;
  const cy2 = iy + dy * gap;
  ctx.beginPath();
  if (dy === -1) {
- // top diamond pointing up
- ctx.moveTo(cx2, cy2 - dSize);
- ctx.lineTo(cx2 + dSize * 0.6, cy2);
- ctx.lineTo(cx2, cy2 + dSize);
- ctx.lineTo(cx2 - dSize * 0.6, cy2);
+ // top diamond: tip at center (bottom), base up
+ ctx.moveTo(cx2, cy2 + dSize * 0.3); // tip pointing to center
+ ctx.lineTo(cx2 + dSize * 0.5, cy2);
+ ctx.lineTo(cx2, cy2 - dSize); // base pointing up
+ ctx.lineTo(cx2 - dSize * 0.5, cy2);
  } else if (dy === 1) {
- // bottom diamond pointing down
- ctx.moveTo(cx2, cy2 + dSize);
- ctx.lineTo(cx2 + dSize * 0.6, cy2);
- ctx.lineTo(cx2, cy2 - dSize);
- ctx.lineTo(cx2 - dSize * 0.6, cy2);
+ // bottom diamond: tip at center (top), base down
+ ctx.moveTo(cx2, cy2 - dSize * 0.3); // tip pointing to center
+ ctx.lineTo(cx2 + dSize * 0.5, cy2);
+ ctx.lineTo(cx2, cy2 + dSize); // base pointing down
+ ctx.lineTo(cx2 - dSize * 0.5, cy2);
  } else if (dx === -1) {
- // left diamond pointing left
- ctx.moveTo(cx2 - dSize, cy2);
- ctx.lineTo(cx2, cy2 + dSize * 0.6);
- ctx.lineTo(cx2 + dSize, cy2);
- ctx.lineTo(cx2, cy2 - dSize * 0.6);
+ // left diamond: tip at center (right), base left
+ ctx.moveTo(cx2 + dSize * 0.3, cy2); // tip pointing to center
+ ctx.lineTo(cx2, cy2 + dSize * 0.5);
+ ctx.lineTo(cx2 - dSize, cy2); // base pointing left
+ ctx.lineTo(cx2, cy2 - dSize * 0.5);
  } else {
- // right diamond pointing right
- ctx.moveTo(cx2 + dSize, cy2);
- ctx.lineTo(cx2, cy2 + dSize * 0.6);
- ctx.lineTo(cx2 - dSize, cy2);
- ctx.lineTo(cx2, cy2 - dSize * 0.6);
+ // right diamond: tip at center (left), base right
+ ctx.moveTo(cx2 - dSize * 0.3, cy2); // tip pointing to center
+ ctx.lineTo(cx2, cy2 + dSize * 0.5);
+ ctx.lineTo(cx2 + dSize, cy2); // base pointing right
+ ctx.lineTo(cx2, cy2 - dSize * 0.5);
  }
  ctx.closePath();
  ctx.fill();
