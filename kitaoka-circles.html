@@ -258,18 +258,31 @@
  ctx.fill();
  }
 
- // Small accent cross at intersections
+ // Four small diamonds at intersections (like the reference)
  if (c < n - 1 && r < n - 1 && crossSize > 0) {
  const ix = margin + (c + 1) * cell;
  const iy = margin + (r + 1) * cell;
- const cSize = cell * crossSize;
- const half = cSize / 2;
- const thick = Math.max(1, cSize * 0.25);
+ const dSize = cell * crossSize * 0.5;
+ const gap = dSize * 0.15;
  ctx.fillStyle = accentColors[(r + c) % 2];
- // vertical bar
- ctx.fillRect(ix - thick / 2, iy - half, thick, cSize);
- // horizontal bar
- ctx.fillRect(ix - half, iy - thick / 2, cSize, thick);
+ // Four diamonds pointing to the corners
+ const positions = [
+ [-1, -1], // top-left
+ [1, -1],  // top-right
+ [1, 1],   // bottom-right
+ [-1, 1]   // bottom-left
+ ];
+ for (const [dx, dy] of positions) {
+ const cx2 = ix + dx * gap;
+ const cy2 = iy + dy * gap;
+ ctx.beginPath();
+ ctx.moveTo(cx2, cy2 - dSize);
+ ctx.lineTo(cx2 + dSize, cy2);
+ ctx.lineTo(cx2, cy2 + dSize);
+ ctx.lineTo(cx2 - dSize, cy2);
+ ctx.closePath();
+ ctx.fill();
+ }
  }
  }
  }
