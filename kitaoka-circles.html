@@ -258,47 +258,47 @@
  ctx.fill();
  }
 
- // Four small diamonds pointing to center (like the reference)
+ // Four small diamonds forming a cross (pointing outward: up, down, left, right)
  if (c < n - 1 && r < n - 1 && crossSize > 0) {
  const ix = margin + (c + 1) * cell;
  const iy = margin + (r + 1) * cell;
  const dSize = cell * crossSize * 0.5;
- const gap = dSize * 0.2;
+ const gap = dSize * 0.15;
  ctx.fillStyle = accentColors[(r + c) % 2];
- // Four diamonds pointing inward: up, down, left, right
+ // Four diamonds pointing outward: up, down, left, right
  const positions = [
- [0, -1], // top (points down)
- [0, 1],  // bottom (points up)
- [-1, 0], // left (points right)
- [1, 0]   // right (points left)
+ [0, -1], // top (points up)
+ [0, 1],  // bottom (points down)
+ [-1, 0], // left (points left)
+ [1, 0]   // right (points right)
  ];
  for (const [dx, dy] of positions) {
  const cx2 = ix + dx * gap;
  const cy2 = iy + dy * gap;
  ctx.beginPath();
  if (dy === -1) {
- // top diamond pointing down
- ctx.moveTo(cx2, cy2 + dSize);
- ctx.lineTo(cx2 + dSize * 0.6, cy2);
- ctx.lineTo(cx2, cy2 - dSize);
- ctx.lineTo(cx2 - dSize * 0.6, cy2);
- } else if (dy === 1) {
- // bottom diamond pointing up
+ // top diamond pointing up
  ctx.moveTo(cx2, cy2 - dSize);
  ctx.lineTo(cx2 + dSize * 0.6, cy2);
  ctx.lineTo(cx2, cy2 + dSize);
  ctx.lineTo(cx2 - dSize * 0.6, cy2);
+ } else if (dy === 1) {
+ // bottom diamond pointing down
+ ctx.moveTo(cx2, cy2 + dSize);
+ ctx.lineTo(cx2 + dSize * 0.6, cy2);
+ ctx.lineTo(cx2, cy2 - dSize);
+ ctx.lineTo(cx2 - dSize * 0.6, cy2);
  } else if (dx === -1) {
- // left diamond pointing right
- ctx.moveTo(cx2 + dSize, cy2);
- ctx.lineTo(cx2, cy2 + dSize * 0.6);
- ctx.lineTo(cx2 - dSize, cy2);
- ctx.lineTo(cx2, cy2 - dSize * 0.6);
- } else {
- // right diamond pointing left
+ // left diamond pointing left
  ctx.moveTo(cx2 - dSize, cy2);
  ctx.lineTo(cx2, cy2 + dSize * 0.6);
  ctx.lineTo(cx2 + dSize, cy2);
+ ctx.lineTo(cx2, cy2 - dSize * 0.6);
+ } else {
+ // right diamond pointing right
+ ctx.moveTo(cx2 + dSize, cy2);
+ ctx.lineTo(cx2, cy2 + dSize * 0.6);
+ ctx.lineTo(cx2 - dSize, cy2);
  ctx.lineTo(cx2, cy2 - dSize * 0.6);
  }
  ctx.closePath();
