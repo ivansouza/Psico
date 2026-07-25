@@ -96,6 +96,9 @@
  <label for="stripeFreq">Frequência das listras <span id="stripeFreqOut" class="value">50%</span></label>
  <input id="stripeFreq" type="range" min="20" max="100" step="1" value="50">
 
+ <label for="crossSize">Tamanho da cruz <span id="crossSizeOut" class="value">6%</span></label>
+ <input id="crossSize" type="range" min="0" max="20" step="1" value="6">
+
  <label for="jitter">Tremor <span id="jitterOut" class="value">0%</span></label>
  <input id="jitter" type="range" min="0" max="30" step="1" value="0">
 
@@ -124,15 +127,16 @@
  ringRatio: $('ringRatio'),
  gapRatio: $('gapRatio'),
  stripeFreq: $('stripeFreq'),
+ crossSize: $('crossSize'),
  jitter: $('jitter')
  };
 
  const presets = {
- reference: {grid:8, rings:5, ringRatio:50, gapRatio:15, stripeFreq:50, jitter:0},
- invert: {grid:8, rings:5, ringRatio:50, gapRatio:15, stripeFreq:50, jitter:0},
- neon: {grid:8, rings:4, ringRatio:45, gapRatio:12, stripeFreq:60, jitter:5},
- sepia: {grid:8, rings:5, ringRatio:50, gapRatio:15, stripeFreq:50, jitter:0},
- mono: {grid:8, rings:5, ringRatio:50, gapRatio:15, stripeFreq:50, jitter:0}
+ reference: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0},
+ invert: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0},
+ neon: {grid:8, rings:4, ringRatio:45, gapRatio:12, crossSize:6, stripeFreq:60, jitter:5},
+ sepia: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0},
+ mono: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0}
  };
 
  function fitCanvas() {
@@ -161,6 +165,7 @@
  const gapRatio = Number(controls.gapRatio.value) / 100;
  const stripeFreq = Number(controls.stripeFreq.value) / 100;
  const jitter = Number(controls.jitter.value) / 100;
+ const crossSize = Number(controls.crossSize.value) / 100;
  const preset = controls.preset.value;
 
  // Color schemes
@@ -253,19 +258,18 @@
  ctx.fill();
  }
 
- // Small accent diamond at intersections (like the reference image)
- if (c < n - 1 && r < n - 1) {
+ // Small accent cross at intersections
+ if (c < n - 1 && r < n - 1 && crossSize > 0) {
  const ix = margin + (c + 1) * cell;
  const iy = margin + (r + 1) * cell;
- const dSize = cell * 0.06;
+ const cSize = cell * crossSize;
+ const half = cSize / 2;
+ const thick = Math.max(1, cSize * 0.25);
  ctx.fillStyle = accentColors[(r + c) % 2];
- ctx.beginPath();
- ctx.moveTo(ix, iy - dSize);
- ctx.lineTo(ix + dSize, iy);
- ctx.lineTo(ix, iy + dSize);
- ctx.lineTo(ix - dSize, iy);
- ctx.closePath();
- ctx.fill();
+ // vertical bar
+ ctx.fillRect(ix - thick / 2, iy - half, thick, cSize);
+ // horizontal bar
+ ctx.fillRect(ix - half, iy - thick / 2, cSize, thick);
  }
  }
  }
@@ -277,6 +281,7 @@
  $('ringRatioOut').textContent = controls.ringRatio.value + '%';
  $('gapRatioOut').textContent = controls.gapRatio.value + '%';
  $('stripeFreqOut').textContent = controls.stripeFreq.value + '%';
+ $('crossSizeOut').textContent = controls.crossSize.value + '%';
  $('jitterOut').textContent = controls.jitter.value + '%';
  }
 
