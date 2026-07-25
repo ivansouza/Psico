@@ -90,8 +90,8 @@
  <label for="ringRatio">Espessura dos anéis <span id="ringRatioOut" class="value">50%</span></label>
  <input id="ringRatio" type="range" min="20" max="80" step="1" value="50">
 
- <label for="gapRatio">Espaço entre círculos <span id="gapRatioOut" class="value">15%</span></label>
- <input id="gapRatio" type="range" min="5" max="40" step="1" value="15">
+ <label for="gapRatio">Espaço entre círculos <span id="gapRatioOut" class="value">5%</span></label>
+ <input id="gapRatio" type="range" min="0" max="30" step="1" value="5">
 
  <label for="stripeFreq">Frequência das listras <span id="stripeFreqOut" class="value">50%</span></label>
  <input id="stripeFreq" type="range" min="20" max="100" step="1" value="50">
@@ -132,11 +132,11 @@
  };
 
  const presets = {
- reference: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0},
- invert: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0},
- neon: {grid:8, rings:4, ringRatio:45, gapRatio:12, crossSize:6, stripeFreq:60, jitter:5},
- sepia: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0},
- mono: {grid:8, rings:5, ringRatio:50, gapRatio:15, crossSize:6, stripeFreq:50, jitter:0}
+ reference: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0},
+ invert: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0},
+ neon: {grid:8, rings:4, ringRatio:45, gapRatio:5, crossSize:6, stripeFreq:60, jitter:5},
+ sepia: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0},
+ mono: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0}
  };
 
  function fitCanvas() {
