@@ -55,7 +55,7 @@
  <p class="sub">
  Ilusão de movimento anômalo inspirada nos trabalhos do <strong>Akiyoshi Kitaoka</strong> —
  psicólogo e professor da Universidade Ritsumeikan, mestre absoluto em
- ilusões de ótica. O padrão de círculos concêntricos com listras de fundo
+ ilusões de ótica. O padrão de círculos concêntricos alternando cores de fundo
  cria uma forte sensação de pulsação e expansão na visão periférica.
  </p>
 
@@ -90,24 +90,18 @@
  <label for="ringRatio">Espessura dos anéis <span id="ringRatioOut" class="value">50%</span></label>
  <input id="ringRatio" type="range" min="20" max="80" step="1" value="50">
 
- <label for="gapRatio">Espaço entre círculos <span id="gapRatioOut" class="value">5%</span></label>
- <input id="gapRatio" type="range" min="0" max="30" step="1" value="5">
+ <label for="gapRatio">Espaço entre círculos <span id="gapRatioOut" class="value">3%</span></label>
+ <input id="gapRatio" type="range" min="0" max="20" step="1" value="3">
 
- <label for="stripeFreq">Frequência das listras <span id="stripeFreqOut" class="value">50%</span></label>
- <input id="stripeFreq" type="range" min="20" max="100" step="1" value="50">
-
- <label for="crossSize">Tamanho da cruz <span id="crossSizeOut" class="value">6%</span></label>
+ <label for="crossSize">Tamanho dos losangos <span id="crossSizeOut" class="value">6%</span></label>
  <input id="crossSize" type="range" min="0" max="20" step="1" value="6">
-
- <label for="jitter">Tremor <span id="jitterOut" class="value">0%</span></label>
- <input id="jitter" type="range" min="0" max="30" step="1" value="0">
 
  <button id="download">Salvar PNG</button>
 
  <p class="hint">
- O efeito de movimento aparente surge da combinação de círculos concêntricos
- com listras verticais no fundo. O alto contraste entre os anéis escuros e
- claros, somado à repetição em grade, engana os detectores de movimento do
+ O efeito de movimento aparente surge da alternância de círculos concêntricos
+ com fundo escuro e claro em padrão de tabuleiro. O alto contraste entre os
+ anéis, somado à repetição em grade, engana os detectores de movimento do
  sistema visual — especialmente na periferia.
  </p>
  </aside>
@@ -126,17 +120,15 @@
  rings: $('rings'),
  ringRatio: $('ringRatio'),
  gapRatio: $('gapRatio'),
- stripeFreq: $('stripeFreq'),
- crossSize: $('crossSize'),
- jitter: $('jitter')
+ crossSize: $('crossSize')
  };
 
  const presets = {
- reference: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0},
- invert: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0},
- neon: {grid:8, rings:4, ringRatio:45, gapRatio:5, crossSize:6, stripeFreq:60, jitter:5},
- sepia: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0},
- mono: {grid:8, rings:5, ringRatio:50, gapRatio:5, crossSize:6, stripeFreq:50, jitter:0}
+ reference: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6},
+ invert: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6},
+ neon: {grid:8, rings:4, ringRatio:45, gapRatio:3, crossSize:6},
+ sepia: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6},
+ mono: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6}
  };
 
  function fitCanvas() {
@@ -163,66 +155,52 @@
  const rings = Math.max(2, Math.min(10, Number(controls.rings.value) || 5));
  const ringRatio = Number(controls.ringRatio.value) / 100;
  const gapRatio = Number(controls.gapRatio.value) / 100;
- const stripeFreq = Number(controls.stripeFreq.value) / 100;
- const jitter = Number(controls.jitter.value) / 100;
  const crossSize = Number(controls.crossSize.value) / 100;
  const preset = controls.preset.value;
 
  // Color schemes
- let bgColors, ringColors, stripeColors, accentColors;
+ let bgColor, darkFill, lightFill, darkRing, lightRing, accentColors;
 
  if (preset === 'reference') {
- bgColors = ['#ddd9d0', '#c8c0b0'];
- ringColors = [
- {outer: '#4a3520', inner: '#000000'},
- {outer: '#d4b896', inner: '#ffffff'}
- ];
- stripeColors = ['#8b7355', '#c4a87a'];
+ bgColor = '#ddd9d0';
+ darkFill = '#4a3520';
+ lightFill = '#d4b896';
+ darkRing = '#000000';
+ lightRing = '#ffffff';
  accentColors = ['#6abf4b', '#2d7a1e'];
  } else if (preset === 'invert') {
- bgColors = ['#22222a', '#1a1a22'];
- ringColors = [
- {outer: '#d4b896', inner: '#ffffff'},
- {outer: '#4a3520', inner: '#000000'}
- ];
- stripeColors = ['#c4a87a', '#8b7355'];
+ bgColor = '#22222a';
+ darkFill = '#d4b896';
+ lightFill = '#4a3520';
+ darkRing = '#ffffff';
+ lightRing = '#000000';
  accentColors = ['#6abf4b', '#2d7a1e'];
  } else if (preset === 'neon') {
- bgColors = ['#0a0a14', '#12121e'];
- ringColors = [
- {outer: '#ff00ff', inner: '#ff88ff'},
- {outer: '#00ffff', inner: '#88ffff'}
- ];
- stripeColors = ['#1a1a3a', '#0d0d2a'];
+ bgColor = '#0a0a14';
+ darkFill = '#ff00ff';
+ lightFill = '#00ffff';
+ darkRing = '#ff88ff';
+ lightRing = '#88ffff';
  accentColors = ['#ff6600', '#ffaa00'];
  } else if (preset === 'sepia') {
- bgColors = ['#e8dcc8', '#d4c4a8'];
- ringColors = [
- {outer: '#5c3d2e', inner: '#2a1a10'},
- {outer: '#c4a87a', inner: '#e8dcc8'}
- ];
- stripeColors = ['#a08060', '#c4a87a'];
+ bgColor = '#e8dcc8';
+ darkFill = '#5c3d2e';
+ lightFill = '#c4a87a';
+ darkRing = '#2a1a10';
+ lightRing = '#e8dcc8';
  accentColors = ['#8b6914', '#6b4f10'];
  } else { // mono
- bgColors = ['#e0e0e0', '#c8c8c8'];
- ringColors = [
- {outer: '#404040', inner: '#000000'},
- {outer: '#b0b0b0', inner: '#ffffff'}
- ];
- stripeColors = ['#808080', '#a8a8a8'];
+ bgColor = '#e0e0e0';
+ darkFill = '#404040';
+ lightFill = '#b0b0b0';
+ darkRing = '#000000';
+ lightRing = '#ffffff';
  accentColors = ['#606060', '#404040'];
  }
 
  ctx.clearRect(0, 0, W, W);
-
- // Background with vertical stripes
- const stripeW = Math.max(2, W * 0.015 * stripeFreq);
- for (let x = 0; x < W; x += stripeW * 2) {
- ctx.fillStyle = stripeColors[0];
- ctx.fillRect(x, 0, stripeW, W);
- ctx.fillStyle = stripeColors[1];
- ctx.fillRect(x + stripeW, 0, stripeW, W);
- }
+ ctx.fillStyle = bgColor;
+ ctx.fillRect(0, 0, W, W);
 
  const margin = W * 0.03;
  const boardSize = W - margin * 2;
@@ -235,75 +213,77 @@
  const cx = margin + c * cell + cell / 2;
  const cy = margin + r * cell + cell / 2;
 
- // Jitter
- const jx = jitter > 0 ? (Math.random() - 0.5) * cell * jitter : 0;
- const jy = jitter > 0 ? (Math.random() - 0.5) * cell * jitter : 0;
+ // Alternating fill: dark on even (r+c), light on odd
+ const isDark = ((r + c) % 2 === 0);
+ const fillColor = isDark ? darkFill : lightFill;
+ const ringInner = isDark ? darkRing : lightRing;
+ const ringOuter = isDark ? lightRing : darkRing;
 
- // Alternate between two ring color sets
- const colorSet = ((r + c) % 2 === 0) ? ringColors[0] : ringColors[1];
+ // Draw filled circle background
+ ctx.beginPath();
+ ctx.arc(cx, cy, circleR, 0, Math.PI * 2);
+ ctx.fillStyle = fillColor;
+ ctx.fill();
 
  // Draw concentric rings
  const ringW = circleR / rings;
  for (let i = 0; i < rings; i++) {
  const outerR = circleR - i * ringW;
  const innerR = Math.max(0, outerR - ringW * ringRatio);
- const isDark = (i % 2 === 0);
+ const isRingDark = (i % 2 === 0);
 
  ctx.beginPath();
- ctx.arc(cx + jx, cy + jy, outerR, 0, Math.PI * 2);
- ctx.arc(cx + jx, cy + jy, innerR, 0, Math.PI * 2, true);
+ ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+ ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
  ctx.closePath();
 
- ctx.fillStyle = isDark ? colorSet.inner : colorSet.outer;
+ ctx.fillStyle = isRingDark ? ringInner : ringOuter;
  ctx.fill();
  }
 
- // Four diamonds: each points to center with its tip, other tip forms the cross
+ // Four diamonds at intersections: tip points to center, base outward
  if (c < n - 1 && r < n - 1 && crossSize > 0) {
  const ix = margin + (c + 1) * cell;
  const iy = margin + (r + 1) * cell;
  const dSize = cell * crossSize * 0.5;
- const gap = dSize * 0.15;
+ const gap2 = dSize * 0.15;
  ctx.fillStyle = accentColors[(r + c) % 2];
- // Four diamonds: tip points to center, base points outward
- const positions = [
- [0, -1], // top: tip at center, base up
- [0, 1],  // bottom: tip at center, base down
- [-1, 0], // left: tip at center, base left
- [1, 0]   // right: tip at center, base right
- ];
- for (const [dx, dy] of positions) {
- const cx2 = ix + dx * gap;
- const cy2 = iy + dy * gap;
+
+ // top: tip at bottom (center), base up
  ctx.beginPath();
- if (dy === -1) {
- // top diamond: tip at center (bottom), base up
- ctx.moveTo(cx2, cy2 + dSize * 0.3); // tip pointing to center
- ctx.lineTo(cx2 + dSize * 0.5, cy2);
- ctx.lineTo(cx2, cy2 - dSize); // base pointing up
- ctx.lineTo(cx2 - dSize * 0.5, cy2);
- } else if (dy === 1) {
- // bottom diamond: tip at center (top), base down
- ctx.moveTo(cx2, cy2 - dSize * 0.3); // tip pointing to center
- ctx.lineTo(cx2 + dSize * 0.5, cy2);
- ctx.lineTo(cx2, cy2 + dSize); // base pointing down
- ctx.lineTo(cx2 - dSize * 0.5, cy2);
- } else if (dx === -1) {
- // left diamond: tip at center (right), base left
- ctx.moveTo(cx2 + dSize * 0.3, cy2); // tip pointing to center
- ctx.lineTo(cx2, cy2 + dSize * 0.5);
- ctx.lineTo(cx2 - dSize, cy2); // base pointing left
- ctx.lineTo(cx2, cy2 - dSize * 0.5);
- } else {
- // right diamond: tip at center (left), base right
- ctx.moveTo(cx2 - dSize * 0.3, cy2); // tip pointing to center
- ctx.lineTo(cx2, cy2 + dSize * 0.5);
- ctx.lineTo(cx2 + dSize, cy2); // base pointing right
- ctx.lineTo(cx2, cy2 - dSize * 0.5);
- }
+ ctx.moveTo(ix, iy + dSize * 0.3);
+ ctx.lineTo(ix + dSize * 0.5, iy - gap2);
+ ctx.lineTo(ix, iy - dSize);
+ ctx.lineTo(ix - dSize * 0.5, iy - gap2);
  ctx.closePath();
  ctx.fill();
- }
+
+ // bottom: tip at top (center), base down
+ ctx.beginPath();
+ ctx.moveTo(ix, iy - dSize * 0.3);
+ ctx.lineTo(ix + dSize * 0.5, iy + gap2);
+ ctx.lineTo(ix, iy + dSize);
+ ctx.lineTo(ix - dSize * 0.5, iy + gap2);
+ ctx.closePath();
+ ctx.fill();
+
+ // left: tip at right (center), base left
+ ctx.beginPath();
+ ctx.moveTo(ix + dSize * 0.3, iy);
+ ctx.lineTo(ix - gap2, iy + dSize * 0.5);
+ ctx.lineTo(ix - dSize, iy);
+ ctx.lineTo(ix - gap2, iy - dSize * 0.5);
+ ctx.closePath();
+ ctx.fill();
+
+ // right: tip at left (center), base right
+ ctx.beginPath();
+ ctx.moveTo(ix - dSize * 0.3, iy);
+ ctx.lineTo(ix + gap2, iy + dSize * 0.5);
+ ctx.lineTo(ix + dSize, iy);
+ ctx.lineTo(ix + gap2, iy - dSize * 0.5);
+ ctx.closePath();
+ ctx.fill();
  }
  }
  }
@@ -314,9 +294,7 @@
  function updateLabels() {
  $('ringRatioOut').textContent = controls.ringRatio.value + '%';
  $('gapRatioOut').textContent = controls.gapRatio.value + '%';
- $('stripeFreqOut').textContent = controls.stripeFreq.value + '%';
  $('crossSizeOut').textContent = controls.crossSize.value + '%';
- $('jitterOut').textContent = controls.jitter.value + '%';
  }
 
  Object.values(controls).forEach(ctrl => {
