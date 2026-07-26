@@ -1,319 +1,579 @@
-<!doctype html>
-<html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-PT">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kitaoka Circles — Ilusão de Movimento Anômalo</title>
-<style>
- :root{
- color-scheme: light dark;
- --bg:#e6e3da;
- --panel:#fff;
- --text:#171717;
- --muted:#666;
- --border:#cfcfcf;
- --accent:#315efb;
- }
- @media (prefers-color-scheme: dark){
- :root{
- --bg:#1a1a1a;
- --panel:#242424;
- --text:#f0f0f0;
- --muted:#aaa;
- --border:#454545;
- --accent:#84a0ff;
- }
- }
- *{box-sizing:border-box}
- body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
- main{width:min(1180px,100%);margin:0 auto;padding:18px}
- h1{margin:0 0 8px;font-size:clamp(1.45rem,2.8vw,2.25rem)}
- .sub{margin:0 0 18px;color:var(--muted);line-height:1.45}
- .layout{display:grid;grid-template-columns:minmax(320px,780px) minmax(260px,340px);gap:18px;align-items:start}
- .card,.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
- .card{padding:14px}
- .panel{padding:16px}
- canvas{display:block;width:100%;aspect-ratio:1;background:#ddd9d0;border-radius:8px}
- h2{margin:0 0 12px;font-size:1.05rem}
- label{display:block;margin:12px 0 5px;font-weight:650}
- input,select,button{width:100%;font:inherit}
- input[type="number"], select{
- padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text)
- }
- input[type="range"]{accent-color:var(--accent)}
- .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
- button{margin-top:16px;padding:10px 12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
- button:hover{filter:brightness(1.05)}
- .value{float:right;color:var(--muted);font-weight:500}
- .hint{margin-top:12px;color:var(--muted);font-size:.9rem;line-height:1.45}
- @media (max-width:820px){main{padding:12px}.layout{grid-template-columns:1fr}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ilusão de Círculos de Kitaoka (17x17)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Estilização personalizada dos seletores deslizantes */
+    input[type=range] {
+      accent-color: #eab308;
+    }
+    
+    /* Padrão Xadrez de fundo para demonstrar a transparência real do Canvas */
+    .checkerboard-bg {
+      background-color: #0f172a;
+      background-image: 
+        linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+        linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+        linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+  </style>
 </head>
-<body>
-<main>
- <h1>Círculos Concêntricos</h1>
- <p class="sub">
- Ilusão de movimento anômalo inspirada nos trabalhos do <strong>Akiyoshi Kitaoka</strong> —
- psicólogo e professor da Universidade Ritsumeikan, mestre absoluto em
- ilusões de ótica. O padrão de círculos concêntricos alternando cores de fundo
- cria uma forte sensação de pulsação e expansão na visão periférica.
- </p>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col lg:flex-row font-sans">
 
- <div class="layout">
- <section class="card">
- <canvas id="cv" width="1100" height="1100" aria-label="Ilusão óptica de círculos concêntricos"></canvas>
- </section>
+  <!-- Painel Lateral de Controlos -->
+  <aside class="w-full lg:w-96 bg-slate-900 border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen shadow-2xl">
+    <div>
+      <h1 class="text-xl font-bold text-amber-400 flex items-center gap-2">
+        <span>🌀</span> Ilusão de Kitaoka
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">
+        Padrão idêntico à imagem original: 17x17 círculos com anéis concêntricos de estrelas mono-cor e fundo transparente.
+      </p>
+    </div>
 
- <aside class="panel">
- <h2>Controles</h2>
+    <!-- Predefinições -->
+    <div class="space-y-2">
+      <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Predefinições</label>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="presetOriginal" class="px-3 py-2 text-xs font-medium bg-amber-600/30 border border-amber-500/50 hover:bg-amber-600/50 rounded-lg transition text-amber-200">
+          📷 Padrão Imagem (17x17)
+        </button>
+        <button id="presetBW" class="px-3 py-2 text-xs font-medium bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-lg transition text-slate-300">
+          ⬛ Alto Contraste (P&B)
+        </button>
+      </div>
+    </div>
 
- <label for="preset">Predefinição</label>
- <select id="preset">
- <option value="reference">Padrão de referência</option>
- <option value="invert">Cores invertidas</option>
- <option value="neon">Neon</option>
- <option value="sepia">Sépia</option>
- <option value="mono">Monocromático</option>
- </select>
+    <!-- Padrão de Distribuição das Cores dos Losangos -->
+    <div class="space-y-3 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Padrão de Cores dos Losangos</h2>
+      
+      <div class="space-y-1">
+        <label class="block text-xs text-slate-300">Modo de Distribuição</label>
+        <select id="selectPatternMode" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+          <option value="concentric" selected>⭕ Anéis Concêntricos (Fiel à Imagem 17x17)</option>
+          <option value="checkerboard">🏁 Xadrez por Interseção</option>
+          <option value="perTile">🧱 Alternado por Célula</option>
+        </select>
+      </div>
 
- <div class="row">
- <div>
- <label for="grid">Grade</label>
- <input id="grid" type="number" min="4" max="20" step="1" value="8">
- </div>
- <div>
- <label for="rings">Anéis</label>
- <input id="rings" type="number" min="2" max="10" step="1" value="5">
- </div>
- </div>
+      <div id="starBandContainer" class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Largura do Anel de Estrelas: <strong id="valStarBandWidth" class="text-amber-400">1.75</strong></span>
+        </div>
+        <input type="range" id="inputStarBandWidth" min="0.8" max="4.0" step="0.05" value="1.75" class="w-full">
+      </div>
+    </div>
 
- <label for="ringRatio">Espessura dos anéis <span id="ringRatioOut" class="value">50%</span></label>
- <input id="ringRatio" type="range" min="20" max="80" step="1" value="50">
+    <!-- Dimensões da Grelha (10x10 a 20x20, padrão 17x17) -->
+    <div class="space-y-4 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Grelha de Círculos</h2>
+      
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Dimensão da Grelha (N x N): <strong id="valGridSize" class="text-amber-400">17 x 17</strong></span>
+        </div>
+        <input type="range" id="inputGridSize" min="10" max="20" value="17" class="w-full">
+      </div>
 
- <label for="gapRatio">Espaço entre círculos <span id="gapRatioOut" class="value">3%</span></label>
- <input id="gapRatio" type="range" min="0" max="20" step="1" value="3">
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="checkCustomGrid" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
+        <label for="checkCustomGrid" class="text-xs text-slate-300">Desbloquear Dimensões Assimétricas</label>
+      </div>
 
- <label for="crossSize">Tamanho dos losangos <span id="crossSizeOut" class="value">6%</span></label>
- <input id="crossSize" type="range" min="0" max="20" step="1" value="6">
+      <!-- Controlos de Dimensão Assimétrica -->
+      <div id="customGridContainer" class="space-y-3 hidden pl-2 border-l-2 border-slate-800">
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span>Colunas: <strong id="valCols" class="text-amber-400">17</strong></span>
+          </div>
+          <input type="range" id="inputCols" min="5" max="25" value="17" class="w-full">
+        </div>
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span>Linhas: <strong id="valRows" class="text-amber-400">17</strong></span>
+          </div>
+          <input type="range" id="inputRows" min="5" max="25" value="17" class="w-full">
+        </div>
+      </div>
 
- <button id="download">Salvar PNG</button>
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Tamanho da Célula (px): <strong id="valTileSize" class="text-amber-400">55</strong></span>
+        </div>
+        <input type="range" id="inputTileSize" min="30" max="120" value="55" class="w-full">
+      </div>
 
- <p class="hint">
- O efeito de movimento aparente surge da alternância de círculos concêntricos
- com fundo escuro e claro em padrão de tabuleiro. O alto contraste entre os
- anéis, somado à repetição em grade, engana os detectores de movimento do
- sistema visual — especialmente na periferia.
- </p>
- </aside>
- </div>
-</main>
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Corte Octogonal (px): <strong id="valChamfer" class="text-amber-400">10</strong></span>
+        </div>
+        <input type="range" id="inputChamfer" min="2" max="25" value="10" class="w-full">
+      </div>
+    </div>
 
-<script>
-(() => {
- const $ = id => document.getElementById(id);
- const canvas = $('cv');
- const ctx = canvas.getContext('2d');
+    <!-- Parâmetros dos Círculos Concêntricos -->
+    <div class="space-y-4 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Anéis Concêntricos</h2>
 
- const controls = {
- preset: $('preset'),
- grid: $('grid'),
- rings: $('rings'),
- ringRatio: $('ringRatio'),
- gapRatio: $('gapRatio'),
- crossSize: $('crossSize')
- };
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Número de Anéis: <strong id="valRings" class="text-amber-400">3</strong></span>
+        </div>
+        <input type="range" id="inputRings" min="1" max="6" value="3" class="w-full">
+      </div>
 
- const presets = {
- reference: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6},
- invert: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6},
- neon: {grid:8, rings:4, ringRatio:45, gapRatio:3, crossSize:6},
- sepia: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6},
- mono: {grid:8, rings:5, ringRatio:50, gapRatio:3, crossSize:6}
- };
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Espessura do Anel (px): <strong id="valRingWidth" class="text-amber-400">2</strong></span>
+        </div>
+        <input type="range" id="inputRingWidth" min="1" max="6" value="2" class="w-full">
+      </div>
+    </div>
 
- function fitCanvas() {
- const dpr = Math.min(window.devicePixelRatio || 1, 2);
- const css = Math.max(320, Math.floor(canvas.getBoundingClientRect().width));
- const px = Math.floor(css * dpr);
- if (canvas.width !== px || canvas.height !== px) {
- canvas.width = px;
- canvas.height = px;
- }
- }
+    <!-- Geometria das Estrelas de Losangos -->
+    <div class="space-y-4 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Geometria dos Losangos</h2>
 
- function setPreset(name) {
- const p = presets[name];
- Object.entries(p).forEach(([k,v]) => controls[k].value = v);
- draw();
- }
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Comprimento do Losango (px): <strong id="valDiamondLength" class="text-amber-400">12</strong></span>
+        </div>
+        <input type="range" id="inputDiamondLength" min="4" max="24" value="12" class="w-full">
+      </div>
 
- function draw() {
- fitCanvas();
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Largura do Losango (px): <strong id="valDiamondWidth" class="text-amber-400">8</strong></span>
+        </div>
+        <input type="range" id="inputDiamondWidth" min="2" max="18" value="8" class="w-full">
+      </div>
 
- const W = canvas.width;
- const n = Math.max(4, Math.min(20, Number(controls.grid.value) || 8));
- const rings = Math.max(2, Math.min(10, Number(controls.rings.value) || 5));
- const ringRatio = Number(controls.ringRatio.value) / 100;
- const gapRatio = Number(controls.gapRatio.value) / 100;
- const crossSize = Number(controls.crossSize.value) / 100;
- const preset = controls.preset.value;
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span>Afastamento do Canto (px): <strong id="valDiamondOffset" class="text-amber-400">7</strong></span>
+        </div>
+        <input type="range" id="inputDiamondOffset" min="1" max="18" value="7" class="w-full">
+      </div>
 
- // Color schemes
- let bgColor, darkFill, lightFill, darkRing, lightRing, accentColors;
+      <div class="flex items-center gap-2 pt-1">
+        <input type="checkbox" id="checkShowAccents" checked class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
+        <label for="checkShowAccents" class="text-xs text-slate-300">Exibir estrelas de losangos nas interseções</label>
+      </div>
 
- if (preset === 'reference') {
- bgColor = '#ddd9d0';
- darkFill = '#4a3520';
- lightFill = '#d4b896';
- darkRing = '#000000';
- lightRing = '#ffffff';
- accentColors = ['#6abf4b', '#2d7a1e'];
- } else if (preset === 'invert') {
- bgColor = '#22222a';
- darkFill = '#d4b896';
- lightFill = '#4a3520';
- darkRing = '#ffffff';
- lightRing = '#000000';
- accentColors = ['#6abf4b', '#2d7a1e'];
- } else if (preset === 'neon') {
- bgColor = '#0a0a14';
- darkFill = '#ff00ff';
- lightFill = '#00ffff';
- darkRing = '#ff88ff';
- lightRing = '#88ffff';
- accentColors = ['#ff6600', '#ffaa00'];
- } else if (preset === 'sepia') {
- bgColor = '#e8dcc8';
- darkFill = '#5c3d2e';
- lightFill = '#c4a87a';
- darkRing = '#2a1a10';
- lightRing = '#e8dcc8';
- accentColors = ['#8b6914', '#6b4f10'];
- } else { // mono
- bgColor = '#e0e0e0';
- darkFill = '#404040';
- lightFill = '#b0b0b0';
- darkRing = '#000000';
- lightRing = '#ffffff';
- accentColors = ['#606060', '#404040'];
- }
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="checkInvertStars" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
+        <label for="checkInvertStars" class="text-xs text-slate-300">Inverter alternância de cores das estrelas</label>
+      </div>
+    </div>
 
- ctx.clearRect(0, 0, W, W);
- ctx.fillStyle = bgColor;
- ctx.fillRect(0, 0, W, W);
+    <!-- Transparência do Fundo -->
+    <div class="space-y-3 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Transparência do Fundo</h2>
+      
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="checkTransparentBg" checked class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
+        <label for="checkTransparentBg" class="text-xs text-slate-300 font-semibold">Fundo Transparente (Sem opacidade nos cantos)</label>
+      </div>
 
- const margin = W * 0.03;
- const boardSize = W - margin * 2;
- const cell = boardSize / n;
- const gap = cell * gapRatio;
- const circleR = (cell - gap) / 2;
+      <div class="space-y-1">
+        <label class="block text-xs text-slate-400 mb-1">Cor de Fundo (Caso desative a transparência)</label>
+        <input type="color" id="colorBg" value="#1a0c02" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+      </div>
+    </div>
 
- for (let r = 0; r < n; r++) {
- for (let c = 0; c < n; c++) {
- const cx = margin + c * cell + cell / 2;
- const cy = margin + r * cell + cell / 2;
+    <!-- Comprovação da Ilusão -->
+    <div class="space-y-3 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Comprovação da Ilusão</h2>
+      
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="checkShowGrid" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
+        <label for="checkShowGrid" class="text-xs text-slate-300">Mostrar linhas guia vermelhas (perfeitamente retas)</label>
+      </div>
+    </div>
 
- // Alternating fill: dark on even (r+c), light on odd
- const isDark = ((r + c) % 2 === 0);
- const fillColor = isDark ? darkFill : lightFill;
- const ringInner = isDark ? darkRing : lightRing;
- const ringOuter = isDark ? lightRing : darkRing;
+    <!-- Personalização de Cores Extraídas da Imagem -->
+    <div class="space-y-3 border-t border-slate-800 pt-4">
+      <h2 class="text-sm font-semibold text-slate-200">Paleta de Cores da Imagem</h2>
 
- // Draw filled circle background
- ctx.beginPath();
- ctx.arc(cx, cy, circleR, 0, Math.PI * 2);
- ctx.fillStyle = fillColor;
- ctx.fill();
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Célula Clara (Ocre)</label>
+          <input type="color" id="colorLightTile" value="#d0a153" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Célula Escura (Castanho)</label>
+          <input type="color" id="colorDarkTile" value="#70421b" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Anéis Célula Clara</label>
+          <input type="color" id="colorLightRing" value="#ffffff" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Anéis Célula Escura</label>
+          <input type="color" id="colorDarkRing" value="#1a0c02" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Estrela Verde Lima (4 losangos)</label>
+          <input type="color" id="colorAccentLime" value="#96f300" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Estrela Verde Escuro (4 losangos)</label>
+          <input type="color" id="colorAccentDark" value="#008435" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
+        </div>
+      </div>
+    </div>
 
- // Draw concentric rings
- const ringW = circleR / rings;
- for (let i = 0; i < rings; i++) {
- const outerR = circleR - i * ringW;
- const innerR = Math.max(0, outerR - ringW * ringRatio);
- const isRingDark = (i % 2 === 0);
+    <!-- Ações -->
+    <div class="pt-4 border-t border-slate-800 flex gap-2">
+      <button id="btnDownload" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition shadow-lg flex items-center justify-center gap-1.5">
+        <span>💾</span> Descarregar PNG Transparente
+      </button>
+    </div>
 
- ctx.beginPath();
- ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
- ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
- ctx.closePath();
+  </aside>
 
- ctx.fillStyle = isRingDark ? ringInner : ringOuter;
- ctx.fill();
- }
+  <!-- Área do Canvas com padrão xadrez para evidenciar a transparência real -->
+  <main class="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-auto min-h-[500px]">
+    <div class="relative bg-slate-900/80 p-4 rounded-2xl border border-slate-800 shadow-2xl flex flex-col items-center max-w-full">
+      <div class="checkerboard-bg p-2 rounded-lg border border-slate-700/50 overflow-auto max-w-full">
+        <canvas id="illusionCanvas" class="rounded max-w-full h-auto cursor-pointer block"></canvas>
+      </div>
+      <p class="text-xs text-slate-400 mt-3 text-center max-w-lg">
+        ✨ <strong>Reprodução Fiel (17x17):</strong> Padrão de anéis concêntricos de estrelas verdes sobre 17x17 círculos com fundo 100% transparente.
+      </p>
+    </div>
+  </main>
 
- // Four diamonds at intersections: tip points to center, base outward
- if (c < n - 1 && r < n - 1 && crossSize > 0) {
- const ix = margin + (c + 1) * cell;
- const iy = margin + (r + 1) * cell;
- const dSize = cell * crossSize * 0.5;
- const gap2 = dSize * 0.15;
- ctx.fillStyle = accentColors[(r + c) % 2];
+  <script>
+    // Referências do Canvas e Contexto
+    const canvas = document.getElementById('illusionCanvas');
+    const ctx = canvas.getContext('2d');
 
- // top: tip at bottom (center), base up
- ctx.beginPath();
- ctx.moveTo(ix, iy + dSize * 0.3);
- ctx.lineTo(ix + dSize * 0.5, iy - gap2);
- ctx.lineTo(ix, iy - dSize);
- ctx.lineTo(ix - dSize * 0.5, iy - gap2);
- ctx.closePath();
- ctx.fill();
+    // Controlos de Entrada
+    const inputGridSize = document.getElementById('inputGridSize');
+    const checkCustomGrid = document.getElementById('checkCustomGrid');
+    const customGridContainer = document.getElementById('customGridContainer');
+    const inputCols = document.getElementById('inputCols');
+    const inputRows = document.getElementById('inputRows');
+    
+    const selectPatternMode = document.getElementById('selectPatternMode');
+    const starBandContainer = document.getElementById('starBandContainer');
+    const inputStarBandWidth = document.getElementById('inputStarBandWidth');
 
- // bottom: tip at top (center), base down
- ctx.beginPath();
- ctx.moveTo(ix, iy - dSize * 0.3);
- ctx.lineTo(ix + dSize * 0.5, iy + gap2);
- ctx.lineTo(ix, iy + dSize);
- ctx.lineTo(ix - dSize * 0.5, iy + gap2);
- ctx.closePath();
- ctx.fill();
+    const inputTileSize = document.getElementById('inputTileSize');
+    const inputChamfer = document.getElementById('inputChamfer');
+    const inputRings = document.getElementById('inputRings');
+    const inputRingWidth = document.getElementById('inputRingWidth');
+    const inputDiamondLength = document.getElementById('inputDiamondLength');
+    const inputDiamondWidth = document.getElementById('inputDiamondWidth');
+    const inputDiamondOffset = document.getElementById('inputDiamondOffset');
+    
+    const checkShowAccents = document.getElementById('checkShowAccents');
+    const checkInvertStars = document.getElementById('checkInvertStars');
+    const checkShowGrid = document.getElementById('checkShowGrid');
+    const checkTransparentBg = document.getElementById('checkTransparentBg');
 
- // left: tip at right (center), base left
- ctx.beginPath();
- ctx.moveTo(ix + dSize * 0.3, iy);
- ctx.lineTo(ix - gap2, iy + dSize * 0.5);
- ctx.lineTo(ix - dSize, iy);
- ctx.lineTo(ix - gap2, iy - dSize * 0.5);
- ctx.closePath();
- ctx.fill();
+    const colorLightTile = document.getElementById('colorLightTile');
+    const colorDarkTile = document.getElementById('colorDarkTile');
+    const colorLightRing = document.getElementById('colorLightRing');
+    const colorDarkRing = document.getElementById('colorDarkRing');
+    const colorAccentLime = document.getElementById('colorAccentLime');
+    const colorAccentDark = document.getElementById('colorAccentDark');
+    const colorBg = document.getElementById('colorBg');
 
- // right: tip at left (center), base right
- ctx.beginPath();
- ctx.moveTo(ix - dSize * 0.3, iy);
- ctx.lineTo(ix + gap2, iy + dSize * 0.5);
- ctx.lineTo(ix + dSize, iy);
- ctx.lineTo(ix + gap2, iy - dSize * 0.5);
- ctx.closePath();
- ctx.fill();
- }
- }
- }
+    // Etiquetas de Valor
+    const valGridSize = document.getElementById('valGridSize');
+    const valCols = document.getElementById('valCols');
+    const valRows = document.getElementById('valRows');
+    const valTileSize = document.getElementById('valTileSize');
+    const valChamfer = document.getElementById('valChamfer');
+    const valRings = document.getElementById('valRings');
+    const valRingWidth = document.getElementById('valRingWidth');
+    const valDiamondLength = document.getElementById('valDiamondLength');
+    const valDiamondWidth = document.getElementById('valDiamondWidth');
+    const valDiamondOffset = document.getElementById('valDiamondOffset');
+    const valStarBandWidth = document.getElementById('valStarBandWidth');
 
- updateLabels();
- }
+    // Botões
+    const btnDownload = document.getElementById('btnDownload');
+    const presetOriginal = document.getElementById('presetOriginal');
+    const presetBW = document.getElementById('presetBW');
 
- function updateLabels() {
- $('ringRatioOut').textContent = controls.ringRatio.value + '%';
- $('gapRatioOut').textContent = controls.gapRatio.value + '%';
- $('crossSizeOut').textContent = controls.crossSize.value + '%';
- }
+    // Função Principal de Renderização
+    function renderPattern() {
+      const gridSize = parseInt(inputGridSize.value);
+      const isCustom = checkCustomGrid.checked;
+      
+      const cols = isCustom ? parseInt(inputCols.value) : gridSize;
+      const rows = isCustom ? parseInt(inputRows.value) : gridSize;
 
- Object.values(controls).forEach(ctrl => {
- ctrl.addEventListener('input', () => draw());
- });
+      const tileSize = parseInt(inputTileSize.value);
+      const chamfer = parseInt(inputChamfer.value);
+      const numRings = parseInt(inputRings.value);
+      const ringWidth = parseInt(inputRingWidth.value);
+      const diamondLength = parseInt(inputDiamondLength.value);
+      const diamondWidth = parseInt(inputDiamondWidth.value);
+      const diamondOffset = parseInt(inputDiamondOffset.value);
+      const patternMode = selectPatternMode.value;
+      const starBandWidth = parseFloat(inputStarBandWidth.value);
 
- controls.preset.addEventListener('change', () => setPreset(controls.preset.value));
+      const showAccents = checkShowAccents.checked;
+      const invertStars = checkInvertStars.checked;
+      const showGrid = checkShowGrid.checked;
+      const transparentBg = checkTransparentBg.checked;
 
- $('download').addEventListener('click', () => {
- draw();
- const a = document.createElement('a');
- a.href = canvas.toDataURL('image/png');
- a.download = 'kitaoka-circles.png';
- a.click();
- });
+      // Gestão de visibilidade de controlos contextuais
+      if (isCustom) {
+        customGridContainer.classList.remove('hidden');
+      } else {
+        customGridContainer.classList.add('hidden');
+      }
 
- window.addEventListener('resize', draw);
- setPreset('reference');
-})();
-</script>
+      if (patternMode === 'concentric') {
+        starBandContainer.classList.remove('hidden');
+      } else {
+        starBandContainer.classList.add('hidden');
+      }
+
+      // Atualizar etiquetas dos seletores
+      valGridSize.textContent = `${gridSize} x ${gridSize}`;
+      valCols.textContent = cols;
+      valRows.textContent = rows;
+      valTileSize.textContent = tileSize;
+      valChamfer.textContent = chamfer;
+      valRings.textContent = numRings;
+      valRingWidth.textContent = ringWidth;
+      valDiamondLength.textContent = diamondLength;
+      valDiamondWidth.textContent = diamondWidth;
+      valDiamondOffset.textContent = diamondOffset;
+      valStarBandWidth.textContent = starBandWidth.toFixed(2);
+
+      // Redimensionar Canvas
+      canvas.width = cols * tileSize;
+      canvas.height = rows * tileSize;
+
+      // Limpar Canvas (Assegura Transparência Real)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!transparentBg) {
+        ctx.fillStyle = colorBg.value;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // 1. Desenhar a Grelha de Células Octogonais com Anéis e Losangos
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * tileSize;
+          const y = r * tileSize;
+          const isLightTile = (r + c) % 2 === 0;
+
+          const tileColor = isLightTile ? colorLightTile.value : colorDarkTile.value;
+          const ringColor = isLightTile ? colorLightRing.value : colorDarkRing.value;
+
+          // Desenhar Célula Octogonal
+          ctx.beginPath();
+          ctx.moveTo(x + chamfer, y);
+          ctx.lineTo(x + tileSize - chamfer, y);
+          ctx.lineTo(x + tileSize, y + chamfer);
+          ctx.lineTo(x + tileSize, y + tileSize - chamfer);
+          ctx.lineTo(x + tileSize - chamfer, y + tileSize);
+          ctx.lineTo(x + chamfer, y + tileSize);
+          ctx.lineTo(x, y + tileSize - chamfer);
+          ctx.lineTo(x, y + chamfer);
+          ctx.closePath();
+          
+          ctx.fillStyle = tileColor;
+          ctx.fill();
+
+          // Anéis Concêntricos no centro da célula
+          const centerX = x + tileSize / 2;
+          const centerY = y + tileSize / 2;
+          const maxRadius = (tileSize / 2) - (chamfer * 0.4) - 2;
+          const radiusStep = maxRadius / (numRings + 1);
+
+          ctx.strokeStyle = ringColor;
+          ctx.lineWidth = ringWidth;
+
+          for (let k = 1; k <= numRings; k++) {
+            const radius = k * radiusStep;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Ponto Central
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, ringWidth * 1.2, 0, Math.PI * 2);
+          ctx.fillStyle = ringColor;
+          ctx.fill();
+        }
+      }
+
+      // 2. Desenhar as Estrelas Mono-Cor de Losangos nas Interseções
+      if (showAccents && diamondLength > 0) {
+        const centerCols = cols / 2;
+        const centerRows = rows / 2;
+
+        for (let rInt = 0; rInt <= rows; rInt++) {
+          for (let cInt = 0; cInt <= cols; cInt++) {
+            const ix = cInt * tileSize; // Centro X da interseção
+            const iy = rInt * tileSize; // Centro Y da interseção
+
+            let isLimeStar = false;
+
+            if (patternMode === 'concentric') {
+              // Distância radial a partir do centro da grelha completa
+              const dx = cInt - centerCols;
+              const dy = rInt - centerRows;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              // Faixas concêntricas de estrelas verdes
+              const ringIndex = Math.floor(dist / starBandWidth);
+              isLimeStar = (ringIndex % 2 === 0);
+            } else if (patternMode === 'checkerboard') {
+              isLimeStar = (rInt + cInt) % 2 === 0;
+            } else {
+              isLimeStar = (Math.floor(cInt) + Math.floor(rInt)) % 2 === 1;
+            }
+
+            if (invertStars) isLimeStar = !isLimeStar;
+
+            const starColor = isLimeStar ? colorAccentLime.value : colorAccentDark.value;
+
+            // Desenha a estrela completa de 4 losangos da mesma cor
+            drawMonolithicStar(ctx, ix, iy, diamondLength, diamondWidth, diamondOffset, starColor);
+          }
+        }
+      }
+
+      // 3. Linhas Guia Vermelhas para Comprovação da Ilusão
+      if (showGrid) {
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = 2;
+
+        for (let c = 0; c <= cols; c++) {
+          ctx.beginPath();
+          ctx.moveTo(c * tileSize, 0);
+          ctx.lineTo(c * tileSize, canvas.height);
+          ctx.stroke();
+        }
+
+        for (let r = 0; r <= rows; r++) {
+          ctx.beginPath();
+          ctx.moveTo(0, r * tileSize);
+          ctx.lineTo(canvas.width, r * tileSize);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Desenha uma estrela uniforme de 4 losangos com A MESMA COR numa interseção
+    function drawMonolithicStar(ctx, ix, iy, length, width, offset, starColor) {
+      const angles = [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4];
+
+      angles.forEach(angle => {
+        const dx = ix + offset * Math.cos(angle);
+        const dy = iy + offset * Math.sin(angle);
+
+        drawSingleDiamond(ctx, dx, dy, length, width, angle, starColor);
+      });
+    }
+
+    // Desenha um único losango simétrico
+    function drawSingleDiamond(ctx, cx, cy, length, width, angleRad, color) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angleRad);
+
+      const halfLen = length / 2;
+      const halfWidth = width / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(-halfLen, 0);
+      ctx.lineTo(0, -halfWidth);
+      ctx.lineTo(halfLen, 0);
+      ctx.lineTo(0, halfWidth);
+      ctx.closePath();
+
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Predefinição Padrão Fiel da Imagem
+    presetOriginal.addEventListener('click', () => {
+      colorLightTile.value = '#d0a153';
+      colorDarkTile.value = '#70421b';
+      colorLightRing.value = '#ffffff';
+      colorDarkRing.value = '#1a0c02';
+      colorAccentLime.value = '#96f300';
+      colorAccentDark.value = '#008435';
+      
+      inputGridSize.value = 17;
+      checkCustomGrid.checked = false;
+      inputCols.value = 17;
+      inputRows.value = 17;
+
+      selectPatternMode.value = 'concentric';
+      inputStarBandWidth.value = 1.75;
+
+      inputTileSize.value = 55;
+      inputChamfer.value = 10;
+      inputRings.value = 3;
+      inputRingWidth.value = 2;
+      inputDiamondLength.value = 12;
+      inputDiamondWidth.value = 8;
+      inputDiamondOffset.value = 7;
+
+      checkTransparentBg.checked = true;
+      checkShowAccents.checked = true;
+      checkInvertStars.checked = false;
+      checkShowGrid.checked = false;
+      renderPattern();
+    });
+
+    // Predefinição Alto Contraste (Preto e Branco)
+    presetBW.addEventListener('click', () => {
+      colorDarkTile.value = '#000000';
+      colorLightTile.value = '#ffffff';
+      colorDarkRing.value = '#ffffff';
+      colorLightRing.value = '#000000';
+      colorAccentLime.value = '#00ff00';
+      colorAccentDark.value = '#006600';
+      renderPattern();
+    });
+
+    // Registar escutadores de eventos para atualização dinâmica em tempo real
+    const allInputs = [
+      inputGridSize, checkCustomGrid, inputCols, inputRows, selectPatternMode, inputStarBandWidth,
+      inputTileSize, inputChamfer, inputRings, inputRingWidth,
+      inputDiamondLength, inputDiamondWidth, inputDiamondOffset, checkShowAccents,
+      checkInvertStars, checkShowGrid, checkTransparentBg,
+      colorLightTile, colorDarkTile, colorLightRing, colorDarkRing, colorAccentLime, colorAccentDark, colorBg
+    ];
+
+    allInputs.forEach(input => {
+      input.addEventListener('input', renderPattern);
+      input.addEventListener('change', renderPattern);
+    });
+
+    // Transferência do Canvas como Imagem PNG com transparência
+    btnDownload.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'ilusao-kitaoka-17x17-transparente.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // Renderização Inicial
+    renderPattern();
+  </script>
 </body>
 </html>
