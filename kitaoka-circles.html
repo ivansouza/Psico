@@ -290,7 +290,7 @@
     }
 
     function drawMonolithicStar(ctx, ix, iy, length, width, offset, starColor) {
-      [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4].forEach(angle => {
+      [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
         drawSingleDiamond(ctx, ix + offset * Math.cos(angle), iy + offset * Math.sin(angle), length, width, angle, starColor);
       });
     }
