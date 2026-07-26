@@ -6,312 +6,150 @@
   <title>Ilusão de Círculos de Kitaoka (17x17 - Círculos Tangentes)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Estilização personalizada dos seletores deslizantes */
-    input[type=range] {
-      accent-color: #eab308;
-    }
-    
-    /* Padrão Xadrez de fundo para demonstrar a transparência real do Canvas */
+    input[type=range] { accent-color: #eab308; }
     .checkerboard-bg {
       background-color: #0f172a;
       background-image: 
-        linear-gradient(45deg, #1e293b 25%, transparent 25%), 
-        linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
-        linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+        linear-gradient(45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e293b 75%),
         linear-gradient(-45deg, transparent 75%, #1e293b 75%);
       background-size: 20px 20px;
       background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans m-0 p-0">
 
-  <!-- Painel Lateral de Controlos -->
-  <aside class="w-full lg:w-96 bg-slate-900 border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen shadow-2xl">
-    <div>
-      <h1 class="text-xl font-bold text-amber-400 flex items-center gap-2">
-        <span>🌀</span> Ilusão de Kitaoka
-      </h1>
-      <p class="text-xs text-slate-400 mt-1">
-        Padrão Fiel (17x17): Círculos externos tangentes (a encostar uns nos outros), ondas senoidais de losangos e fundo transparente.
-      </p>
+  <!-- Engrenagem -->
+  <div id="gearBtn" class="fixed top-3 left-3 z-50 w-9 h-9 bg-slate-900/70 backdrop-blur border border-slate-600/60 rounded-lg flex items-center justify-center cursor-pointer hover:bg-slate-800/80 transition shadow-lg text-lg select-none" style="font-size:20px;line-height:1">⚙️</div>
+
+  <!-- Modal de Parâmetros (escondido por padrão) -->
+  <aside id="controlPanel" class="fixed top-3 left-14 z-40 w-72 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 p-3 flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-1.5rem)] shadow-2xl rounded-xl text-xs hidden" style="scrollbar-width:thin">
+
+    <div class="flex items-center justify-between mb-1">
+      <h1 class="text-sm font-bold text-amber-400">🌀 Kitaoka</h1>
+      <button id="closePanel" class="text-slate-400 hover:text-white text-sm px-1">✕</button>
     </div>
 
     <!-- Predefinições -->
-    <div class="space-y-2">
-      <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Predefinições</label>
-      <div class="grid grid-cols-2 gap-2">
-        <button id="presetOriginal" class="px-3 py-2 text-xs font-medium bg-amber-600/30 border border-amber-500/50 hover:bg-amber-600/50 rounded-lg transition text-amber-200">
-          📷 Padrão Fiel (17x17)
-        </button>
-        <button id="presetBW" class="px-3 py-2 text-xs font-medium bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-lg transition text-slate-300">
-          ⬛ Alto Contraste (P&B)
-        </button>
+    <div class="flex gap-1">
+      <button id="presetOriginal" class="flex-1 py-1.5 text-xs font-medium bg-amber-600/30 border border-amber-500/50 hover:bg-amber-600/50 rounded-lg transition text-amber-200">📷 Padrão</button>
+      <button id="presetBW" class="flex-1 py-1.5 text-xs font-medium bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-lg transition text-slate-300">⬛ P&B</button>
+    </div>
+
+    <!-- Anéis -->
+    <div class="border-t border-slate-700/60 pt-2">
+      <div class="text-xs font-semibold text-slate-300 mb-1">Anéis</div>
+      <div class="flex gap-2">
+        <div class="flex-1"><div class="flex justify-between"><span>Escala</span><strong id="valOuterScale" class="text-amber-400">100%</strong></div><input type="range" id="inputOuterScale" min="70" max="100" step="1" value="100" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Qtd</span><strong id="valRings" class="text-amber-400">3</strong></div><input type="range" id="inputRings" min="1" max="6" value="3" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Esp</span><strong id="valRingWidth" class="text-amber-400">2</strong></div><input type="range" id="inputRingWidth" min="1" max="6" value="2" class="w-full"></div>
       </div>
     </div>
 
-    <!-- Círculos Concêntricos Tangentes -->
-    <div class="space-y-4 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Anéis Concêntricos</h2>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Escala do Círculo Externo: <strong id="valOuterScale" class="text-amber-400">100% (Encostados)</strong></span>
+    <!-- Losangos -->
+    <div class="border-t border-slate-700/60 pt-2">
+      <div class="text-xs font-semibold text-slate-300 mb-1">Losangos</div>
+      <select id="selectPatternMode" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 mb-1">
+        <option value="diagSine" selected>🌊 Senoide Diagonal</option>
+        <option value="crossSine">🌀 Senoide Cruzada</option>
+        <option value="concentric">⭕ Anéis Concêntricos</option>
+        <option value="checkerboard">🏁 Xadrez</option>
+      </select>
+      <div id="sineControlsContainer">
+        <div class="flex gap-2">
+          <div class="flex-1"><div class="flex justify-between"><span>Ciclos</span><strong id="valSineCycles" class="text-amber-400">2.0</strong></div><input type="range" id="inputSineCycles" min="0.5" max="6.0" step="0.1" value="2.0" class="w-full"></div>
+          <div class="flex-1"><div class="flex justify-between"><span>Ângulo</span><strong id="valSineAngle" class="text-amber-400">45°</strong></div><input type="range" id="inputSineAngle" min="0" max="180" step="5" value="45" class="w-full"></div>
         </div>
-        <input type="range" id="inputOuterScale" min="70" max="100" step="1" value="100" class="w-full">
+        <div class="flex gap-2">
+          <div class="flex-1"><div class="flex justify-between"><span>Fase</span><strong id="valSinePhase" class="text-amber-400">0.00</strong></div><input type="range" id="inputSinePhase" min="0.0" max="6.28" step="0.05" value="0.0" class="w-full"></div>
+          <div class="flex-1 flex items-end pb-1"><button id="btnAnimate" class="w-full py-1.5 bg-slate-800 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 rounded-lg text-xs transition">▶️ Animar</button></div>
+        </div>
       </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Número de Anéis: <strong id="valRings" class="text-amber-400">3</strong></span>
-        </div>
-        <input type="range" id="inputRings" min="1" max="6" value="3" class="w-full">
+      <div class="flex gap-2 mt-1">
+        <div class="flex-1"><div class="flex justify-between"><span>Comp</span><strong id="valDiamondLength" class="text-amber-400">12</strong></div><input type="range" id="inputDiamondLength" min="4" max="24" value="12" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Larg</span><strong id="valDiamondWidth" class="text-amber-400">8</strong></div><input type="range" id="inputDiamondWidth" min="2" max="18" value="8" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Dist</span><strong id="valDiamondOffset" class="text-amber-400">7</strong></div><input type="range" id="inputDiamondOffset" min="1" max="18" value="7" class="w-full"></div>
       </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Espessura do Anel (px): <strong id="valRingWidth" class="text-amber-400">2</strong></span>
-        </div>
-        <input type="range" id="inputRingWidth" min="1" max="6" value="2" class="w-full">
-      </div>
-    </div>
-
-    <!-- Parâmetros da Onda Senoidal para os Losangos -->
-    <div class="space-y-3 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Distribuição dos Losangos</h2>
-      
-      <div class="space-y-1">
-        <label class="block text-xs text-slate-300">Modo da Onda</label>
-        <select id="selectPatternMode" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-          <option value="diagSine" selected>🌊 Senoide Diagonal (Onda de Losangos)</option>
-          <option value="crossSine">🌀 Senoide Cruzada (2D)</option>
-          <option value="concentric">⭕ Anéis Concêntricos</option>
-          <option value="checkerboard">🏁 Xadrez Simples</option>
-        </select>
-      </div>
-
-      <div id="sineControlsContainer" class="space-y-3 pt-1">
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs">
-            <span>Ciclos de Onda Completa: <strong id="valSineCycles" class="text-amber-400">2.0</strong></span>
-          </div>
-          <input type="range" id="inputSineCycles" min="0.5" max="6.0" step="0.1" value="2.0" class="w-full">
-        </div>
-
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs">
-            <span>Ângulo da Onda: <strong id="valSineAngle" class="text-amber-400">45°</strong></span>
-          </div>
-          <input type="range" id="inputSineAngle" min="0" max="180" step="5" value="45" class="w-full">
-        </div>
-
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs">
-            <span>Fase / Deslocamento: <strong id="valSinePhase" class="text-amber-400">0.00 rad</strong></span>
-          </div>
-          <input type="range" id="inputSinePhase" min="0.0" max="6.28" step="0.05" value="0.0" class="w-full">
-        </div>
-
-        <button id="btnAnimate" class="w-full py-2 bg-slate-800 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 font-medium rounded-lg text-xs transition flex items-center justify-center gap-1.5 mt-2">
-          <span>▶️</span> Animar Onda Senoidal
-        </button>
+      <div class="flex gap-2 mt-1">
+        <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" id="checkShowAccents" checked class="w-3 h-3"> Mostrar</label>
+        <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" id="checkInvertStars" class="w-3 h-3"> Inverter</label>
       </div>
     </div>
 
-    <!-- Dimensões da Grelha (10x10 a 20x20, padrão 17x17) -->
-    <div class="space-y-4 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Grelha de Círculos</h2>
-      
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Dimensão da Grelha (N x N): <strong id="valGridSize" class="text-amber-400">17 x 17</strong></span>
-        </div>
-        <input type="range" id="inputGridSize" min="10" max="20" value="17" class="w-full">
+    <!-- Grelha -->
+    <div class="border-t border-slate-700/60 pt-2">
+      <div class="text-xs font-semibold text-slate-300 mb-1">Grelha</div>
+      <div class="flex gap-2">
+        <div class="flex-1"><div class="flex justify-between"><span>N x N</span><strong id="valGridSize" class="text-amber-400">17x17</strong></div><input type="range" id="inputGridSize" min="10" max="20" value="17" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Célula</span><strong id="valTileSize" class="text-amber-400">55</strong></div><input type="range" id="inputTileSize" min="30" max="120" value="55" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Corte</span><strong id="valChamfer" class="text-amber-400">10</strong></div><input type="range" id="inputChamfer" min="2" max="25" value="10" class="w-full"></div>
       </div>
-
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="checkCustomGrid" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
-        <label for="checkCustomGrid" class="text-xs text-slate-300">Desbloquear Dimensões Assimétricas</label>
-      </div>
-
-      <div id="customGridContainer" class="space-y-3 hidden pl-2 border-l-2 border-slate-800">
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs">
-            <span>Colunas: <strong id="valCols" class="text-amber-400">17</strong></span>
-          </div>
-          <input type="range" id="inputCols" min="5" max="25" value="17" class="w-full">
-        </div>
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs">
-            <span>Linhas: <strong id="valRows" class="text-amber-400">17</strong></span>
-          </div>
-          <input type="range" id="inputRows" min="5" max="25" value="17" class="w-full">
-        </div>
-      </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Tamanho da Célula (px): <strong id="valTileSize" class="text-amber-400">55</strong></span>
-        </div>
-        <input type="range" id="inputTileSize" min="30" max="120" value="55" class="w-full">
-      </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Corte Octogonal (px): <strong id="valChamfer" class="text-amber-400">10</strong></span>
-        </div>
-        <input type="range" id="inputChamfer" min="2" max="25" value="10" class="w-full">
+      <label class="flex items-center gap-1 text-xs text-slate-300 mt-1"><input type="checkbox" id="checkCustomGrid" class="w-3 h-3"> Assimétrico</label>
+      <div id="customGridContainer" class="hidden flex gap-2 mt-1">
+        <div class="flex-1"><div class="flex justify-between"><span>Col</span><strong id="valCols" class="text-amber-400">17</strong></div><input type="range" id="inputCols" min="5" max="25" value="17" class="w-full"></div>
+        <div class="flex-1"><div class="flex justify-between"><span>Lin</span><strong id="valRows" class="text-amber-400">17</strong></div><input type="range" id="inputRows" min="5" max="25" value="17" class="w-full"></div>
       </div>
     </div>
 
-    <!-- Geometria das Estrelas de Losangos -->
-    <div class="space-y-4 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Geometria dos Losangos</h2>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Comprimento do Losango (px): <strong id="valDiamondLength" class="text-amber-400">12</strong></span>
-        </div>
-        <input type="range" id="inputDiamondLength" min="4" max="24" value="12" class="w-full">
+    <!-- Cores -->
+    <div class="border-t border-slate-700/60 pt-2">
+      <div class="text-xs font-semibold text-slate-300 mb-1">Cores</div>
+      <div class="grid grid-cols-3 gap-1 text-xs">
+        <div><label class="text-slate-400">Claro</label><input type="color" id="colorLightTile" value="#d0a153" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
+        <div><label class="text-slate-400">Escuro</label><input type="color" id="colorDarkTile" value="#70421b" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
+        <div><label class="text-slate-400">Fundo</label><input type="color" id="colorBg" value="#1a0c02" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
+        <div><label class="text-slate-400">Anel C</label><input type="color" id="colorLightRing" value="#ffffff" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
+        <div><label class="text-slate-400">Anel E</label><input type="color" id="colorDarkRing" value="#1a0c02" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
+        <div><label class="text-slate-400">Lima</label><input type="color" id="colorAccentLime" value="#96f300" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
+        <div><label class="text-slate-400">Escuro</label><input type="color" id="colorAccentDark" value="#008435" class="w-full h-6 rounded cursor-pointer bg-transparent border-0 p-0"></div>
       </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Largura do Losango (px): <strong id="valDiamondWidth" class="text-amber-400">8</strong></span>
-        </div>
-        <input type="range" id="inputDiamondWidth" min="2" max="18" value="8" class="w-full">
-      </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span>Afastamento do Centro (px): <strong id="valDiamondOffset" class="text-amber-400">7</strong></span>
-        </div>
-        <input type="range" id="inputDiamondOffset" min="1" max="18" value="7" class="w-full">
-      </div>
-
-      <div class="flex items-center gap-2 pt-1">
-        <input type="checkbox" id="checkShowAccents" checked class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
-        <label for="checkShowAccents" class="text-xs text-slate-300">Exibir estrelas de losangos nas interseções</label>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="checkInvertStars" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
-        <label for="checkInvertStars" class="text-xs text-slate-300">Inverter alternância de cores das estrelas</label>
+      <div class="flex gap-2 mt-1">
+        <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" id="checkTransparentBg" checked class="w-3 h-3"> Transparente</label>
+        <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" id="checkShowGrid" class="w-3 h-3"> Guias</label>
       </div>
     </div>
 
-    <!-- Transparência do Fundo -->
-    <div class="space-y-3 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Transparência do Fundo</h2>
-      
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="checkTransparentBg" checked class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
-        <label for="checkTransparentBg" class="text-xs text-slate-300 font-semibold">Fundo Transparente (Sem opacidade nos cantos)</label>
-      </div>
-
-      <div class="space-y-1">
-        <label class="block text-xs text-slate-400 mb-1">Cor de Fundo (Caso desative a transparência)</label>
-        <input type="color" id="colorBg" value="#1a0c02" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-      </div>
-    </div>
-
-    <!-- Comprovação da Ilusão -->
-    <div class="space-y-3 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Comprovação da Ilusão</h2>
-      
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="checkShowGrid" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700">
-        <label for="checkShowGrid" class="text-xs text-slate-300">Mostrar linhas guia vermelhas (perfeitamente retas)</label>
-      </div>
-    </div>
-
-    <!-- Personalização de Cores Extraídas da Imagem -->
-    <div class="space-y-3 border-t border-slate-800 pt-4">
-      <h2 class="text-sm font-semibold text-slate-200">Paleta de Cores da Imagem</h2>
-
-      <div class="grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <label class="block text-slate-400 mb-1">Célula Clara (Ocre)</label>
-          <input type="color" id="colorLightTile" value="#d0a153" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Célula Escura (Castanho)</label>
-          <input type="color" id="colorDarkTile" value="#70421b" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Anéis Célula Clara</label>
-          <input type="color" id="colorLightRing" value="#ffffff" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Anéis Célula Escura</label>
-          <input type="color" id="colorDarkRing" value="#1a0c02" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Estrela Verde Lima (4 losangos)</label>
-          <input type="color" id="colorAccentLime" value="#96f300" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Estrela Verde Escuro (4 losangos)</label>
-          <input type="color" id="colorAccentDark" value="#008435" class="w-full h-8 rounded cursor-pointer bg-transparent border-0">
-        </div>
-      </div>
-    </div>
-
-    <!-- Ações -->
-    <div class="pt-4 border-t border-slate-800 flex gap-2">
-      <button id="btnDownload" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition shadow-lg flex items-center justify-center gap-1.5">
-        <span>💾</span> Descarregar PNG Transparente
-      </button>
-    </div>
-
+    <button id="btnDownload" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition shadow-lg mt-1">💾 Download PNG</button>
   </aside>
 
-  <!-- Área do Canvas com padrão xadrez para evidenciar a transparência real -->
-  <main class="flex-1 flex flex-col items-center justify-center p-4 lg:p-8 overflow-auto min-h-[500px]">
-    <div class="relative bg-slate-900/80 p-4 rounded-2xl border border-slate-800 shadow-2xl flex flex-col items-center max-w-full">
-      <div class="checkerboard-bg p-2 rounded-lg border border-slate-700/50 overflow-auto max-w-full">
+  <!-- Canvas centralizado -->
+  <main class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 shadow-2xl">
+      <div class="checkerboard-bg p-2 rounded-lg border border-slate-700/50 overflow-auto">
         <canvas id="illusionCanvas" class="rounded max-w-full h-auto cursor-pointer block"></canvas>
       </div>
-      <p class="text-xs text-slate-400 mt-3 text-center max-w-lg">
-        ✨ <strong>Círculos Tangentes:</strong> Os círculos mais externos de cada célula tocam-se continuamente nas bordas dos vizinhos, exatamente como na imagem original de Kitaoka.
-      </p>
     </div>
   </main>
 
   <script>
-    // Referências do Canvas e Contexto
     const canvas = document.getElementById('illusionCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Controlos de Entrada
     const inputGridSize = document.getElementById('inputGridSize');
     const checkCustomGrid = document.getElementById('checkCustomGrid');
     const customGridContainer = document.getElementById('customGridContainer');
     const inputCols = document.getElementById('inputCols');
     const inputRows = document.getElementById('inputRows');
-    
     const inputOuterScale = document.getElementById('inputOuterScale');
     const inputRings = document.getElementById('inputRings');
     const inputRingWidth = document.getElementById('inputRingWidth');
-
     const selectPatternMode = document.getElementById('selectPatternMode');
     const sineControlsContainer = document.getElementById('sineControlsContainer');
     const inputSineCycles = document.getElementById('inputSineCycles');
     const inputSineAngle = document.getElementById('inputSineAngle');
     const inputSinePhase = document.getElementById('inputSinePhase');
     const btnAnimate = document.getElementById('btnAnimate');
-
     const inputTileSize = document.getElementById('inputTileSize');
     const inputChamfer = document.getElementById('inputChamfer');
     const inputDiamondLength = document.getElementById('inputDiamondLength');
     const inputDiamondWidth = document.getElementById('inputDiamondWidth');
     const inputDiamondOffset = document.getElementById('inputDiamondOffset');
-    
     const checkShowAccents = document.getElementById('checkShowAccents');
     const checkInvertStars = document.getElementById('checkInvertStars');
     const checkShowGrid = document.getElementById('checkShowGrid');
     const checkTransparentBg = document.getElementById('checkTransparentBg');
-
     const colorLightTile = document.getElementById('colorLightTile');
     const colorDarkTile = document.getElementById('colorDarkTile');
     const colorLightRing = document.getElementById('colorLightRing');
@@ -319,8 +157,6 @@
     const colorAccentLime = document.getElementById('colorAccentLime');
     const colorAccentDark = document.getElementById('colorAccentDark');
     const colorBg = document.getElementById('colorBg');
-
-    // Etiquetas de Valor
     const valGridSize = document.getElementById('valGridSize');
     const valCols = document.getElementById('valCols');
     const valRows = document.getElementById('valRows');
@@ -335,63 +171,48 @@
     const valSineCycles = document.getElementById('valSineCycles');
     const valSineAngle = document.getElementById('valSineAngle');
     const valSinePhase = document.getElementById('valSinePhase');
-
-    // Botões
     const btnDownload = document.getElementById('btnDownload');
     const presetOriginal = document.getElementById('presetOriginal');
     const presetBW = document.getElementById('presetBW');
+    const gearBtn = document.getElementById('gearBtn');
+    const controlPanel = document.getElementById('controlPanel');
+    const closePanel = document.getElementById('closePanel');
 
-    // Estado da animação
     let isAnimating = false;
     let animFrameId = null;
 
-    // Função Principal de Renderização
     function renderPattern() {
       const gridSize = parseInt(inputGridSize.value);
       const isCustom = checkCustomGrid.checked;
-      
       const cols = isCustom ? parseInt(inputCols.value) : gridSize;
       const rows = isCustom ? parseInt(inputRows.value) : gridSize;
-
       const tileSize = parseInt(inputTileSize.value);
       const chamfer = parseInt(inputChamfer.value);
-      
       const outerScaleFactor = parseInt(inputOuterScale.value) / 100;
       const numRings = parseInt(inputRings.value);
       const ringWidth = parseInt(inputRingWidth.value);
-
       const diamondLength = parseInt(inputDiamondLength.value);
       const diamondWidth = parseInt(inputDiamondWidth.value);
       const diamondOffset = parseInt(inputDiamondOffset.value);
-      
       const patternMode = selectPatternMode.value;
       const sineCycles = parseFloat(inputSineCycles.value);
       const sineAngle = parseFloat(inputSineAngle.value);
       const sinePhase = parseFloat(inputSinePhase.value);
-
       const showAccents = checkShowAccents.checked;
       const invertStars = checkInvertStars.checked;
       const showGrid = checkShowGrid.checked;
       const transparentBg = checkTransparentBg.checked;
 
-      // Gestão da interface
-      if (isCustom) {
-        customGridContainer.classList.remove('hidden');
-      } else {
-        customGridContainer.classList.add('hidden');
-      }
+      if (isCustom) customGridContainer.classList.remove('hidden');
+      else customGridContainer.classList.add('hidden');
 
-      if (patternMode === 'diagSine' || patternMode === 'crossSine' || patternMode === 'concentric') {
-        sineControlsContainer.classList.remove('hidden');
-      } else {
-        sineControlsContainer.classList.add('hidden');
-      }
+      if (patternMode === 'diagSine' || patternMode === 'crossSine' || patternMode === 'concentric') sineControlsContainer.classList.remove('hidden');
+      else sineControlsContainer.classList.add('hidden');
 
-      // Atualizar etiquetas dos seletores
-      valGridSize.textContent = `${gridSize} x ${gridSize}`;
+      valGridSize.textContent = `${gridSize}x${gridSize}`;
       valCols.textContent = cols;
       valRows.textContent = rows;
-      valOuterScale.textContent = `${inputOuterScale.value}% ${inputOuterScale.value === '100' ? '(Encostados)' : ''}`;
+      valOuterScale.textContent = `${inputOuterScale.value}%`;
       valTileSize.textContent = tileSize;
       valChamfer.textContent = chamfer;
       valRings.textContent = numRings;
@@ -401,265 +222,123 @@
       valDiamondOffset.textContent = diamondOffset;
       valSineCycles.textContent = sineCycles.toFixed(1);
       valSineAngle.textContent = `${sineAngle}°`;
-      valSinePhase.textContent = `${sinePhase.toFixed(2)} rad`;
+      valSinePhase.textContent = sinePhase.toFixed(2);
 
-      // Redimensionar Canvas
       canvas.width = cols * tileSize;
       canvas.height = rows * tileSize;
-
-      // Limpar Canvas (Assegura Transparência Real)
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!transparentBg) { ctx.fillStyle = colorBg.value; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 
-      if (!transparentBg) {
-        ctx.fillStyle = colorBg.value;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // 1. Desenhar Células Octogonais e Anéis Concêntricos (Círculo externo com raio = tileSize/2 para encostar no vizinho)
       const maxRadius = (tileSize / 2) * outerScaleFactor;
-
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const x = c * tileSize;
-          const y = r * tileSize;
+          const x = c * tileSize, y = r * tileSize;
           const isLightTile = (r + c) % 2 === 0;
-
           const tileColor = isLightTile ? colorLightTile.value : colorDarkTile.value;
           const ringColor = isLightTile ? colorLightRing.value : colorDarkRing.value;
 
-          // Desenhar Célula Octogonal
           ctx.beginPath();
-          ctx.moveTo(x + chamfer, y);
-          ctx.lineTo(x + tileSize - chamfer, y);
-          ctx.lineTo(x + tileSize, y + chamfer);
-          ctx.lineTo(x + tileSize, y + tileSize - chamfer);
-          ctx.lineTo(x + tileSize - chamfer, y + tileSize);
-          ctx.lineTo(x + chamfer, y + tileSize);
-          ctx.lineTo(x, y + tileSize - chamfer);
-          ctx.lineTo(x, y + chamfer);
+          ctx.moveTo(x + chamfer, y); ctx.lineTo(x + tileSize - chamfer, y);
+          ctx.lineTo(x + tileSize, y + chamfer); ctx.lineTo(x + tileSize, y + tileSize - chamfer);
+          ctx.lineTo(x + tileSize - chamfer, y + tileSize); ctx.lineTo(x + chamfer, y + tileSize);
+          ctx.lineTo(x, y + tileSize - chamfer); ctx.lineTo(x, y + chamfer);
           ctx.closePath();
-          
-          ctx.fillStyle = tileColor;
-          ctx.fill();
+          ctx.fillStyle = tileColor; ctx.fill();
 
-          // Anéis Concêntricos
-          const centerX = x + tileSize / 2;
-          const centerY = y + tileSize / 2;
-
-          ctx.strokeStyle = ringColor;
-          ctx.lineWidth = ringWidth;
-
-          // Os anéis são espaçados proporcionalmente até ao raio máximo (maxRadius = tileSize / 2 para encostar)
+          const cx = x + tileSize / 2, cy = y + tileSize / 2;
+          ctx.strokeStyle = ringColor; ctx.lineWidth = ringWidth;
           for (let k = 1; k <= numRings; k++) {
-            const radius = k * (maxRadius / numRings);
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, k * (maxRadius / numRings), 0, Math.PI * 2); ctx.stroke();
           }
-
-          // Ponto Central
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, ringWidth * 1.2, 0, Math.PI * 2);
-          ctx.fillStyle = ringColor;
-          ctx.fill();
+          ctx.beginPath(); ctx.arc(cx, cy, ringWidth * 1.2, 0, Math.PI * 2);
+          ctx.fillStyle = ringColor; ctx.fill();
         }
       }
 
-      // 2. Desenhar as Estrelas Mono-Cor de Losangos nas Interseções
       if (showAccents && diamondLength > 0) {
         const rad = (sineAngle * Math.PI) / 180;
-        const cosAngle = Math.cos(rad);
-        const sinAngle = Math.sin(rad);
-
-        const p00 = 0;
-        const p10 = cols * cosAngle;
-        const p01 = rows * sinAngle;
-        const p11 = cols * cosAngle + rows * sinAngle;
-        const minP = Math.min(p00, p10, p01, p11);
-        const maxP = Math.max(p00, p10, p01, p11);
-        const rangeP = (maxP - minP) || 1;
+        const cosAngle = Math.cos(rad), sinAngle = Math.sin(rad);
+        const p00 = 0, p10 = cols * cosAngle, p01 = rows * sinAngle, p11 = cols * cosAngle + rows * sinAngle;
+        const minP = Math.min(p00, p10, p01, p11), maxP = Math.max(p00, p10, p01, p11), rangeP = (maxP - minP) || 1;
 
         for (let rInt = 0; rInt <= rows; rInt++) {
           for (let cInt = 0; cInt <= cols; cInt++) {
-            const ix = cInt * tileSize;
-            const iy = rInt * tileSize;
-
+            const ix = cInt * tileSize, iy = rInt * tileSize;
             let isLimeStar = false;
-
             if (patternMode === 'diagSine') {
               const proj = cInt * cosAngle + rInt * sinAngle;
-              const normProj = (proj - minP) / rangeP;
-              isLimeStar = Math.sin(normProj * Math.PI * 2 * sineCycles + sinePhase) >= 0;
+              isLimeStar = Math.sin(((proj - minP) / rangeP) * Math.PI * 2 * sineCycles + sinePhase) >= 0;
             } else if (patternMode === 'crossSine') {
-              const normX = cInt / cols;
-              const normY = rInt / rows;
-              const val1 = Math.sin(normX * Math.PI * 2 * sineCycles + sinePhase);
-              const val2 = Math.sin(normY * Math.PI * 2 * sineCycles + sinePhase);
-              isLimeStar = (val1 + val2) >= 0;
+              const v1 = Math.sin((cInt / cols) * Math.PI * 2 * sineCycles + sinePhase);
+              const v2 = Math.sin((rInt / rows) * Math.PI * 2 * sineCycles + sinePhase);
+              isLimeStar = (v1 + v2) >= 0;
             } else if (patternMode === 'concentric') {
-              const dx = (cInt - cols / 2) / (cols / 2);
-              const dy = (rInt - rows / 2) / (rows / 2);
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              isLimeStar = Math.sin(dist * Math.PI * sineCycles + sinePhase) >= 0;
-            } else { // checkerboard
-              isLimeStar = (rInt + cInt) % 2 === 0;
-            }
-
+              const dx = (cInt - cols / 2) / (cols / 2), dy = (rInt - rows / 2) / (rows / 2);
+              isLimeStar = Math.sin(Math.sqrt(dx * dx + dy * dy) * Math.PI * sineCycles + sinePhase) >= 0;
+            } else { isLimeStar = (rInt + cInt) % 2 === 0; }
             if (invertStars) isLimeStar = !isLimeStar;
-
-            const starColor = isLimeStar ? colorAccentLime.value : colorAccentDark.value;
-
-            drawMonolithicStar(ctx, ix, iy, diamondLength, diamondWidth, diamondOffset, starColor);
+            drawMonolithicStar(ctx, ix, iy, diamondLength, diamondWidth, diamondOffset, isLimeStar ? colorAccentLime.value : colorAccentDark.value);
           }
         }
       }
 
-      // 3. Linhas Guia Vermelhas para Comprovação da Ilusão
       if (showGrid) {
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
-        ctx.lineWidth = 2;
-
-        for (let c = 0; c <= cols; c++) {
-          ctx.beginPath();
-          ctx.moveTo(c * tileSize, 0);
-          ctx.lineTo(c * tileSize, canvas.height);
-          ctx.stroke();
-        }
-
-        for (let r = 0; r <= rows; r++) {
-          ctx.beginPath();
-          ctx.moveTo(0, r * tileSize);
-          ctx.lineTo(canvas.width, r * tileSize);
-          ctx.stroke();
-        }
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)'; ctx.lineWidth = 2;
+        for (let c = 0; c <= cols; c++) { ctx.beginPath(); ctx.moveTo(c * tileSize, 0); ctx.lineTo(c * tileSize, canvas.height); ctx.stroke(); }
+        for (let r = 0; r <= rows; r++) { ctx.beginPath(); ctx.moveTo(0, r * tileSize); ctx.lineTo(canvas.width, r * tileSize); ctx.stroke(); }
       }
     }
 
-    // Desenha uma estrela uniforme de 4 losangos com A MESMA COR numa interseção
     function drawMonolithicStar(ctx, ix, iy, length, width, offset, starColor) {
-      const angles = [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4];
-
-      angles.forEach(angle => {
-        const dx = ix + offset * Math.cos(angle);
-        const dy = iy + offset * Math.sin(angle);
-
-        drawSingleDiamond(ctx, dx, dy, length, width, angle, starColor);
+      [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4].forEach(angle => {
+        drawSingleDiamond(ctx, ix + offset * Math.cos(angle), iy + offset * Math.sin(angle), length, width, angle, starColor);
       });
     }
 
-    // Desenha um único losango simétrico
     function drawSingleDiamond(ctx, cx, cy, length, width, angleRad, color) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(angleRad);
-
-      const halfLen = length / 2;
-      const halfWidth = width / 2;
-
-      ctx.beginPath();
-      ctx.moveTo(-halfLen, 0);
-      ctx.lineTo(0, -halfWidth);
-      ctx.lineTo(halfLen, 0);
-      ctx.lineTo(0, halfWidth);
-      ctx.closePath();
-
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.restore();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(angleRad);
+      const halfLen = length / 2, halfWidth = width / 2;
+      ctx.beginPath(); ctx.moveTo(-halfLen, 0); ctx.lineTo(0, -halfWidth); ctx.lineTo(halfLen, 0); ctx.lineTo(0, halfWidth); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.restore();
     }
 
-    // Função de Animação
     function toggleAnimation() {
       if (isAnimating) {
-        isAnimating = false;
-        if (animFrameId) cancelAnimationFrame(animFrameId);
-        btnAnimate.innerHTML = '<span>▶️</span> Animar Onda Senoidal';
+        isAnimating = false; if (animFrameId) cancelAnimationFrame(animFrameId);
+        btnAnimate.innerHTML = '▶️ Animar';
       } else {
-        isAnimating = true;
-        btnAnimate.innerHTML = '<span>⏸️</span> Pausar Animação';
-        
+        isAnimating = true; btnAnimate.innerHTML = '⏸️ Pausar';
         function animateLoop() {
           if (!isAnimating) return;
-          let currentPhase = parseFloat(inputSinePhase.value);
-          currentPhase = (currentPhase + 0.04) % (Math.PI * 2);
-          inputSinePhase.value = currentPhase.toFixed(2);
-          renderPattern();
-
-    // Gear toggle
-    const gearBtn = document.getElementById("gearBtn");
-    const controlPanel = document.getElementById("controlPanel");
-    gearBtn.addEventListener("click", () => {
-      controlPanel.classList.toggle("hidden");
-    });
+          let p = parseFloat(inputSinePhase.value); p = (p + 0.04) % (Math.PI * 2);
+          inputSinePhase.value = p.toFixed(2); renderPattern();
           animFrameId = requestAnimationFrame(animateLoop);
         }
-        
         animateLoop();
       }
     }
 
-    // Predefinição Padrão Fiel
     presetOriginal.addEventListener('click', () => {
-      colorLightTile.value = '#d0a153';
-      colorDarkTile.value = '#70421b';
-      colorLightRing.value = '#ffffff';
-      colorDarkRing.value = '#1a0c02';
-      colorAccentLime.value = '#96f300';
-      colorAccentDark.value = '#008435';
-      
-      inputGridSize.value = 17;
-      checkCustomGrid.checked = false;
-      inputCols.value = 17;
-      inputRows.value = 17;
-
-      inputOuterScale.value = 100; // Círculos a encostar
-      inputRings.value = 3;
-      inputRingWidth.value = 2;
-
-      selectPatternMode.value = 'diagSine';
-      inputSineCycles.value = 2.0;
-      inputSineAngle.value = 45;
-      inputSinePhase.value = 0.0;
-
-      inputTileSize.value = 55;
-      inputChamfer.value = 10;
-      inputDiamondLength.value = 12;
-      inputDiamondWidth.value = 8;
-      inputDiamondOffset.value = 7;
-
-      checkTransparentBg.checked = true;
-      checkShowAccents.checked = true;
-      checkInvertStars.checked = false;
-      checkShowGrid.checked = false;
+      colorLightTile.value = '#d0a153'; colorDarkTile.value = '#70421b';
+      colorLightRing.value = '#ffffff'; colorDarkRing.value = '#1a0c02';
+      colorAccentLime.value = '#96f300'; colorAccentDark.value = '#008435';
+      inputGridSize.value = 17; checkCustomGrid.checked = false;
+      inputCols.value = 17; inputRows.value = 17;
+      inputOuterScale.value = 100; inputRings.value = 3; inputRingWidth.value = 2;
+      selectPatternMode.value = 'diagSine'; inputSineCycles.value = 2.0; inputSineAngle.value = 45; inputSinePhase.value = 0.0;
+      inputTileSize.value = 55; inputChamfer.value = 10;
+      inputDiamondLength.value = 12; inputDiamondWidth.value = 8; inputDiamondOffset.value = 7;
+      checkTransparentBg.checked = true; checkShowAccents.checked = true; checkInvertStars.checked = false; checkShowGrid.checked = false;
       renderPattern();
-
-    // Gear toggle
-    const gearBtn = document.getElementById("gearBtn");
-    const controlPanel = document.getElementById("controlPanel");
-    gearBtn.addEventListener("click", () => {
-      controlPanel.classList.toggle("hidden");
-    });
     });
 
-    // Predefinição Alto Contraste (Preto e Branco)
     presetBW.addEventListener('click', () => {
-      colorDarkTile.value = '#000000';
-      colorLightTile.value = '#ffffff';
-      colorDarkRing.value = '#ffffff';
-      colorLightRing.value = '#000000';
-      colorAccentLime.value = '#00ff00';
-      colorAccentDark.value = '#006600';
+      colorDarkTile.value = '#000000'; colorLightTile.value = '#ffffff';
+      colorDarkRing.value = '#ffffff'; colorLightRing.value = '#000000';
+      colorAccentLime.value = '#00ff00'; colorAccentDark.value = '#006600';
       renderPattern();
-
-    // Gear toggle
-    const gearBtn = document.getElementById("gearBtn");
-    const controlPanel = document.getElementById("controlPanel");
-    gearBtn.addEventListener("click", () => {
-      controlPanel.classList.toggle("hidden");
-    });
     });
 
-    // Registar escutadores de eventos
     const allInputs = [
       inputGridSize, checkCustomGrid, inputCols, inputRows, selectPatternMode,
       inputOuterScale, inputRings, inputRingWidth,
@@ -669,15 +348,10 @@
       checkInvertStars, checkShowGrid, checkTransparentBg,
       colorLightTile, colorDarkTile, colorLightRing, colorDarkRing, colorAccentLime, colorAccentDark, colorBg
     ];
-
-    allInputs.forEach(input => {
-      input.addEventListener('input', renderPattern);
-      input.addEventListener('change', renderPattern);
-    });
+    allInputs.forEach(input => { input.addEventListener('input', renderPattern); input.addEventListener('change', renderPattern); });
 
     btnAnimate.addEventListener('click', toggleAnimation);
 
-    // Transferência do Canvas como Imagem PNG com transparência
     btnDownload.addEventListener('click', () => {
       const link = document.createElement('a');
       link.download = 'ilusao-kitaoka-circulos-tangentes-17x17.png';
@@ -685,15 +359,11 @@
       link.click();
     });
 
-    // Renderização Inicial
-    renderPattern();
-
     // Gear toggle
-    const gearBtn = document.getElementById("gearBtn");
-    const controlPanel = document.getElementById("controlPanel");
-    gearBtn.addEventListener("click", () => {
-      controlPanel.classList.toggle("hidden");
-    });
+    gearBtn.addEventListener('click', () => { controlPanel.classList.toggle('hidden'); });
+    closePanel.addEventListener('click', () => { controlPanel.classList.add('hidden'); });
+
+    renderPattern();
   </script>
 </body>
 </html>
