@@ -290,14 +290,13 @@
     }
 
     function drawMonolithicStar(ctx, ix, iy, length, width, offset, starColor) {
-      // 4 diamonds at 45° forming an X: each diamond points to a corner
       [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4].forEach(angle => {
         drawSingleDiamond(ctx, ix + offset * Math.cos(angle), iy + offset * Math.sin(angle), length, width, angle, starColor);
       });
     }
 
     function drawSingleDiamond(ctx, cx, cy, length, width, angleRad, color) {
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(angleRad + Math.PI / 4);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(angleRad);
       const halfLen = length / 2, halfWidth = width / 2;
       ctx.beginPath(); ctx.moveTo(-halfLen, 0); ctx.lineTo(0, -halfWidth); ctx.lineTo(halfLen, 0); ctx.lineTo(0, halfWidth); ctx.closePath();
       ctx.fillStyle = color; ctx.fill(); ctx.restore();
