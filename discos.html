@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magic Pair of Wheels — Discos a 0° e 90° com Alinhamento Nodal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      overflow: hidden;
+      background: #040407;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      user-select: none;
+    }
+    canvas { display: block; }
+
+    /* Seletor de Padrões e Controlos */
+    #controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+    #pattern-title {
+      color: #fff2e2;
+      background: rgba(12, 12, 24, 0.9);
+      backdrop-filter: blur(12px);
+      padding: 8px 22px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border: 1px solid rgba(255, 220, 180, 0.3);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      text-align: center;
+      min-width: 410px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      background: rgba(25, 25, 40, 0.85);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: rgba(255, 210, 170, 0.3);
+      border-color: #ffd8be;
+      transform: translateY(-1px);
+    }
+
+    /* Ajuste de Velocidade */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(12, 12, 24, 0.75);
+      padding: 4px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      color: #ddd;
+    }
+    .slider-container input[type="range"] {
+      width: 90px;
+      accent-color: #ffb88c;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div id="pattern-title">Padrão 1/5: Arcos Tracejados (Disco A: Vertical 0° | Disco B: Horizontal 90°)</div>
+    <div class="btn-group">
+      <button class="btn" id="prevBtn">◀ Anterior</button>
+      <button class="btn" id="nextBtn">Seguinte ▶</button>
+      <button class="btn" id="autoBtn">Modo Auto: LIGADO</button>
+      <button class="btn" id="pauseBtn">Pausar</button>
+      <div class="slider-container">
+        <span>Velocidade:</span>
+        <input type="range" id="speedSlider" min="0.2" max="2.5" step="0.1" value="1.0">
+      </div>
+      <button class="btn" id="colorBtn">Cor: Branco Vídeo</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    // ─────────────────────────────────────────────
+    // Configuração de Cena e Câmara
+    // ─────────────────────────────────────────────
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x06060a);
+    scene.fog = new THREE.FogExp2(0x06060a, 0.025);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 2.5, 5.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+      0.95, 0.45, 0.55
+    );
+    composer.addPass(bloomPass);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 2.8;
+    controls.maxDistance = 14;
+    controls.maxPolarAngle = Math.PI * 0.48;
+    controls.target.set(0, 1.5, 0);
+
+    // ─────────────────────────────────────────────
+    // Iluminação
+    // ─────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0xf0f4ff, 0.35));
+
+    const keyLight = new THREE.DirectionalLight(0xfff5ea, 0.75);
+    keyLight.position.set(5, 10, 6);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x7080a0, 0.28);
+    fillLight.position.set(-5, 4, -4);
+    scene.add(fillLight);
+
+    const centerLightA = new THREE.PointLight(0xffe2cc, 1.6, 4.5);
+    const centerLightB = new THREE.PointLight(0xffe2cc, 1.6, 4.5);
+    scene.add(centerLightA, centerLightB);
+
+    // ─────────────────────────────────────────────
+    // Galeria & Pedestal
+    // ─────────────────────────────────────────────
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(30, 30),
+      new THREE.MeshStandardMaterial({ color: 0x121218, roughness: 0.35, metalness: 0.25 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const platform = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.2, 3.2, 0.08, 64),
+      new THREE.MeshStandardMaterial({ color: 0x22222c, roughness: 0.4, metalness: 0.3 })
+    );
+    platform.position.y = 0.04;
+    platform.receiveShadow = true;
+    scene.add(platform);
+
+    const stand = new THREE.Mesh(
+      new THREE.BoxGeometry(0.38, 1.0, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 0.3, metalness: 0.7 })
+    );
+    stand.position.set(0, 0.55, 0);
+    stand.castShadow = true;
+    scene.add(stand);
+
+    // ─────────────────────────────────────────────
+    // Geometria dos Discos (DISC_RADIUS = 1.9)
+    // Disco A: Vertical (0°)
+    // Disco B: Horizontal (90°)
+    // ─────────────────────────────────────────────
+    const DISC_RADIUS = 1.9;
+
+    function createLEDDisc() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+
+      const geo = new THREE.CylinderGeometry(DISC_RADIUS, DISC_RADIUS, 0.032, 64, 1, false);
+      geo.rotateX(Math.PI / 2);
+
+      const mat = new THREE.MeshStandardMaterial({
+        map: texture,
+        emissiveMap: texture,
+        emissive: new THREE.Color(0xfff0e0),
+        emissiveIntensity: 2.8,
+        color: 0x08080b,
+        side: THREE.DoubleSide,
+        metalness: 0.25,
+        roughness: 0.32
+      });
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+
+      const frame = new THREE.Mesh(
+        new THREE.TorusGeometry(DISC_RADIUS + 0.008, 0.018, 12, 64),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a22, metalness: 0.9, roughness: 0.18 })
+      );
+      mesh.add(frame);
+
+      const hub = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.11, 0.045, 32).rotateX(Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x3a3a48, metalness: 0.85, roughness: 0.22 })
+      );
+      mesh.add(hub);
+
+      mesh.userData = { canvas, ctx, texture, mat };
+      return mesh;
+    }
+
+    const discA = createLEDDisc();
+    const discB = createLEDDisc();
+
+    const sculpture = new THREE.Group();
+    sculpture.position.y = 1.50;
+
+    const OFFSET_X = DISC_RADIUS / 2; // 0.95
+    discA.position.set(-OFFSET_X, 0, 0);
+    discB.position.set(OFFSET_X, 0, 0);
+
+    // ORIENTAÇÃO SOLICITADA: DISCO A a 0° (Vertical) | DISCO B a 90° (Horizontal)
+    discA.rotation.set(0, 0, 0);
+    discB.rotation.set(Math.PI / 2, 0, 0);
+
+    sculpture.add(discA, discB);
+    scene.add(sculpture);
+
+    centerLightA.position.set(-OFFSET_X, 1.50, 0);
+    centerLightB.position.set(OFFSET_X, 1.50, 0);
+
+    // ─────────────────────────────────────────────
+    // Mapeamento de LEDs em 0° e 90°
+    // ─────────────────────────────────────────────
+    const NUM_RINGS = 20;
+    const ledsDiscA = [];
+    const ledsDiscB = [];
+
+    const rotA = new THREE.Euler(0, 0, 0);
+    const rotB = new THREE.Euler(Math.PI / 2, 0, 0);
+
+    function generateLEDGrid(discIndex, ledsArray, rotationEuler, discCenterX) {
+      const cx = 256;
+      const cy = 256;
+
+      for (let r = 1; r <= NUM_RINGS; r++) {
+        // Normalização precisa: 0.0 no centro (r=1) até 1.0 na borda externa (r=20)
+        const normR = (r - 1) / (NUM_RINGS - 1);
+        const radiusPx = normR * 238;
+        
+        const numLedsInRing = Math.floor(r * 3) * 2;
+
+        for (let i = 0; i < numLedsInRing; i++) {
+          // No Disco B (90°), adicionamos PI ao ângulo local para alinhar com o eixo X do Disco A
+          const angleOffset = discIndex === 0 ? 0 : Math.PI;
+          const localAngle = angleOffset + (i / numLedsInRing) * Math.PI * 2;
+          
+          const xPx = cx + Math.cos(localAngle) * radiusPx;
+          const yPx = cy + Math.sin(localAngle) * radiusPx;
+
+          const localPos = new THREE.Vector3(
+            Math.cos(localAngle) * normR * DISC_RADIUS,
+            Math.sin(localAngle) * normR * DISC_RADIUS,
+            0
+          );
+          localPos.applyEuler(rotationEuler);
+          
+          const worldPos = new THREE.Vector3(
+            discCenterX + localPos.x,
+            1.50 + localPos.y,
+            localPos.z
+          );
+
+          ledsArray.push({
+            xPx, yPx,
+            ringIndex: r,
+            ledIndexInRing: i,
+            normR,
+            localAngle,
+            worldPos
+          });
+        }
+      }
+    }
+
+    generateLEDGrid(0, ledsDiscA, rotA, -OFFSET_X);
+    generateLEDGrid(1, ledsDiscB, rotB, OFFSET_X);
+
+    // ─────────────────────────────────────────────
+    // Temas de Cor
+    // ─────────────────────────────────────────────
+    const colorThemes = [
+      { name: 'Branco Vídeo', primary: '255, 240, 220', hex: 0xfff0e0 },
+      { name: 'Rosa / Azul Neon', primaryA: '255, 130, 200', primaryB: '90, 200, 255', hex: 0xff80c0 },
+      { name: 'Âmbar Dourado', primary: '255, 190, 100', hex: 0xffaa44 },
+      { name: 'Menta Cyber', primary: '120, 255, 210', hex: 0x66ffcc }
+    ];
+    let currentThemeIdx = 0;
+
+    function getLEDColor(discIdx, alpha) {
+      const theme = colorThemes[currentThemeIdx];
+      let c = theme.primary;
+      if (theme.primaryA) c = discIdx === 0 ? theme.primaryA : theme.primaryB;
+      return `rgba(${c}, ${Math.min(1, alpha)})`;
+    }
+
+    // ─────────────────────────────────────────────
+    // Motor de Renderização com Inversão Radial
+    // ─────────────────────────────────────────────
+    const patternNames = [
+      '1/5: Arcos Tracejados (Disco A: Vertical 0° | Disco B: Horizontal 90°)',
+      '2/5: Varredura em Leque Oposta (Coincidência Nodal 0° / 90°)',
+      '3/5: Ondas Moiré de Interferência Invertida (0° / 90°)',
+      '4/5: Fluxo de Cometa em 8 (Passagem Contínua A → B)',
+      '5/5: Pulso Concêntrico Invertido (Convergência Nodal Perfeita)'
+    ];
+    let currentPattern = 0;
+    let autoSwitch = true;
+    let isPaused = false;
+    let globalSpeed = 1.0;
+    let lastSwitchTime = 0;
+
+    function drawLED(ctx, x, y, r, alpha, color) {
+      if (alpha <= 0.02) return;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function renderDiscPattern(discIdx, ctx, leds, t) {
+      ctx.fillStyle = '#040407';
+      ctx.fillRect(0, 0, 512, 512);
+
+      const g = ctx.createRadialGradient(256, 256, 1, 256, 256, 70);
+      g.addColorStop(0, 'rgba(255, 220, 180, 0.22)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 512, 512);
+
+      const time = t * globalSpeed;
+      const isA = (discIdx === 0);
+
+      // INVERSÃO RADIAL:
+      // Disco A (Vertical 0°): u = normR (0.0 no centro -> 1.0 na borda)
+      // Disco B (Horizontal 90°): u = 1.0 - normR (1.0 na borda -> 0.0 no centro)
+      // Na interseção (X = +0.95), normR_A = 1.0 e normR_B = 0.0.
+      // Logo, u = 1.0 nos DOIS discos exatamente no cruzamento!
+
+      // -------------------------------------------------------------
+      // PADRÃO 1: Arcos Tracejados Rotativos
+      // -------------------------------------------------------------
+      if (currentPattern === 0) {
+        for (const led of leds) {
+          const u = isA ? led.normR : (1.0 - led.normR);
+          const theta = isA ? led.localAngle : (led.localAngle - Math.PI);
+
+          const wavePhase = time * 2.5 - u * 7.0;
+          const wave = Math.sin(wavePhase);
+
+          const ringDir = (led.ringIndex % 2 === 0) ? 1 : -1;
+          const dashCount = Math.floor(led.ringIndex * 0.8) + 4;
+          const dashAngle = theta + time * 0.7 * ringDir;
+          const dash = Math.sin(dashAngle * dashCount);
+
+          let alpha = 0.04;
+          if (wave > 0.05 && dash > -0.2) {
+            const iw = Math.pow((wave - 0.05) / 0.95, 1.8);
+            const id = (dash + 0.2) / 1.2;
+            alpha = iw * id * 0.92 + 0.04;
+          }
+          drawLED(ctx, led.xPx, led.yPx, 2.6 + led.normR * 0.8, alpha, getLEDColor(discIdx, alpha));
+        }
+      }
+
+      // -------------------------------------------------------------
+      // PADRÃO 2: Varredura em Leque Oposta
+      // -------------------------------------------------------------
+      else if (currentPattern === 1) {
+        const sweepAngle = (time * 1.5) % (Math.PI * 2);
+
+        for (const led of leds) {
+          const u = isA ? led.normR : (1.0 - led.normR);
+          const theta = isA ? led.localAngle : (led.localAngle - Math.PI);
+
+          let angleDiff = Math.abs(theta - sweepAngle);
+          if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+
+          const radialWave = Math.sin(time * 2.8 - u * 8.0);
+
+          let alpha = 0.05;
+          if (angleDiff < 0.45) {
+            const fanIntensity = Math.pow(1.0 - angleDiff / 0.45, 1.5);
+            const waveIntensity = Math.pow((radialWave + 1.0) / 2.0, 1.8);
+            alpha = fanIntensity * waveIntensity * 0.92 + 0.05;
+          } else {
+            const trail = Math.sin(time * 2.5 - u * 10.0);
+            if (trail > 0.35) {
+              alpha = (trail - 0.35) * 0.28 + 0.05;
+            }
+          }
+          drawLED(ctx, led.xPx, led.yPx, 2.7 + led.normR * 0.7, alpha, getLEDColor(discIdx, alpha));
+        }
+      }
+
+      // -------------------------------------------------------------
+      // PADRÃO 3: Ondas Moiré
+      // -------------------------------------------------------------
+      else if (currentPattern === 2) {
+        for (const led of leds) {
+          const u = isA ? led.normR : (1.0 - led.normR);
+          const theta = isA ? led.localAngle : (led.localAngle - Math.PI);
+
+          const waveForward = Math.sin(time * 2.8 - u * 8.0);
+          const waveBackward = Math.sin(time * 2.8 + u * 8.0);
+
+          const angularMod = Math.cos(theta * 6.0 + time * 1.2);
+
+          const moirePattern = ((waveForward * waveBackward + 1.0) / 2.0) * ((angularMod + 1.0) / 2.0);
+          const alpha = Math.pow(moirePattern, 2.2) * 0.9 + 0.05;
+          drawLED(ctx, led.xPx, led.yPx, 2.8, alpha, getLEDColor(discIdx, alpha));
+        }
+      }
+
+      // -------------------------------------------------------------
+      // PADRÃO 4: Fluxo de Cometa em 8
+      // -------------------------------------------------------------
+      else if (currentPattern === 3) {
+        const pulsePos = (time * 0.8) % 1.0;
+
+        for (const led of leds) {
+          const u = isA ? led.normR : (1.0 - led.normR);
+
+          const distToPulse = Math.abs(u - pulsePos);
+
+          let alpha = 0.04;
+          if (distToPulse < 0.25) {
+            const intensity = Math.pow(1.0 - distToPulse / 0.25, 2.0);
+            alpha = intensity * 0.94 + 0.04;
+          }
+          drawLED(ctx, led.xPx, led.yPx, 3.0, alpha, getLEDColor(discIdx, alpha));
+        }
+      }
+
+      // -------------------------------------------------------------
+      // PADRÃO 5: Pulso Concêntrico Invertido (5/5)
+      // No ponto de interseção X = +0.95, u = 1.0 nos dois discos.
+      // O valor de pulse = sin(time * 3.2 - 8.0) é EXATAMENTE IDENTICO em ambos!
+      // -------------------------------------------------------------
+      else {
+        for (const led of leds) {
+          const u = isA ? led.normR : (1.0 - led.normR);
+
+          const pulse = Math.sin(time * 3.2 - u * 8.0);
+          const alpha = Math.pow(Math.max(0, pulse), 2.2) * 0.9 + 0.05;
+          drawLED(ctx, led.xPx, led.yPx, 3.1, alpha, getLEDColor(discIdx, alpha));
+        }
+      }
+    }
+
+    // Controlos UI
+    const titleEl = document.getElementById('pattern-title');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const autoBtn = document.getElementById('autoBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const speedSlider = document.getElementById('speedSlider');
+    const colorBtn = document.getElementById('colorBtn');
+
+    function setPattern(idx) {
+      currentPattern = (idx + patternNames.length) % patternNames.length;
+      titleEl.textContent = patternNames[currentPattern];
+    }
+
+    prevBtn.onclick = () => { setPattern(currentPattern - 1); autoSwitch = false; autoBtn.textContent = 'Modo Auto: DESLIGADO'; };
+    nextBtn.onclick = () => { setPattern(currentPattern + 1); autoSwitch = false; autoBtn.textContent = 'Modo Auto: DESLIGADO'; };
+    autoBtn.onclick = () => { autoSwitch = !autoSwitch; autoBtn.textContent = `Modo Auto: ${autoSwitch ? 'LIGADO' : 'DESLIGADO'}`; };
+    pauseBtn.onclick = () => { isPaused = !isPaused; pauseBtn.textContent = isPaused ? 'Continuar' : 'Pausar'; };
+    speedSlider.oninput = e => globalSpeed = parseFloat(e.target.value);
+    colorBtn.onclick = () => {
+      currentThemeIdx = (currentThemeIdx + 1) % colorThemes.length;
+      const th = colorThemes[currentThemeIdx];
+      colorBtn.textContent = `Cor: ${th.name}`;
+      discA.userData.mat.emissive.setHex(th.hex);
+      discB.userData.mat.emissive.setHex(th.hex);
+    };
+
+    // Loop Principal
+    const clock = new THREE.Clock();
+    let acc = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      if (!isPaused) {
+        acc += dt;
+        if (autoSwitch && acc - lastSwitchTime > 7.5) {
+          setPattern(currentPattern + 1);
+          lastSwitchTime = acc;
+        }
+
+        renderDiscPattern(0, discA.userData.ctx, ledsDiscA, acc);
+        discA.userData.texture.needsUpdate = true;
+        renderDiscPattern(1, discB.userData.ctx, ledsDiscB, acc);
+        discB.userData.texture.needsUpdate = true;
+
+        sculpture.rotation.y = acc * 0.045;
+        centerLightA.intensity = 1.2 + Math.sin(acc * 2.2) * 0.45;
+        centerLightB.intensity = 1.2 + Math.cos(acc * 2.2) * 0.45;
+      }
+
+      controls.update();
+      composer.render();
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      const w = window.innerWidth, h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+      composer.setSize(w, h);
+      bloomPass.setSize(w / 2, h / 2);
+    });
+  </script>
+</body>
+</html>
