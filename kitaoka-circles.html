@@ -24,7 +24,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col lg:flex-row font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
 
   <!-- Painel Lateral de Controlos -->
   <aside class="w-full lg:w-96 bg-slate-900 border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen shadow-2xl">
@@ -584,6 +584,13 @@
           currentPhase = (currentPhase + 0.04) % (Math.PI * 2);
           inputSinePhase.value = currentPhase.toFixed(2);
           renderPattern();
+
+    // Gear toggle
+    const gearBtn = document.getElementById("gearBtn");
+    const controlPanel = document.getElementById("controlPanel");
+    gearBtn.addEventListener("click", () => {
+      controlPanel.classList.toggle("hidden");
+    });
           animFrameId = requestAnimationFrame(animateLoop);
         }
         
@@ -625,6 +632,13 @@
       checkInvertStars.checked = false;
       checkShowGrid.checked = false;
       renderPattern();
+
+    // Gear toggle
+    const gearBtn = document.getElementById("gearBtn");
+    const controlPanel = document.getElementById("controlPanel");
+    gearBtn.addEventListener("click", () => {
+      controlPanel.classList.toggle("hidden");
+    });
     });
 
     // Predefinição Alto Contraste (Preto e Branco)
@@ -636,6 +650,13 @@
       colorAccentLime.value = '#00ff00';
       colorAccentDark.value = '#006600';
       renderPattern();
+
+    // Gear toggle
+    const gearBtn = document.getElementById("gearBtn");
+    const controlPanel = document.getElementById("controlPanel");
+    gearBtn.addEventListener("click", () => {
+      controlPanel.classList.toggle("hidden");
+    });
     });
 
     // Registar escutadores de eventos
@@ -666,6 +687,13 @@
 
     // Renderização Inicial
     renderPattern();
+
+    // Gear toggle
+    const gearBtn = document.getElementById("gearBtn");
+    const controlPanel = document.getElementById("controlPanel");
+    gearBtn.addEventListener("click", () => {
+      controlPanel.classList.toggle("hidden");
+    });
   </script>
 </body>
 </html>
