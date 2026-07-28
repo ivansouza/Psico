@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Geometria Sagrada 3D Mobile</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #020208;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f1f5f9;
+    }
+
+    #webgl-container {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* Interface HUD Mobile */
+    .hud-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: env(safe-area-inset-top, 12px) 12px env(safe-area-inset-bottom, 12px) 12px;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Barra Superior Compacta */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      pointer-events: auto;
+      gap: 8px;
+    }
+
+    .badge-info {
+      background: rgba(10, 14, 26, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 14px;
+      border-radius: 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      min-width: 0;
+      flex: 1;
+    }
+
+    .badge-info h1 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #ffffff, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge-info span {
+      font-size: 11px;
+      color: #818cf8;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .actions-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-touch {
+      background: rgba(10, 14, 26, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .btn-touch:active {
+      transform: scale(0.92);
+      background: rgba(99, 102, 241, 0.4);
+    }
+    .btn-touch.active {
+      background: rgba(99, 102, 241, 0.65);
+      border-color: #a5b4fc;
+    }
+    .btn-touch svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Seleção Horizontal Deslizante de Modos (Pills) */
+    .mode-picker-wrapper {
+      width: 100%;
+      pointer-events: auto;
+      margin-top: 10px;
+    }
+
+    .mode-picker {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .mode-picker::-webkit-scrollbar {
+      display: none;
+    }
+
+    .pill-item {
+      background: rgba(10, 14, 26, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      padding: 8px 14px;
+      border-radius: 18px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+    .pill-item.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(168, 85, 247, 0.8));
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.4);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    /* Painel Inferior Deslizante (Bottom Sheet Mobile) */
+    .bottom-sheet-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .bottom-sheet-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bottom-sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(12, 16, 28, 0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px 24px 0 0;
+      padding: 12px 20px 28px 20px;
+      z-index: 25;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 75dvh;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+      pointer-events: auto;
+    }
+    .bottom-sheet.open {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 38px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 3px;
+      margin: 0 auto 4px auto;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sheet-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .sheet-body {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-right: 4px;
+      scrollbar-width: thin;
+    }
+
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-row label {
+      font-size: 12px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+    .control-row label span.val {
+      color: #818cf8;
+      font-weight: 600;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+      accent-color: #6366f1;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 12px;
+      outline: none;
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+    }
+
+    /* Barra de Estado Inferior */
+    .bottom-info-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      pointer-events: auto;
+    }
+    .status-pill {
+      font-size: 11px;
+      color: #94a3b8;
+      background: rgba(10, 14, 26, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+
+  <!-- Bibliotecas Three.js e OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="webgl-container"></div>
+
+  <!-- HUD Overlay Mobile -->
+  <div class="hud-overlay" id="hud">
+    <div>
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="badge-info">
+          <h1>Geometria Sagrada 3D</h1>
+          <span id="activeModeText">Flor da Vida 3D</span>
+        </div>
+
+        <div class="actions-group">
+          <button class="btn-touch" id="btnAudio" title="Som Solfeggio">
+            <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          </button>
+          <button class="btn-touch" id="btnPlay" title="Pausar / Rodar">
+            <svg id="playIcon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button class="btn-touch" id="btnResetCam" title="Recentrar">
+            <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+          </button>
+          <button class="btn-touch" id="btnOpenSheet" title="Definições">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Seletor de Modos Horizontal (Pills) -->
+      <div class="mode-picker-wrapper">
+        <div class="mode-picker" id="modePicker">
+          <!-- Gerado via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra Inferior -->
+    <div class="bottom-info-bar">
+      <div class="status-pill">Toque para som • 1 Dedo roda • Pinça zoom</div>
+      <div class="status-pill" id="vertexCount">Vértices: 0</div>
+    </div>
+  </div>
+
+  <!-- Backdrop do Painel Inferior -->
+  <div class="bottom-sheet-backdrop" id="sheetBackdrop"></div>
+
+  <!-- Bottom Sheet (Menu Deslizante Mobile) -->
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Definições de Exibição</h2>
+      <button class="btn-touch" id="btnCloseSheet" style="width: 32px; height: 32px;">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body">
+      <div class="control-row">
+        <label>Velocidade de Rotação <span class="val" id="speedVal">1.0x</span></label>
+        <input type="range" id="speedRange" min="0" max="3" step="0.1" value="1">
+      </div>
+
+      <div class="control-row">
+        <label>Órbita Automática da Câmara</label>
+        <select id="autoRotateSelect">
+          <option value="true">Ativada</option>
+          <option value="false">Desativada</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label>Paleta de Cores</label>
+        <select id="paletteSelect">
+          <option value="rainbow">Arco-Íris Neon</option>
+          <option value="gold">Ouro Solfeggio</option>
+          <option value="aurora">Aurora Cósmica</option>
+          <option value="astral">Rosa Astral</option>
+          <option value="emerald">Esmeralda Zen</option>
+          <option value="mono">Monocromático</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label>Tamanho dos Vértices <span class="val" id="nodeSizeVal">1.2</span></label>
+        <input type="range" id="nodeSizeRange" min="0.4" max="3" step="0.1" value="1.2">
+      </div>
+
+      <div class="control-row">
+        <label>Opacidade das Arestas <span class="val" id="opacityVal">0.75</span></label>
+        <input type="range" id="opacityRange" min="0.1" max="1" step="0.05" value="0.75">
+      </div>
+
+      <div class="control-row">
+        <label>Frequência Solfeggio</label>
+        <select id="freqSelect">
+          <option value="432">432 Hz — Afinação Cósmica</option>
+          <option value="528">528 Hz — Transformação & DNA</option>
+          <option value="639">639 Hz — Conexão Espiritual</option>
+          <option value="741">741 Hz — Intuição Sagrada</option>
+          <option value="852">852 Hz — Despertar Espiritual</option>
+        </select>
+      </div>
+
+      <div class="control-row" style="margin-top: 6px;">
+        <button class="pill-item active" id="btnSnapshot" style="text-align: center; justify-content: center; width: 100%; padding: 12px;">
+          📸 Guardar Imagem em Alta Resolução
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Estado Global ───────────────────────────────────────────────────
+    const config = {
+      mode: 0,
+      speed: 1.0,
+      autoRotate: true,
+      palette: 'rainbow',
+      nodeSize: 1.2,
+      lineOpacity: 0.75,
+      freq: 432,
+      paused: false
+    };
+
+    let scene, camera, renderer, controls;
+    let mainGeometryGroup, starfield;
+    let clock = new THREE.Clock();
+    let time = 0;
+
+    const modeNames = [
+      "Flor da Vida 3D",
+      "Cubo de Metatron 3D",
+      "Merkaba Dual 3D",
+      "Toro Tridimensional",
+      "Sri Yantra 3D",
+      "Matriz Dodecaedro",
+      "Tesseract 4D Sagrado",
+      "Espiral Fibonacci 3D"
+    ];
+
+    // ─── Textura Radial de Brilho ────────────────────────────────────────
+    function createGlowTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.85)');
+      gradient.addColorStop(0.5, 'rgba(160, 200, 255, 0.35)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 64, 64);
+      return new THREE.CanvasTexture(canvas);
+    }
+    const glowTexture = createGlowTexture();
+
+    // ─── Gerador de Cores ────────────────────────────────────────────────
+    function getPaletteColor(hueRatio, saturation = 0.95, lightness = 0.65) {
+      const p = config.palette;
+      let h = hueRatio % 1.0;
+      if (h < 0) h += 1.0;
+
+      if (p === 'gold') h = 0.08 + (h * 0.08);
+      else if (p === 'aurora') h = 0.45 + (h * 0.3);
+      else if (p === 'astral') h = 0.75 + (h * 0.2);
+      else if (p === 'emerald') h = 0.33 + (h * 0.2);
+      else if (p === 'mono') return new THREE.Color(0xf0f6ff);
+
+      const color = new THREE.Color();
+      color.setHSL(h, saturation, lightness);
+      return color;
+    }
+
+    // ─── Inicialização do Engine 3D Otimizado para Portrait ─────────────
+    function initThree() {
+      const container = document.getElementById('webgl-container');
+
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x020208, 0.012);
+
+      // FOV ajustado para telemóveis em modo Portrait (vertical)
+      const aspect = window.innerWidth / window.innerHeight;
+      const initialFov = aspect < 1 ? 65 : 50;
+
+      camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 1000);
+      
+      // Posição inicial adaptada
+      const camDist = aspect < 1 ? 42 : 35;
+      camera.position.set(0, 16, camDist);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      container.appendChild(renderer.domElement);
+
+      // Controlo de Órbita com Suporte Tátil Superior
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxDistance = 140;
+      controls.minDistance = 6;
+      controls.rotateSpeed = 0.8;
+
+      // Luzes
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x818cf8, 1.2);
+      dirLight.position.set(20, 40, 20);
+      scene.add(dirLight);
+
+      mainGeometryGroup = new THREE.Group();
+      scene.add(mainGeometryGroup);
+
+      createStarfield();
+      buildCurrentGeometry();
+
+      window.addEventListener('resize', onWindowResize);
+
+      // Feedback Tátil ao Tocar no Ecrã
+      window.addEventListener('pointerdown', (e) => {
+        if (e.target.tagName === 'CANVAS') {
+          triggerChime();
+          if (navigator.vibrate) navigator.vibrate(12);
+        }
+      });
+    }
+
+    // ─── Fundo Estelar ───────────────────────────────────────────────────
+    function createStarfield() {
+      const count = 1500;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      for (let i = 0; i < count; i++) {
+        const r = 70 + Math.random() * 120;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+
+        const c = getPaletteColor(Math.random(), 0.7, 0.8);
+        colors[i * 3] = c.r;
+        colors[i * 3 + 1] = c.g;
+        colors[i * 3 + 2] = c.b;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 0.9,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.75,
+        map: glowTexture,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      starfield = new THREE.Points(geometry, material);
+      scene.add(starfield);
+    }
+
+    // ─── Construção Geométrica ───────────────────────────────────────────
+    function buildCurrentGeometry() {
+      while (mainGeometryGroup.children.length > 0) {
+        const obj = mainGeometryGroup.children[0];
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
+        mainGeometryGroup.remove(obj);
+      }
+
+      const mode = parseInt(config.mode);
+      document.getElementById('activeModeText').innerText = modeNames[mode];
+
+      const nodes = [];
+      const linesGroup = new THREE.Group();
+      mainGeometryGroup.add(linesGroup);
+
+      // ── MODO 0: Flor da Vida 3D
+      if (mode === 0) {
+        const radius = 5.5;
+        const rings = 2;
+        const sphereCenters = [{ x: 0, y: 0, z: 0 }];
+
+        for (let x = -rings; x <= rings; x++) {
+          for (let y = -rings; y <= rings; y++) {
+            for (let z = -rings; z <= rings; z++) {
+              if (Math.abs(x) + Math.abs(y) + Math.abs(z) <= 3 && !(x === 0 && y === 0 && z === 0)) {
+                sphereCenters.push({ x: x * radius * 0.7, y: y * radius * 0.7, z: z * radius * 0.7 });
+              }
+            }
+          }
+        }
+
+        sphereCenters.forEach((c, idx) => {
+          nodes.push(new THREE.Vector3(c.x, c.y, c.z));
+          const color = getPaletteColor(idx / sphereCenters.length);
+          const ringMat = new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: config.lineOpacity,
+            blending: THREE.AdditiveBlending
+          });
+
+          ['x', 'y', 'z'].forEach(axis => {
+            const ringGeo = new THREE.BufferGeometry();
+            const pts = [];
+            const segments = 36;
+            for (let i = 0; i <= segments; i++) {
+              const a = (i / segments) * Math.PI * 2;
+              if (axis === 'z') pts.push(new THREE.Vector3(c.x + Math.cos(a) * radius, c.y + Math.sin(a) * radius, c.z));
+              if (axis === 'y') pts.push(new THREE.Vector3(c.x + Math.cos(a) * radius, c.y, c.z + Math.sin(a) * radius));
+              if (axis === 'x') pts.push(new THREE.Vector3(c.x, c.y + Math.cos(a) * radius, c.z + Math.sin(a) * radius));
+            }
+            ringGeo.setFromPoints(pts);
+            linesGroup.add(new THREE.Line(ringGeo, ringMat));
+          });
+        });
+      }
+
+      // ── MODO 1: Cubo de Metatron 3D
+      else if (mode === 1) {
+        const r = 7.5;
+        const fruitNodes = [new THREE.Vector3(0, 0, 0)];
+
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          fruitNodes.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0));
+        }
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2;
+          fruitNodes.push(new THREE.Vector3(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8, r * 0.9));
+          fruitNodes.push(new THREE.Vector3(Math.cos(a + Math.PI / 3) * r * 0.8, Math.sin(a + Math.PI / 3) * r * 0.8, -r * 0.9));
+        }
+
+        nodes.push(...fruitNodes);
+
+        for (let i = 0; i < fruitNodes.length; i++) {
+          for (let j = i + 1; j < fruitNodes.length; j++) {
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([fruitNodes[i], fruitNodes[j]]);
+            const color = getPaletteColor((i + j) / 26);
+            const lineMat = new THREE.LineBasicMaterial({
+              color: color,
+              transparent: true,
+              opacity: config.lineOpacity,
+              blending: THREE.AdditiveBlending
+            });
+            linesGroup.add(new THREE.Line(lineGeo, lineMat));
+          }
+        }
+      }
+
+      // ── MODO 2: Merkaba Dual 3D
+      else if (mode === 2) {
+        const createTetra = (size, inverted = false) => {
+          const pts = [];
+          const s = inverted ? -1 : 1;
+          pts.push(new THREE.Vector3(0, s * size, 0));
+          for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2;
+            pts.push(new THREE.Vector3(Math.cos(a) * size * 0.95, -s * size * 0.45, Math.sin(a) * size * 0.95));
+          }
+          nodes.push(...pts);
+
+          const edges = [[0, 1], [0, 2], [0, 3], [1, 2], [2, 3], [3, 1]];
+          edges.forEach(e => {
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([pts[e[0]], pts[e[1]]]);
+            const color = getPaletteColor(inverted ? 0.25 : 0.75);
+            const lineMat = new THREE.LineBasicMaterial({
+              color: color,
+              transparent: true,
+              opacity: config.lineOpacity,
+              blending: THREE.AdditiveBlending
+            });
+            linesGroup.add(new THREE.Line(lineGeo, lineMat));
+          });
+        };
+
+        createTetra(9, false);
+        createTetra(9, true);
+      }
+
+      // ── MODO 3: Toro Tridimensional
+      else if (mode === 3) {
+        const R_torus = 11;
+        const r_tube = 4.8;
+        const uSteps = 20;
+        const vSteps = 14;
+        const grid = [];
+
+        for (let i = 0; i < uSteps; i++) {
+          const u = (i / uSteps) * Math.PI * 2;
+          grid[i] = [];
+          for (let j = 0; j < vSteps; j++) {
+            const v = (j / vSteps) * Math.PI * 2;
+            const p = new THREE.Vector3(
+              (R_torus + r_tube * Math.cos(v)) * Math.cos(u),
+              r_tube * Math.sin(v),
+              (R_torus + r_tube * Math.cos(v)) * Math.sin(u)
+            );
+            grid[i][j] = p;
+            nodes.push(p);
+          }
+        }
+
+        for (let i = 0; i < uSteps; i++) {
+          for (let j = 0; j < vSteps; j++) {
+            const nextU = (i + 1) % uSteps;
+            const nextV = (j + 1) % vSteps;
+
+            const p1 = grid[i][j];
+            const p2 = grid[nextU][j];
+            const p3 = grid[i][nextV];
+
+            const color = getPaletteColor((i / uSteps + j / vSteps) * 0.5);
+            const lineMat = new THREE.LineBasicMaterial({
+              color: color,
+              transparent: true,
+              opacity: config.lineOpacity * 0.8,
+              blending: THREE.AdditiveBlending
+            });
+
+            linesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p1, p2]), lineMat));
+            linesGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p1, p3]), lineMat));
+          }
+        }
+      }
+
+      // ── MODO 4: Sri Yantra Piramidal
+      else if (mode === 4) {
+        const layers = 8;
+        for (let i = 0; i < layers; i++) {
+          const z = (i - layers / 2) * 2.2;
+          const scale = 12 * (1 - Math.abs(i - layers / 2) * 0.18);
+          const up = i % 2 === 0;
+          const a = up ? Math.PI / 2 : -Math.PI / 2;
+
+          const p1 = new THREE.Vector3(Math.cos(a) * scale, Math.sin(a) * scale, z);
+          const p2 = new THREE.Vector3(Math.cos(a + 2.1) * scale, Math.sin(a + 2.1) * scale, z);
+          const p3 = new THREE.Vector3(Math.cos(a - 2.1) * scale, Math.sin(a - 2.1) * scale, z);
+
+          nodes.push(p1, p2, p3);
+
+          const triGeo = new THREE.BufferGeometry().setFromPoints([p1, p2, p3, p1]);
+          const color = getPaletteColor(i / layers);
+          const lineMat = new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: config.lineOpacity,
+            blending: THREE.AdditiveBlending
+          });
+          linesGroup.add(new THREE.Line(triGeo, lineMat));
+        }
+      }
+
+      // ── MODO 5: Matriz Dodecaedro
+      else if (mode === 5) {
+        const icoGeo = new THREE.IcosahedronGeometry(9, 0);
+        const docGeo = new THREE.DodecahedronGeometry(6.5, 0);
+
+        [icoGeo, docGeo].forEach((geo, idx) => {
+          const pos = geo.attributes.position;
+          for (let i = 0; i < pos.count; i++) {
+            nodes.push(new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)));
+          }
+
+          const wireGeo = new THREE.WireframeGeometry(geo);
+          const color = getPaletteColor(idx === 0 ? 0.3 : 0.8);
+          const lineMat = new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: config.lineOpacity,
+            blending: THREE.AdditiveBlending
+          });
+          linesGroup.add(new THREE.LineSegments(wireGeo, lineMat));
+        });
+      }
+
+      // ── MODO 6: Tesseract 4D Sagrado
+      else if (mode === 6) {
+        const vertices4D = [];
+        for (let i = 0; i < 16; i++) {
+          vertices4D.push([
+            (i & 1) ? 1 : -1,
+            (i & 2) ? 1 : -1,
+            (i & 4) ? 1 : -1,
+            (i & 8) ? 1 : -1
+          ]);
+        }
+
+        const angle = time * 0.5;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const proj3D = vertices4D.map(v => {
+          const x = v[0] * cos - v[3] * sin;
+          const w = v[0] * sin + v[3] * cos;
+          const y = v[1];
+          const z = v[2];
+
+          const factor = 10 / (2.5 - w * 0.35);
+          return new THREE.Vector3(x * factor, y * factor, z * factor);
+        });
+
+        nodes.push(...proj3D);
+
+        for (let i = 0; i < 16; i++) {
+          for (let j = i + 1; j < 16; j++) {
+            let diff = i ^ j;
+            if ((diff & (diff - 1)) === 0) {
+              const lineGeo = new THREE.BufferGeometry().setFromPoints([proj3D[i], proj3D[j]]);
+              const color = getPaletteColor((i + j) / 32);
+              const lineMat = new THREE.LineBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: config.lineOpacity,
+                blending: THREE.AdditiveBlending
+              });
+              linesGroup.add(new THREE.Line(lineGeo, lineMat));
+            }
+          }
+        }
+      }
+
+      // ── MODO 7: Espiral Fibonacci 3D
+      else if (mode === 7) {
+        const count = 150;
+        const spiralPts = [];
+        let r = 0.2;
+        let theta = 0;
+
+        for (let i = 0; i < count; i++) {
+          const x = Math.cos(theta) * r;
+          const y = (i - count / 2) * 0.16;
+          const z = Math.sin(theta) * r;
+          const p = new THREE.Vector3(x, y, z);
+          spiralPts.push(p);
+          if (i % 3 === 0) nodes.push(p);
+
+          theta += 0.25;
+          r += 0.075;
+        }
+
+        const spiralGeo = new THREE.BufferGeometry().setFromPoints(spiralPts);
+        const color = getPaletteColor(0.5);
+        const lineMat = new THREE.LineBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: config.lineOpacity,
+          blending: THREE.AdditiveBlending
+        });
+        linesGroup.add(new THREE.Line(spiralGeo, lineMat));
+      }
+
+      createNodesMesh(nodes);
+      document.getElementById('vertexCount').innerText = `Vértices: ${nodes.length}`;
+    }
+
+    function createNodesMesh(nodesArray) {
+      if (!nodesArray || nodesArray.length === 0) return;
+
+      const geometry = new THREE.BufferGeometry().setFromPoints(nodesArray);
+      const colors = new Float32Array(nodesArray.length * 3);
+
+      nodesArray.forEach((node, i) => {
+        const c = getPaletteColor(i / nodesArray.length, 0.95, 0.75);
+        colors[i * 3] = c.r;
+        colors[i * 3 + 1] = c.g;
+        colors[i * 3 + 2] = c.b;
+      });
+
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: parseFloat(config.nodeSize) * 2.0,
+        vertexColors: true,
+        map: glowTexture,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      mainGeometryGroup.add(new THREE.Points(geometry, material));
+    }
+
+    // ─── Sintetizador de Áudio Solfeggio ────────────────────────────────
+    let audioCtx = null;
+    let mainOsc = null;
+
+    function initAudio() {
+      if (audioCtx) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+
+      const mainGain = audioCtx.createGain();
+      mainGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(700, audioCtx.currentTime);
+
+      mainGain.connect(filter);
+      filter.connect(audioCtx.destination);
+
+      mainOsc = audioCtx.createOscillator();
+      mainOsc.type = 'sine';
+      mainOsc.frequency.setValueAtTime(parseFloat(config.freq), audioCtx.currentTime);
+      mainOsc.start();
+      mainOsc.connect(mainGain);
+
+      document.getElementById('btnAudio').classList.add('active');
+    }
+
+    function toggleAudio() {
+      if (!audioCtx) {
+        initAudio();
+      } else {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+          document.getElementById('btnAudio').classList.add('active');
+        } else if (audioCtx.state === 'running') {
+          audioCtx.suspend();
+          document.getElementById('btnAudio').classList.remove('active');
+        }
+      }
+    }
+
+    function triggerChime() {
+      if (!audioCtx || audioCtx.state !== 'running') return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const baseF = parseFloat(config.freq);
+      const mults = [1, 1.25, 1.5, 1.75];
+      const f = baseF * mults[Math.floor(Math.random() * mults.length)];
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.4);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.4);
+    }
+
+    // ─── Loop de Renderização ────────────────────────────────────────────
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      if (!config.paused) {
+        time += delta * parseFloat(config.speed);
+
+        if (mainGeometryGroup) {
+          mainGeometryGroup.rotation.y = time * 0.22;
+          mainGeometryGroup.rotation.x = Math.sin(time * 0.12) * 0.12;
+        }
+
+        if (parseInt(config.mode) === 6) {
+          buildCurrentGeometry();
+        }
+
+        if (starfield) {
+          starfield.rotation.y = time * 0.015;
+        }
+      }
+
+      if (controls) {
+        controls.autoRotate = (config.autoRotate === 'true' || config.autoRotate === true) && !config.paused;
+        controls.autoRotateSpeed = 1.0 * parseFloat(config.speed);
+        controls.update();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      const aspect = window.innerWidth / window.innerHeight;
+      camera.aspect = aspect;
+      camera.fov = aspect < 1 ? 65 : 50;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ─── Interface & Bottom Sheet Mobile ────────────────────────────────
+    const backdrop = document.getElementById('sheetBackdrop');
+    const sheet = document.getElementById('bottomSheet');
+
+    function openSheet() {
+      backdrop.classList.add('active');
+      sheet.classList.add('open');
+    }
+
+    function closeSheet() {
+      backdrop.classList.remove('active');
+      sheet.classList.remove('open');
+    }
+
+    document.getElementById('btnOpenSheet').addEventListener('click', openSheet);
+    document.getElementById('btnCloseSheet').addEventListener('click', closeSheet);
+    backdrop.addEventListener('click', closeSheet);
+
+    // Gerar Pills de Modo
+    const modePicker = document.getElementById('modePicker');
+    modeNames.forEach((name, idx) => {
+      const pill = document.createElement('div');
+      pill.className = `pill-item ${idx === 0 ? 'active' : ''}`;
+      pill.innerText = name;
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.pill-item').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        config.mode = idx;
+        buildCurrentGeometry();
+      });
+      modePicker.appendChild(pill);
+    });
+
+    // Mapeamento dos Controlos
+    document.getElementById('btnPlay').addEventListener('click', () => {
+      config.paused = !config.paused;
+      document.getElementById('playIcon').innerHTML = config.paused
+        ? '<path d="M8 5v14l11-7z"/>'
+        : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+    });
+
+    document.getElementById('btnAudio').addEventListener('click', toggleAudio);
+
+    document.getElementById('btnResetCam').addEventListener('click', () => {
+      const aspect = window.innerWidth / window.innerHeight;
+      camera.position.set(0, 16, aspect < 1 ? 42 : 35);
+      controls.target.set(0, 0, 0);
+    });
+
+    document.getElementById('btnSnapshot').addEventListener('click', () => {
+      renderer.render(scene, camera);
+      const link = document.createElement('a');
+      link.download = `geometria-sagrada-mobile-${Date.now()}.png`;
+      link.href = renderer.domElement.toDataURL('image/png');
+      link.click();
+    });
+
+    document.getElementById('speedRange').addEventListener('input', (e) => {
+      config.speed = e.target.value;
+      document.getElementById('speedVal').innerText = `${parseFloat(e.target.value).toFixed(1)}x`;
+    });
+    document.getElementById('nodeSizeRange').addEventListener('input', (e) => {
+      config.nodeSize = e.target.value;
+      document.getElementById('nodeSizeVal').innerText = e.target.value;
+      buildCurrentGeometry();
+    });
+    document.getElementById('opacityRange').addEventListener('input', (e) => {
+      config.lineOpacity = e.target.value;
+      document.getElementById('opacityVal').innerText = e.target.value;
+      buildCurrentGeometry();
+    });
+    document.getElementById('paletteSelect').addEventListener('change', (e) => {
+      config.palette = e.target.value;
+      buildCurrentGeometry();
+    });
+    document.getElementById('autoRotateSelect').addEventListener('change', (e) => {
+      config.autoRotate = e.target.value;
+    });
+    document.getElementById('freqSelect').addEventListener('change', (e) => {
+      config.freq = e.target.value;
+      if (mainOsc && audioCtx) {
+        mainOsc.frequency.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+      }
+    });
+
+    // Inicialização
+    window.onload = () => {
+      initThree();
+      animate();
+    };
+  </script>
+</body>
+</html>
