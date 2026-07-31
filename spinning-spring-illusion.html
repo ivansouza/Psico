@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Reverse the Spin with Your Mind</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #f8f8f8;
+      color: #111;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 480px;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    h1 {
+      font-size: clamp(1.15rem, 4.5vw, 1.45rem);
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.35;
+      letter-spacing: -0.02em;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #555;
+      text-align: center;
+      max-width: 340px;
+      line-height: 1.4;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+      aspect-ratio: 1 / 1.45;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      touch-action: none;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    button.secondary {
+      background: #e8e8e8;
+      color: #222;
+    }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #444;
+    }
+
+    input[type="range"] {
+      width: 110px;
+      accent-color: #1a1a1a;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #777;
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.45;
+      margin-top: 4px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      font-size: 0.7rem;
+      color: #999;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Are you able to reverse<br>the spin with your mind?</h1>
+    <p class="subtitle">Focus on the tip or the bottom corners.<br>Try to flip the orientation in your head.</p>
+
+    <canvas id="c" width="720" height="1040"></canvas>
+
+    <div class="controls">
+      <button id="toggle">Pause</button>
+      <button class="secondary" id="reverse">Flip direction</button>
+      <div class="speed-control">
+        <span>Speed</span>
+        <input type="range" id="speed" min="0.2" max="2.5" step="0.1" value="1.0" />
+      </div>
+    </div>
+
+    <p class="hint">
+      Tip: Mentally tilt the spring forward/back or decide whether the tip is going “up” or “down”.
+      Many people can switch the perceived rotation after a few seconds of concentration.
+    </p>
+
+    <div class="footer">Optical illusion · pure HTML/Canvas</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = 720 * dpr;
+    canvas.height = 1040 * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Spring parameters (tuned to match the original look)
+    const turns = 9.2;
+    const radius = 118;
+    const totalHeight = 620;
+    const lineWidth = 11;
+    const centerX = 360;
+    const centerY = 90; // top padding for the first coil
+
+    let rotation = 0;
+    let speed = 1.0;
+    let direction = 1; // 1 = original, -1 = flipped physical rotation
+    let running = true;
+    let lastTime = performance.now();
+
+    // Slight perspective factor that helps the 3-D reading while keeping ambiguity
+    const depthFactor = 0.22;
+
+    function getPoint(t, rot) {
+      // t goes from 0 → 1 along the spring
+      const angle = t * turns * Math.PI * 2 + rot;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const y = t * totalHeight;
+
+      // Orthographic-ish projection with a gentle depth offset
+      // This creates the classic ambiguous helix silhouette
+      return {
+        x: centerX + x,
+        y: centerY + y - z * depthFactor
+      };
+    }
+
+    function drawSpring(rot) {
+      ctx.clearRect(0, 0, 720, 1040);
+
+      // Soft background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 720, 1040);
+
+      // Collect points
+      const steps = 720; // high resolution for smooth thick stroke
+      const points = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        points.push(getPoint(t, rot));
+      }
+
+      // Draw a slightly textured / chalk-like stroke
+      // Multiple offset passes give a hand-drawn feel similar to the original
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Main thick black stroke
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.strokeStyle = '#111111';
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+
+      // Subtle second pass for a bit of “ink” texture
+      ctx.beginPath();
+      ctx.moveTo(points[0].x + 0.8, points[0].y - 0.6);
+      for (let i = 1; i < points.length; i++) {
+        const j = (i * 17) % 5; // tiny deterministic jitter
+        ctx.lineTo(points[i].x + (j - 2) * 0.35, points[i].y + (j - 2) * 0.25);
+      }
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = lineWidth * 0.55;
+      ctx.stroke();
+
+      // Small tip highlight (the free end)
+      const tip = points[points.length - 1];
+      ctx.beginPath();
+      ctx.arc(tip.x, tip.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#111';
+      ctx.fill();
+    }
+
+    function frame(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      if (running) {
+        rotation += direction * speed * dt * 1.35; // radians per second base
+      }
+
+      drawSpring(rotation);
+      requestAnimationFrame(frame);
+    }
+
+    // Controls
+    document.getElementById('toggle').addEventListener('click', () => {
+      running = !running;
+      document.getElementById('toggle').textContent = running ? 'Pause' : 'Play';
+    });
+
+    document.getElementById('reverse').addEventListener('click', () => {
+      direction *= -1;
+    });
+
+    document.getElementById('speed').addEventListener('input', (e) => {
+      speed = parseFloat(e.target.value);
+    });
+
+    // Start
+    requestAnimationFrame(frame);
+
+    // Resize handling (keep canvas sharp)
+    window.addEventListener('resize', () => {
+      // CSS already handles visual size; internal resolution stays high-DPI
+    });
+  </script>
+</body>
+</html>
