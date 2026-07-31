@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>CSS Optical Illusion: Reverse Spoke Illusion</title>
+ <style>
+/*
+optical illussion
+It looks like the spokes are spinning clockwise, but they are static. Only the background is moving.
+*/
+@keyframes spin {
+ 0% { rotate: 0; }
+ 100% { rotate: -360deg;}
+}
+
+body {
+ margin: 0;
+ height: 100vh;
+ background: #bbb;
+
+ &::before,
+ &::after {
+ content: "";
+ width: 50vmin;
+ aspect-ratio: 1;
+ border-radius: 50%;
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ translate: -50% -50%;
+ }
+
+ &::before {
+ background: conic-gradient(#aaa, #555, #aaa);
+ background: radial-gradient(at 50% 75%, #555 10%, #aaa 90%);
+ background:
+ conic-gradient(#595959 22.5deg, #5c5c5c 0 45deg, #646464 0 67.5deg, #707070 0 90deg, #7f7f7f 0 112.5deg, #8e8e8e 0 135deg, #9a9a9a 0 157.5deg, #a2a2a2 0 180deg, #a5a5a5 0 202.5deg, #a2a2a2 0 225deg, #9a9a9a 0 247.5deg, #8e8e8e 0 270deg, #7f7f7f 0 292.5deg, #707070 0 315deg, #646464 0 337.5deg, #5c5c5c 0)
+ ;
+ animation: spin 1s steps(16, end) infinite;
+ }
+
+ &::after {
+ --a: #0000 49.5%, #777 0 50.5%, #0000 0;
+ --b: #0000 49.7%, #777 0 50.3%, #0000 0;
+ background:
+ linear-gradient(0deg, var(--a)),
+ linear-gradient(22.5deg, var(--b)),
+ linear-gradient(45deg, var(--b)),
+ linear-gradient(67.5deg, var(--b)),
+ linear-gradient(90deg, var(--a)),
+ linear-gradient(112.5deg, var(--b)),
+ linear-gradient(135deg, var(--b)),
+ linear-gradient(157.5deg, var(--b));
+ }
+}
+ </style>
+</head>
+<body>
+</body>
+</html>
