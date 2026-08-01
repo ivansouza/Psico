@@ -68,11 +68,14 @@
    vec4 o = vec4(0.0);
    float g = 0.0, e = 0.0;
 
-   // Punch zoom: pulso rápido de zoom a cada ~0.5s, com retorno suave
-   float beat = fract(t * 2.0);            // ciclo de 0.5s
-   float punch = 1.0 + 0.35 * exp(-beat * 6.0); // estouro rápido que decai
+   // Punch zoom + pinch: ciclo que alterna entre apertar (pinch) e expandir (zoom)
+   float beat = fract(t * 1.5);            // ciclo de ~0.67s
+   // Pinch: encolhe rápido; Zoom: expande rápido — alternando a cada ciclo
+   float pinch = 1.0 - 0.30 * exp(-beat * 5.0);   // encolhe (fator < 1)
+   float zoom  = 1.0 + 0.30 * exp(-beat * 5.0);   // expande (fator > 1)
+   float scale = mix(pinch, zoom, step(0.5, fract(t * 0.75))); // alterna pinch/zoom
    vec2 uv = (FC.xy - r.xy * 0.5) / r.y;
-   uv *= punch;                            // aplica o zoom pulsante
+   uv *= scale;                            // aplica o pinch/zoom pulsante
 
    // Loop original do Twigl
    for (float i = 0.0; i < 1e2; i++) {
