@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <title>つぶやきGLSL — Tsubuyaki Shader</title>
+ <style>
+ body {
+ margin: 0;
+ overflow: hidden;
+ background: #000;
+ }
+ canvas {
+ display: block;
+ width: 100vw;
+ height: 100vh;
+ }
+ </style>
+</head>
+<body>
+
+ <canvas id="canvas"></canvas>
+
+ <!-- Vertex Shader -->
+ <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+ in vec2 position;
+ void main() {
+ gl_Position = vec4(position, 0.0, 1.0);
+ }
+ </script>
+
+ <!-- Fragment Shader -->
+ <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+ precision highp float;
+ uniform vec2 u_resolution;
+ uniform float u_time;
+ out vec4 fragColor;
+
+ // Mapeamento de codificação curta do modo geekest do Twigl
+ #define t u_time
+ #define r vec3(u_resolution, 1.0)
+ #define FC vec4(gl_FragCoord.xy, 0.0, 1.0)
+
+ // Rotação 2D (plano xy)
+ mat2 rotate2D(float a) {
+   float c = cos(a), s = sin(a);
+   return mat2(c, -s, s, c);
+ }
+
+ // Rotação 3D em torno de um eixo arbitrário
+ mat3 rotate3D(float a, vec3 axis) {
+   axis = normalize(axis);
+   float c = cos(a), s = sin(a);
+   float t = 1.0 - c;
+   return mat3(
+     c + axis.x * axis.x * t,
+     axis.y * axis.x * t + axis.z * s,
+     axis.z * axis.x * t - axis.y * s,
+     axis.x * axis.y * t - axis.z * s,
+     c + axis.y * axis.y * t,
+     axis.z * axis.y * t + axis.x * s,
+     axis.x * axis.z * t + axis.y * s,
+     axis.y * axis.z * t - axis.x * s,
+     c + axis.z * axis.z * t
+   );
+ }
+
+ void main() {
+   vec4 o = vec4(0.0);
+   float g = 0.0, e = 0.0;
+
+   // Loop original do Twigl
+   for (float i = 0.0; i < 1e2; i++) {
+     vec3 p = vec3((FC.xy - r.xy * 0.5) / r.y * g, g - 3.0 + sin(t * 0.5));
+     p.zy *= rotate2D(t * 0.5);
+
+     for (float j = 0.0; j < 6.0; j++) {
+       p *= rotate3D(t + 0.5, vec3(5.0, 2.0 * smoothstep(-8.0, 8.0, 0.0), 4.0));
+       p = abs(p + p) - 1.0;
+     }
+
+     g += e = (length(p.yzx) * 5.0 - 6.0) / 9e2;
+     o += exp(-e * 1e6) / 7e1;
+   }
+
+   fragColor = o;
+ }
+ </script>
+
+ <script>
+ const canvas = document.getElementById('canvas');
+ const gl = canvas.getContext('webgl2');
+ if (!gl) { document.body.innerHTML = '<h1 style="color:#fff;font-family:sans-serif">WebGL2 não suportado</h1>'; throw new Error('WebGL2 required'); }
+
+ function compile(type, src) {
+   const sh = gl.createShader(type);
+   gl.shaderSource(sh, src);
+   gl.compileShader(sh);
+   if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+     console.error(gl.getShaderInfoLog(sh));
+     throw new Error('Shader compile error');
+   }
+   return sh;
+ }
+
+ const prog = gl.createProgram();
+ gl.attachShader(prog, compile(gl.VERTEX_SHADER, document.getElementById('vertex-shader').textContent));
+ gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, document.getElementById('fragment-shader').textContent));
+ gl.linkProgram(prog);
+ if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+   console.error(gl.getProgramInfoLog(prog));
+   throw new Error('Program link error');
+ }
+ gl.useProgram(prog);
+
+ const buf = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+ const loc = gl.getAttribLocation(prog, 'position');
+ gl.enableVertexAttribArray(loc);
+ gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+ const uRes = gl.getUniformLocation(prog, 'u_resolution');
+ const uTime = gl.getUniformLocation(prog, 'u_time');
+
+ function resize() {
+   canvas.width = window.innerWidth;
+   canvas.height = window.innerHeight;
+   gl.viewport(0, 0, canvas.width, canvas.height);
+ }
+ window.addEventListener('resize', resize);
+ resize();
+
+ const start = performance.now();
+ function frame() {
+   gl.uniform2f(uRes, canvas.width, canvas.height);
+   gl.uniform1f(uTime, (performance.now() - start) / 1000.0);
+   gl.drawArrays(gl.TRIANGLES, 0, 3);
+   requestAnimationFrame(frame);
+ }
+ frame();
+ </script>
+</body>
+</html>
