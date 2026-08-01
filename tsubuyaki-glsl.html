@@ -72,7 +72,7 @@
    float beat = fract(t * 1.5);            // ciclo de ~0.67s
    // Pinch: encolhe rápido; Zoom: expande rápido — alternando a cada ciclo
    float pinch = 1.0 - 0.30 * exp(-beat * 5.0);   // encolhe (fator < 1)
-   float zoom  = 1.0 + 0.55 * exp(-beat * 5.0);   // expande (fator > 1) — zoom out mais forte
+   float zoom  = 1.0 + 0.80 * exp(-beat * 5.0);   // expande (fator > 1) — zoom out bem forte
    float scale = mix(pinch, zoom, step(0.5, fract(t * 0.75))); // alterna pinch/zoom
    vec2 uv = (FC.xy - r.xy * 0.5) / r.y;
    uv *= scale;                            // aplica o pinch/zoom pulsante
