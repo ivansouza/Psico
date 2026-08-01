@@ -33,6 +33,7 @@
  precision highp float;
  uniform vec2 u_resolution;
  uniform float u_time;
+ uniform float u_zoom;
  out vec4 fragColor;
 
  // Mapeamento de codificação curta do modo geekest do Twigl
@@ -68,14 +69,9 @@
    vec4 o = vec4(0.0);
    float g = 0.0, e = 0.0;
 
-   // Punch zoom + pinch: ciclo que alterna entre apertar (pinch) e expandir (zoom)
-   float beat = fract(t * 1.5);            // ciclo de ~0.67s
-   // Pinch: encolhe rápido; Zoom: expande rápido — alternando a cada ciclo
-   float pinch = 1.0 - 0.30 * exp(-beat * 5.0);   // encolhe (fator < 1)
-   float zoom  = 1.0 + 0.80 * exp(-beat * 5.0);   // expande (fator > 1) — zoom out bem forte
-   float scale = mix(pinch, zoom, step(0.5, fract(t * 0.75))); // alterna pinch/zoom
+   // Zoom controlado por gesto de pinch no celular (uniform u_zoom)
    vec2 uv = (FC.xy - r.xy * 0.5) / r.y;
-   uv *= scale;                            // aplica o pinch/zoom pulsante
+   uv *= u_zoom;                           // aplica o zoom do gesto
 
    // Loop original do Twigl
    for (float i = 0.0; i < 1e2; i++) {
@@ -130,6 +126,49 @@
 
  const uRes = gl.getUniformLocation(prog, 'u_resolution');
  const uTime = gl.getUniformLocation(prog, 'u_time');
+ const uZoom = gl.getUniformLocation(prog, 'u_zoom');
+
+ // --- Gesto de pinch (zoom) no celular ---
+ let zoom = 1.0;                 // fator de zoom atual (1.0 = sem zoom)
+ let pinchDist = 0;              // distância entre os dedos no início do gesto
+ let pinchZoom = 1.0;            // zoom no início do gesto
+
+ function dist(a, b) {
+   const dx = a.clientX - b.clientX;
+   const dy = a.clientY - b.clientY;
+   return Math.sqrt(dx * dx + dy * dy);
+ }
+
+ canvas.addEventListener('touchstart', (e) => {
+   if (e.touches.length === 2) {
+     pinchDist = dist(e.touches[0], e.touches[1]);
+     pinchZoom = zoom;
+     e.preventDefault();
+   }
+ }, { passive: false });
+
+ canvas.addEventListener('touchmove', (e) => {
+   if (e.touches.length === 2) {
+     const d = dist(e.touches[0], e.touches[1]);
+     if (pinchDist > 0) {
+       // zoom out = afastar os dedos (fator > 1); pinch in = aproximar (fator < 1)
+       zoom = pinchZoom * (d / pinchDist);
+       zoom = Math.max(0.2, Math.min(4.0, zoom)); // limita o zoom
+     }
+     e.preventDefault();
+   }
+ }, { passive: false });
+
+ canvas.addEventListener('touchend', (e) => {
+   if (e.touches.length < 2) pinchDist = 0;
+ });
+
+ // Suporte a mouse (scroll) pra testar no desktop
+ canvas.addEventListener('wheel', (e) => {
+   zoom *= (e.deltaY < 0) ? 1.1 : 0.9;
+   zoom = Math.max(0.2, Math.min(4.0, zoom));
+   e.preventDefault();
+ }, { passive: false });
 
  function resize() {
    canvas.width = window.innerWidth;
@@ -143,6 +182,7 @@
  function frame() {
    gl.uniform2f(uRes, canvas.width, canvas.height);
    gl.uniform1f(uTime, (performance.now() - start) / 1000.0);
+   gl.uniform1f(uZoom, zoom);
    gl.drawArrays(gl.TRIANGLES, 0, 3);
    requestAnimationFrame(frame);
  }
