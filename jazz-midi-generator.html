@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Jazz MIDI Generator Pro</title>
   
-  <!-- CDN Dependencies -->
+  <!-- Dependências via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/midi-writer-js@3.2.1/browser/midiwriter.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script src="https://unpkg.com/@lucide/web"></script>
@@ -41,7 +41,7 @@
       color: var(--text-main);
       min-height: 100vh;
       min-height: 100dvh;
-      padding: 12px 12px 110px 12px; /* Margem inferior para a barra de transporte fixa */
+      padding: 12px 12px 110px 12px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -50,7 +50,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Header Compacto para Telemóvel */
+    /* Cabeçalho Compacto */
     header {
       text-align: center;
       padding: 8px 0;
@@ -89,7 +89,7 @@
       margin-top: 2px;
     }
 
-    /* Separadores (Tabs) para Navegação em Telemóvel */
+    /* Separadores de Navegação Móvel */
     .mobile-tabs {
       display: flex;
       background: var(--card);
@@ -123,7 +123,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    /* Disposição do Ecrã */
+    /* Layout da Aplicação */
     .app-grid {
       display: grid;
       grid-template-columns: 340px 1fr;
@@ -131,31 +131,17 @@
     }
 
     @media (max-width: 899px) {
-      .app-grid {
-        display: block;
-      }
-      .tab-content {
-        display: none;
-      }
-      .tab-content.active {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
+      .app-grid { display: block; }
+      .tab-content { display: none; }
+      .tab-content.active { display: flex; flex-direction: column; gap: 12px; }
     }
 
     @media (min-width: 900px) {
-      .mobile-tabs {
-        display: none; /* Oculta separadores em ecrã grande */
-      }
-      .tab-content {
-        display: flex !important;
-        flex-direction: column;
-        gap: 12px;
-      }
+      .mobile-tabs { display: none; }
+      .tab-content { display: flex !important; flex-direction: column; gap: 12px; }
     }
 
-    /* Cards */
+    /* Estilo dos Cartões */
     .card {
       background: var(--card);
       border: 1px solid var(--card-border);
@@ -178,18 +164,9 @@
       padding-bottom: 6px;
     }
 
-    /* Form Controls Touch-Friendly */
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
+    /* Formulários e Controles */
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
     label {
       font-size: 0.7rem;
@@ -206,22 +183,16 @@
       color: var(--text-main);
       padding: 12px;
       border-radius: 10px;
-      font-size: 0.95rem; /* Evita auto-zoom no iOS Safari */
+      font-size: 0.95rem;
       outline: none;
       transition: all 0.2s;
       min-height: 44px;
     }
 
-    select:focus, input:focus {
-      border-color: var(--accent-cyan);
-    }
+    select:focus, input:focus { border-color: var(--accent-cyan); }
 
-    /* Sliders & Switches */
-    .slider-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    /* Sliders e Interruptores */
+    .slider-container { display: flex; align-items: center; gap: 10px; }
 
     input[type="range"] {
       flex: 1;
@@ -293,7 +264,7 @@
     .btn-stop { background: linear-gradient(135deg, var(--accent-red), #dc2626); color: #fff; width: 52px; padding: 0; }
     .btn-action { background: #1e293b; color: var(--text-main); border: 1px solid var(--card-border); }
 
-    /* Grade de Cifras (Modo Retrato) */
+    /* Grade de Cifras */
     .sheet-container {
       background: var(--input-bg);
       border: 1px solid var(--card-border);
@@ -303,7 +274,7 @@
       max-height: 220px;
       overflow-y: auto;
       display: grid;
-      grid-template-columns: repeat(2, 1fr); /* 2 colunas no telemóvel portrait */
+      grid-template-columns: repeat(2, 1fr);
       gap: 6px;
     }
 
@@ -344,7 +315,7 @@
       transform: scale(1.02);
     }
 
-    /* Teclado Visual Interativo para Toque */
+    /* Teclado Visual */
     .piano-wrapper {
       background: #020617;
       border: 1px solid var(--card-border);
@@ -393,7 +364,7 @@
     .key.active-piano { background: var(--accent-cyan) !important; box-shadow: 0 0 8px var(--accent-cyan); }
     .key.active-sax { background: var(--accent-amber) !important; box-shadow: 0 0 8px var(--accent-amber); }
 
-    /* Mixer Multifaixas Ajustado para Telemóvel */
+    /* Mixer */
     .mixer-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -471,7 +442,7 @@
       min-height: 38px;
     }
 
-    /* BARRA FIXA INFERIOR (Sticky Bottom Dock para Telemóvel) */
+    /* Barra Fixa Inferior */
     .bottom-dock {
       position: fixed;
       bottom: 0;
@@ -497,32 +468,147 @@
     }
 
     .btn-dl-dock {
-      padding: 0 12px;
+      padding: 0 14px;
       height: 48px;
-      background: #1e293b;
-      color: var(--accent-purple);
-      border: 1px solid var(--card-border);
+      background: linear-gradient(135deg, var(--accent-purple), #7e22ce);
+      color: #fff;
+      border: none;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      font-weight: 700;
+      font-size: 0.85rem;
+      gap: 6px;
+    }
+
+    /* Modal de Download de Stems Separados */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-sheet {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px max(20px, env(safe-area-inset-bottom)) 16px;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-close-modal {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .stem-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      padding: 12px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .stem-option:hover {
+      border-color: var(--accent-cyan);
+      background: #131d31;
+    }
+
+    .stem-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stem-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .stem-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stem-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stem-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
 
-  <!-- CABEÇALHO COMPACTO -->
+  <!-- CABEÇALHO -->
   <header>
     <div class="title-container">
       <i data-lucide="music-4" style="color: var(--accent-cyan); width: 20px; height: 20px;"></i>
       <h1>Jazz MIDI Generator</h1>
       <span class="badge-pro">PRO v2.5</span>
     </div>
-    <p class="subtitle">Harmonia • Voicings • Walking Bass • Solo Improviso</p>
+    <p class="subtitle">Harmonia • Voicings • Walking Bass • Solo & Exportação de Stems MIDI</p>
   </header>
 
-  <!-- SEPARADORES PARA A NAVEGAÇÃO EM TELEMÓVEL -->
+  <!-- SEPARADORES MÓVEIS -->
   <nav class="mobile-tabs" id="mobileTabs">
     <button class="tab-btn active" data-tab="tab-sheet">
       <i data-lucide="music" style="width: 14px; height: 14px;"></i> Cifras
@@ -537,7 +623,7 @@
 
   <div class="app-grid">
     
-    <!-- PAINEL DE OPÇÕES E PARÂMETROS -->
+    <!-- PAINEL DE PARÂMETROS -->
     <div class="tab-content" id="tab-params">
       <div class="card">
         <div class="card-title">
@@ -658,10 +744,9 @@
       </div>
     </div>
 
-    <!-- PAINEL PRINCIPAL (CIFRAS & TECLADO) -->
+    <!-- PAINEL DE CIFRAS E TECLADO -->
     <div class="tab-content active" id="tab-sheet">
 
-      <!-- Grade de Acordes -->
       <div class="card">
         <div class="card-title" style="justify-content: space-between;">
           <span><i data-lucide="music" style="width: 16px; height: 16px;"></i> Grade de Cifras</span>
@@ -676,7 +761,6 @@
         </div>
       </div>
 
-      <!-- Teclado Visual -->
       <div class="card">
         <div class="card-title">
           <i data-lucide="activity" style="width: 16px; height: 16px;"></i> Teclado Visual ao Vivo
@@ -688,7 +772,7 @@
 
     </div>
 
-    <!-- PAINEL DO MIXER DE ÁUDIO -->
+    <!-- PAINEL DO MIXER -->
     <div class="tab-content" id="tab-mixer">
       <div class="card">
         <div class="card-title">
@@ -726,7 +810,7 @@
 
   </div>
 
-  <!-- BARRA DE TRANSPORTE FIXA NO FUNDO (BOTTOM DOCK) -->
+  <!-- BARRA DE TRANSPORTE FIXA INFERIOR -->
   <div class="bottom-dock">
     <div class="status-bar" id="statusBar">Aguardando geração do arranjo...</div>
     <div class="dock-controls">
@@ -736,9 +820,91 @@
       <button class="btn btn-stop" id="btnStop" disabled title="Parar">
         <i data-lucide="square" style="width: 18px; height: 18px;"></i>
       </button>
-      <button class="btn-dl-dock" id="btnDownload" disabled title="Baixar MIDI">
-        <i data-lucide="download" style="width: 20px; height: 20px;"></i>
+      <button class="btn-dl-dock" id="btnOpenModalDownload" disabled title="Exportar MIDI">
+        <i data-lucide="download" style="width: 18px; height: 18px;"></i>
+        <span>MIDI</span>
       </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE EXPORTAÇÃO DE STEMS SEPARADOS -->
+  <div class="modal-overlay" id="downloadModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="file-audio" style="color: var(--accent-cyan)"></i>
+          <span>Opções de Download MIDI</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseModal">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <div class="stem-option" id="dlStemFull">
+        <div class="stem-info">
+          <div class="stem-icon" style="background: rgba(56, 189, 248, 0.2); color: var(--accent-cyan);">
+            <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div class="stem-text">
+            <span class="stem-name">Arranjo Completo</span>
+            <span class="stem-desc">Todas as pistas separadas por canais (1, 2, 3, 10)</span>
+          </div>
+        </div>
+        <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+      </div>
+
+      <div class="stem-option" id="dlStemMelody">
+        <div class="stem-info">
+          <div class="stem-icon" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-amber);">
+            <i data-lucide="wind" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div class="stem-text">
+            <span class="stem-name">Apenas Melodia / Sax</span>
+            <span class="stem-desc">Solo de Sax (Canal 3)</span>
+          </div>
+        </div>
+        <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+      </div>
+
+      <div class="stem-option" id="dlStemChords">
+        <div class="stem-info">
+          <div class="stem-icon" style="background: rgba(56, 189, 248, 0.2); color: var(--accent-cyan);">
+            <i data-lucide="piano" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div class="stem-text">
+            <span class="stem-name">Apenas Piano / Acordes</span>
+            <span class="stem-desc">Harmonia e Voicings (Canal 1)</span>
+          </div>
+        </div>
+        <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+      </div>
+
+      <div class="stem-option" id="dlStemBass">
+        <div class="stem-info">
+          <div class="stem-icon" style="background: rgba(168, 85, 247, 0.2); color: var(--accent-purple);">
+            <i data-lucide="disc" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div class="stem-text">
+            <span class="stem-name">Apenas Baixo / Walking Bass</span>
+            <span class="stem-desc">Linha de Baixo Acústico (Canal 2)</span>
+          </div>
+        </div>
+        <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+      </div>
+
+      <div class="stem-option" id="dlStemDrums">
+        <div class="stem-info">
+          <div class="stem-icon" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">
+            <i data-lucide="drum" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div class="stem-text">
+            <span class="stem-name">Apenas Bateria Jazz</span>
+            <span class="stem-desc">Prato Ride, Chimbal e Bumbo (Canal 10)</span>
+          </div>
+        </div>
+        <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+      </div>
+
     </div>
   </div>
 
@@ -750,7 +916,6 @@
 const NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 const NOTE_TO_PC = Object.fromEntries(NOTES.map((n, i) => [n, i]));
 
-// Definições Harmónicas
 const CHORD_DEFS = {
   "maj7":   { ints: [0, 4, 7, 11], scale: "major", tensions: [2, 9] },
   "m7":     { ints: [0, 3, 7, 10], scale: "dorian", tensions: [2, 5] },
@@ -788,7 +953,6 @@ function noteName(pitchClass, octave = 4) {
   return NOTES[((pitchClass % 12) + 12) % 12] + octave;
 }
 
-// Gerador de Voicings do Teclado
 function getJazzVoicing(root, quality, styleVoicing = "rootless", octave = 3) {
   const rootPc = pc(root);
   const def = CHORD_DEFS[quality] || CHORD_DEFS["7"];
@@ -800,9 +964,7 @@ function getJazzVoicing(root, quality, styleVoicing = "rootless", octave = 3) {
   }
 
   if (styleVoicing === "rootless") {
-    const formA = quality.includes("m")
-      ? [3, 7, 10, 14]
-      : [4, 7, 11, 14];
+    const formA = quality.includes("m") ? [3, 7, 10, 14] : [4, 7, 11, 14];
     return formA.map(i => noteName((rootPc + i) % 12, octave + Math.floor((rootPc + i) / 12)));
   }
 
@@ -816,7 +978,6 @@ function getJazzVoicing(root, quality, styleVoicing = "rootless", octave = 3) {
   return def.ints.slice(0, 4).map(i => noteName((rootPc + i) % 12, octave + Math.floor((rootPc + i) / 12)));
 }
 
-// Algoritmos de Progressão de Jazz
 function generateProgression(style, key, mode, bars, complexity) {
   const prog = [];
   let cur = pc(key);
@@ -884,7 +1045,6 @@ function generateProgression(style, key, mode, bars, complexity) {
   return prog.slice(0, bars);
 }
 
-// Gerador Walking Bass
 function generateWalkingBass(progression) {
   const bassLine = [];
   for (let i = 0; i < progression.length; i++) {
@@ -908,7 +1068,6 @@ function generateWalkingBass(progression) {
   return bassLine;
 }
 
-// Gerador de Solo de Sax
 function generateMelody(progression, complexity) {
   const melody = [];
   for (let i = 0; i < progression.length; i++) {
@@ -947,8 +1106,16 @@ function generateMelody(progression, complexity) {
 let currentProg = [];
 let currentBass = [];
 let currentMelody = [];
-let midiDataUri = null;
 let isPlaying = false;
+
+// URIs dos arquivos MIDI separados
+let midiUris = {
+  full: null,
+  piano: null,
+  bass: null,
+  sax: null,
+  drums: null
+};
 
 let polyPiano, monoBass, saxSynth, drumNoise;
 
@@ -990,7 +1157,6 @@ function updateVolumes() {
   drumNoise.volume.value = document.getElementById("muteDrums").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volDrums").value);
 }
 
-// Renderizar Teclado Visual
 function renderKeyboard() {
   const keyboardEl = document.getElementById("keyboard");
   keyboardEl.innerHTML = "";
@@ -1023,7 +1189,7 @@ function highlightKeys(notes, type = "piano") {
 }
 
 /* ===================================================================
-   GERAÇÃO DO ARRANJO E EXPORTAÇÃO MIDI
+   GERAÇÃO DO ARRANJO E CONSTRUÇÃO DOS STEMS MIDI SEPARADOS
    =================================================================== */
 
 function generateArrangement() {
@@ -1034,6 +1200,7 @@ function generateArrangement() {
   const complexity = parseInt(document.getElementById("complexity").value);
   const bars = parseInt(document.getElementById("bars").value);
   const withMelody = document.getElementById("melody").checked;
+  const withDrums = document.getElementById("drums").checked;
   const bpm = parseInt(document.getElementById("bpm").value);
 
   currentProg = generateProgression(style, key, mode, bars, complexity);
@@ -1041,12 +1208,11 @@ function generateArrangement() {
   currentMelody = withMelody ? generateMelody(currentProg, complexity) : null;
 
   renderSheet(currentProg);
-  buildMidiFile(bpm, voicing);
+  buildAllMidiStems(bpm, voicing, withDrums);
 
   document.getElementById("btnPlay").disabled = false;
-  document.getElementById("btnDownload").disabled = false;
+  document.getElementById("btnOpenModalDownload").disabled = false;
   
-  // Alterna automaticamente para a aba de cifras no telemóvel para visualização
   switchMobileTab("tab-sheet");
   setStatus(`Gerado: ${bars} compassos em ${key} ${mode}`, "ok");
 }
@@ -1067,46 +1233,77 @@ function renderSheet(progression) {
   });
 }
 
-function buildMidiFile(bpm, voicingStyle) {
-  const tracks = [];
-
-  const metaTrack = new MidiWriter.Track();
-  metaTrack.setTempo(bpm);
-  metaTrack.setTimeSignature(4, 4);
-  tracks.push(metaTrack);
-
+/* Construção Estrita dos Arquivos e Canais MIDI Separados */
+function buildAllMidiStems(bpm, voicingStyle, withDrums) {
+  // Pista 1: Piano (Canal 1)
   const pianoTrack = new MidiWriter.Track();
-  pianoTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 0 }));
+  pianoTrack.setChannel(1);
+  pianoTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 1 })); // Piano Grand
+  pianoTrack.addTrackName("Piano / Acordes");
 
+  // Pista 2: Baixo (Canal 2)
   const bassTrack = new MidiWriter.Track();
-  bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 32 }));
+  bassTrack.setChannel(2);
+  bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 33 })); // Baixo Acústico
+  bassTrack.addTrackName("Walking Bass");
 
-  let melTrack = null;
-  if (currentMelody) {
-    melTrack = new MidiWriter.Track();
-    melTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 65 }));
-  }
+  // Pista 3: Sax Solo (Canal 3)
+  const melTrack = new MidiWriter.Track();
+  melTrack.setChannel(3);
+  melTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 66 })); // Sax Alto
+  melTrack.addTrackName("Melodia / Sax");
 
+  // Pista 4: Bateria Jazz (Canal 10 - Percussão GM)
+  const drumTrack = new MidiWriter.Track();
+  drumTrack.setChannel(10);
+  drumTrack.addTrackName("Bateria Jazz");
+
+  // Preenchimento de Notas
   currentProg.forEach((ch, i) => {
+    // Acordes Piano
     const chordNotes = getJazzVoicing(ch.root, ch.q, voicingStyle, 3);
     pianoTrack.addEvent(new MidiWriter.NoteEvent({ pitch: chordNotes, duration: "1", velocity: 75 }));
 
+    // Walking Bass (4 tempos)
     for (let b = 0; b < 4; b++) {
       bassTrack.addEvent(new MidiWriter.NoteEvent({ pitch: currentBass[i * 4 + b], duration: "4", velocity: 85 }));
     }
 
-    if (melTrack && currentMelody[i]) {
+    // Melodia / Sax
+    if (currentMelody && currentMelody[i]) {
       currentMelody[i].forEach(note => {
         if (note) melTrack.addEvent(new MidiWriter.NoteEvent({ pitch: note, duration: "4", velocity: 90 }));
       });
     }
+
+    // Bateria GM (Canal 10: Ride = D#2, Pedal Hi-Hat = G#1, Bumbo = C1)
+    if (withDrums) {
+      for (let b = 0; b < 4; b++) {
+        // Prato Ride em todos os tempos + Chimbal no pé nos tempos 2 e 4
+        const drumPitches = ['D#2']; // Ride Cymbal
+        if (b === 1 || b === 3) drumPitches.push('G#1'); // Pedal Hi-Hat
+        if (b === 0) drumPitches.push('C1'); // Bumbo suave no tempo 1
+
+        drumTrack.addEvent(new MidiWriter.NoteEvent({ pitch: drumPitches, duration: "4", velocity: 70 }));
+      }
+    }
   });
 
-  tracks.push(pianoTrack, bassTrack);
-  if (melTrack) tracks.push(melTrack);
+  // Função Auxiliar de Criação de Arquivo MIDI
+  const createMidiUri = (trackArray) => {
+    const meta = new MidiWriter.Track();
+    meta.setTempo(bpm);
+    meta.setTimeSignature(4, 4);
+    const writer = new MidiWriter.Writer([meta, ...trackArray]);
+    return writer.dataUri();
+  };
 
-  const writer = new MidiWriter.Writer(tracks);
-  midiDataUri = writer.dataUri();
+  // Gerar URIs Individuais e Completa
+  midiUris.full = createMidiUri([pianoTrack, bassTrack, melTrack, drumTrack]);
+  midiUris.piano = createMidiUri([pianoTrack]);
+  midiUris.bass = createMidiUri([bassTrack]);
+  midiUris.sax = currentMelody ? createMidiUri([melTrack]) : null;
+  midiUris.drums = withDrums ? createMidiUri([drumTrack]) : null;
 }
 
 /* ===================================================================
@@ -1207,7 +1404,7 @@ function setStatus(msg, type = "") {
   el.className = `status-bar ${type}`;
 }
 
-// Troca de Separadores no Telemóvel
+// Troca de Aba Móvel
 function switchMobileTab(tabId) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tabId);
@@ -1241,19 +1438,64 @@ document.getElementById("bpm").addEventListener("input", e => {
   if (isPlaying) Tone.Transport.bpm.value = parseInt(e.target.value);
 });
 
+// Eventos de Reprodução e Geração
 document.getElementById("btnGen").addEventListener("click", generateArrangement);
 document.getElementById("btnPlay").addEventListener("click", startPlayback);
 document.getElementById("btnStop").addEventListener("click", stopPlayback);
 
-document.getElementById("btnDownload").addEventListener("click", () => {
-  if (!midiDataUri) return;
+// Função de Download de Arquivo
+function triggerDownload(uri, filename) {
+  if (!uri) return;
   const a = document.createElement("a");
-  a.href = midiDataUri;
-  a.download = `jazz_arranger_${document.getElementById("key").value}_${Date.now()}.mid`;
+  a.href = uri;
+  a.download = filename;
   a.click();
-  setStatus("MIDI descarregado!", "ok");
+  setStatus(`Descarregado: ${filename}`, "ok");
+}
+
+// Handlers do Modal de Download
+const modalEl = document.getElementById("downloadModal");
+
+document.getElementById("btnOpenModalDownload").addEventListener("click", () => {
+  modalEl.classList.add("active");
 });
 
+document.getElementById("btnCloseModal").addEventListener("click", () => {
+  modalEl.classList.remove("active");
+});
+
+modalEl.addEventListener("click", (e) => {
+  if (e.target === modalEl) modalEl.classList.remove("active");
+});
+
+document.getElementById("dlStemFull").addEventListener("click", () => {
+  triggerDownload(midiUris.full, `jazz_arranger_full_${Date.now()}.mid`);
+  modalEl.classList.remove("active");
+});
+
+document.getElementById("dlStemMelody").addEventListener("click", () => {
+  if (!midiUris.sax) return setStatus("Melodia desativada nas opções", "err");
+  triggerDownload(midiUris.sax, `jazz_stem_sax_${Date.now()}.mid`);
+  modalEl.classList.remove("active");
+});
+
+document.getElementById("dlStemChords").addEventListener("click", () => {
+  triggerDownload(midiUris.piano, `jazz_stem_piano_${Date.now()}.mid`);
+  modalEl.classList.remove("active");
+});
+
+document.getElementById("dlStemBass").addEventListener("click", () => {
+  triggerDownload(midiUris.bass, `jazz_stem_bass_${Date.now()}.mid`);
+  modalEl.classList.remove("active");
+});
+
+document.getElementById("dlStemDrums").addEventListener("click", () => {
+  if (!midiUris.drums) return setStatus("Bateria desativada nas opções", "err");
+  triggerDownload(midiUris.drums, `jazz_stem_drums_${Date.now()}.mid`);
+  modalEl.classList.remove("active");
+});
+
+// Copiar Cifras
 document.getElementById("btnCopySheet").addEventListener("click", () => {
   if (!currentProg.length) return;
   const text = currentProg.map((c, i) => `${c.root}${c.q}${ (i+1)%4===0 ? " |\n" : " | " }`).join("");
@@ -1261,6 +1503,7 @@ document.getElementById("btnCopySheet").addEventListener("click", () => {
   setStatus("Cifras copiadas!", "ok");
 });
 
+// Mixer Handlers
 ["Piano", "Bass", "Sax", "Drums"].forEach(track => {
   document.getElementById(`vol${track}`).addEventListener("input", updateVolumes);
   document.getElementById(`mute${track}`).addEventListener("click", e => {
