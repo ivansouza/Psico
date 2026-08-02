@@ -164,7 +164,7 @@
       padding-bottom: 6px;
     }
 
-    /* Formulários e Controles */
+    /* Formulários e Controlos */
     .field-group { display: flex; flex-direction: column; gap: 4px; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
@@ -331,7 +331,7 @@
       position: relative;
       height: 90px;
       user-select: none;
-      min-width: 540px;
+      min-width: 580px;
       margin: 0 auto;
     }
 
@@ -343,7 +343,7 @@
     }
 
     .key.white {
-      width: 20px;
+      width: 18px;
       height: 90px;
       background: #f8fafc;
       border: 1px solid #64748b;
@@ -351,11 +351,11 @@
     }
 
     .key.black {
-      width: 12px;
+      width: 11px;
       height: 52px;
       background: #0f172a;
-      margin-left: -6px;
-      margin-right: -6px;
+      margin-left: -5.5px;
+      margin-right: -5.5px;
       z-index: 2;
       border-radius: 0 0 3px 3px;
     }
@@ -605,7 +605,7 @@
       <h1>Jazz MIDI Generator</h1>
       <span class="badge-pro">PRO v2.5</span>
     </div>
-    <p class="subtitle">Harmonia • Voicings • Walking Bass • Solo & Exportação MIDI</p>
+    <p class="subtitle">Solo Piano Virtuoso • Dedilhados Estocásticos / Direção Aleatória</p>
   </header>
 
   <!-- SEPARADORES MÓVEIS -->
@@ -627,7 +627,7 @@
     <div class="tab-content" id="tab-params">
       <div class="card">
         <div class="card-title">
-          <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> Parâmetros Harmónicos
+          <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> Parâmetros Harmónicos & Solo
         </div>
 
         <div class="row-2">
@@ -658,34 +658,85 @@
           </div>
         </div>
 
-        <div class="field-group">
-          <label>Estilo de Jazz</label>
-          <select id="style">
-            <option value="standards" selected>Standards (ii-V-I + Turnarounds)</option>
-            <option value="blues">Jazz Blues (12 Compassos)</option>
-            <option value="bossa">Bossa Nova / Samba Jazz</option>
-            <option value="bebop">Bebop & Rhythm Changes</option>
-            <option value="coltrane">Coltrane Changes (Giant Steps)</option>
-            <option value="free">Jazz Modal / Livre</option>
-          </select>
+        <div class="row-2">
+          <div class="field-group">
+            <label>Instrumento Solo (Mão Direita)</label>
+            <select id="leadInst">
+              <option value="piano" selected>Piano Virtuoso (Dedilhados Aleatórios)</option>
+              <option value="tenor_sax">Sax Tenor</option>
+              <option value="alto_sax">Sax Alto</option>
+              <option value="trumpet">Trompete</option>
+              <option value="guitar">Guitarra Jazz</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Acompanhamento (Mão Esquerda)</label>
+            <select id="compInst">
+              <option value="piano" selected>Piano Comping (Chords)</option>
+              <option value="guitar">Guitarra Rítmica</option>
+              <option value="horns">Naipe Metais</option>
+            </select>
+          </div>
         </div>
 
+        <div class="row-2">
+          <div class="field-group">
+            <label>Estilo de Solo Virtuoso</label>
+            <select id="soloStyle">
+              <option value="fast_runs" selected>Dedilhados Aleatórios (Subir/Descer no Acorde)</option>
+              <option value="bebop_enclosure">Enclosures Cromáticos nas Tensões</option>
+              <option value="blues_licks">Licks Jazz Blues Sincopados</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Estilo de Jazz</label>
+            <select id="style">
+              <option value="standards" selected>Standards (ii-V-I)</option>
+              <option value="blues">Jazz Blues (12 Compassos)</option>
+              <option value="bossa">Bossa Nova / Samba Jazz</option>
+              <option value="bebop">Bebop Changes</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SLIDER DE ALCANCE DA EXTENSÃO DO DEDILHADO -->
         <div class="field-group">
-          <label>Voicing do Piano</label>
-          <select id="voicing">
-            <option value="rootless" selected>Rootless A/B (Estilo Bill Evans)</option>
-            <option value="shell">Shell (3ª + 7ª Guia)</option>
-            <option value="drop2">Drop-2 (Aberto / Moderno)</option>
-            <option value="extended">Extended (Com 9ª/13ª e Alt)</option>
-          </select>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label>Alcance do Dedilhado: <span class="val-display" id="extVal" style="min-width: 110px; text-align: right;">9ª (Nona)</span></label>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="extensionLimit" min="7" max="13" step="2" value="9" />
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field-group">
+            <label>Voicing Harmónico</label>
+            <select id="voicing">
+              <option value="rootless" selected>Rootless A/B (Bill Evans)</option>
+              <option value="shell">Shell (3ª + 7ª Guia)</option>
+              <option value="drop2">Drop-2 (Aberto)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Ritmo Acompanhamento</label>
+            <select id="compPattern">
+              <option value="charleston" selected>Charleston (Sincopado)</option>
+              <option value="red_garland">Red Garland (Bebop)</option>
+              <option value="pad">Sustentado</option>
+            </select>
+          </div>
         </div>
 
         <div class="row-2">
           <div class="field-group">
             <label>Complexidade</label>
             <select id="complexity">
-              <option value="1">Baixa (Tétrades)</option>
-              <option value="2" selected>Média (9ª/13ª)</option>
+              <option value="1">Baixa</option>
+              <option value="2" selected>Média (Tensões 9/13)</option>
               <option value="3">Alta (Alt/SubV)</option>
             </select>
           </div>
@@ -713,7 +764,7 @@
 
         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;">
           <div class="checkbox-row">
-            <label for="melody">Linha Melódica (Sax Solo)</label>
+            <label for="melody">Solo Mão Direita (Dedilhados Dedicados)</label>
             <label class="switch">
               <input type="checkbox" id="melody" checked />
               <span class="slider"></span>
@@ -781,21 +832,21 @@
         <div class="mixer-grid">
           
           <div class="mixer-track">
-            <span class="track-name"><i data-lucide="piano" style="width: 12px; height: 12px;"></i> Piano</span>
-            <input type="range" id="volPiano" min="-30" max="6" value="-6" />
-            <button class="btn-mute" id="mutePiano">MUTE</button>
+            <span class="track-name"><i data-lucide="piano" style="width: 12px; height: 12px;"></i> Piano Solo (RH)</span>
+            <input type="range" id="volLead" min="-30" max="6" value="-2" />
+            <button class="btn-mute" id="muteLead">MUTE</button>
+          </div>
+
+          <div class="mixer-track">
+            <span class="track-name"><i data-lucide="sliders" style="width: 12px; height: 12px;"></i> Piano Comp (LH)</span>
+            <input type="range" id="volComp" min="-30" max="6" value="-6" />
+            <button class="btn-mute" id="muteComp">MUTE</button>
           </div>
 
           <div class="mixer-track">
             <span class="track-name"><i data-lucide="disc" style="width: 12px; height: 12px;"></i> Baixo</span>
             <input type="range" id="volBass" min="-30" max="6" value="-4" />
             <button class="btn-mute" id="muteBass">MUTE</button>
-          </div>
-
-          <div class="mixer-track">
-            <span class="track-name"><i data-lucide="wind" style="width: 12px; height: 12px;"></i> Sax</span>
-            <input type="range" id="volSax" min="-30" max="6" value="-8" />
-            <button class="btn-mute" id="muteSax">MUTE</button>
           </div>
 
           <div class="mixer-track">
@@ -853,27 +904,27 @@
         <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
       </div>
 
-      <div class="stem-option" id="dlStemMelody">
+      <div class="stem-option" id="dlStemLead">
         <div class="stem-info">
           <div class="stem-icon" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-amber);">
-            <i data-lucide="wind" style="width: 20px; height: 20px;"></i>
+            <i data-lucide="piano" style="width: 20px; height: 20px;"></i>
           </div>
           <div class="stem-text">
-            <span class="stem-name">Apenas Melodia / Sax</span>
-            <span class="stem-desc">Solo de Sax (Canal 3)</span>
+            <span class="stem-name">Piano Solo Dedilhados Compatíveis (Mão Direita)</span>
+            <span class="stem-desc">Fast Runs com Extensão Escolhida por Acorde (Canal 1)</span>
           </div>
         </div>
         <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
       </div>
 
-      <div class="stem-option" id="dlStemChords">
+      <div class="stem-option" id="dlStemComp">
         <div class="stem-info">
           <div class="stem-icon" style="background: rgba(56, 189, 248, 0.2); color: var(--accent-cyan);">
-            <i data-lucide="piano" style="width: 20px; height: 20px;"></i>
+            <i data-lucide="sliders" style="width: 20px; height: 20px;"></i>
           </div>
           <div class="stem-text">
-            <span class="stem-name">Apenas Piano / Acordes</span>
-            <span class="stem-desc">Harmonia e Voicings (Canal 1)</span>
+            <span class="stem-name">Piano Acompanhamento (Mão Esquerda)</span>
+            <span class="stem-desc">Harmonia e Voicings Rítmicos (Canal 2)</span>
           </div>
         </div>
         <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
@@ -885,8 +936,8 @@
             <i data-lucide="disc" style="width: 20px; height: 20px;"></i>
           </div>
           <div class="stem-text">
-            <span class="stem-name">Apenas Baixo / Walking Bass</span>
-            <span class="stem-desc">Linha de Baixo Acústico (Canal 2)</span>
+            <span class="stem-name">Baixo (Walking Bass)</span>
+            <span class="stem-desc">Linha de Baixo Acústico (Canal 3)</span>
           </div>
         </div>
         <i data-lucide="download" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
@@ -898,7 +949,7 @@
             <i data-lucide="drum" style="width: 20px; height: 20px;"></i>
           </div>
           <div class="stem-text">
-            <span class="stem-name">Apenas Bateria Jazz</span>
+            <span class="stem-name">Bateria Jazz</span>
             <span class="stem-desc">Prato Ride, Chimbal e Bumbo (Canal 10)</span>
           </div>
         </div>
@@ -917,18 +968,18 @@ const NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 const NOTE_TO_PC = Object.fromEntries(NOTES.map((n, i) => [n, i]));
 
 const CHORD_DEFS = {
-  "maj7":   { ints: [0, 4, 7, 11], scale: "major", tensions: [2, 9] },
-  "m7":     { ints: [0, 3, 7, 10], scale: "dorian", tensions: [2, 5] },
-  "7":      { ints: [0, 4, 7, 10], scale: "mixolydian", tensions: [2, 9] },
-  "m7b5":   { ints: [0, 3, 6, 10], scale: "locrian", tensions: [2, 5] },
-  "dim7":   { ints: [0, 3, 6, 9], scale: "diminished", tensions: [] },
-  "7alt":   { ints: [0, 4, 6, 10], scale: "altered", tensions: [1, 3, 8] },
-  "maj9":   { ints: [0, 4, 7, 11, 14], scale: "lydian", tensions: [2, 9] },
-  "m9":     { ints: [0, 3, 7, 10, 14], scale: "dorian", tensions: [2, 5] },
-  "9":      { ints: [0, 4, 7, 10, 14], scale: "mixolydian", tensions: [2, 9] },
-  "13":     { ints: [0, 4, 7, 10, 14, 21], scale: "mixolydian", tensions: [2, 9] },
-  "7b9":    { ints: [0, 4, 7, 10, 13], scale: "half-whole", tensions: [1, 3] },
-  "7#11":   { ints: [0, 4, 7, 10, 18], scale: "lydian dominant", tensions: [2, 6] },
+  "maj7":   { ints: [0, 4, 7, 11], scale: "major" },
+  "m7":     { ints: [0, 3, 7, 10], scale: "dorian" },
+  "7":      { ints: [0, 4, 7, 10], scale: "mixolydian" },
+  "m7b5":   { ints: [0, 3, 6, 10], scale: "locrian" },
+  "dim7":   { ints: [0, 3, 6, 9], scale: "diminished" },
+  "7alt":   { ints: [0, 4, 6, 10], scale: "altered" },
+  "maj9":   { ints: [0, 4, 7, 11, 14], scale: "lydian" },
+  "m9":     { ints: [0, 3, 7, 10, 14], scale: "dorian" },
+  "9":      { ints: [0, 4, 7, 10, 14], scale: "mixolydian" },
+  "13":     { ints: [0, 4, 7, 10, 14, 21], scale: "mixolydian" },
+  "7b9":    { ints: [0, 4, 7, 10, 13], scale: "half-whole" },
+  "7#11":   { ints: [0, 4, 7, 10, 18], scale: "lydian dominant" },
 };
 
 const SCALES = {
@@ -944,6 +995,13 @@ const SCALES = {
   minor: [0, 2, 3, 5, 7, 8, 10]
 };
 
+const EXTENSION_LABELS = {
+  7: "7ª (Tétrade)",
+  9: "9ª (Nona)",
+  11: "11ª (Undécima)",
+  13: "13ª (13ª Estendida)"
+};
+
 function pc(noteName) {
   const norm = noteName.replace("C#","Db").replace("D#","Eb").replace("F#","Gb").replace("G#","Ab").replace("A#","Bb");
   return NOTE_TO_PC[norm] ?? 0;
@@ -953,9 +1011,21 @@ function noteName(pitchClass, octave = 4) {
   return NOTES[((pitchClass % 12) + 12) % 12] + octave;
 }
 
+function noteToMidi(noteStr) {
+  if (typeof noteStr === 'number') return noteStr;
+  if (!noteStr) return null;
+  const match = noteStr.match(/^([A-Ga-g][b#]?)(-?\d+)$/);
+  if (!match) return null;
+  const name = match[1].toUpperCase();
+  const oct = parseInt(match[2], 10);
+  const pcMap = { "C":0, "C#":1, "DB":1, "D":2, "D#":3, "EB":3, "E":4, "F":5, "F#":6, "GB":6, "G":7, "G#":8, "AB":8, "A":9, "A#":10, "BB":11, "B":11 };
+  const pitchClass = pcMap[name];
+  if (pitchClass === undefined) return null;
+  return (oct + 1) * 12 + pitchClass;
+}
+
 function getJazzVoicing(root, quality, styleVoicing = "rootless", octave = 3) {
   const rootPc = pc(root);
-  const def = CHORD_DEFS[quality] || CHORD_DEFS["7"];
 
   if (styleVoicing === "shell") {
     const third = (rootPc + (quality.includes("m") ? 3 : 4)) % 12;
@@ -968,6 +1038,7 @@ function getJazzVoicing(root, quality, styleVoicing = "rootless", octave = 3) {
     return formA.map(i => noteName((rootPc + i) % 12, octave + Math.floor((rootPc + i) / 12)));
   }
 
+  const def = CHORD_DEFS[quality] || CHORD_DEFS["7"];
   if (styleVoicing === "drop2") {
     const raw = def.ints.slice(0, 4).map(i => rootPc + i);
     raw.sort((a,b)=>a-b);
@@ -1026,14 +1097,6 @@ function generateProgression(style, key, mode, bars, complexity) {
       prog.push({ root: NOTES[(cur + 7) % 12], q: "7b9" });
       if (Math.random() < 0.5) cur = (cur + 5) % 12;
     }
-  } else if (style === "coltrane") {
-    while (prog.length < bars) {
-      prog.push({ root: NOTES[cur], q: "maj7" });
-      prog.push({ root: NOTES[(cur + 11) % 12], q: "7" });
-      prog.push({ root: NOTES[(cur + 8) % 12], q: "maj7" });
-      prog.push({ root: NOTES[(cur + 3) % 12], q: "7" });
-      cur = (cur + 8) % 12;
-    }
   } else {
     while (prog.length < bars) {
       const qList = ["maj7", "m7", "7", "m7b5", "7alt", "9", "m9"];
@@ -1068,35 +1131,130 @@ function generateWalkingBass(progression) {
   return bassLine;
 }
 
-function generateMelody(progression, complexity) {
-  const melody = [];
+// CÁLCULO ESTREITAMENTE COMPATÍVEL DE INTERVALOS DO DEDILHADO PARA CADA TIPO DE ACORDE
+function getCompatibleChordTonesForRightHand(chord, maxExtension = 9) {
+  const q = chord.q;
+  let baseIntervals = [];
+
+  if (q.includes("maj")) {
+    baseIntervals = [0, 4, 7, 11]; // maj7
+    if (maxExtension >= 9) baseIntervals.push(14); // 9ª Maior
+    if (maxExtension >= 11) baseIntervals.push(18); // #11
+    if (maxExtension >= 13) baseIntervals.push(21); // 13ª
+  } else if (q.includes("m7b5")) {
+    baseIntervals = [0, 3, 6, 10]; // m7b5
+    if (maxExtension >= 9) baseIntervals.push(14); // 9ª Maior
+    if (maxExtension >= 11) baseIntervals.push(17); // 11ª
+    if (maxExtension >= 13) baseIntervals.push(20); // b13
+  } else if (q.includes("m")) {
+    baseIntervals = [0, 3, 7, 10]; // m7
+    if (maxExtension >= 9) baseIntervals.push(14); // 9ª Maior
+    if (maxExtension >= 11) baseIntervals.push(17); // 11ª
+    if (maxExtension >= 13) baseIntervals.push(21); // 13ª
+  } else if (q.includes("alt")) {
+    baseIntervals = [0, 4, 6, 10]; // 7alt
+    if (maxExtension >= 9) baseIntervals.push(13, 15); // b9 e #9
+    if (maxExtension >= 11) baseIntervals.push(18); // #11
+    if (maxExtension >= 13) baseIntervals.push(20); // b13
+  } else if (q.includes("7b9")) {
+    baseIntervals = [0, 4, 7, 10];
+    if (maxExtension >= 9) baseIntervals.push(13); // b9
+    if (maxExtension >= 11) baseIntervals.push(17); // 11ª
+    if (maxExtension >= 13) baseIntervals.push(20); // b13
+  } else if (q.includes("dim")) {
+    baseIntervals = [0, 3, 6, 9];
+    if (maxExtension >= 9) baseIntervals.push(14);
+  } else {
+    baseIntervals = [0, 4, 7, 10];
+    if (maxExtension >= 9) baseIntervals.push(14);
+    if (maxExtension >= 11) baseIntervals.push(18);
+    if (maxExtension >= 13) baseIntervals.push(21);
+  }
+
+  return [...new Set(baseIntervals)].sort((a, b) => a - b);
+}
+
+// MOTOR DE DEDILHADOS DA MÃO DIREITA COM SUBIDA E DESCIDA ALEATÓRIA (ESTOCÁSTICA)
+function generatePianoFastSolo(progression, complexity, soloType = "fast_runs", maxExtension = 9) {
+  const melodyBars = [];
+  let previousLastNoteMidi = null;
+
   for (let i = 0; i < progression.length; i++) {
     const chord = progression[i];
-    const def = CHORD_DEFS[chord.q] || CHORD_DEFS["7"];
-    const scaleInts = SCALES[def.scale] || SCALES.mixolydian;
     const rootPc = pc(chord.root);
 
-    const barNotes = [];
-    for (let beat = 0; beat < 4; beat++) {
-      if (Math.random() < 0.25) {
-        barNotes.push(null);
+    // Obter os intervalos estritamente compatíveis para este acorde
+    const chordTonesWithExt = getCompatibleChordTonesForRightHand(chord, maxExtension);
+
+    // Mapear as notas do arpejo ao longo das oitavas 4, 5 e 6
+    const arpeggioMidi = [];
+    for (let oct = 4; oct <= 6; oct++) {
+      chordTonesWithExt.forEach(interval => {
+        arpeggioMidi.push((rootPc + interval) % 12 + oct * 12);
+      });
+    }
+    arpeggioMidi.sort((a, b) => a - b);
+
+    // Voice Leading: Ponto de partida do acorde baseado na nota anterior
+    let currIdx = 0;
+    if (previousLastNoteMidi !== null) {
+      let minDiff = Infinity;
+      arpeggioMidi.forEach((mNote, idx) => {
+        const diff = Math.abs(mNote - previousLastNoteMidi);
+        if (diff < minDiff) {
+          minDiff = diff;
+          currIdx = idx;
+        }
+      });
+    } else {
+      currIdx = Math.floor(arpeggioMidi.length / 3) + Math.floor(Math.random() * 3);
+    }
+
+    let direction = Math.random() < 0.5 ? 1 : -1;
+    const barSubNotes = [];
+
+    for (let sub = 0; sub < 16; sub++) {
+      // Pausas ocasionais para respirar na fraseologia
+      if ((sub === 0 || sub === 8) && Math.random() < 0.15) {
+        barSubNotes.push(null);
         continue;
       }
 
-      const targetInt = beat % 2 === 0 
-        ? def.ints[Math.floor(Math.random() * def.ints.length)]
-        : scaleInts[Math.floor(Math.random() * scaleInts.length)];
+      // Mudança aleatória de direção (30% de probabilidade a cada nota)
+      if (Math.random() < 0.3) {
+        direction *= -1;
+      }
 
-      let midiNote = (rootPc + targetInt) % 12 + 60;
-      if (complexity >= 2 && Math.random() < 0.3) {
+      // Passo da escala de arpejo (1 nota contígua ou salto de 2 notas)
+      const step = (Math.random() < 0.8 ? 1 : 2) * direction;
+      currIdx = currIdx + step;
+
+      // Manter dentro da tessitura com reflexão nas pontas
+      if (currIdx >= arpeggioMidi.length) {
+        currIdx = arpeggioMidi.length - 2;
+        direction = -1;
+      } else if (currIdx < 0) {
+        currIdx = 1;
+        direction = 1;
+      }
+
+      let midiNote = arpeggioMidi[currIdx];
+
+      // Enclosure cromático opcional nos tempos fracos
+      if (soloType === "bebop_enclosure" && sub % 4 === 3 && Math.random() < 0.5) {
         midiNote += (Math.random() < 0.5 ? -1 : 1);
       }
 
-      barNotes.push(noteName(midiNote % 12, Math.floor(midiNote / 12)));
+      if (midiNote) {
+        barSubNotes.push(noteName(midiNote % 12, Math.floor(midiNote / 12)));
+        previousLastNoteMidi = midiNote;
+      } else {
+        barSubNotes.push(null);
+      }
     }
-    melody.push(barNotes);
+    melodyBars.push(barSubNotes);
   }
-  return melody;
+  return melodyBars;
 }
 
 /* ===================================================================
@@ -1108,19 +1266,23 @@ let currentBass = [];
 let currentMelody = [];
 let isPlaying = false;
 
-// URIs dos ficheiros MIDI separados
 let midiUris = {
   full: null,
-  piano: null,
+  lead: null,
+  comp: null,
   bass: null,
-  sax: null,
   drums: null
 };
 
-let polyPiano, monoBass, saxSynth, drumNoise;
+let leadSynth, compSynth, monoBass, drumNoise;
 
 function initAudioEngine() {
-  polyPiano = new Tone.PolySynth(Tone.Synth, {
+  leadSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.5 }
+  });
+
+  compSynth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "triangle" },
     envelope: { attack: 0.02, decay: 0.3, sustain: 0.4, release: 0.8 }
   });
@@ -1131,29 +1293,24 @@ function initAudioEngine() {
     filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.2, baseFrequency: 120 }
   });
 
-  saxSynth = new Tone.MonoSynth({
-    oscillator: { type: "sawtooth" },
-    envelope: { attack: 0.04, decay: 0.2, sustain: 0.6, release: 0.4 }
-  });
-
   drumNoise = new Tone.NoiseSynth({
     noise: { type: "white" },
     envelope: { attack: 0.005, decay: 0.08, sustain: 0 }
   });
 
-  polyPiano.toDestination();
+  leadSynth.toDestination();
+  compSynth.toDestination();
   monoBass.toDestination();
-  saxSynth.toDestination();
   drumNoise.toDestination();
 
   updateVolumes();
 }
 
 function updateVolumes() {
-  if (!polyPiano) return;
-  polyPiano.volume.value = document.getElementById("mutePiano").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volPiano").value);
+  if (!leadSynth) return;
+  leadSynth.volume.value = document.getElementById("muteLead").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volLead").value);
+  compSynth.volume.value = document.getElementById("muteComp").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volComp").value);
   monoBass.volume.value = document.getElementById("muteBass").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volBass").value);
-  saxSynth.volume.value = document.getElementById("muteSax").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volSax").value);
   drumNoise.volume.value = document.getElementById("muteDrums").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volDrums").value);
 }
 
@@ -1162,7 +1319,7 @@ function renderKeyboard() {
   keyboardEl.innerHTML = "";
   
   const startOct = 2;
-  const numOctaves = 3;
+  const numOctaves = 4;
 
   for (let oct = startOct; oct < startOct + numOctaves; oct++) {
     NOTES.forEach((note) => {
@@ -1183,13 +1340,13 @@ function highlightKeys(notes, type = "piano") {
     const el = document.querySelector(`.key[data-note="${n}"]`);
     if (el) {
       el.classList.add(`active-${type}`);
-      setTimeout(() => el.classList.remove(`active-${type}`), 350);
+      setTimeout(() => el.classList.remove(`active-${type}`), 250);
     }
   });
 }
 
 /* ===================================================================
-   GERAÇÃO DO ARRANJO E CONSTRUÇÃO DOS STEMS MIDI SEPARADOS
+   GERAÇÃO DO ARRANJO E STEMS MIDI
    =================================================================== */
 
 function generateArrangement() {
@@ -1203,22 +1360,25 @@ function generateArrangement() {
     const withMelody = document.getElementById("melody").checked;
     const withDrums = document.getElementById("drums").checked;
     const bpm = parseInt(document.getElementById("bpm").value);
+    const soloStyle = document.getElementById("soloStyle").value;
+    const compPattern = document.getElementById("compPattern").value;
+    const maxExtension = parseInt(document.getElementById("extensionLimit").value) || 9;
 
     currentProg = generateProgression(style, key, mode, bars, complexity);
     currentBass = generateWalkingBass(currentProg);
-    currentMelody = withMelody ? generateMelody(currentProg, complexity) : null;
+    currentMelody = withMelody ? generatePianoFastSolo(currentProg, complexity, soloStyle, maxExtension) : null;
 
     renderSheet(currentProg);
-    buildAllMidiStems(bpm, voicing, withDrums);
+    buildAllMidiStems(bpm, voicing, withDrums, compPattern, maxExtension);
 
     document.getElementById("btnPlay").disabled = false;
     document.getElementById("btnOpenModalDownload").disabled = false;
     
     switchMobileTab("tab-sheet");
-    setStatus(`Gerado: ${bars} compassos em ${key} ${mode}`, "ok");
+    setStatus(`Gerado: Dedilhados aleatórios até à ${maxExtension}ª (${bars} compassos em ${key} ${mode})`, "ok");
   } catch (err) {
     console.error("Erro ao gerar progressão:", err);
-    setStatus("Erro ao gerar progressão: " + err.message, "err");
+    setStatus("Erro ao gerar: " + err.message, "err");
   }
 }
 
@@ -1238,91 +1398,99 @@ function renderSheet(progression) {
   });
 }
 
-/* Construção Estrita dos Ficheiros e Canais MIDI Separados */
-function buildAllMidiStems(bpm, voicingStyle, withDrums) {
-  // Pista 1: Piano (Canal 1)
-  const pianoTrack = new MidiWriter.Track();
-  pianoTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 1 }));
-  pianoTrack.addEvent(new MidiWriter.TrackNameEvent({ text: "Piano / Acordes" }));
+/* Construção Estrita do Ficheiro MIDI de Dedilhados Compatível com DAWs */
+function buildAllMidiStems(bpm, voicingStyle, withDrums, compPattern, maxExtension = 9) {
+  // Pista 1: Piano Virtuoso Solo com Extensão Escolhida (Mão Direita - Canal 1)
+  const leadTrack = new MidiWriter.Track();
+  leadTrack.addTrackName(`Piano Solo - Mao Direita (Runs ate ${maxExtension}a)`);
+  leadTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 1 }));
 
-  // Pista 2: Baixo (Canal 2)
+  // Pista 2: Piano Comping (Mão Esquerda - Canal 2)
+  const compTrack = new MidiWriter.Track();
+  compTrack.addTrackName("Piano Comping - Mao Esquerda");
+  compTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 1 }));
+
+  // Pista 3: Walking Bass (Canal 3)
   const bassTrack = new MidiWriter.Track();
+  bassTrack.addTrackName("Walking Bass");
   bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 33 }));
-  bassTrack.addEvent(new MidiWriter.TrackNameEvent({ text: "Walking Bass" }));
-
-  // Pista 3: Sax Solo (Canal 3)
-  const melTrack = new MidiWriter.Track();
-  melTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 66 }));
-  melTrack.addEvent(new MidiWriter.TrackNameEvent({ text: "Melodia / Sax" }));
 
   // Pista 4: Bateria Jazz (Canal 10)
   const drumTrack = new MidiWriter.Track();
-  drumTrack.addEvent(new MidiWriter.TrackNameEvent({ text: "Bateria Jazz" }));
+  drumTrack.addTrackName("Bateria Jazz");
 
-  // Preenchimento de Notas com Atribuição de Canais no Evento
+  // Piano Acompanhamento (Comping)
   currentProg.forEach((ch, i) => {
-    // Acordes Piano (Canal 1)
-    const chordNotes = getJazzVoicing(ch.root, ch.q, voicingStyle, 3);
-    pianoTrack.addEvent(new MidiWriter.NoteEvent({ 
-      pitch: chordNotes, 
-      duration: "1", 
-      velocity: 75,
-      channel: 1 
-    }));
+    const chordNoteNames = getJazzVoicing(ch.root, ch.q, voicingStyle, 3);
+    const chordMidiPitches = chordNoteNames.map(n => noteToMidi(n)).filter(p => p !== null);
 
-    // Walking Bass (Canal 2)
+    if (chordMidiPitches.length > 0) {
+      if (compPattern === "charleston") {
+        compTrack.addEvent(new MidiWriter.NoteEvent({ pitch: chordMidiPitches, duration: "4", velocity: 75, channel: 2 }));
+        compTrack.addEvent(new MidiWriter.NoteEvent({ pitch: chordMidiPitches, duration: "8", velocity: 70, channel: 2, wait: ["8"] }));
+        compTrack.addEvent(new MidiWriter.NoteEvent({ pitch: [], duration: "2", wait: ["2"] }));
+      } else {
+        compTrack.addEvent(new MidiWriter.NoteEvent({ pitch: chordMidiPitches, duration: "1", velocity: 75, channel: 2 }));
+      }
+    }
+
+    // Walking Bass
     for (let b = 0; b < 4; b++) {
-      bassTrack.addEvent(new MidiWriter.NoteEvent({ 
-        pitch: currentBass[i * 4 + b], 
-        duration: "4", 
-        velocity: 85,
-        channel: 2 
-      }));
+      const bassNoteName = currentBass[i * 4 + b];
+      const bassMidiPitch = noteToMidi(bassNoteName);
+      if (bassMidiPitch !== null) {
+        bassTrack.addEvent(new MidiWriter.NoteEvent({ pitch: [bassMidiPitch], duration: "4", velocity: 85, channel: 3 }));
+      }
     }
 
-    // Melodia / Sax (Canal 3)
-    if (currentMelody && currentMelody[i]) {
-      currentMelody[i].forEach(note => {
-        if (note) {
-          melTrack.addEvent(new MidiWriter.NoteEvent({ 
-            pitch: note, 
-            duration: "4", 
-            velocity: 90,
-            channel: 3 
-          }));
-        }
-      });
-    }
-
-    // Bateria GM (Canal 10)
+    // Bateria
     if (withDrums) {
       for (let b = 0; b < 4; b++) {
-        const drumPitches = ['D#2']; // Prato Ride
-        if (b === 1 || b === 3) drumPitches.push('G#1'); // Chimbal no pé
-        if (b === 0) drumPitches.push('C1'); // Bumbo suave
+        const drumPitches = [51];
+        if (b === 1 || b === 3) drumPitches.push(44);
+        if (b === 0) drumPitches.push(36);
 
-        drumTrack.addEvent(new MidiWriter.NoteEvent({ 
-          pitch: drumPitches, 
-          duration: "4", 
-          velocity: 70,
-          channel: 10 
-        }));
+        drumTrack.addEvent(new MidiWriter.NoteEvent({ pitch: drumPitches, duration: "4", velocity: 70, channel: 10 }));
       }
     }
   });
 
+  // Piano Solo Mão Direita com Arpejos e Runs (Semicolcheias)
+  if (currentMelody) {
+    let pendingWait = [];
+    currentProg.forEach((ch, i) => {
+      if (currentMelody[i]) {
+        currentMelody[i].forEach(noteName => {
+          const melMidiPitch = noteToMidi(noteName);
+          if (melMidiPitch === null) {
+            pendingWait.push("16");
+          } else {
+            leadTrack.addEvent(new MidiWriter.NoteEvent({
+              pitch: [melMidiPitch],
+              duration: "16",
+              velocity: 85 + Math.floor(Math.random() * 18),
+              channel: 1,
+              wait: pendingWait.length > 0 ? pendingWait : undefined
+            }));
+            pendingWait = [];
+          }
+        });
+      }
+    });
+  }
+
   const createMidiUri = (trackArray) => {
-    const meta = new MidiWriter.Track();
-    meta.setTempo(bpm);
-    meta.setTimeSignature(4, 4);
-    const writer = new MidiWriter.Writer([meta, ...trackArray]);
+    const tempoTrack = new MidiWriter.Track();
+    tempoTrack.setTempo(bpm);
+    tempoTrack.setTimeSignature(4, 4);
+    const writer = new MidiWriter.Writer([tempoTrack, ...trackArray]);
     return writer.dataUri();
   };
 
-  midiUris.full = createMidiUri([pianoTrack, bassTrack, melTrack, drumTrack]);
-  midiUris.piano = createMidiUri([pianoTrack]);
+  midiUris.full = createMidiUri([leadTrack, compTrack, bassTrack, drumTrack]);
+  midiUris.lead = currentMelody ? createMidiUri([leadTrack]) : null;
+  midiUris.comp = createMidiUri([compTrack]);
   midiUris.bass = createMidiUri([bassTrack]);
-  midiUris.sax = currentMelody ? createMidiUri([melTrack]) : null;
   midiUris.drums = withDrums ? createMidiUri([drumTrack]) : null;
 }
 
@@ -1334,7 +1502,7 @@ async function startPlayback() {
   if (isPlaying) return;
   await Tone.start();
 
-  if (!polyPiano) initAudioEngine();
+  initAudioEngine();
 
   const bpm = parseInt(document.getElementById("bpm").value);
   const withDrums = document.getElementById("drums").checked;
@@ -1361,7 +1529,7 @@ async function startPlayback() {
 
     const chordNotes = getJazzVoicing(ch.root, ch.q, voicingStyle, 3);
     Tone.Transport.schedule(() => {
-      polyPiano.triggerAttackRelease(chordNotes, "1m");
+      compSynth.triggerAttackRelease(chordNotes, "1m");
       highlightKeys(chordNotes, "piano");
     }, time);
 
@@ -1384,9 +1552,9 @@ async function startPlayback() {
     if (withMelody && currentMelody[i]) {
       currentMelody[i].forEach((note, idx) => {
         if (note) {
-          const melTime = time + idx * Tone.Time("4n").toSeconds();
+          const melTime = time + idx * Tone.Time("16n").toSeconds();
           Tone.Transport.schedule(() => {
-            saxSynth.triggerAttackRelease(note, "8n");
+            leadSynth.triggerAttackRelease(note, "16n");
             highlightKeys(note, "sax");
           }, melTime);
         }
@@ -1403,7 +1571,7 @@ async function startPlayback() {
   document.getElementById("btnPlay").disabled = true;
   document.getElementById("btnStop").disabled = false;
   document.getElementById("btnGen").disabled = true;
-  setStatus("A tocar...", "ok");
+  setStatus("A tocar piano solo com dedilhados aleatórios...", "ok");
 }
 
 function stopPlayback() {
@@ -1424,7 +1592,6 @@ function setStatus(msg, type = "") {
   el.className = `status-bar ${type}`;
 }
 
-// Troca de Separador Móvel
 function switchMobileTab(tabId) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tabId);
@@ -1438,7 +1605,12 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => switchMobileTab(btn.dataset.tab));
 });
 
-// Tap Tempo
+// EVENTOS DOS SLIDERS
+document.getElementById("extensionLimit").addEventListener("input", e => {
+  const val = e.target.value;
+  document.getElementById("extVal").textContent = EXTENSION_LABELS[val] || (val + "ª");
+});
+
 let lastTap = 0;
 document.getElementById("btnTap").addEventListener("click", () => {
   const now = Date.now();
@@ -1458,7 +1630,6 @@ document.getElementById("bpm").addEventListener("input", e => {
   if (isPlaying) Tone.Transport.bpm.value = parseInt(e.target.value);
 });
 
-// Eventos de Botões
 document.getElementById("btnGen").addEventListener("click", generateArrangement);
 document.getElementById("btnPlay").addEventListener("click", startPlayback);
 document.getElementById("btnStop").addEventListener("click", stopPlayback);
@@ -1472,7 +1643,6 @@ function triggerDownload(uri, filename) {
   setStatus(`Descarregado: ${filename}`, "ok");
 }
 
-// Handlers do Modal de Descarregamento
 const modalEl = document.getElementById("downloadModal");
 
 document.getElementById("btnOpenModalDownload").addEventListener("click", () => {
@@ -1492,14 +1662,14 @@ document.getElementById("dlStemFull").addEventListener("click", () => {
   modalEl.classList.remove("active");
 });
 
-document.getElementById("dlStemMelody").addEventListener("click", () => {
-  if (!midiUris.sax) return setStatus("Melodia desativada nas opções", "err");
-  triggerDownload(midiUris.sax, `jazz_stem_sax_${Date.now()}.mid`);
+document.getElementById("dlStemLead").addEventListener("click", () => {
+  if (!midiUris.lead) return setStatus("Melodia desativada nas opções", "err");
+  triggerDownload(midiUris.lead, `jazz_stem_piano_solo_runs_${Date.now()}.mid`);
   modalEl.classList.remove("active");
 });
 
-document.getElementById("dlStemChords").addEventListener("click", () => {
-  triggerDownload(midiUris.piano, `jazz_stem_piano_${Date.now()}.mid`);
+document.getElementById("dlStemComp").addEventListener("click", () => {
+  triggerDownload(midiUris.comp, `jazz_stem_piano_comping_lh_${Date.now()}.mid`);
   modalEl.classList.remove("active");
 });
 
@@ -1514,7 +1684,6 @@ document.getElementById("dlStemDrums").addEventListener("click", () => {
   modalEl.classList.remove("active");
 });
 
-// Copiar Cifras
 document.getElementById("btnCopySheet").addEventListener("click", () => {
   if (!currentProg.length) return;
   const text = currentProg.map((c, i) => `${c.root}${c.q}${ (i+1)%4===0 ? " |\n" : " | " }`).join("");
@@ -1522,8 +1691,7 @@ document.getElementById("btnCopySheet").addEventListener("click", () => {
   setStatus("Cifras copiadas!", "ok");
 });
 
-// Handlers do Mixer
-["Piano", "Bass", "Sax", "Drums"].forEach(track => {
+["Lead", "Comp", "Bass", "Drums"].forEach(track => {
   document.getElementById(`vol${track}`).addEventListener("input", updateVolumes);
   document.getElementById(`mute${track}`).addEventListener("click", e => {
     e.target.classList.toggle("active");
