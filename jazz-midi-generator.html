@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Jazz MIDI Generator Pro</title>
+  
+  <!-- CDN Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/midi-writer-js@3.2.1/browser/midiwriter.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script src="https://unpkg.com/@lucide/web"></script>
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --card: #131b2e;
+      --card-border: #1e293b;
+      --accent-cyan: #38bdf8;
+      --accent-purple: #a855f7;
+      --accent-amber: #f59e0b;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --input-bg: #0b1120;
+    }
+
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: manipulation;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 12px 12px 110px 12px; /* Margem inferior para a barra de transporte fixa */
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 1200px;
+      margin: 0 auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Header Compacto para Telemóvel */
+    header {
+      text-align: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+    
+    .title-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple), var(--accent-amber));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .badge-pro {
+      background: linear-gradient(135deg, var(--accent-amber), #d97706);
+      color: #000;
+      font-size: 0.6rem;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    /* Separadores (Tabs) para Navegação em Telemóvel */
+    .mobile-tabs {
+      display: flex;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--input-bg);
+      color: var(--accent-cyan);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Disposição do Ecrã */
+    .app-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 899px) {
+      .app-grid {
+        display: block;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .mobile-tabs {
+        display: none; /* Oculta separadores em ecrã grande */
+      }
+      .tab-content {
+        display: flex !important;
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 6px;
+    }
+
+    /* Form Controls Touch-Friendly */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.95rem; /* Evita auto-zoom no iOS Safari */
+      outline: none;
+      transition: all 0.2s;
+      min-height: 44px;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Sliders & Switches */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 28px;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .val-display {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      min-height: 44px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155; transition: .3s; border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: white; transition: .3s; border-radius: 50%;
+    }
+
+    input:checked + .slider { background-color: var(--accent-cyan); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Botões */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: #0f172a;
+      min-height: 48px;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-gen { background: linear-gradient(135deg, var(--accent-cyan), #0284c7); color: #fff; width: 100%; margin-top: 4px; }
+    .btn-play { background: linear-gradient(135deg, var(--accent-green), #059669); color: #fff; flex: 1; }
+    .btn-stop { background: linear-gradient(135deg, var(--accent-red), #dc2626); color: #fff; width: 52px; padding: 0; }
+    .btn-action { background: #1e293b; color: var(--text-main); border: 1px solid var(--card-border); }
+
+    /* Grade de Cifras (Modo Retrato) */
+    .sheet-container {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 140px;
+      max-height: 220px;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr); /* 2 colunas no telemóvel portrait */
+      gap: 6px;
+    }
+
+    @media (min-width: 500px) {
+      .sheet-container { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .bar-box {
+      background: #131d31;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px 6px;
+      text-align: center;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .bar-num {
+      position: absolute;
+      top: 2px;
+      left: 5px;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+    }
+
+    .bar-chord {
+      font-family: ui-monospace, monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent-amber);
+      margin-top: 2px;
+    }
+
+    .bar-box.active {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.2);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+      transform: scale(1.02);
+    }
+
+    /* Teclado Visual Interativo para Toque */
+    .piano-wrapper {
+      background: #020617;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .keyboard {
+      display: flex;
+      justify-content: flex-start;
+      position: relative;
+      height: 90px;
+      user-select: none;
+      min-width: 540px;
+      margin: 0 auto;
+    }
+
+    .key {
+      position: relative;
+      border-radius: 0 0 4px 4px;
+      box-sizing: border-box;
+      transition: background-color 0.1s ease;
+    }
+
+    .key.white {
+      width: 20px;
+      height: 90px;
+      background: #f8fafc;
+      border: 1px solid #64748b;
+      z-index: 1;
+    }
+
+    .key.black {
+      width: 12px;
+      height: 52px;
+      background: #0f172a;
+      margin-left: -6px;
+      margin-right: -6px;
+      z-index: 2;
+      border-radius: 0 0 3px 3px;
+    }
+
+    .key.active-bass { background: var(--accent-purple) !important; box-shadow: 0 0 8px var(--accent-purple); }
+    .key.active-piano { background: var(--accent-cyan) !important; box-shadow: 0 0 8px var(--accent-cyan); }
+    .key.active-sax { background: var(--accent-amber) !important; box-shadow: 0 0 8px var(--accent-amber); }
+
+    /* Mixer Multifaixas Ajustado para Telemóvel */
+    .mixer-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (min-width: 600px) {
+      .mixer-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .mixer-track {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .track-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-mute {
+      width: 100%;
+      padding: 6px 0;
+      font-size: 0.65rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: #1e293b;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .btn-mute.active {
+      background: var(--accent-red);
+      color: #fff;
+      border-color: var(--accent-red);
+    }
+
+    /* Barra de Estado */
+    .status-bar {
+      text-align: center;
+      font-size: 0.75rem;
+      padding: 6px;
+      border-radius: 6px;
+      background: rgba(11, 17, 32, 0.8);
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-bar.ok { color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); }
+    .status-bar.err { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+
+    .tap-btn {
+      padding: 8px 10px;
+      font-size: 0.7rem;
+      background: #1e293b;
+      color: var(--accent-cyan);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 38px;
+    }
+
+    /* BARRA FIXA INFERIOR (Sticky Bottom Dock para Telemóvel) */
+    .bottom-dock {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--card-border);
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .dock-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-dl-dock {
+      padding: 0 12px;
+      height: 48px;
+      background: #1e293b;
+      color: var(--accent-purple);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABEÇALHO COMPACTO -->
+  <header>
+    <div class="title-container">
+      <i data-lucide="music-4" style="color: var(--accent-cyan); width: 20px; height: 20px;"></i>
+      <h1>Jazz MIDI Generator</h1>
+      <span class="badge-pro">PRO v2.5</span>
+    </div>
+    <p class="subtitle">Harmonia • Voicings • Walking Bass • Solo Improviso</p>
+  </header>
+
+  <!-- SEPARADORES PARA A NAVEGAÇÃO EM TELEMÓVEL -->
+  <nav class="mobile-tabs" id="mobileTabs">
+    <button class="tab-btn active" data-tab="tab-sheet">
+      <i data-lucide="music" style="width: 14px; height: 14px;"></i> Cifras
+    </button>
+    <button class="tab-btn" data-tab="tab-mixer">
+      <i data-lucide="sliders" style="width: 14px; height: 14px;"></i> Mixer
+    </button>
+    <button class="tab-btn" data-tab="tab-params">
+      <i data-lucide="settings" style="width: 14px; height: 14px;"></i> Opções
+    </button>
+  </nav>
+
+  <div class="app-grid">
+    
+    <!-- PAINEL DE OPÇÕES E PARÂMETROS -->
+    <div class="tab-content" id="tab-params">
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> Parâmetros Harmónicos
+        </div>
+
+        <div class="row-2">
+          <div class="field-group">
+            <label>Tonalidade</label>
+            <select id="key">
+              <option value="C">C (Dó)</option>
+              <option value="Db">D♭ (Ré♭)</option>
+              <option value="D">D (Ré)</option>
+              <option value="Eb" selected>E♭ (Mi♭)</option>
+              <option value="E">E (Mi)</option>
+              <option value="F">F (Fá)</option>
+              <option value="Gb">G♭ (Sol♭)</option>
+              <option value="G">G (Sol)</option>
+              <option value="Ab">A♭ (Lá♭)</option>
+              <option value="A">A (Lá)</option>
+              <option value="Bb">B♭ (Si♭)</option>
+              <option value="B">B (Si)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Modo</label>
+            <select id="mode">
+              <option value="major" selected>Maior</option>
+              <option value="minor">Menor</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Estilo de Jazz</label>
+          <select id="style">
+            <option value="standards" selected>Standards (ii-V-I + Turnarounds)</option>
+            <option value="blues">Jazz Blues (12 Compassos)</option>
+            <option value="bossa">Bossa Nova / Samba Jazz</option>
+            <option value="bebop">Bebop & Rhythm Changes</option>
+            <option value="coltrane">Coltrane Changes (Giant Steps)</option>
+            <option value="free">Jazz Modal / Livre</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label>Voicing do Piano</label>
+          <select id="voicing">
+            <option value="rootless" selected>Rootless A/B (Bill Evans Style)</option>
+            <option value="shell">Shell (3ª + 7ª Guia)</option>
+            <option value="drop2">Drop-2 (Aberto / Moderno)</option>
+            <option value="extended">Extended (Com 9ª/13ª e Alt)</option>
+          </select>
+        </div>
+
+        <div class="row-2">
+          <div class="field-group">
+            <label>Complexidade</label>
+            <select id="complexity">
+              <option value="1">Baixa (Tétrades)</option>
+              <option value="2" selected>Média (9ª/13ª)</option>
+              <option value="3">Alta (Alt/SubV)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Compassos</label>
+            <select id="bars">
+              <option value="12">12</option>
+              <option value="16" selected>16</option>
+              <option value="24">24</option>
+              <option value="32">32</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label>Andamento (BPM): <span class="val-display" id="bpmVal">120</span></label>
+            <button class="tap-btn" id="btnTap">TAP TEMPO</button>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="bpm" min="50" max="240" value="120" />
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;">
+          <div class="checkbox-row">
+            <label for="melody">Linha Melódica (Sax Solo)</label>
+            <label class="switch">
+              <input type="checkbox" id="melody" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="checkbox-row">
+            <label for="swing">Balanço Swing Jazz</label>
+            <label class="switch">
+              <input type="checkbox" id="swing" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="checkbox-row">
+            <label for="drums">Bateria Acompanhamento</label>
+            <label class="switch">
+              <input type="checkbox" id="drums" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-gen" id="btnGen">
+          <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i> GERAR NOVA PROGRESSÃO
+        </button>
+
+      </div>
+    </div>
+
+    <!-- PAINEL PRINCIPAL (CIFRAS & TECLADO) -->
+    <div class="tab-content active" id="tab-sheet">
+
+      <!-- Grade de Acordes -->
+      <div class="card">
+        <div class="card-title" style="justify-content: space-between;">
+          <span><i data-lucide="music" style="width: 16px; height: 16px;"></i> Grade de Cifras</span>
+          <button class="btn-action" id="btnCopySheet" style="padding: 4px 8px; font-size: 0.7rem; border-radius: 6px;">
+            <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copiar
+          </button>
+        </div>
+        <div class="sheet-container" id="sheetDisplay">
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.85rem;">
+            Toque no botão "GERAR NOVA PROGRESSÃO" abaixo para criar um arranjo.
+          </div>
+        </div>
+      </div>
+
+      <!-- Teclado Visual -->
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="activity" style="width: 16px; height: 16px;"></i> Teclado Visual ao Vivo
+        </div>
+        <div class="piano-wrapper">
+          <div class="keyboard" id="keyboard"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PAINEL DO MIXER DE ÁUDIO -->
+    <div class="tab-content" id="tab-mixer">
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="volume-2" style="width: 16px; height: 16px;"></i> Mixer Multifaixas
+        </div>
+        <div class="mixer-grid">
+          
+          <div class="mixer-track">
+            <span class="track-name"><i data-lucide="piano" style="width: 12px; height: 12px;"></i> Piano</span>
+            <input type="range" id="volPiano" min="-30" max="6" value="-6" />
+            <button class="btn-mute" id="mutePiano">MUTE</button>
+          </div>
+
+          <div class="mixer-track">
+            <span class="track-name"><i data-lucide="disc" style="width: 12px; height: 12px;"></i> Baixo</span>
+            <input type="range" id="volBass" min="-30" max="6" value="-4" />
+            <button class="btn-mute" id="muteBass">MUTE</button>
+          </div>
+
+          <div class="mixer-track">
+            <span class="track-name"><i data-lucide="wind" style="width: 12px; height: 12px;"></i> Sax</span>
+            <input type="range" id="volSax" min="-30" max="6" value="-8" />
+            <button class="btn-mute" id="muteSax">MUTE</button>
+          </div>
+
+          <div class="mixer-track">
+            <span class="track-name"><i data-lucide="drum" style="width: 12px; height: 12px;"></i> Bateria</span>
+            <input type="range" id="volDrums" min="-30" max="6" value="-10" />
+            <button class="btn-mute" id="muteDrums">MUTE</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BARRA DE TRANSPORTE FIXA NO FUNDO (BOTTOM DOCK) -->
+  <div class="bottom-dock">
+    <div class="status-bar" id="statusBar">Aguardando geração do arranjo...</div>
+    <div class="dock-controls">
+      <button class="btn btn-play" id="btnPlay" disabled>
+        <i data-lucide="play" style="width: 20px; height: 20px;"></i> TOCAR
+      </button>
+      <button class="btn btn-stop" id="btnStop" disabled title="Parar">
+        <i data-lucide="square" style="width: 18px; height: 18px;"></i>
+      </button>
+      <button class="btn-dl-dock" id="btnDownload" disabled title="Baixar MIDI">
+        <i data-lucide="download" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+  </div>
+
+<script>
+/* ===================================================================
+   JAZZ MIDI GENERATOR PRO - MOTOR DE TEORIA MUSICAL & SINTETIZADOR
+   =================================================================== */
+
+const NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+const NOTE_TO_PC = Object.fromEntries(NOTES.map((n, i) => [n, i]));
+
+// Definições Harmónicas
+const CHORD_DEFS = {
+  "maj7":   { ints: [0, 4, 7, 11], scale: "major", tensions: [2, 9] },
+  "m7":     { ints: [0, 3, 7, 10], scale: "dorian", tensions: [2, 5] },
+  "7":      { ints: [0, 4, 7, 10], scale: "mixolydian", tensions: [2, 9] },
+  "m7b5":   { ints: [0, 3, 6, 10], scale: "locrian", tensions: [2, 5] },
+  "dim7":   { ints: [0, 3, 6, 9], scale: "diminished", tensions: [] },
+  "7alt":   { ints: [0, 4, 6, 10], scale: "altered", tensions: [1, 3, 8] },
+  "maj9":   { ints: [0, 4, 7, 11, 14], scale: "lydian", tensions: [2, 9] },
+  "m9":     { ints: [0, 3, 7, 10, 14], scale: "dorian", tensions: [2, 5] },
+  "9":      { ints: [0, 4, 7, 10, 14], scale: "mixolydian", tensions: [2, 9] },
+  "13":     { ints: [0, 4, 7, 10, 14, 21], scale: "mixolydian", tensions: [2, 9] },
+  "7b9":    { ints: [0, 4, 7, 10, 13], scale: "half-whole", tensions: [1, 3] },
+  "7#11":   { ints: [0, 4, 7, 10, 18], scale: "lydian dominant", tensions: [2, 6] },
+};
+
+const SCALES = {
+  major: [0, 2, 4, 5, 7, 9, 11],
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
+  "lydian dominant": [0, 2, 4, 6, 7, 9, 10],
+  locrian: [0, 1, 3, 5, 6, 8, 10],
+  altered: [0, 1, 3, 4, 6, 8, 10],
+  diminished: [0, 2, 3, 5, 6, 8, 9, 11],
+  "half-whole": [0, 1, 3, 4, 6, 7, 9, 10],
+  minor: [0, 2, 3, 5, 7, 8, 10]
+};
+
+function pc(noteName) {
+  const norm = noteName.replace("C#","Db").replace("D#","Eb").replace("F#","Gb").replace("G#","Ab").replace("A#","Bb");
+  return NOTE_TO_PC[norm] ?? 0;
+}
+
+function noteName(pitchClass, octave = 4) {
+  return NOTES[((pitchClass % 12) + 12) % 12] + octave;
+}
+
+// Gerador de Voicings do Teclado
+function getJazzVoicing(root, quality, styleVoicing = "rootless", octave = 3) {
+  const rootPc = pc(root);
+  const def = CHORD_DEFS[quality] || CHORD_DEFS["7"];
+
+  if (styleVoicing === "shell") {
+    const third = (rootPc + (quality.includes("m") ? 3 : 4)) % 12;
+    const seventh = (rootPc + (quality.includes("maj") ? 11 : 10)) % 12;
+    return [noteName(third, octave), noteName(seventh, octave)];
+  }
+
+  if (styleVoicing === "rootless") {
+    const formA = quality.includes("m")
+      ? [3, 7, 10, 14]
+      : [4, 7, 11, 14];
+    return formA.map(i => noteName((rootPc + i) % 12, octave + Math.floor((rootPc + i) / 12)));
+  }
+
+  if (styleVoicing === "drop2") {
+    const raw = def.ints.slice(0, 4).map(i => rootPc + i);
+    raw.sort((a,b)=>a-b);
+    if (raw.length >= 4) raw[1] -= 12;
+    return raw.map(p => noteName((p % 12 + 12) % 12, octave + Math.floor(p / 12)));
+  }
+
+  return def.ints.slice(0, 4).map(i => noteName((rootPc + i) % 12, octave + Math.floor((rootPc + i) / 12)));
+}
+
+// Algoritmos de Progressão de Jazz
+function generateProgression(style, key, mode, bars, complexity) {
+  const prog = [];
+  let cur = pc(key);
+
+  const getDominant = () => {
+    if (complexity >= 3) return Math.random() < 0.5 ? "7alt" : "7b9";
+    if (complexity >= 2) return "9";
+    return "7";
+  };
+
+  const getMajorI = () => mode === "minor" ? "m7" : (complexity >= 2 ? "maj9" : "maj7");
+
+  if (style === "standards") {
+    while (prog.length < bars) {
+      const ii = NOTES[(cur + 2) % 12];
+      const V  = NOTES[(cur + 7) % 12];
+      const I  = NOTES[cur];
+      const VI = NOTES[(cur + 9) % 12];
+
+      prog.push({ root: ii, q: "m7" });
+      prog.push({ root: V,  q: getDominant() });
+      prog.push({ root: I,  q: getMajorI() });
+      prog.push({ root: VI, q: "7" });
+
+      if (Math.random() < 0.4) cur = (cur + 5) % 12;
+    }
+  } else if (style === "blues") {
+    const I = key;
+    const IV = NOTES[(pc(key) + 5) % 12];
+    const V = NOTES[(pc(key) + 7) % 12];
+    const VI = NOTES[(pc(key) + 9) % 12];
+    const ii = NOTES[(pc(key) + 2) % 12];
+
+    const baseBlues = [
+      { root: I, q: "7" }, { root: IV, q: "7" }, { root: I, q: "7" }, { root: I, q: "7" },
+      { root: IV, q: "7" }, { root: IV, q: "7" }, { root: I, q: "7" }, { root: VI, q: "7b9" },
+      { root: ii, q: "m7" }, { root: V, q: getDominant() }, { root: I, q: "7" }, { root: V, q: "7" }
+    ];
+
+    while (prog.length < bars) prog.push(...baseBlues);
+  } else if (style === "bossa") {
+    while (prog.length < bars) {
+      prog.push({ root: NOTES[cur], q: getMajorI() });
+      prog.push({ root: NOTES[(cur + 2) % 12], q: "m7" });
+      prog.push({ root: NOTES[(cur + 7) % 12], q: "13" });
+      prog.push({ root: NOTES[(cur + 7) % 12], q: "7b9" });
+      if (Math.random() < 0.5) cur = (cur + 5) % 12;
+    }
+  } else if (style === "coltrane") {
+    while (prog.length < bars) {
+      prog.push({ root: NOTES[cur], q: "maj7" });
+      prog.push({ root: NOTES[(cur + 11) % 12], q: "7" });
+      prog.push({ root: NOTES[(cur + 8) % 12], q: "maj7" });
+      prog.push({ root: NOTES[(cur + 3) % 12], q: "7" });
+      cur = (cur + 8) % 12;
+    }
+  } else {
+    while (prog.length < bars) {
+      const qList = ["maj7", "m7", "7", "m7b5", "7alt", "9", "m9"];
+      prog.push({ root: NOTES[cur], q: qList[Math.floor(Math.random() * qList.length)] });
+      cur = (cur + [5, 7, 2, 9, 1][Math.floor(Math.random() * 5)]) % 12;
+    }
+  }
+
+  return prog.slice(0, bars);
+}
+
+// Gerador Walking Bass
+function generateWalkingBass(progression) {
+  const bassLine = [];
+  for (let i = 0; i < progression.length; i++) {
+    const chord = progression[i];
+    const nextChord = progression[(i + 1) % progression.length];
+    
+    const rootPc = pc(chord.root);
+    const nextRootPc = pc(nextChord.root);
+
+    const third = (rootPc + (chord.q.includes("m") ? 3 : 4)) % 12;
+    const fifth = (rootPc + 7) % 12;
+    const approach = (nextRootPc - 1 + 12) % 12;
+
+    bassLine.push(
+      noteName(rootPc, 2),
+      noteName(third, 2),
+      noteName(fifth, 2),
+      noteName(approach, 2)
+    );
+  }
+  return bassLine;
+}
+
+// Gerador de Solo de Sax
+function generateMelody(progression, complexity) {
+  const melody = [];
+  for (let i = 0; i < progression.length; i++) {
+    const chord = progression[i];
+    const def = CHORD_DEFS[chord.q] || CHORD_DEFS["7"];
+    const scaleInts = SCALES[def.scale] || SCALES.mixolydian;
+    const rootPc = pc(chord.root);
+
+    const barNotes = [];
+    for (let beat = 0; beat < 4; beat++) {
+      if (Math.random() < 0.25) {
+        barNotes.push(null);
+        continue;
+      }
+
+      const targetInt = beat % 2 === 0 
+        ? def.ints[Math.floor(Math.random() * def.ints.length)]
+        : scaleInts[Math.floor(Math.random() * scaleInts.length)];
+
+      let midiNote = (rootPc + targetInt) % 12 + 60;
+      if (complexity >= 2 && Math.random() < 0.3) {
+        midiNote += (Math.random() < 0.5 ? -1 : 1);
+      }
+
+      barNotes.push(noteName(midiNote % 12, Math.floor(midiNote / 12)));
+    }
+    melody.push(barNotes);
+  }
+  return melody;
+}
+
+/* ===================================================================
+   SINTETIZADOR E MOTOR DE ÁUDIO
+   =================================================================== */
+
+let currentProg = [];
+let currentBass = [];
+let currentMelody = [];
+let midiDataUri = null;
+let isPlaying = false;
+
+let polyPiano, monoBass, saxSynth, drumNoise;
+
+function initAudioEngine() {
+  polyPiano = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.02, decay: 0.3, sustain: 0.4, release: 0.8 }
+  });
+
+  monoBass = new Tone.MonoSynth({
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.6, release: 0.3 },
+    filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.2, baseFrequency: 120 }
+  });
+
+  saxSynth = new Tone.MonoSynth({
+    oscillator: { type: "sawtooth" },
+    envelope: { attack: 0.04, decay: 0.2, sustain: 0.6, release: 0.4 }
+  });
+
+  drumNoise = new Tone.NoiseSynth({
+    noise: { type: "white" },
+    envelope: { attack: 0.005, decay: 0.08, sustain: 0 }
+  });
+
+  polyPiano.toDestination();
+  monoBass.toDestination();
+  saxSynth.toDestination();
+  drumNoise.toDestination();
+
+  updateVolumes();
+}
+
+function updateVolumes() {
+  if (!polyPiano) return;
+  polyPiano.volume.value = document.getElementById("mutePiano").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volPiano").value);
+  monoBass.volume.value = document.getElementById("muteBass").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volBass").value);
+  saxSynth.volume.value = document.getElementById("muteSax").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volSax").value);
+  drumNoise.volume.value = document.getElementById("muteDrums").classList.contains("active") ? -Infinity : parseFloat(document.getElementById("volDrums").value);
+}
+
+// Renderizar Teclado Visual
+function renderKeyboard() {
+  const keyboardEl = document.getElementById("keyboard");
+  keyboardEl.innerHTML = "";
+  
+  const startOct = 2;
+  const numOctaves = 3;
+
+  for (let oct = startOct; oct < startOct + numOctaves; oct++) {
+    NOTES.forEach((note) => {
+      const isBlack = note.includes("b");
+      const keyEl = document.createElement("div");
+      const fullNote = note + oct;
+      keyEl.className = `key ${isBlack ? "black" : "white"}`;
+      keyEl.dataset.note = fullNote;
+      keyboardEl.appendChild(keyEl);
+    });
+  }
+}
+
+function highlightKeys(notes, type = "piano") {
+  if (!notes) return;
+  const noteList = Array.isArray(notes) ? notes : [notes];
+  noteList.forEach(n => {
+    const el = document.querySelector(`.key[data-note="${n}"]`);
+    if (el) {
+      el.classList.add(`active-${type}`);
+      setTimeout(() => el.classList.remove(`active-${type}`), 350);
+    }
+  });
+}
+
+/* ===================================================================
+   GERAÇÃO DO ARRANJO E EXPORTAÇÃO MIDI
+   =================================================================== */
+
+function generateArrangement() {
+  const key = document.getElementById("key").value;
+  const mode = document.getElementById("mode").value;
+  const style = document.getElementById("style").value;
+  const voicing = document.getElementById("voicing").value;
+  const complexity = parseInt(document.getElementById("complexity").value);
+  const bars = parseInt(document.getElementById("bars").value);
+  const withMelody = document.getElementById("melody").checked;
+  const bpm = parseInt(document.getElementById("bpm").value);
+
+  currentProg = generateProgression(style, key, mode, bars, complexity);
+  currentBass = generateWalkingBass(currentProg);
+  currentMelody = withMelody ? generateMelody(currentProg, complexity) : null;
+
+  renderSheet(currentProg);
+  buildMidiFile(bpm, voicing);
+
+  document.getElementById("btnPlay").disabled = false;
+  document.getElementById("btnDownload").disabled = false;
+  
+  // Alterna automaticamente para a aba de cifras no telemóvel para visualização
+  switchMobileTab("tab-sheet");
+  setStatus(`Gerado: ${bars} compassos em ${key} ${mode}`, "ok");
+}
+
+function renderSheet(progression) {
+  const container = document.getElementById("sheetDisplay");
+  container.innerHTML = "";
+
+  progression.forEach((ch, idx) => {
+    const box = document.createElement("div");
+    box.className = "bar-box";
+    box.id = `bar-${idx}`;
+    box.innerHTML = `
+      <span class="bar-num">${idx + 1}</span>
+      <div class="bar-chord">${ch.root}${ch.q}</div>
+    `;
+    container.appendChild(box);
+  });
+}
+
+function buildMidiFile(bpm, voicingStyle) {
+  const tracks = [];
+
+  const metaTrack = new MidiWriter.Track();
+  metaTrack.setTempo(bpm);
+  metaTrack.setTimeSignature(4, 4);
+  tracks.push(metaTrack);
+
+  const pianoTrack = new MidiWriter.Track();
+  pianoTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 0 }));
+
+  const bassTrack = new MidiWriter.Track();
+  bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 32 }));
+
+  let melTrack = null;
+  if (currentMelody) {
+    melTrack = new MidiWriter.Track();
+    melTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: 65 }));
+  }
+
+  currentProg.forEach((ch, i) => {
+    const chordNotes = getJazzVoicing(ch.root, ch.q, voicingStyle, 3);
+    pianoTrack.addEvent(new MidiWriter.NoteEvent({ pitch: chordNotes, duration: "1", velocity: 75 }));
+
+    for (let b = 0; b < 4; b++) {
+      bassTrack.addEvent(new MidiWriter.NoteEvent({ pitch: currentBass[i * 4 + b], duration: "4", velocity: 85 }));
+    }
+
+    if (melTrack && currentMelody[i]) {
+      currentMelody[i].forEach(note => {
+        if (note) melTrack.addEvent(new MidiWriter.NoteEvent({ pitch: note, duration: "4", velocity: 90 }));
+      });
+    }
+  });
+
+  tracks.push(pianoTrack, bassTrack);
+  if (melTrack) tracks.push(melTrack);
+
+  const writer = new MidiWriter.Writer(tracks);
+  midiDataUri = writer.dataUri();
+}
+
+/* ===================================================================
+   EXECUÇÃO DE ÁUDIO
+   =================================================================== */
+
+async function startPlayback() {
+  if (isPlaying) return;
+  await Tone.start();
+
+  if (!polyPiano) initAudioEngine();
+
+  const bpm = parseInt(document.getElementById("bpm").value);
+  const withDrums = document.getElementById("drums").checked;
+  const withMelody = document.getElementById("melody").checked;
+  const voicingStyle = document.getElementById("voicing").value;
+
+  Tone.Transport.cancel();
+  Tone.Transport.bpm.value = bpm;
+  Tone.Transport.swing = document.getElementById("swing").checked ? 0.35 : 0;
+
+  const barDuration = Tone.Time("1m").toSeconds();
+
+  currentProg.forEach((ch, i) => {
+    const time = i * barDuration;
+
+    Tone.Transport.schedule(() => {
+      document.querySelectorAll(".bar-box").forEach(b => b.classList.remove("active"));
+      const activeBar = document.getElementById(`bar-${i}`);
+      if (activeBar) {
+        activeBar.classList.add("active");
+        activeBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, time);
+
+    const chordNotes = getJazzVoicing(ch.root, ch.q, voicingStyle, 3);
+    Tone.Transport.schedule(() => {
+      polyPiano.triggerAttackRelease(chordNotes, "1m");
+      highlightKeys(chordNotes, "piano");
+    }, time);
+
+    for (let b = 0; b < 4; b++) {
+      const bassTime = time + b * Tone.Time("4n").toSeconds();
+      const note = currentBass[i * 4 + b];
+      Tone.Transport.schedule(() => {
+        monoBass.triggerAttackRelease(note, "4n");
+        highlightKeys(note, "bass");
+      }, bassTime);
+    }
+
+    if (withDrums) {
+      for (let b = 0; b < 4; b++) {
+        const drumTime = time + b * Tone.Time("4n").toSeconds();
+        Tone.Transport.schedule(() => drumNoise.triggerAttackRelease("16n"), drumTime);
+      }
+    }
+
+    if (withMelody && currentMelody[i]) {
+      currentMelody[i].forEach((note, idx) => {
+        if (note) {
+          const melTime = time + idx * Tone.Time("4n").toSeconds();
+          Tone.Transport.schedule(() => {
+            saxSynth.triggerAttackRelease(note, "8n");
+            highlightKeys(note, "sax");
+          }, melTime);
+        }
+      });
+    }
+  });
+
+  const totalTime = currentProg.length * barDuration;
+  Tone.Transport.schedule(() => stopPlayback(), totalTime);
+
+  Tone.Transport.start();
+  isPlaying = true;
+
+  document.getElementById("btnPlay").disabled = true;
+  document.getElementById("btnStop").disabled = false;
+  document.getElementById("btnGen").disabled = true;
+  setStatus("A tocar...", "ok");
+}
+
+function stopPlayback() {
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
+  document.querySelectorAll(".bar-box").forEach(b => b.classList.remove("active"));
+  
+  isPlaying = false;
+  document.getElementById("btnPlay").disabled = false;
+  document.getElementById("btnStop").disabled = true;
+  document.getElementById("btnGen").disabled = false;
+  setStatus("Parado.");
+}
+
+function setStatus(msg, type = "") {
+  const el = document.getElementById("statusBar");
+  el.textContent = msg;
+  el.className = `status-bar ${type}`;
+}
+
+// Troca de Separadores no Telemóvel
+function switchMobileTab(tabId) {
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tabId);
+  });
+  document.querySelectorAll(".tab-content").forEach(content => {
+    content.classList.toggle("active", content.id === tabId);
+  });
+}
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => switchMobileTab(btn.dataset.tab));
+});
+
+// Tap Tempo
+let lastTap = 0;
+document.getElementById("btnTap").addEventListener("click", () => {
+  const now = Date.now();
+  if (lastTap) {
+    const diff = now - lastTap;
+    const bpm = Math.round(60000 / diff);
+    if (bpm >= 50 && bpm <= 240) {
+      document.getElementById("bpm").value = bpm;
+      document.getElementById("bpmVal").textContent = bpm;
+    }
+  }
+  lastTap = now;
+});
+
+document.getElementById("bpm").addEventListener("input", e => {
+  document.getElementById("bpmVal").textContent = e.target.value;
+  if (isPlaying) Tone.Transport.bpm.value = parseInt(e.target.value);
+});
+
+document.getElementById("btnGen").addEventListener("click", generateArrangement);
+document.getElementById("btnPlay").addEventListener("click", startPlayback);
+document.getElementById("btnStop").addEventListener("click", stopPlayback);
+
+document.getElementById("btnDownload").addEventListener("click", () => {
+  if (!midiDataUri) return;
+  const a = document.createElement("a");
+  a.href = midiDataUri;
+  a.download = `jazz_arranger_${document.getElementById("key").value}_${Date.now()}.mid`;
+  a.click();
+  setStatus("MIDI descarregado!", "ok");
+});
+
+document.getElementById("btnCopySheet").addEventListener("click", () => {
+  if (!currentProg.length) return;
+  const text = currentProg.map((c, i) => `${c.root}${c.q}${ (i+1)%4===0 ? " |\n" : " | " }`).join("");
+  navigator.clipboard.writeText(text);
+  setStatus("Cifras copiadas!", "ok");
+});
+
+["Piano", "Bass", "Sax", "Drums"].forEach(track => {
+  document.getElementById(`vol${track}`).addEventListener("input", updateVolumes);
+  document.getElementById(`mute${track}`).addEventListener("click", e => {
+    e.target.classList.toggle("active");
+    updateVolumes();
+  });
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  lucide.createIcons();
+  renderKeyboard();
+});
+</script>
+</body>
+</html>
