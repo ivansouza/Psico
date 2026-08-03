@@ -40,8 +40,8 @@
  const TRANSITION_DURATION = 350;
  let lastSecond = -1;
  let fadeShader;
- let frozenTimeStr = ""; // Horário congelado (não muda os segundos)
  let sevenSegFont; // Fonte de 7 segmentos carregada via loadFont
+ let textureCache = {}; // Cache de texturas por horário (congela o que já foi desenhado)
 
  // --- Controles touch (celular) ---
  let touchRotX = 0;
@@ -101,9 +101,7 @@
   textTexture=createGraphics(100,TEXTURE_HEIGHT);
   textTexture.pixelDensity(1);
   fadeShader=createShader(vertShader,fragShader);
-  // Congela o horário uma única vez (não muda os segundos)
-  frozenTimeStr=createTimeString();
-  currentTimeStr=frozenTimeStr;
+  currentTimeStr=createTimeString();
   lastTimeStr=currentTimeStr;
   lastSecond=second();
   transitionStartTime=millis()-TRANSITION_DURATION;
@@ -197,7 +195,8 @@
   trailPoints.push({
    pos:newPosition,
    createdAt:now,
-   pathDistance:accumulatedPathDistance
+   pathDistance:accumulatedPathDistance,
+   timeStr:createTimeString() // Horário no momento em que o ponto foi desenhado
   });
   if(trailPoints.length>MAX_POINTS){
    trailPoints.shift();
@@ -208,9 +207,41 @@
   return " "+nf(hour(),2)+":"+nf(minute(),2)+":"+nf(second(),2)+" ";
  }
 
+ function getTextureForTime(timeStr){
+  // Retorna uma textura congelada para um horário específico (com cache)
+  if(textureCache[timeStr]) return textureCache[timeStr];
+  let tex=createGraphics(100,TEXTURE_HEIGHT);
+  tex.pixelDensity(1);
+  tex.textSize(115);
+  tex.textStyle(BOLD);
+  tex.textFont(sevenSegFont);
+  let requiredWidth=Math.ceil(tex.textWidth(timeStr));
+  if(tex.width!==requiredWidth){
+   tex.resizeCanvas(requiredWidth,TEXTURE_HEIGHT);
+   tex.pixelDensity(1);
+  }
+  tex.clear();
+  tex.noStroke();
+  tex.textAlign(CENTER,CENTER);
+  tex.textSize(115);
+  tex.textStyle(BOLD);
+  tex.textFont(sevenSegFont);
+  tex.fill(255);
+  tex.text(timeStr,tex.width/2,tex.height/2);
+  textureCache[timeStr]=tex;
+  return tex;
+ }
+
  function updateTextTexture(){
-  // Horário congelado: nunca muda os segundos
-  let timeStr=frozenTimeStr;
+  // Atualiza em tempo real o horário atual (para o trecho sendo desenhado agora)
+  let timeStr=createTimeString();
+  let currentSec=second();
+  if(currentSec!==lastSecond){
+   lastTimeStr=currentTimeStr;
+   currentTimeStr=timeStr;
+   transitionStartTime=millis();
+   lastSecond=currentSec;
+  }
   textTexture.textSize(115);
   textTexture.textStyle(BOLD);
   // Fonte de 7 segmentos (DSEG7 carregada via loadFont)
@@ -258,38 +289,51 @@
   textureMode(NORMAL);
   textureWrap(REPEAT,REPEAT);
   shader(fadeShader);
-  fadeShader.setUniform("uSampler",textTexture);
-  let textScaleLength=targetWidth*(textTexture.width/textTexture.height);
-  let uOffset=now*0.001*TEXT_SPEED*TEXT_DIRECTION;
-  beginShape(TRIANGLE_STRIP);
-  for(let i=0;i<pointsArray.length;i++){
-   let point=pointsArray[i];
-   let age=now-point.createdAt;
-   let alphaValue=constrain(1-age/POINT_FADE_DURATION,0,1);
-   alphaValue=alphaValue*alphaValue*(3-2*alphaValue);
-   let hue=(now*0.06+i*0.2)%360;
-   let rgb=hsbToRgb(hue,90,90);
-   fill(rgb[0],rgb[1],rgb[2],255);
-   normal(alphaValue,0,0);
-   let position=point.pos;
-   let previousPosition=i>0?pointsArray[i-1].pos:position;
-   let nextPosition=i<pointsArray.length-1?pointsArray[i+1].pos:position;
-   let direction=p5.Vector.sub(nextPosition,previousPosition);
-   let surfaceNormal=position.copy().normalize();
-   let perpendicular=direction.cross(surfaceNormal);
-   if(perpendicular.magSq()>0.000001){
-    perpendicular.normalize();
-   }else{
-    perpendicular.set(1,0,0);
+
+  // Desenha a fita em segmentos: cada trecho usa a textura congelada do horário
+  // em que seus pontos foram criados. Assim o que já foi desenhado não muda.
+  let segStart=0;
+  while(segStart<pointsArray.length-1){
+   let segTime=pointsArray[segStart].timeStr;
+   let segEnd=segStart;
+   while(segEnd<pointsArray.length-1&&pointsArray[segEnd+1].timeStr===segTime){
+    segEnd++;
    }
-   perpendicular.mult(targetWidth/2);
-   let edge1=p5.Vector.sub(position,perpendicular);
-   let edge2=p5.Vector.add(position,perpendicular);
-   let u=point.pathDistance/textScaleLength+uOffset;
-   vertex(edge1.x,edge1.y,edge1.z,u,1);
-   vertex(edge2.x,edge2.y,edge2.z,u,0);
+   let segTex=getTextureForTime(segTime);
+   fadeShader.setUniform("uSampler",segTex);
+   let textScaleLength=targetWidth*(segTex.width/segTex.height);
+   let uOffset=now*0.001*TEXT_SPEED*TEXT_DIRECTION;
+   beginShape(TRIANGLE_STRIP);
+   for(let i=segStart;i<=segEnd;i++){
+    let point=pointsArray[i];
+    let age=now-point.createdAt;
+    let alphaValue=constrain(1-age/POINT_FADE_DURATION,0,1);
+    alphaValue=alphaValue*alphaValue*(3-2*alphaValue);
+    let hue=(now*0.06+i*0.2)%360;
+    let rgb=hsbToRgb(hue,90,90);
+    fill(rgb[0],rgb[1],rgb[2],255);
+    normal(alphaValue,0,0);
+    let position=point.pos;
+    let previousPosition=i>0?pointsArray[i-1].pos:position;
+    let nextPosition=i<pointsArray.length-1?pointsArray[i+1].pos:position;
+    let direction=p5.Vector.sub(nextPosition,previousPosition);
+    let surfaceNormal=position.copy().normalize();
+    let perpendicular=direction.cross(surfaceNormal);
+    if(perpendicular.magSq()>0.000001){
+     perpendicular.normalize();
+    }else{
+     perpendicular.set(1,0,0);
+    }
+    perpendicular.mult(targetWidth/2);
+    let edge1=p5.Vector.sub(position,perpendicular);
+    let edge2=p5.Vector.add(position,perpendicular);
+    let u=point.pathDistance/textScaleLength+uOffset;
+    vertex(edge1.x,edge1.y,edge1.z,u,1);
+    vertex(edge2.x,edge2.y,edge2.z,u,0);
+   }
+   endShape();
+   segStart=segEnd+1;
   }
-  endShape();
   resetShader();
  }
  </script>
