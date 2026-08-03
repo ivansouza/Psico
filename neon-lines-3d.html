@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+ <title>Neon Lines Studio 3D</title>
+ <style>
+ /* Estilos Globais e Reinicialização */
+ * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+ html, body { width: 100%; height: 100%; overflow: hidden; background: #030205; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #fff; }
+ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+ /* Interface Glassmorphic */
+ .glass-panel {
+ background: rgba(14, 12, 22, 0.78);
+ backdrop-filter: blur(16px);
+ -webkit-backdrop-filter: blur(16px);
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ border-radius: 16px;
+ box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+ }
+
+ /* Barra Superior */
+ #header {
+ position: absolute;
+ top: 16px;
+ left: 16px;
+ right: 16px;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 12px 20px;
+ z-index: 10;
+ transition: opacity 0.3s ease, transform 0.3s ease;
+ }
+
+ .title-area { display: flex; align-items: center; gap: 10px; }
+ .title-area h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; background: linear-gradient(135deg, #ff0055, #00dfff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+ .badge { font-size: 10px; background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 20px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.5px; }
+
+ .action-btn {
+ background: rgba(255,255,255,0.08);
+ border: 1px solid rgba(255,255,255,0.15);
+ color: #fff;
+ padding: 8px 14px;
+ border-radius: 8px;
+ cursor: pointer;
+ font-size: 13px;
+ display: flex;
+ align-items: center;
+ gap: 6px;
+ transition: all 0.2s ease;
+ }
+ .action-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-1px); }
+ .action-btn:active { transform: translateY(0); }
+
+ /* Painel Lateral de Controlos */
+ #controls-panel {
+ position: absolute;
+ top: 80px;
+ right: 16px;
+ width: 320px;
+ max-height: calc(100vh - 110px);
+ overflow-y: auto;
+ padding: 20px;
+ z-index: 10;
+ display: flex;
+ flex-direction: column;
+ gap: 18px;
+ transition: opacity 0.3s ease, transform 0.3s ease;
+ }
+
+ /* Barra de Scroll Personalizada */
+ #controls-panel::-webkit-scrollbar { width: 4px; }
+ #controls-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+ .control-group { display: flex; flex-direction: column; gap: 8px; }
+ .control-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.65); display: flex; justify-content: space-between; }
+ .control-value { color: #00dfff; }
+
+ /* Entradas e Sliders */
+ select, input[type="range"] { width: 100%; accent-color: #ff0055; }
+ select {
+ background: rgba(0, 0, 0, 0.4);
+ color: #fff;
+ border: 1px solid rgba(255,255,255,0.2);
+ padding: 8px 12px;
+ border-radius: 8px;
+ outline: none;
+ font-size: 13px;
+ cursor: pointer;
+ }
+ select option { background: #12101a; color: #fff; }
+
+ input[type="range"] {
+ -webkit-appearance: none;
+ height: 6px;
+ background: rgba(255,255,255,0.15);
+ border-radius: 3px;
+ outline: none;
+ }
+ input[type="range"]::-webkit-slider-thumb {
+ -webkit-appearance: none;
+ width: 16px;
+ height: 16px;
+ border-radius: 50%;
+ background: #ff0055;
+ cursor: pointer;
+ box-shadow: 0 0 10px #ff0055;
+ transition: transform 0.1s ease;
+ }
+ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+ /* Interruptor Personalizado */
+ .checkbox-container { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+ .checkbox-container span { font-size: 13px; color: rgba(255,255,255,0.85); }
+ .switch {
+ position: relative;
+ display: inline-block;
+ width: 38px;
+ height: 20px;
+ }
+ .switch input { opacity: 0; width: 0; height: 0; }
+ .slider {
+ position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+ background-color: rgba(255,255,255,0.2); transition: .3s; border-radius: 20px;
+ }
+ .slider:before {
+ position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+ background-color: white; transition: .3s; border-radius: 50%;
+ }
+ input:checked + .slider { background-color: #ff0055; }
+ input:checked + .slider:before { transform: translateX(18px); }
+
+ /* Botão Ocultar UI */
+ #toggle-ui-btn {
+ position: absolute;
+ bottom: 16px;
+ right: 16px;
+ z-index: 20;
+ }
+
+ /* Toast */
+ #toast {
+ position: absolute;
+ bottom: 20px;
+ left: 50%;
+ transform: translateX(-50%) translateY(100px);
+ background: rgba(18, 16, 26, 0.95);
+ border: 1px solid #ff0055;
+ color: #fff;
+ padding: 10px 20px;
+ border-radius: 20px;
+ font-size: 13px;
+ pointer-events: none;
+ opacity: 0;
+ transition: all 0.3s ease;
+ z-index: 30;
+ box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+ }
+ #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+ .hidden { opacity: 0 !important; pointer-events: none !important; transform: scale(0.95) !important; }
+
+ @media (max-width: 600px) {
+ #controls-panel { width: calc(100vw - 32px); right: 16px; }
+ .title-area h1 { font-size: 15px; }
+ }
+ </style>
+</head>
+<body>
+
+ <!-- Barra Superior -->
+ <header id="header" class="glass-panel">
+ <div class="title-area">
+ <h1>NEON LINES</h1>
+ <span class="badge">Studio 3D</span>
+ </div>
+ <div style="display: flex; gap: 8px;">
+ <button class="action-btn" id="btn-randomize" title="Gerar nova forma contígua">
+ 🎲 Regerar
+ </button>
+ <button class="action-btn" id="btn-screenshot" title="Capturar imagem">
+ 📸 Foto
+ </button>
+ <button class="action-btn" id="btn-fullscreen" title="Modo Ecrã Inteiro">
+ ⛶
+ </button>
+ </div>
+ </header>
+
+ <!-- Painel de Controlos -->
+ <aside id="controls-panel" class="glass-panel">
+ <!-- Paleta de Cores -->
+ <div class="control-group">
+ <div class="control-label">Paleta de Cores</div>
+ <select id="palette-select">
+ <option value="cyberpunk">Cyberpunk (Rosa / Ciano / Dourado)</option>
+ <option value="synthwave">Synthwave (Laranja / Violeta / Magenta)</option>
+ <option value="emerald">Esmeralda Tóxica (Verde / Turquesa / Amarelo)</option>
+ <option value="ocean">Oceano Profundo (Azul Elétrico / Ciano / Roxo)</option>
+ <option value="rainbow">Arco-Íris Multicor Completo</option>
+ <option value="ice">Gelo Néon (Branco / Prata / Ciano)</option>
+ </select>
+ </div>
+
+ <!-- Ciclo de Cor no Caminho -->
+ <div class="control-group">
+ <div class="control-label">Velocidade do Ciclo de Cor <span id="val-cycle-speed" class="control-value">0.8x</span></div>
+ <input type="range" id="slider-cycle-speed" min="0.0" max="3.0" step="0.1" value="0.8" />
+ </div>
+
+ <div class="control-group">
+ <div class="control-label">Frequência da Onda de Cor <span id="val-cycle-freq" class="control-value">2</span></div>
+ <input type="range" id="slider-cycle-freq" min="1" max="5" step="1" value="2" />
+ </div>
+
+ <!-- Modo de Espaço / Fundo -->
+ <div class="control-group">
+ <div class="control-label">Ambiente de Fundo</div>
+ <select id="env-select">
+ <option value="void">Espaço Infinito Vazio</option>
+ <option value="grid">Grelha Néon Cyberpunk</option>
+ <option value="floor">Solo Refletor Espelhado</option>
+ </select>
+ </div>
+
+ <!-- Geometria dos Tubos -->
+ <div class="control-group">
+ <div class="control-label">Qtd. de Anéis Contíguos <span id="val-tubes" class="control-value">6</span></div>
+ <input type="range" id="slider-tubes" min="3" max="12" step="1" value="6" />
+ </div>
+
+ <div class="control-group">
+ <div class="control-label">Espessura do Tubo <span id="val-radius" class="control-value">0.035</span></div>
+ <input type="range" id="slider-radius" min="0.015" max="0.07" step="0.005" value="0.035" />
+ </div>
+
+ <!-- Iluminação e Bloom (Brilho) -->
+ <div class="control-group">
+ <div class="control-label">Intensidade do Brilho (Glow) <span id="val-bloom" class="control-value">1.4</span></div>
+ <input type="range" id="slider-bloom" min="0.2" max="3.0" step="0.1" value="1.4" />
+ </div>
+
+ <div class="control-group">
+ <div class="control-label">Raio do Glow <span id="val-bloom-radius" class="control-value">0.65</span></div>
+ <input type="range" id="slider-bloom-radius" min="0.1" max="1.5" step="0.05" value="0.65" />
+ </div>
+
+ <!-- Animação do Objeto e Câmera -->
+ <div class="control-group">
+ <div class="control-label">Rotação da Escultura <span id="val-speed" class="control-value">1.0x</span></div>
+ <input type="range" id="slider-speed" min="0.0" max="3.0" step="0.1" value="1.0" />
+ </div>
+
+ <div class="control-group">
+ <div class="control-label">Rotação da Câmera <span id="val-rotate" class="control-value">0.4</span></div>
+ <input type="range" id="slider-rotate" min="0.0" max="2.0" step="0.1" value="0.4" />
+ </div>
+
+ <!-- Partículas -->
+ <div class="control-group">
+ <label class="checkbox-container">
+ <span>Poeira Néon Flutuante</span>
+ <span class="switch">
+ <input type="checkbox" id="check-particles" checked />
+ <span class="slider"></span>
+ </span>
+ </label>
+ </div>
+ </aside>
+
+ <!-- Botão Ocultar UI -->
+ <button id="toggle-ui-btn" class="action-btn glass-panel">
+ 👁️ Ocultar UI
+ </button>
+
+ <!-- Toast -->
+ <div id="toast">Fotografia guardada com sucesso!</div>
+
+ <!-- Import Map -->
+ <script type="importmap">
+ {
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+ "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+ }
+ }
+ </script>
+
+ <script type="module">
+ import * as THREE from 'three';
+ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+ // ---------- Definições e Estado ----------
+ const config = {
+ paletteKey: 'cyberpunk',
+ envMode: 'void',
+ tubeCount: 6,
+ baseRadius: 0.035,
+ cycleSpeed: 0.8,
+ cycleFreq: 2.0,
+ bloomStrength: 1.4,
+ bloomRadius: 0.65,
+ animSpeed: 1.0,
+ autoRotateSpeed: 0.4,
+ particlesEnabled: true,
+ seedOffset: 0
+ };
+
+ // Paletas de cores em formato hexadecimal para interpolação no Shader
+ const PALETTES = {
+ cyberpunk: [0xff0055, 0x00dfff, 0xffaa00, 0xaa00ff, 0x00ffaa],
+ synthwave: [0xff4400, 0xff00a0, 0x7700ff, 0xffcc00, 0xff0255],
+ emerald: [0x00ff66, 0x00ccaa, 0xccff00, 0x00ff33, 0xffaa00],
+ ocean: [0x0066ff, 0x00e5ff, 0x0022ff, 0x00ffaa, 0x7700ff],
+ rainbow: [0xff0000, 0xff7700, 0xffdd00, 0x00ff33, 0x0088ff, 0xaa00ff],
+ ice: [0x88e5ff, 0x00aacc, 0xffffff, 0x2277ff, 0x44ddff]
+ };
+
+ // ---------- Cena & Câmera ----------
+ const scene = new THREE.Scene();
+ scene.background = new THREE.Color(0x030205);
+ scene.fog = new THREE.FogExp2(0x030205, 0.035);
+
+ const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+ camera.position.set(0, 0, 7.5);
+
+ const renderer = new THREE.WebGLRenderer({
+ antialias: true,
+ powerPreference: 'high-performance',
+ preserveDrawingBuffer: true
+ });
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.toneMapping = THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure = 1.3;
+ document.body.appendChild(renderer.domElement);
+
+ // Controls
+ const controls = new OrbitControls(camera, renderer.domElement);
+ controls.enableDamping = true;
+ controls.dampingFactor = 0.05;
+ controls.minDistance = 2.0;
+ controls.maxDistance = 16;
+ controls.target.set(0, 0, 0);
+ controls.autoRotate = true;
+ controls.autoRotateSpeed = config.autoRotateSpeed;
+ controls.enablePan = false;
+
+ // Luz Suave de Fundo
+ const ambientLight = new THREE.AmbientLight(0x221f33, 0.4);
+ scene.add(ambientLight);
+
+ // ---------- Elementos de Ambiente (Solo e Grelha) ----------
+ const floorMat = new THREE.MeshStandardMaterial({
+ color: 0x08070d,
+ roughness: 0.2,
+ metalness: 0.85
+ });
+
+ const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), floorMat);
+ floor.rotation.x = -Math.PI / 2;
+ floor.position.y = -2.2;
+ floor.visible = false;
+ scene.add(floor);
+
+ const gridHelper = new THREE.GridHelper(30, 40, 0xff0055, 0x00dfff);
+ gridHelper.position.y = -2.19;
+ gridHelper.visible = false;
+ scene.add(gridHelper);
+
+ function updateEnvironment() {
+ if (config.envMode === 'void') {
+ floor.visible = false;
+ gridHelper.visible = false;
+ } else if (config.envMode === 'grid') {
+ floor.visible = true;
+ gridHelper.visible = true;
+ } else if (config.envMode === 'floor') {
+ floor.visible = true;
+ gridHelper.visible = false;
+ }
+ }
+
+ // ---------- Partículas Néon Ambientais ----------
+ const particleCount = 200;
+ const particleGeo = new THREE.BufferGeometry();
+ const particlePos = new Float32Array(particleCount * 3);
+
+ for (let i = 0; i < particleCount * 3; i += 3) {
+ particlePos[i] = (Math.random() - 0.5) * 8;
+ particlePos[i + 1] = (Math.random() - 0.5) * 8;
+ particlePos[i + 2] = (Math.random() - 0.5) * 8;
+ }
+
+ particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+ const particleMat = new THREE.PointsMaterial({
+ color: 0x00dfff,
+ size: 0.04,
+ transparent: true,
+ opacity: 0.65,
+ blending: THREE.AdditiveBlending
+ });
+
+ const particleSystem = new THREE.Points(particleGeo, particleMat);
+ scene.add(particleSystem);
+
+ // ---------- Shader Customizado de Cor Cíclica nos Tubos Contíguos ----------
+ function createDynamicTubeMaterial(paletteKey) {
+ const hexColors = PALETTES[paletteKey] || PALETTES.cyberpunk;
+ const vecColors = hexColors.map(c => new THREE.Color(c));
+
+ // Assegura 5 cores para o shader
+ while (vecColors.length < 5) {
+ vecColors.push(vecColors[0]);
+ }
+
+ const uniforms = {
+ uTime: { value: 0 },
+ uSpeed: { value: config.cycleSpeed },
+ uFrequency: { value: config.cycleFreq },
+ uEmissiveIntensity: { value: 2.8 },
+ uColor0: { value: vecColors[0] },
+ uColor1: { value: vecColors[1] },
+ uColor2: { value: vecColors[2] },
+ uColor3: { value: vecColors[3] },
+ uColor4: { value: vecColors[4] }
+ };
+
+ const mat = new THREE.MeshStandardMaterial({
+ roughness: 0.15,
+ metalness: 0.3,
+ toneMapped: false
+ });
+
+ mat.onBeforeCompile = (shader) => {
+ shader.uniforms.uTime = uniforms.uTime;
+ shader.uniforms.uSpeed = uniforms.uSpeed;
+ shader.uniforms.uFrequency = uniforms.uFrequency;
+ shader.uniforms.uEmissiveIntensity = uniforms.uEmissiveIntensity;
+ shader.uniforms.uColor0 = uniforms.uColor0;
+ shader.uniforms.uColor1 = uniforms.uColor1;
+ shader.uniforms.uColor2 = uniforms.uColor2;
+ shader.uniforms.uColor3 = uniforms.uColor3;
+ shader.uniforms.uColor4 = uniforms.uColor4;
+
+ // Passa as coordenadas UV do tubo para o Fragment Shader
+ shader.vertexShader = `
+ varying vec2 vUvCustom;
+ ${shader.vertexShader}
+ `.replace(
+ '#include <uv_vertex>',
+ `
+ #include <uv_vertex>
+ vUvCustom = uv;
+ `
+ );
+
+ // Injeta a lógica de ciclagem de cor fluida ao longo do caminho
+ shader.fragmentShader = `
+ varying vec2 vUvCustom;
+ uniform float uTime;
+ uniform float uSpeed;
+ uniform float uFrequency;
+ uniform float uEmissiveIntensity;
+ uniform vec3 uColor0;
+ uniform vec3 uColor1;
+ uniform vec3 uColor2;
+ uniform vec3 uColor3;
+ uniform vec3 uColor4;
+
+ vec3 getCyclingNeonColor(float progress) {
+ progress = fract(progress);
+ float stepVal = progress * 5.0;
+ int idx = int(floor(stepVal));
+ float f = fract(stepVal);
+
+ // Suavização da transição entre cores
+ f = smoothstep(0.0, 1.0, f);
+
+ if (idx == 0) return mix(uColor0, uColor1, f);
+ if (idx == 1) return mix(uColor1, uColor2, f);
+ if (idx == 2) return mix(uColor2, uColor3, f);
+ if (idx == 3) return mix(uColor3, uColor4, f);
+ return mix(uColor4, uColor0, f); // Ciclo perfeito de regresso
+ }
+ ${shader.fragmentShader}
+ `.replace(
+ '#include <emissivemap_fragment>',
+ `
+ #include <emissivemap_fragment>
+ // O caminho UV.x percorre o tubo contíguo do início ao fim
+ float posOnPath = vUvCustom.x * uFrequency - uTime * uSpeed;
+ vec3 dynamicNeon = getCyclingNeonColor(posOnPath);
+
+ diffuseColor.rgb = dynamicNeon * 0.25;
+ totalEmissiveRadiance += dynamicNeon * uEmissiveIntensity;
+ `
+ );
+ };
+
+ mat.userData.uniforms = uniforms;
+ mat.userData.vecColors = vecColors;
+ return mat;
+ }
+
+ // ---------- Amostragem de Cor CPU para Sincronização de Luzes ----------
+ function sampleColorAtProgress(progress, vecColors) {
+ progress = ((progress % 1) + 1) % 1;
+ const s = progress * 5.0;
+ const idx = Math.floor(s) % 5;
+ const f = s - Math.floor(s);
+ const smoothF = f * f * (3 - 2 * f);
+
+ const c1 = vecColors[idx % 5];
+ const c2 = vecColors[(idx + 1) % 5];
+
+ return new THREE.Color().lerpColors(c1, c2, smoothF);
+ }
+
+ // ---------- Geração dos Anéis Contíguos ----------
+ const tubesGroup = new THREE.Group();
+ scene.add(tubesGroup);
+
+ let lightsList = [];
+ let tubeMaterials = [];
+
+ // Cria curvas perfeitamente contíguas (closed: true)
+ function makeContiguousCurve(seed) {
+ const pts = [];
+ const n = 12 + Math.floor((seed * 5) % 4);
+ for (let i = 0; i < n; i++) {
+ const t = i / n;
+ const ang = t * Math.PI * 2.0;
+ const r = 1.2 + Math.sin(seed * 3.1 + t * Math.PI * 4) * 0.55;
+ const x = Math.cos(ang) * r + Math.sin(seed + t * 6) * 0.3;
+ const y = Math.sin(ang * 2.0 + seed) * 0.8 + (t - 0.5) * 0.4;
+ const z = Math.sin(ang) * r + Math.cos(seed * 2.0 + t * 5) * 0.35;
+ pts.push(new THREE.Vector3(x, y, z));
+ }
+ // closed = true garante um loop contíguo, sem interrupção
+ return new THREE.CatmullRomCurve3(pts, true, 'centripetal', 0.5);
+ }
+
+ function buildSculpture() {
+ // Limpeza de recursos anteriores
+ while (tubesGroup.children.length > 0) {
+ const obj = tubesGroup.children[0];
+ if (obj.geometry) obj.geometry.dispose();
+ if (obj.material) {
+ if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+ else obj.material.dispose();
+ }
+ tubesGroup.remove(obj);
+ }
+ lightsList = [];
+ tubeMaterials = [];
+
+ for (let i = 0; i < config.tubeCount; i++) {
+ const seed = (i + config.seedOffset) * 1.45 + 0.3;
+ const curve = makeContiguousCurve(seed);
+ const tubularSegments = 180;
+ const radius = config.baseRadius + (i % 3) * 0.006;
+
+ // Tubo selado (closed = true) para continuidade geométrica total
+ const geo = new THREE.TubeGeometry(curve, tubularSegments, radius, 12, true);
+ const mat = createDynamicTubeMaterial(config.paletteKey);
+ tubeMaterials.push(mat);
+
+ const mesh = new THREE.Mesh(geo, mat);
+ tubesGroup.add(mesh);
+
+ // Luz pontual sincronizada que percorre o caminho do néon
+ const tipLight = new THREE.PointLight(0xffffff, 2.2, 5.5, 1.4);
+ tubesGroup.add(tipLight);
+
+ lightsList.push({
+ light: tipLight,
+ curve,
+ offset: (i * 0.18) % 1.0,
+ vecColors: mat.userData.vecColors
+ });
+ }
+
+ tubesGroup.scale.setScalar(1.1);
+ tubesGroup.position.set(0, 0, 0);
+ }
+
+ buildSculpture();
+
+ // ---------- Pós-Processamento (Bloom Neon) ----------
+ const composer = new EffectComposer(renderer);
+ const renderPass = new RenderPass(scene, camera);
+ composer.addPass(renderPass);
+
+ const bloomPass = new UnrealBloomPass(
+ new THREE.Vector2(window.innerWidth, window.innerHeight),
+ config.bloomStrength,
+ config.bloomRadius,
+ 0.12
+ );
+ composer.addPass(bloomPass);
+
+ const outputPass = new OutputPass();
+ composer.addPass(outputPass);
+
+ // ---------- Ciclo de Animação ----------
+ let clock = new THREE.Clock();
+ let timeAcc = 0;
+
+ function animate() {
+ requestAnimationFrame(animate);
+
+ const delta = clock.getDelta();
+ timeAcc += delta * config.animSpeed;
+
+ // Atualiza o tempo do shader em todos os tubos para fazer as cores fluírem no caminho
+ tubeMaterials.forEach(mat => {
+ if (mat.userData.uniforms) {
+ mat.userData.uniforms.uTime.value = timeAcc;
+ mat.userData.uniforms.uSpeed.value = config.cycleSpeed;
+ mat.userData.uniforms.uFrequency.value = config.cycleFreq;
+ }
+ });
+
+ // Atualiza as luzes móveis em perfeita sintonia com a cor atual naquele ponto da linha
+ lightsList.forEach((item, idx) => {
+ const progress = (item.offset + timeAcc * 0.08) % 1.0;
+ item.light.position.copy(item.curve.getPoint(progress));
+
+ // Calcula a cor exata do shader naquele ponto UV para a luz ambiente
+ const posOnPath = progress * config.cycleFreq - timeAcc * config.cycleSpeed;
+ const currentNeonColor = sampleColorAtProgress(posOnPath, item.vecColors);
+ item.light.color.copy(currentNeonColor);
+ item.light.intensity = 2.2 * (config.bloomStrength * 0.8);
+ });
+
+ // Rotação tridimensional fluida da escultura
+ tubesGroup.rotation.x = Math.sin(timeAcc * 0.3) * 0.08;
+ tubesGroup.rotation.y = timeAcc * 0.06 * config.animSpeed;
+ tubesGroup.rotation.z = Math.cos(timeAcc * 0.2) * 0.06;
+
+ // Rotação suave da poeira néon
+ if (config.particlesEnabled) {
+ particleSystem.rotation.y = timeAcc * 0.02;
+ }
+
+ controls.autoRotateSpeed = config.autoRotateSpeed;
+ controls.update();
+
+ composer.render();
+ }
+
+ animate();
+
+ // ---------- Eventos da Interface ----------
+
+ // Ciclo de Cor
+ document.getElementById('slider-cycle-speed').addEventListener('input', (e) => {
+ config.cycleSpeed = parseFloat(e.target.value);
+ document.getElementById('val-cycle-speed').innerText = config.cycleSpeed.toFixed(1) + 'x';
+ });
+ document.getElementById('slider-cycle-freq').addEventListener('input', (e) => {
+ config.cycleFreq = parseFloat(e.target.value);
+ document.getElementById('val-cycle-freq').innerText = config.cycleFreq;
+ });
+
+ // Bloom
+ document.getElementById('slider-bloom').addEventListener('input', (e) => {
+ config.bloomStrength = parseFloat(e.target.value);
+ bloomPass.strength = config.bloomStrength;
+ document.getElementById('val-bloom').innerText = config.bloomStrength.toFixed(1);
+ });
+
+ document.getElementById('slider-bloom-radius').addEventListener('input', (e) => {
+ config.bloomRadius = parseFloat(e.target.value);
+ bloomPass.radius = config.bloomRadius;
+ document.getElementById('val-bloom-radius').innerText = config.bloomRadius.toFixed(2);
+ });
+
+ // Rotações e Velocidades
+ document.getElementById('slider-speed').addEventListener('input', (e) => {
+ config.animSpeed = parseFloat(e.target.value);
+ document.getElementById('val-speed').innerText = config.animSpeed.toFixed(1) + 'x';
+ });
+
+ document.getElementById('slider-rotate').addEventListener('input', (e) => {
+ config.autoRotateSpeed = parseFloat(e.target.value);
+ controls.autoRotate = config.autoRotateSpeed > 0;
+ document.getElementById('val-rotate').innerText = config.autoRotateSpeed.toFixed(1);
+ });
+
+ // Tubos
+ document.getElementById('slider-tubes').addEventListener('input', (e) => {
+ config.tubeCount = parseInt(e.target.value);
+ document.getElementById('val-tubes').innerText = config.tubeCount;
+ buildSculpture();
+ });
+
+ document.getElementById('slider-radius').addEventListener('input', (e) => {
+ config.baseRadius = parseFloat(e.target.value);
+ document.getElementById('val-radius').innerText = config.baseRadius.toFixed(3);
+ buildSculpture();
+ });
+
+ // Paleta
+ document.getElementById('palette-select').addEventListener('change', (e) => {
+ config.paletteKey = e.target.value;
+ buildSculpture();
+ });
+
+ // Ambiente
+ document.getElementById('env-select').addEventListener('change', (e) => {
+ config.envMode = e.target.value;
+ updateEnvironment();
+ });
+
+ // Partículas
+ document.getElementById('check-particles').addEventListener('change', (e) => {
+ config.particlesEnabled = e.target.checked;
+ particleSystem.visible = config.particlesEnabled;
+ });
+
+ // Botão Regerar
+ document.getElementById('btn-randomize').addEventListener('click', () => {
+ config.seedOffset += Math.random() * 10 + 1;
+ buildSculpture();
+ showToast('Nova forma contígua gerada! 🎲');
+ });
+
+ // Ocultar UI
+ const header = document.getElementById('header');
+ const panel = document.getElementById('controls-panel');
+ const toggleBtn = document.getElementById('toggle-ui-btn');
+ let uiVisible = true;
+
+ toggleBtn.addEventListener('click', () => {
+ uiVisible = !uiVisible;
+ if (uiVisible) {
+ header.classList.remove('hidden');
+ panel.classList.remove('hidden');
+ toggleBtn.innerHTML = '👁️ Ocultar UI';
+ } else {
+ header.classList.add('hidden');
+ panel.classList.add('hidden');
+ toggleBtn.innerHTML = '👁️ Mostrar UI';
+ }
+ });
+
+ // Screenshot
+ document.getElementById('btn-screenshot').addEventListener('click', () => {
+ header.style.display = 'none';
+ panel.style.display = 'none';
+ toggleBtn.style.display = 'none';
+
+ composer.render();
+
+ const image = renderer.domElement.toDataURL('image/png');
+
+ header.style.display = 'flex';
+ panel.style.display = 'flex';
+ toggleBtn.style.display = 'flex';
+
+ const link = document.createElement('a');
+ link.download = `neon-contiguous-${Date.now()}.png`;
+ link.href = image;
+ link.click();
+
+ showToast('📸 Captura salva com sucesso!');
+ });
+
+ // Fullscreen
+ document.getElementById('btn-fullscreen').addEventListener('click', () => {
+ if (!document.fullscreenElement) {
+ document.documentElement.requestFullscreen().catch(() => {});
+ } else {
+ document.exitFullscreen().catch(() => {});
+ }
+ });
+
+ function showToast(msg) {
+ const toast = document.getElementById('toast');
+ toast.innerText = msg;
+ toast.classList.add('show');
+ setTimeout(() => {
+ toast.classList.remove('show');
+ }, 2500);
+ }
+
+ // Redimensionamento
+ window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ composer.setSize(window.innerWidth, window.innerHeight);
+ bloomPass.setSize(window.innerWidth, window.innerHeight);
+ });
+ </script>
+</body>
+</html>
