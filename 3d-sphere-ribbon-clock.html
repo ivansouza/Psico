@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+ <title>Unidirectional 3D Sphere Ribbon Clock</title>
+ <!-- Fonte de 7 segmentos -->
+ <link rel="preconnect" href="https://fonts.googleapis.com" />
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ <link href="https://fonts.googleapis.com/css2?family=Seven+Segment&display=swap" rel="stylesheet" />
+ <style>
+ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+ canvas { display: block; position: fixed; inset: 0; }
+ </style>
+</head>
+<body>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+ <script>
+ // Title: Unidirectional 3D Sphere Ribbon Clock
+ // Description 1: A repeating digital clock flows continuously in one direction along a spherical ribbon.
+ // Description 2: Distance-anchored texture coordinates maintain a perfectly constant scrolling speed.
+ // Description 3: New segments appear continuously while older ribbon sections fade smoothly away.
+ const customStyle = document.createElement("style");
+ customStyle.textContent = "html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;}canvas{display:block;position:fixed;inset:0;}";
+ document.head.appendChild(customStyle);
+ let trailPoints = [];
+ const MAX_POINTS = 5000;
+ const POINT_LIFETIME = 10000;
+ const POINT_FADE_DURATION = 9000;
+ let accumulatedPathDistance = 0;
+ let sphereRadius;
+ let ribbonWidth;
+ const K_MIN = 0.2;
+ const K_MAX = 0.22;
+ let beta = 0;
+ let textTexture;
+ const TEXT_SPEED = 0.18; // Sets the constant clock-flow speed.
+ const TEXT_DIRECTION = 1; // Uses -1 to flow toward the ribbon tip or 1 to reverse it.
+ const TEXTURE_HEIGHT = 128;
+ let lastTimeStr = "";
+ let currentTimeStr = "";
+ let transitionStartTime = 0;
+ const TRANSITION_DURATION = 350;
+ let lastSecond = -1;
+ let fadeShader;
+
+ const vertShader = `
+ precision highp float;
+ attribute vec3 aPosition;
+ attribute vec2 aTexCoord;
+ attribute vec3 aNormal;
+ attribute vec4 aVertexColor;
+ uniform mat4 uModelViewMatrix;
+ uniform mat4 uProjectionMatrix;
+ varying vec2 vTexCoord;
+ varying vec4 vColor;
+ void main(){
+  vec4 viewModelPosition=uModelViewMatrix*vec4(aPosition,1.0);
+  gl_Position=uProjectionMatrix*viewModelPosition;
+  vTexCoord=aTexCoord;
+  vColor=vec4(aVertexColor.rgb,aNormal.x);
+ }
+ `;
+
+ const fragShader = `
+ precision mediump float;
+ varying vec2 vTexCoord;
+ varying vec4 vColor;
+ uniform sampler2D uSampler;
+ void main(){
+  vec4 texColor=texture2D(uSampler,vTexCoord);
+  gl_FragColor=texColor*vColor;
+ }
+ `;
+
+ function setup(){
+  setAttributes("alpha",true);
+  createCanvas(windowWidth,windowHeight,WEBGL);
+  pixelDensity(1);
+  frameRate(60);
+  angleMode(DEGREES);
+  sphereRadius=min(width,height)*0.4;
+  ribbonWidth=min(width,height)*0.14;
+  textTexture=createGraphics(100,TEXTURE_HEIGHT);
+  textTexture.pixelDensity(1);
+  fadeShader=createShader(vertShader,fragShader);
+  currentTimeStr=createTimeString();
+  lastTimeStr=currentTimeStr;
+  lastSecond=second();
+  transitionStartTime=millis()-TRANSITION_DURATION;
+ }
+
+ function windowResized(){
+  resizeCanvas(windowWidth,windowHeight);
+  sphereRadius=min(width,height)*0.4;
+  ribbonWidth=min(width,height)*0.14;
+ }
+
+ function draw(){
+  background(0);
+  let now=millis();
+  let sceneTime=now*0.001;
+  rotateX(sceneTime*6.0);
+  rotateY(sceneTime*9.0);
+  rotateZ(sceneTime*4.8);
+  calculateNewPoint(now);
+  while(trailPoints.length>0&&now-trailPoints[0].createdAt>POINT_LIFETIME){
+   trailPoints.shift();
+  }
+  let gl=drawingContext;
+  push();
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  drawFadingRibbon(trailPoints,ribbonWidth,now);
+  gl.depthMask(true);
+  pop();
+ }
+
+ function calculateNewPoint(now){
+  let pathTime=now*0.001;
+  let k=map(sin(pathTime*90),-1,1,K_MIN,K_MAX);
+  let theta=-pathTime*120;
+  beta-=2.0;
+  let phiModulator=cos(k*beta);
+  let phi=map(phiModulator,-1,1,0,180);
+  let x=sphereRadius*sin(phi)*cos(theta);
+  let y=sphereRadius*sin(phi)*sin(theta);
+  let z=sphereRadius*cos(phi);
+  let newPosition=createVector(x,y,z);
+  if(trailPoints.length>0){
+   let previousPosition=trailPoints[trailPoints.length-1].pos;
+   accumulatedPathDistance+=newPosition.dist(previousPosition);
+  }
+  trailPoints.push({
+   pos:newPosition,
+   createdAt:now,
+   pathDistance:accumulatedPathDistance
+  });
+  if(trailPoints.length>MAX_POINTS){
+   trailPoints.shift();
+  }
+ }
+
+ function createTimeString(){
+  return " "+nf(hour(),2)+":"+nf(minute(),2)+":"+nf(second(),2)+" ";
+ }
+
+ function updateTextTexture(){
+  let timeStr=createTimeString();
+  let currentSec=second();
+  if(currentSec!==lastSecond){
+   lastTimeStr=currentTimeStr;
+   currentTimeStr=timeStr;
+   transitionStartTime=millis();
+   lastSecond=currentSec;
+  }
+  textTexture.textSize(115);
+  textTexture.textStyle(BOLD);
+  // Fonte de 7 segmentos
+  textTexture.textFont("'Seven Segment', monospace");
+  let requiredWidth=Math.ceil(textTexture.textWidth(currentTimeStr));
+  if(textTexture.width!==requiredWidth){
+   textTexture.resizeCanvas(requiredWidth,TEXTURE_HEIGHT);
+   textTexture.pixelDensity(1);
+  }
+  textTexture.clear();
+  textTexture.noStroke();
+  textTexture.textAlign(CENTER,CENTER);
+  textTexture.textSize(115);
+  textTexture.textStyle(BOLD);
+  textTexture.textFont("'Seven Segment', monospace");
+  let progress=constrain((millis()-transitionStartTime)/TRANSITION_DURATION,0,1);
+  if(progress<1){
+   let eased=progress*progress*(3-2*progress);
+   textTexture.fill(255,255*(1-eased));
+   textTexture.text(lastTimeStr,textTexture.width/2,textTexture.height/2);
+   textTexture.fill(255,255*eased);
+   textTexture.text(currentTimeStr,textTexture.width/2,textTexture.height/2);
+  }else{
+   textTexture.fill(255);
+   textTexture.text(currentTimeStr,textTexture.width/2,textTexture.height/2);
+  }
+ }
+
+ function hsbToRgb(h,s,b){
+  h=(h%360+360)%360;
+  s=constrain(s,0,100)/100;
+  b=constrain(b,0,100)/100;
+  let c=b*s;
+  let x=c*(1-abs((h/60)%2-1));
+  let m=b-c;
+  let r=0,g=0,blue=0;
+  if(h<60){r=c;g=x;}
+  else if(h<120){r=x;g=c;}
+  else if(h<180){g=c;blue=x;}
+  else if(h<240){g=x;blue=c;}
+  else if(h<300){r=x;blue=c;}
+  else{r=c;blue=x;}
+  return [
+   Math.round((r+m)*255),
+   Math.round((g+m)*255),
+   Math.round((blue+m)*255)
+  ];
+ }
+
+ function drawFadingRibbon(pointsArray,targetWidth,now){
+  if(pointsArray.length<2)return;
+  updateTextTexture();
+  noStroke();
+  textureMode(NORMAL);
+  textureWrap(REPEAT,REPEAT);
+  shader(fadeShader);
+  fadeShader.setUniform("uSampler",textTexture);
+  let textScaleLength=targetWidth*(textTexture.width/textTexture.height);
+  let uOffset=now*0.001*TEXT_SPEED*TEXT_DIRECTION;
+  beginShape(TRIANGLE_STRIP);
+  for(let i=0;i<pointsArray.length;i++){
+   let point=pointsArray[i];
+   let age=now-point.createdAt;
+   let alphaValue=constrain(1-age/POINT_FADE_DURATION,0,1);
+   alphaValue=alphaValue*alphaValue*(3-2*alphaValue);
+   let hue=(now*0.06+i*0.2)%360;
+   let rgb=hsbToRgb(hue,90,90);
+   fill(rgb[0],rgb[1],rgb[2],255);
+   normal(alphaValue,0,0);
+   let position=point.pos;
+   let previousPosition=i>0?pointsArray[i-1].pos:position;
+   let nextPosition=i<pointsArray.length-1?pointsArray[i+1].pos:position;
+   let direction=p5.Vector.sub(nextPosition,previousPosition);
+   let surfaceNormal=position.copy().normalize();
+   let perpendicular=direction.cross(surfaceNormal);
+   if(perpendicular.magSq()>0.000001){
+    perpendicular.normalize();
+   }else{
+    perpendicular.set(1,0,0);
+   }
+   perpendicular.mult(targetWidth/2);
+   let edge1=p5.Vector.sub(position,perpendicular);
+   let edge2=p5.Vector.add(position,perpendicular);
+   let u=point.pathDistance/textScaleLength+uOffset;
+   vertex(edge1.x,edge1.y,edge1.z,u,1);
+   vertex(edge2.x,edge2.y,edge2.z,u,0);
+  }
+  endShape();
+  resetShader();
+ }
+ </script>
+</body>
+</html>
