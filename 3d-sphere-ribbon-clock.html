@@ -44,6 +44,19 @@
  let lastSecond = -1;
  let fadeShader;
 
+ // --- Controles touch (celular) ---
+ let touchRotX = 0;
+ let touchRotY = 0;
+ let touchZoom = 1;
+ let touchZoomTarget = 1;
+ let lastTouchDist = 0;
+ let lastTouchX = 0;
+ let lastTouchY = 0;
+ let isTouching = false;
+ let isPinching = false;
+ const MIN_ZOOM = 0.5;
+ const MAX_ZOOM = 3.0;
+
  const vertShader = `
  precision highp float;
  attribute vec3 aPosition;
@@ -96,12 +109,55 @@
   ribbonWidth=min(width,height)*0.14;
  }
 
+ function touchStarted(){
+  if(touches.length===1){
+   isTouching=true;
+   isPinching=false;
+   lastTouchX=touches[0].x;
+   lastTouchY=touches[0].y;
+  }else if(touches.length>=2){
+   isPinching=true;
+   lastTouchDist=dist(touches[0].x,touches[0].y,touches[1].x,touches[1].y);
+  }
+  return false;
+ }
+
+ function touchMoved(){
+  if(touches.length===1&&!isPinching){
+   let dx=touches[0].x-lastTouchX;
+   let dy=touches[0].y-lastTouchY;
+   touchRotY+=dx*0.4;
+   touchRotX+=dy*0.4;
+   lastTouchX=touches[0].x;
+   lastTouchY=touches[0].y;
+  }else if(touches.length>=2){
+   let d=dist(touches[0].x,touches[0].y,touches[1].x,touches[1].y);
+   if(lastTouchDist>0){
+    touchZoomTarget*=d/lastTouchDist;
+    touchZoomTarget=constrain(touchZoomTarget,MIN_ZOOM,MAX_ZOOM);
+   }
+   lastTouchDist=d;
+  }
+  return false;
+ }
+
+ function touchEnded(){
+  isTouching=false;
+  isPinching=false;
+  lastTouchDist=0;
+  return false;
+ }
+
  function draw(){
   background(0);
   let now=millis();
   let sceneTime=now*0.001;
-  rotateX(sceneTime*6.0);
-  rotateY(sceneTime*9.0);
+  // Zoom suave (pinch)
+  touchZoom+=(touchZoomTarget-touchZoom)*0.1;
+  scale(touchZoom);
+  // Rotação por arrasto + rotação automática
+  rotateX(sceneTime*6.0+touchRotX);
+  rotateY(sceneTime*9.0+touchRotY);
   rotateZ(sceneTime*4.8);
   calculateNewPoint(now);
   while(trailPoints.length>0&&now-trailPoints[0].createdAt>POINT_LIFETIME){
