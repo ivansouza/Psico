@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Círculos & Órbitas Estelares — Estúdio Interativo Three.js</title>
+  
+  <!-- Tailwind CSS para interface responsiva estilo Glassmorphism -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      color: #fff;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    
+    /* Scrollbar personalizada para o painel de controlo */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+    /* Estilo Glassmorphism para a UI */
+    .glass-panel {
+      background: rgba(12, 16, 26, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+    }
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+    .glass-btn.active {
+      background: rgba(59, 130, 246, 0.45);
+      border-color: rgba(96, 165, 250, 0.85);
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.6);
+    }
+    
+    /* Personalização dos Controlos */
+    input[type="range"] {
+      accent-color: #60a5fa;
+    }
+  </style>
+</head>
+<body class="relative min-h-screen">
+
+  <!-- Container Principal WebGL -->
+  <div id="canvas-container" class="absolute inset-0"></div>
+
+  <!-- Cabeçalho Flutuante com Indicador de Estado -->
+  <header class="absolute top-4 left-4 z-10 pointer-events-none flex items-center gap-3">
+    <div class="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3 shadow-lg pointer-events-auto">
+      <div id="status-dot" class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_12px_#22d3ee]"></div>
+      <div>
+        <h1 class="text-sm font-semibold tracking-wide text-white">Órbitas Estelares Radiantes</h1>
+        <p id="status-text" class="text-[11px] text-cyan-300 font-medium">Estrelas Brilhantes • Movimento Ativo</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Barra de Ações Rápidas -->
+  <div class="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 glass-panel p-2 rounded-2xl shadow-2xl">
+    <button id="btn-play-pause" class="glass-btn p-2.5 rounded-xl text-white flex items-center gap-2 text-xs font-medium" title="Pausar / Iniciar Movimento">
+      <svg id="icon-pause" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <svg id="icon-play" class="w-4 h-4 text-emerald-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span id="label-play" class="hidden sm:inline">Pausar</span>
+    </button>
+
+    <div class="h-5 w-[1px] bg-white/10 mx-1"></div>
+
+    <button id="btn-cam-mode" class="glass-btn p-2.5 rounded-xl text-white flex items-center gap-2 text-xs font-medium" title="Alternar Câmara 2D / 3D">
+      <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      <span id="cam-label" class="hidden sm:inline">Visão: 2D</span>
+    </button>
+
+    <button id="btn-screenshot" class="glass-btn p-2.5 rounded-xl text-white flex items-center gap-2 text-xs font-medium" title="Guardar Imagem HD">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3" stroke-width="2"/></svg>
+      <span class="hidden sm:inline">Capturar PNG</span>
+    </button>
+
+    <div class="h-5 w-[1px] bg-white/10 mx-1"></div>
+
+    <button id="btn-toggle-panel" class="glass-btn p-2.5 rounded-xl text-white flex items-center gap-2 text-xs font-medium" title="Painel de Definições">
+      <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+      <span class="hidden sm:inline">Ajustes</span>
+    </button>
+  </div>
+
+  <!-- Indicação Tátil de Navegação 3D -->
+  <div id="hint-3d" class="absolute bottom-20 left-1/2 -translate-x-1/2 z-0 opacity-0 transition-opacity duration-500 pointer-events-none text-xs text-blue-200/80 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">
+    💡 Arraste com o cursor ou dedo para explorar a perspetiva 3D
+  </div>
+
+  <!-- Painel de Definições e Controlo de Movimento (Inicia Oculto/Fechado) -->
+  <aside id="controls-panel" class="absolute top-4 right-4 z-20 w-80 max-h-[calc(100vh-2rem)] glass-panel rounded-3xl p-5 overflow-y-auto flex flex-col gap-5 transition-all duration-300 transform translate-x-[calc(100%+2rem)] shadow-2xl">
+    
+    <!-- Topo do Painel -->
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+        <h2 class="font-semibold text-sm tracking-wide">Brilho & Estrelas</h2>
+      </div>
+      <button id="btn-close-panel" class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Modos Pré-definidos -->
+    <div class="flex flex-col gap-2">
+      <label class="text-xs font-medium text-gray-300">Estilos Predefinidos</label>
+      <div class="grid grid-cols-2 gap-1.5">
+        <button data-preset="cyber" class="btn-preset glass-btn py-1.5 px-2 rounded-xl text-[11px] text-gray-200 hover:text-white text-left truncate active">🌆 Supernova Cyber</button>
+        <button data-preset="gold" class="btn-preset glass-btn py-1.5 px-2 rounded-xl text-[11px] text-gray-200 hover:text-white text-left truncate">✨ Sol Dourado</button>
+        <button data-preset="aurora" class="btn-preset glass-btn py-1.5 px-2 rounded-xl text-[11px] text-gray-200 hover:text-white text-left truncate">🌌 Aurora Boreal</button>
+        <button data-preset="rainbow" class="btn-preset glass-btn py-1.5 px-2 rounded-xl text-[11px] text-gray-200 hover:text-white text-left truncate">🌈 Espectro Total</button>
+        <button data-preset="classic" class="btn-preset glass-btn py-1.5 px-2 rounded-xl text-[11px] text-gray-200 hover:text-white text-left truncate">⚪ Estelar Puro</button>
+        <button data-preset="minimal" class="btn-preset glass-btn py-1.5 px-2 rounded-xl text-[11px] text-gray-200 hover:text-white text-left truncate">🔲 Minimalista</button>
+      </div>
+    </div>
+
+    <!-- Secção: Estilo & Brilho das Estrelas -->
+    <div class="flex flex-col gap-3 border-t border-white/10 pt-3">
+      <span class="text-xs font-semibold text-cyan-400 tracking-wider uppercase">Luminosidade & Dimensão</span>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Tamanho das Estrelas Móveis</span>
+          <span id="val-pointsize" class="font-mono text-cyan-300">3.2x</span>
+        </div>
+        <input id="input-pointsize" type="range" min="0.5" max="5.0" step="0.1" value="3.2" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Intensidade do Brilho (Glow Halo)</span>
+          <span id="val-glow" class="font-mono text-cyan-300">0.90</span>
+        </div>
+        <input id="input-glow" type="range" min="0.1" max="1.0" step="0.05" value="0.90" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Paleta de Cores</span>
+        </div>
+        <select id="select-palette" class="w-full bg-black/60 border border-white/15 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400">
+          <option value="cyber" selected>🌆 Cyberpunk (Ciano & Magenta Incandescente)</option>
+          <option value="gold">✨ Ouro & Âmbar Radiante</option>
+          <option value="aurora">🌌 Aurora Boreal (Verde & Violeta)</option>
+          <option value="rainbow">🌈 Espectro Prismático</option>
+          <option value="fire">🔥 Chama Synthwave</option>
+          <option value="white">⚪ Branco Puro / Diamante</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Opacidade dos Círculos Guia</span>
+          <span id="val-ringopacity" class="font-mono text-cyan-300">0.20</span>
+        </div>
+        <input id="input-ringopacity" type="range" min="0.0" max="1.0" step="0.05" value="0.20" class="w-full">
+      </div>
+    </div>
+
+    <!-- Secção: Cinemática & Velocidade por Diâmetro -->
+    <div class="flex flex-col gap-3 border-t border-white/10 pt-3">
+      <span class="text-xs font-semibold text-purple-400 tracking-wider uppercase">Cinemática & Órbitas</span>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Velocidade de Rotação Base</span>
+          <span id="val-speed" class="font-mono text-purple-300">1.9x</span>
+        </div>
+        <input id="input-speed" type="range" min="0.1" max="4.0" step="0.1" value="1.9" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Variação de Velocidade x Diâmetro</span>
+        </div>
+        <select id="select-radius-speed" class="w-full bg-black/60 border border-white/15 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-400">
+          <option value="outer_fast" selected>Maiores Mais Rápidos (v ∝ R)</option>
+          <option value="inner_fast">Menores Mais Rápidos (Planetário 1/R)</option>
+          <option value="constant_linear">Velocidade Linear Igual (v = const)</option>
+          <option value="constant_angular">Velocidade Angular Igual (ω = const)</option>
+          <option value="harmonic_radius">Onda Harmónica por Raio</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Intensidade do Efeito Diâmetro</span>
+          <span id="val-radius-speed-factor" class="font-mono text-purple-300">1.0x</span>
+        </div>
+        <input id="input-radius-speed-factor" type="range" min="0.0" max="2.5" step="0.1" value="1.0" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Comprimento do Rasto</span>
+          <span id="val-trail" class="font-mono text-purple-300">5 nós</span>
+        </div>
+        <input id="input-trail" type="range" min="0" max="10" step="1" value="5" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Ondulação Tridimensional (Z-Wave)</span>
+          <span id="val-wave" class="font-mono text-purple-300">0.20</span>
+        </div>
+        <input id="input-wave" type="range" min="0" max="1.5" step="0.05" value="0.20" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Padrão de Sentido da Rotação</span>
+        </div>
+        <select id="select-rotation" class="w-full bg-black/60 border border-white/15 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-400">
+          <option value="harmonic" selected>Onda Harmónica Alternada</option>
+          <option value="alternated">Alternado por Célula</option>
+          <option value="synchronized">Sincronizado (Sentido Único)</option>
+          <option value="outward">Diferencial por Anel</option>
+        </select>
+      </div>
+
+      <div class="flex items-center justify-between py-1">
+        <span class="text-xs text-gray-300">Pulsação Incandescente</span>
+        <input id="check-pulse" type="checkbox" checked class="w-4 h-4 rounded accent-cyan-500 cursor-pointer">
+      </div>
+
+      <div class="flex items-center justify-between py-1">
+        <span class="text-xs text-gray-300">Auto-Rotação da Câmara 3D</span>
+        <input id="check-autorotate" type="checkbox" class="w-4 h-4 rounded accent-cyan-500 cursor-pointer">
+      </div>
+    </div>
+
+    <!-- Secção: Geometria Espacial e Quantidade de Estrelas -->
+    <div class="flex flex-col gap-3 border-t border-white/10 pt-3">
+      <span class="text-xs font-semibold text-blue-400 tracking-wider uppercase">Arranjo da Grade & Densidade</span>
+      
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Dimensão da Grade</span>
+          <span id="val-grid" class="font-mono text-blue-300">3 x 3</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1">
+          <button data-grid="1" class="btn-grid glass-btn py-1 rounded-lg text-xs">1 x 1</button>
+          <button data-grid="3" class="btn-grid glass-btn py-1 rounded-lg text-xs active">3 x 3</button>
+          <button data-grid="5" class="btn-grid glass-btn py-1 rounded-lg text-xs">5 x 5</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Anéis Orbitais por Conjunto</span>
+          <span id="val-rings" class="font-mono text-blue-300">6</span>
+        </div>
+        <input id="input-rings" type="range" min="2" max="10" value="6" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Estrelas por Círculo (Base)</span>
+          <span id="val-points" class="font-mono text-blue-300">10</span>
+        </div>
+        <input id="input-points" type="range" min="3" max="30" value="10" class="w-full">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Distribuição por Diâmetro</span>
+        </div>
+        <select id="select-density" class="w-full bg-black/60 border border-white/15 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-400">
+          <option value="constant" selected>Constante (Igual em todos os anéis)</option>
+          <option value="proportional">Proporcional ao Diâmetro (Mais nos maiores)</option>
+          <option value="inverse">Inversamente Proporcional (Mais nos menores)</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-300">Distância dos Centros</span>
+          <span id="val-spacing" class="font-mono text-blue-300">2.85</span>
+        </div>
+        <input id="input-spacing" type="range" min="1.5" max="4.5" step="0.1" value="2.85" class="w-full">
+      </div>
+    </div>
+
+    <!-- Restauração -->
+    <div class="border-t border-white/10 pt-3">
+      <button id="btn-reset" class="w-full glass-btn py-2 rounded-xl text-xs text-gray-300 hover:text-white flex items-center justify-center gap-2">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Restaurar Valores Padrão
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- Importmap para dependências Three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <!-- Aplicação Principal em JavaScript -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // === Gerador de Textura Procedural de Estrela Radiante ===
+    function createStarTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gradient.addColorStop(0.0,  'rgba(255, 255, 255, 1.0)');
+      gradient.addColorStop(0.15, 'rgba(255, 255, 255, 0.95)');
+      gradient.addColorStop(0.35, 'rgba(220, 240, 255, 0.75)');
+      gradient.addColorStop(0.65, 'rgba(120, 180, 255, 0.35)');
+      gradient.addColorStop(1.0,  'rgba(0, 0, 0, 0.0)');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 128);
+
+      ctx.save();
+      ctx.translate(64, 64);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 3;
+
+      ctx.beginPath();
+      ctx.moveTo(0, -56); ctx.lineTo(0, 56);
+      ctx.moveTo(-56, 0); ctx.lineTo(56, 0);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-35, -35); ctx.lineTo(35, 35);
+      ctx.moveTo(35, -35); ctx.lineTo(-35, 35);
+      ctx.stroke();
+
+      ctx.restore();
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    const starTexture = createStarTexture();
+
+    // === Configuração e Parâmetros Dinâmicos ===
+    const config = {
+      gridSize: 3,             
+      spacing: 2.85,           
+      ringCount: 6,            
+      pointsPerRing: 10,       
+      densityMode: 'constant',   // 'constant', 'proportional', 'inverse'
+      
+      baseSpeed: 1.2,          
+      speedMultiplier: 1.9,     
+      radiusSpeedMode: 'outer_fast', // 'outer_fast', 'inner_fast', 'constant_linear', 'constant_angular', 'harmonic_radius'
+      radiusSpeedFactor: 1.0,   // Intensidade da variação por diâmetro
+      rotationMode: 'harmonic',
+      
+      trailLength: 5,           
+      enablePulse: true,       
+      
+      fixedPointSize: 0.22,
+      movingPointSize: 0.35,   
+      pointSizeScale: 3.2,      
+      ringOpacity: 0.20,        
+      glowOpacity: 0.90,        
+      
+      palette: 'cyber',         
+      waveAmplitude: 0.20,     
+      is3DMode: false,         
+      autoRotate: false,       
+      
+      isPaused: false
+    };
+
+    // === Inicialização do Ambiente Three.js ===
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    let aspect = window.innerWidth / window.innerHeight;
+    const frustum = 13.5;
+
+    // Câmera Ortográfica (Modo 2D)
+    const orthoCamera = new THREE.OrthographicCamera(
+      -frustum * aspect / 2,
+       frustum * aspect / 2,
+       frustum / 2,
+      -frustum / 2,
+      0.1, 100
+    );
+    orthoCamera.position.z = 10;
+
+    // Câmera de Perspetiva (Modo 3D)
+    const perspCamera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
+    perspCamera.position.set(0, -0.01, 14);
+
+    let activeCamera = orthoCamera;
+
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: false,
+      preserveDrawingBuffer: true 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // Controles Orbitais
+    const controls = new OrbitControls(perspCamera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enabled = false;
+    controls.autoRotate = false;
+    controls.autoRotateSpeed = 1.2;
+
+    // === Gestão de Objetos da Cena ===
+    let circlesGroup = new THREE.Group();
+    scene.add(circlesGroup);
+
+    let fixedPointsMesh = null;
+    let movingPointsMesh = null;
+    let glowPointsMesh = null;
+
+    let particles = [];
+    let movingPositions = null;
+    let movingColors = null;
+    let movingGeo = null;
+
+    function getPaletteColor(palette, ringIdx, ringCount, centerIdx, angle) {
+      const color = new THREE.Color();
+      const tRing = ringIdx / Math.max(1, ringCount - 1);
+      
+      switch (palette) {
+        case 'cyber':
+          color.setHSL(0.5 + tRing * 0.35, 1.0, 0.65);
+          break;
+        case 'aurora':
+          color.setHSL(0.35 + tRing * 0.3, 0.95, 0.6);
+          break;
+        case 'gold':
+          color.setHSL(0.08 + tRing * 0.06, 1.0, 0.62 + Math.sin(angle) * 0.1);
+          break;
+        case 'rainbow':
+          color.setHSL((angle / (Math.PI * 2) + tRing * 0.5 + centerIdx * 0.1) % 1.0, 1.0, 0.65);
+          break;
+        case 'fire':
+          color.setHSL(0.02 + tRing * 0.1, 1.0, 0.58 + Math.cos(angle * 2) * 0.15);
+          break;
+        case 'white':
+        default:
+          color.setRGB(1.0, 1.0, 1.0);
+          break;
+      }
+      return color;
+    }
+
+    // === Construção / Reconstrução do Cenário ===
+    function rebuildScene() {
+      while (circlesGroup.children.length > 0) {
+        const child = circlesGroup.children.pop();
+        if (child.geometry) child.geometry.dispose();
+      }
+      if (fixedPointsMesh) { scene.remove(fixedPointsMesh); fixedPointsMesh.geometry.dispose(); }
+      if (movingPointsMesh) { scene.remove(movingPointsMesh); movingPointsMesh.geometry.dispose(); }
+      if (glowPointsMesh) { scene.remove(glowPointsMesh); glowPointsMesh.geometry.dispose(); }
+
+      const RING_RADII = [];
+      for (let r = 0; r < config.ringCount; r++) {
+        RING_RADII.push(0.55 + r * 0.40);
+      }
+
+      const centers = [];
+      const halfGrid = Math.floor(config.gridSize / 2);
+      for (let iy = -halfGrid; iy <= halfGrid; iy++) {
+        for (let ix = -halfGrid; ix <= halfGrid; ix++) {
+          centers.push(new THREE.Vector3(ix * config.spacing, iy * config.spacing, 0));
+        }
+      }
+
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: config.ringOpacity,
+        depthWrite: false
+      });
+
+      const SEGMENTS = 120;
+      centers.forEach(center => {
+        RING_RADII.forEach(r => {
+          const pts = [];
+          for (let i = 0; i <= SEGMENTS; i++) {
+            const a = (i / SEGMENTS) * Math.PI * 2;
+            pts.push(new THREE.Vector3(
+              center.x + Math.cos(a) * r,
+              center.y + Math.sin(a) * r,
+              0
+            ));
+          }
+          const geo = new THREE.BufferGeometry().setFromPoints(pts);
+          const line = new THREE.Line(geo, lineMat);
+          circlesGroup.add(line);
+        });
+      });
+
+      const fixedPositions = [];
+      centers.forEach(c => fixedPositions.push(c.x, c.y, 0));
+
+      const cornerOffset = config.spacing * (halfGrid + 0.55);
+      const corners = [
+        [-cornerOffset,  cornerOffset],
+        [ cornerOffset,  cornerOffset],
+        [-cornerOffset, -cornerOffset],
+        [ cornerOffset, -cornerOffset]
+      ];
+      corners.forEach(([x, y]) => fixedPositions.push(x, y, 0));
+
+      const fixedGeo = new THREE.BufferGeometry();
+      fixedGeo.setAttribute('position', new THREE.Float32BufferAttribute(fixedPositions, 3));
+
+      const fixedMat = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: config.fixedPointSize * config.pointSizeScale,
+        map: starTexture,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      fixedPointsMesh = new THREE.Points(fixedGeo, fixedMat);
+      scene.add(fixedPointsMesh);
+
+      particles = [];
+
+      centers.forEach((center, ci) => {
+        RING_RADII.forEach((r, ri) => {
+          // 1. Determinar número de estrelas para este anel/diâmetro
+          let pointsInThisRing = config.pointsPerRing;
+          const midRadius = 1.35;
+          const normalizedRadius = r / midRadius;
+
+          if (config.densityMode === 'proportional') {
+            pointsInThisRing = Math.max(3, Math.round(config.pointsPerRing * normalizedRadius));
+          } else if (config.densityMode === 'inverse') {
+            pointsInThisRing = Math.max(3, Math.round(config.pointsPerRing * (1 / normalizedRadius)));
+          }
+
+          // 2. Sentido da Rotação
+          let speedDirection = 1;
+          if (config.rotationMode === 'alternated') {
+            speedDirection = (ci % 2 === 0 ? 1 : -1);
+          } else if (config.rotationMode === 'synchronized') {
+            speedDirection = 1;
+          } else if (config.rotationMode === 'outward') {
+            speedDirection = (ri % 2 === 0 ? 1.2 : -0.8);
+          } else if (config.rotationMode === 'harmonic') {
+            speedDirection = Math.sin(ci * 1.5 + ri * 0.8) >= 0 ? 1 : -1;
+          }
+
+          // 3. Fator de variação da velocidade em função do diâmetro
+          let radiusSpeedFactor = 1.0;
+          if (config.radiusSpeedMode === 'outer_fast') {
+            radiusSpeedFactor = Math.pow(normalizedRadius, config.radiusSpeedFactor);
+          } else if (config.radiusSpeedMode === 'inner_fast') {
+            radiusSpeedFactor = Math.pow(1 / normalizedRadius, config.radiusSpeedFactor);
+          } else if (config.radiusSpeedMode === 'constant_linear') {
+            radiusSpeedFactor = 1 / normalizedRadius;
+          } else if (config.radiusSpeedMode === 'constant_angular') {
+            radiusSpeedFactor = 1.0;
+          } else if (config.radiusSpeedMode === 'harmonic_radius') {
+            radiusSpeedFactor = 0.5 + 0.8 * (1 + Math.sin(ri * 1.5 * config.radiusSpeedFactor));
+          }
+
+          const speed = config.baseSpeed * radiusSpeedFactor * speedDirection;
+          const phaseBase = (ci * 0.7 + ri * 1.3) % (Math.PI * 2);
+
+          for (let p = 0; p < pointsInThisRing; p++) {
+            const angle = phaseBase + (p / pointsInThisRing) * Math.PI * 2;
+            particles.push({
+              cx: center.x,
+              cy: center.y,
+              radius: r,
+              angle,
+              speed,
+              ringIdx: ri,
+              centerIdx: ci
+            });
+          }
+        });
+      });
+
+      const totalNodes = particles.length * (1 + config.trailLength);
+      movingPositions = new Float32Array(totalNodes * 3);
+      movingColors = new Float32Array(totalNodes * 3);
+
+      let ptr = 0;
+      particles.forEach(p => {
+        for (let k = 0; k <= config.trailLength; k++) {
+          const kAngle = p.angle - k * 0.05 * Math.sign(p.speed);
+          const x = p.cx + Math.cos(kAngle) * p.radius;
+          const y = p.cy + Math.sin(kAngle) * p.radius;
+
+          movingPositions[ptr * 3]     = x;
+          movingPositions[ptr * 3 + 1] = y;
+          movingPositions[ptr * 3 + 2] = 0;
+
+          const fade = Math.pow(1 - k / (config.trailLength + 1), 1.4);
+          const c = getPaletteColor(config.palette, p.ringIdx, RING_RADII.length, p.centerIdx, kAngle);
+          movingColors[ptr * 3]     = c.r * fade;
+          movingColors[ptr * 3 + 1] = c.g * fade;
+          movingColors[ptr * 3 + 2] = c.b * fade;
+
+          ptr++;
+        }
+      });
+
+      movingGeo = new THREE.BufferGeometry();
+      const posAttribute = new THREE.BufferAttribute(movingPositions, 3);
+      posAttribute.setUsage(THREE.DynamicDrawUsage);
+      movingGeo.setAttribute('position', posAttribute);
+
+      const colAttribute = new THREE.BufferAttribute(movingColors, 3);
+      colAttribute.setUsage(THREE.DynamicDrawUsage);
+      movingGeo.setAttribute('color', colAttribute);
+
+      const movingMat = new THREE.PointsMaterial({
+        size: config.movingPointSize * config.pointSizeScale,
+        map: starTexture,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 1.0,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      movingPointsMesh = new THREE.Points(movingGeo, movingMat);
+      scene.add(movingPointsMesh);
+
+      const glowMat = new THREE.PointsMaterial({
+        size: config.movingPointSize * config.pointSizeScale * 4.5,
+        map: starTexture,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: config.glowOpacity,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      glowPointsMesh = new THREE.Points(movingGeo, glowMat);
+      scene.add(glowPointsMesh);
+    }
+
+    rebuildScene();
+
+    // === Loop Principal de Animação ===
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsedTime = clock.getElapsedTime();
+
+      if (!config.isPaused) {
+        const pos = movingGeo.attributes.position.array;
+        const col = movingGeo.attributes.color.array;
+
+        let ptr = 0;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          
+          p.angle += p.speed * config.speedMultiplier * dt;
+
+          for (let k = 0; k <= config.trailLength; k++) {
+            const trailOffset = k * 0.055 * Math.sign(p.speed);
+            const kAngle = p.angle - trailOffset;
+
+            const idx = ptr * 3;
+            const x = p.cx + Math.cos(kAngle) * p.radius;
+            const y = p.cy + Math.sin(kAngle) * p.radius;
+
+            let z = 0;
+            if (config.waveAmplitude > 0) {
+              z = Math.sin(kAngle * 3.0 + elapsedTime * 2.5 + p.radius * 1.5) * config.waveAmplitude;
+            }
+
+            pos[idx]     = x;
+            pos[idx + 1] = y;
+            pos[idx + 2] = z;
+
+            const fade = Math.pow(1 - k / (config.trailLength + 1), 1.5);
+            let pulse = 1.0;
+            if (config.enablePulse && k === 0) {
+              pulse = 0.8 + 0.4 * Math.sin(elapsedTime * 5.0 + p.ringIdx + p.centerIdx);
+            }
+
+            const c = getPaletteColor(config.palette, p.ringIdx, config.ringCount, p.centerIdx, kAngle);
+            col[idx]     = c.r * fade * pulse;
+            col[idx + 1] = c.g * fade * pulse;
+            col[idx + 2] = c.b * fade * pulse;
+
+            ptr++;
+          }
+        }
+
+        movingGeo.attributes.position.needsUpdate = true;
+        movingGeo.attributes.color.needsUpdate = true;
+      }
+
+      if (config.is3DMode) {
+        controls.update();
+      }
+
+      renderer.render(scene, activeCamera);
+    }
+
+    animate();
+
+    // === Redimensionamento da Janela ===
+    function onWindowResize() {
+      aspect = window.innerWidth / window.innerHeight;
+
+      orthoCamera.left   = -frustum * aspect / 2;
+      orthoCamera.right  =  frustum * aspect / 2;
+      orthoCamera.top    =  frustum / 2;
+      orthoCamera.bottom = -frustum / 2;
+      orthoCamera.updateProjectionMatrix();
+
+      perspCamera.aspect = aspect;
+      perspCamera.updateProjectionMatrix();
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onWindowResize);
+
+    // === Controlos da UI ===
+    const btnTogglePanel = document.getElementById('btn-toggle-panel');
+    const btnClosePanel  = document.getElementById('btn-close-panel');
+    const controlsPanel  = document.getElementById('controls-panel');
+    
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const iconPause    = document.getElementById('icon-pause');
+    const iconPlay     = document.getElementById('icon-play');
+    const labelPlay    = document.getElementById('label-play');
+    const statusDot    = document.getElementById('status-dot');
+    const statusText   = document.getElementById('status-text');
+
+    const btnCamMode = document.getElementById('btn-cam-mode');
+    const camLabel   = document.getElementById('cam-label');
+    const hint3D     = document.getElementById('hint-3d');
+
+    const btnScreenshot = document.getElementById('btn-screenshot');
+    const btnReset      = document.getElementById('btn-reset');
+
+    function togglePanel() {
+      const isClosed = controlsPanel.classList.contains('translate-x-[calc(100%+2rem)]');
+      if (isClosed) {
+        controlsPanel.classList.remove('translate-x-[calc(100%+2rem)]');
+        btnTogglePanel.classList.add('active');
+      } else {
+        controlsPanel.classList.add('translate-x-[calc(100%+2rem)]');
+        btnTogglePanel.classList.remove('active');
+      }
+    }
+
+    btnTogglePanel.addEventListener('click', togglePanel);
+    if (btnClosePanel) {
+      btnClosePanel.addEventListener('click', togglePanel);
+    }
+
+    btnPlayPause.addEventListener('click', () => {
+      config.isPaused = !config.isPaused;
+      if (config.isPaused) {
+        iconPause.classList.add('hidden');
+        iconPlay.classList.remove('hidden');
+        labelPlay.textContent = 'Iniciar';
+        statusDot.className = 'w-3.5 h-3.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_12px_#fbbf24]';
+        statusText.textContent = 'Pausado';
+        statusText.className = 'text-[11px] text-amber-300 font-medium';
+      } else {
+        iconPause.classList.remove('hidden');
+        iconPlay.classList.add('hidden');
+        labelPlay.textContent = 'Pausar';
+        statusDot.className = 'w-3.5 h-3.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_12px_#22d3ee]';
+        statusText.textContent = 'Estrelas Brilhantes • Movimento Ativo';
+        statusText.className = 'text-[11px] text-cyan-300 font-medium';
+      }
+    });
+
+    btnCamMode.addEventListener('click', () => {
+      config.is3DMode = !config.is3DMode;
+      if (config.is3DMode) {
+        activeCamera = perspCamera;
+        controls.enabled = true;
+        camLabel.textContent = 'Visão: 3D Órbita';
+        btnCamMode.classList.add('active');
+        hint3D.classList.remove('opacity-0');
+        hint3D.classList.add('opacity-100');
+      } else {
+        activeCamera = orthoCamera;
+        controls.enabled = false;
+        camLabel.textContent = 'Visão: 2D Ortográfica';
+        btnCamMode.classList.remove('active');
+        hint3D.classList.remove('opacity-100');
+        hint3D.classList.add('opacity-0');
+      }
+    });
+
+    btnScreenshot.addEventListener('click', () => {
+      renderer.render(scene, activeCamera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `circulos-estrelas-radiantes-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+    });
+
+    // Eventos dos Inputs do Painel
+    document.querySelectorAll('.btn-grid').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.btn-grid').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        config.gridSize = parseInt(e.target.dataset.grid);
+        document.getElementById('val-grid').textContent = `${config.gridSize} x ${config.gridSize}`;
+        rebuildScene();
+      });
+    });
+
+    document.getElementById('input-rings').addEventListener('input', (e) => {
+      config.ringCount = parseInt(e.target.value);
+      document.getElementById('val-rings').textContent = config.ringCount;
+      rebuildScene();
+    });
+
+    document.getElementById('input-points').addEventListener('input', (e) => {
+      config.pointsPerRing = parseInt(e.target.value);
+      document.getElementById('val-points').textContent = config.pointsPerRing;
+      rebuildScene();
+    });
+
+    document.getElementById('select-density').addEventListener('change', (e) => {
+      config.densityMode = e.target.value;
+      rebuildScene();
+    });
+
+    document.getElementById('input-spacing').addEventListener('input', (e) => {
+      config.spacing = parseFloat(e.target.value);
+      document.getElementById('val-spacing').textContent = config.spacing.toFixed(2);
+      rebuildScene();
+    });
+
+    document.getElementById('input-pointsize').addEventListener('input', (e) => {
+      config.pointSizeScale = parseFloat(e.target.value);
+      document.getElementById('val-pointsize').textContent = `${config.pointSizeScale.toFixed(1)}x`;
+      if (fixedPointsMesh) fixedPointsMesh.material.size = config.fixedPointSize * config.pointSizeScale;
+      if (movingPointsMesh) movingPointsMesh.material.size = config.movingPointSize * config.pointSizeScale;
+      if (glowPointsMesh) glowPointsMesh.material.size = config.movingPointSize * config.pointSizeScale * 4.5;
+    });
+
+    document.getElementById('input-glow').addEventListener('input', (e) => {
+      config.glowOpacity = parseFloat(e.target.value);
+      document.getElementById('val-glow').textContent = config.glowOpacity.toFixed(2);
+      if (glowPointsMesh) glowPointsMesh.material.opacity = config.glowOpacity;
+    });
+
+    document.getElementById('input-speed').addEventListener('input', (e) => {
+      config.speedMultiplier = parseFloat(e.target.value);
+      document.getElementById('val-speed').textContent = `${config.speedMultiplier.toFixed(1)}x`;
+    });
+
+    document.getElementById('select-radius-speed').addEventListener('change', (e) => {
+      config.radiusSpeedMode = e.target.value;
+      rebuildScene();
+    });
+
+    document.getElementById('input-radius-speed-factor').addEventListener('input', (e) => {
+      config.radiusSpeedFactor = parseFloat(e.target.value);
+      document.getElementById('val-radius-speed-factor').textContent = `${config.radiusSpeedFactor.toFixed(1)}x`;
+      rebuildScene();
+    });
+
+    document.getElementById('input-trail').addEventListener('input', (e) => {
+      config.trailLength = parseInt(e.target.value);
+      document.getElementById('val-trail').textContent = `${config.trailLength} nós`;
+      rebuildScene();
+    });
+
+    document.getElementById('input-wave').addEventListener('input', (e) => {
+      config.waveAmplitude = parseFloat(e.target.value);
+      document.getElementById('val-wave').textContent = config.waveAmplitude.toFixed(2);
+    });
+
+    document.getElementById('select-rotation').addEventListener('change', (e) => {
+      config.rotationMode = e.target.value;
+      rebuildScene();
+    });
+
+    document.getElementById('check-pulse').addEventListener('change', (e) => {
+      config.enablePulse = e.target.checked;
+    });
+
+    document.getElementById('check-autorotate').addEventListener('change', (e) => {
+      config.autoRotate = e.target.checked;
+      controls.autoRotate = config.autoRotate;
+    });
+
+    document.getElementById('select-palette').addEventListener('change', (e) => {
+      config.palette = e.target.value;
+      rebuildScene();
+    });
+
+    document.getElementById('input-ringopacity').addEventListener('input', (e) => {
+      config.ringOpacity = parseFloat(e.target.value);
+      document.getElementById('val-ringopacity').textContent = config.ringOpacity.toFixed(2);
+      circlesGroup.children.forEach(line => {
+        line.material.opacity = config.ringOpacity;
+      });
+    });
+
+    // Presets
+    const presets = {
+      cyber:   { gridSize: 3, ringCount: 6, pointsPerRing: 10, densityMode: 'constant', spacing: 2.85, palette: 'cyber',   pointSizeScale: 3.2, glowOpacity: 0.90, ringOpacity: 0.20, waveAmplitude: 0.20, speedMultiplier: 1.9, radiusSpeedMode: 'outer_fast', radiusSpeedFactor: 1.0, trailLength: 5, rotationMode: 'harmonic' },
+      gold:    { gridSize: 3, ringCount: 5, pointsPerRing: 8,  densityMode: 'proportional', spacing: 2.6, palette: 'gold', pointSizeScale: 2.0, glowOpacity: 0.85, ringOpacity: 0.35, waveAmplitude: 0.15, speedMultiplier: 1.2, radiusSpeedMode: 'inner_fast', radiusSpeedFactor: 1.2, trailLength: 4, rotationMode: 'synchronized' },
+      aurora:  { gridSize: 3, ringCount: 7, pointsPerRing: 12, densityMode: 'constant', spacing: 2.9, palette: 'aurora',  pointSizeScale: 1.8, glowOpacity: 0.70, ringOpacity: 0.30, waveAmplitude: 0.45, speedMultiplier: 1.6, radiusSpeedMode: 'harmonic_radius', radiusSpeedFactor: 1.0, trailLength: 6, rotationMode: 'alternated' },
+      rainbow: { gridSize: 3, ringCount: 8, pointsPerRing: 14, densityMode: 'proportional', spacing: 3.1, palette: 'rainbow', pointSizeScale: 2.2, glowOpacity: 0.80, ringOpacity: 0.25, waveAmplitude: 0.60, speedMultiplier: 1.8, radiusSpeedMode: 'outer_fast', radiusSpeedFactor: 1.5, trailLength: 7, rotationMode: 'harmonic' },
+      classic: { gridSize: 3, ringCount: 6, pointsPerRing: 10, densityMode: 'constant', spacing: 2.85, palette: 'white', pointSizeScale: 1.4, glowOpacity: 0.60, ringOpacity: 0.35, waveAmplitude: 0.0,  speedMultiplier: 1.2, radiusSpeedMode: 'constant_angular', radiusSpeedFactor: 1.0, trailLength: 3, rotationMode: 'alternated' },
+      minimal: { gridSize: 1, ringCount: 8, pointsPerRing: 16, densityMode: 'inverse', spacing: 2.85, palette: 'white', pointSizeScale: 1.1, glowOpacity: 0.50, ringOpacity: 0.30, waveAmplitude: 0.0,  speedMultiplier: 0.8, radiusSpeedMode: 'inner_fast', radiusSpeedFactor: 0.8, trailLength: 2, rotationMode: 'alternated' }
+    };
+
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const presetKey = btn.dataset.preset;
+        const p = presets[presetKey];
+        if (!p) return;
+
+        Object.assign(config, p);
+
+        document.getElementById('val-grid').textContent = `${config.gridSize} x ${config.gridSize}`;
+        document.querySelectorAll('.btn-grid').forEach(b => {
+          b.classList.toggle('active', parseInt(b.dataset.grid) === config.gridSize);
+        });
+
+        document.getElementById('input-rings').value = config.ringCount;
+        document.getElementById('val-rings').textContent = config.ringCount;
+
+        document.getElementById('input-points').value = config.pointsPerRing;
+        document.getElementById('val-points').textContent = config.pointsPerRing;
+
+        document.getElementById('select-density').value = config.densityMode;
+
+        document.getElementById('input-spacing').value = config.spacing;
+        document.getElementById('val-spacing').textContent = config.spacing.toFixed(2);
+
+        document.getElementById('input-pointsize').value = config.pointSizeScale;
+        document.getElementById('val-pointsize').textContent = `${config.pointSizeScale.toFixed(1)}x`;
+
+        document.getElementById('input-glow').value = config.glowOpacity;
+        document.getElementById('val-glow').textContent = config.glowOpacity.toFixed(2);
+
+        document.getElementById('input-ringopacity').value = config.ringOpacity;
+        document.getElementById('val-ringopacity').textContent = config.ringOpacity.toFixed(2);
+
+        document.getElementById('input-speed').value = config.speedMultiplier;
+        document.getElementById('val-speed').textContent = `${config.speedMultiplier.toFixed(1)}x`;
+
+        document.getElementById('select-radius-speed').value = config.radiusSpeedMode;
+        document.getElementById('input-radius-speed-factor').value = config.radiusSpeedFactor;
+        document.getElementById('val-radius-speed-factor').textContent = `${config.radiusSpeedFactor.toFixed(1)}x`;
+
+        document.getElementById('input-trail').value = config.trailLength;
+        document.getElementById('val-trail').textContent = `${config.trailLength} nós`;
+
+        document.getElementById('input-wave').value = config.waveAmplitude;
+        document.getElementById('val-wave').textContent = config.waveAmplitude.toFixed(2);
+
+        document.getElementById('select-palette').value = config.palette;
+
+        rebuildScene();
+      });
+    });
+
+    btnReset.addEventListener('click', () => {
+      const defaultBtn = document.querySelector('[data-preset="cyber"]');
+      if (defaultBtn) defaultBtn.click();
+    });
+
+  </script>
+</body>
+</html>
