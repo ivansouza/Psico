@@ -195,8 +195,8 @@
  <div class="control-group">
  <div class="control-label">Paleta de Cores</div>
  <select id="palette-select">
+ <option value="synthwave" selected>Synthwave (Laranja / Violeta / Magenta)</option>
  <option value="cyberpunk">Cyberpunk (Rosa / Ciano / Dourado)</option>
- <option value="synthwave">Synthwave (Laranja / Violeta / Magenta)</option>
  <option value="emerald">Esmeralda Tóxica (Verde / Turquesa / Amarelo)</option>
  <option value="ocean">Oceano Profundo (Azul Elétrico / Ciano / Roxo)</option>
  <option value="rainbow">Arco-Íris Multicor Completo</option>
@@ -238,8 +238,8 @@
 
  <!-- Iluminação e Bloom (Brilho) -->
  <div class="control-group">
- <div class="control-label">Intensidade do Brilho (Glow) <span id="val-bloom" class="control-value">1.4</span></div>
- <input type="range" id="slider-bloom" min="0.2" max="3.0" step="0.1" value="1.4" />
+ <div class="control-label">Intensidade do Brilho (Glow) <span id="val-bloom" class="control-value">0.4</span></div>
+ <input type="range" id="slider-bloom" min="0.2" max="3.0" step="0.1" value="0.4" />
  </div>
 
  <div class="control-group">
@@ -298,13 +298,13 @@
 
  // ---------- Definições e Estado ----------
  const config = {
- paletteKey: 'cyberpunk',
+ paletteKey: 'synthwave',
  envMode: 'void',
  tubeCount: 6,
  baseRadius: 0.035,
  cycleSpeed: 0.8,
  cycleFreq: 2.0,
- bloomStrength: 1.4,
+ bloomStrength: 0.4,
  bloomRadius: 0.65,
  animSpeed: 1.0,
  autoRotateSpeed: 0.4,
