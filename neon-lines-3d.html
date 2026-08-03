@@ -219,9 +219,9 @@
  <div class="control-group">
  <div class="control-label">Ambiente de Fundo</div>
  <select id="env-select">
+ <option value="floor" selected>Solo Refletor Espelhado</option>
  <option value="void">Espaço Infinito Vazio</option>
  <option value="grid">Grelha Néon Cyberpunk</option>
- <option value="floor">Solo Refletor Espelhado</option>
  </select>
  </div>
 
@@ -299,7 +299,7 @@
  // ---------- Definições e Estado ----------
  const config = {
  paletteKey: 'synthwave',
- envMode: 'void',
+ envMode: 'floor',
  tubeCount: 6,
  baseRadius: 0.035,
  cycleSpeed: 0.8,
@@ -328,7 +328,7 @@
  scene.fog = new THREE.FogExp2(0x030205, 0.035);
 
  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
- camera.position.set(0, 0, 7.5);
+ camera.position.set(0, 0, 16);
 
  const renderer = new THREE.WebGLRenderer({
  antialias: true,
