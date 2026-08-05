@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Estúdio de Fluxo Metálico — Modo Retrato</title>
+  <!-- Tailwind CSS para interface tátil responsiva -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      overflow: hidden;
+      background: #0f0f12;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    canvas { 
+      display: block; 
+      width: 100vw; 
+      height: 100vh; 
+    }
+
+    /* Estilização para desfocagem de fundo (Glassmorphism) */
+    .glass-card {
+      background: rgba(18, 18, 24, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.15s ease;
+    }
+    .glass-btn:active {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(0.96);
+    }
+
+    /* Ocultar barra de deslocamento no carrossel */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Estilização de sliders otimizados para o polegar */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.12);
+      height: 8px;
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="text-slate-100 antialiased selection:bg-sky-500/30">
+
+  <!-- Container do Canvas 3D -->
+  <div id="canvas-container" class="fixed inset-0 w-full h-full z-0"></div>
+
+  <!-- Barra Superior Compacta para Telemóvel -->
+  <header class="fixed top-0 left-0 right-0 p-3 pt-safe flex items-center justify-between z-20 pointer-events-none">
+    <!-- Emblema de Título -->
+    <div class="glass-card px-3.5 py-2 rounded-full flex items-center gap-2.5 pointer-events-auto shadow-lg">
+      <div class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></div>
+      <span class="text-xs font-semibold tracking-wide text-white">Fluxo Metálico</span>
+    </div>
+
+    <!-- Botões de Ação Rápida -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="btn-pause" title="Pausar / Reproduzir" class="glass-card w-10 h-10 rounded-full flex items-center justify-center glass-btn">
+        <svg id="icon-pause" class="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+
+      <button id="btn-screenshot" title="Guardar Foto HD" class="glass-card w-10 h-10 rounded-full flex items-center justify-center glass-btn">
+        <svg class="w-4 h-4 stroke-current text-white fill-none stroke-2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+
+      <button id="btn-toggle-ui" title="Ocultar Interface" class="glass-card w-10 h-10 rounded-full flex items-center justify-center glass-btn">
+        <svg class="w-4 h-4 stroke-current text-white fill-none stroke-2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Gaveta Inferior Otimizada para Modo Retrato (Bottom Sheet) -->
+  <div id="bottom-sheet" class="fixed left-0 right-0 bottom-0 z-30 transition-transform duration-300 ease-out transform translate-y-0">
+    <div class="glass-card rounded-t-3xl border-b-0 px-4 pt-3 pb-8 max-h-[75vh] flex flex-col gap-3 shadow-2xl">
+      
+      <!-- Pega de Arraste da Gaveta -->
+      <button id="sheet-handle" class="w-full flex justify-center py-2 focus:outline-none cursor-grab active:cursor-grabbing">
+        <div class="w-12 h-1.5 bg-white/30 rounded-full"></div>
+      </button>
+
+      <!-- Carrossel de Presets em Deslocamento Horizontal -->
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1" id="preset-carousel">
+        <!-- Injetado por JS -->
+      </div>
+
+      <!-- Separador Discreto -->
+      <div class="h-px bg-white/10 w-full my-0.5"></div>
+
+      <!-- Navegação por Separadores Compactos -->
+      <div class="grid grid-cols-4 gap-1 bg-black/20 p-1 rounded-xl text-xs font-medium">
+        <button class="tab-btn py-2 rounded-lg text-sky-400 bg-white/10 text-center transition-all" data-tab="tab-flow">Ondas</button>
+        <button class="tab-btn py-2 rounded-lg text-slate-400 text-center transition-all" data-tab="tab-material">Material</button>
+        <button class="tab-btn py-2 rounded-lg text-slate-400 text-center transition-all" data-tab="tab-scene">Cena</button>
+        <button class="tab-btn py-2 rounded-lg text-slate-400 text-center transition-all" data-tab="tab-audio">Áudio</button>
+      </div>
+
+      <!-- Conteúdo das Abas -->
+      <div class="overflow-y-auto max-h-[45vh] pr-1 flex flex-col gap-4 text-xs pt-1">
+        
+        <!-- Aba 1: Parâmetros de Ondulação -->
+        <div id="tab-flow" class="tab-content flex flex-col gap-4">
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Velocidade de Fluxo</span>
+              <span id="val-speed" class="text-sky-400 font-mono font-bold">1.0</span>
+            </div>
+            <input type="range" id="input-speed" min="0" max="3" step="0.05" value="1.0" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Altura das Ondas</span>
+              <span id="val-amp" class="text-sky-400 font-mono font-bold">1.0</span>
+            </div>
+            <input type="range" id="input-amp" min="0" max="2.5" step="0.05" value="1.0" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Densidade de Fios</span>
+              <span id="val-freq" class="text-sky-400 font-mono font-bold">11.0</span>
+            </div>
+            <input type="range" id="input-freq" min="2" max="28" step="0.5" value="11.0" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Turbulência Líquida</span>
+              <span id="val-turb" class="text-sky-400 font-mono font-bold">1.0</span>
+            </div>
+            <input type="range" id="input-turb" min="0" max="2" step="0.05" value="1.0" class="w-full">
+          </div>
+        </div>
+
+        <!-- Aba 2: Definições de Material -->
+        <div id="tab-material" class="tab-content flex flex-col gap-4 hidden">
+          <div class="flex items-center justify-between py-1">
+            <span class="text-slate-300">Cor Principal</span>
+            <input type="color" id="input-base-color" value="#d8d8d8" class="w-10 h-10 rounded-xl border-none bg-transparent cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Acabamento Metálico</span>
+              <span id="val-metal" class="text-sky-400 font-mono font-bold">1.0</span>
+            </div>
+            <input type="range" id="input-metal" min="0" max="1" step="0.02" value="1.0" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Rugosidade da Superfície</span>
+              <span id="val-rough" class="text-sky-400 font-mono font-bold">0.12</span>
+            </div>
+            <input type="range" id="input-rough" min="0" max="1" step="0.01" value="0.12" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Efeito Iridescente</span>
+              <span id="val-irid" class="text-sky-400 font-mono font-bold">1.0</span>
+            </div>
+            <input type="range" id="input-irid" min="0" max="1" step="0.05" value="1.0" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Índice Refração (IOR)</span>
+              <span id="val-ior" class="text-sky-400 font-mono font-bold">1.28</span>
+            </div>
+            <input type="range" id="input-ior" min="1.0" max="2.2" step="0.02" value="1.28" class="w-full">
+          </div>
+        </div>
+
+        <!-- Aba 3: Iluminação e Visão -->
+        <div id="tab-scene" class="tab-content flex flex-col gap-4 hidden">
+          <div class="flex items-center justify-between py-1">
+            <span class="text-slate-300">Cor de Fundo</span>
+            <input type="color" id="input-bg-color" value="#3a3a3a" class="w-10 h-10 rounded-xl border-none bg-transparent cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Intensidade de Luz</span>
+              <span id="val-key-light" class="text-sky-400 font-mono font-bold">1.4</span>
+            </div>
+            <input type="range" id="input-key-light" min="0" max="3" step="0.1" value="1.4" class="w-full">
+          </div>
+
+          <div class="flex items-center justify-between py-2 border-t border-white/10">
+            <span class="text-slate-300">Rotação Automática</span>
+            <input type="checkbox" id="input-auto-rotate" class="w-5 h-5 rounded accent-sky-400">
+          </div>
+
+          <button id="btn-reset-cam" class="w-full glass-btn py-3 rounded-xl font-medium text-center text-white">
+            Centrar Câmera no Telemóvel
+          </button>
+        </div>
+
+        <!-- Aba 4: Reatividade Sonora -->
+        <div id="tab-audio" class="tab-content flex flex-col gap-3 hidden">
+          <p class="text-slate-400 leading-relaxed">Sincronize a fluidez do metal com o som ambiente ou com o microfone do telemóvel.</p>
+
+          <button id="btn-toggle-synth" class="w-full glass-btn py-3 rounded-xl font-semibold text-sky-300 flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            <span id="txt-synth">Ativar Ritmo Interno</span>
+          </button>
+
+          <button id="btn-toggle-mic" class="w-full glass-btn py-3 rounded-xl font-semibold text-emerald-300 flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span id="txt-mic">Activar Microfone</span>
+          </button>
+
+          <div class="pt-2">
+            <div class="flex justify-between mb-1.5 text-slate-300">
+              <span>Sensibilidade do Som</span>
+              <span id="val-audio-sens" class="text-sky-400 font-mono font-bold">1.2</span>
+            </div>
+            <input type="range" id="input-audio-sens" min="0.2" max="3" step="0.1" value="1.2" class="w-full">
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Caixa de Notificação Toast -->
+  <div id="toast-msg" class="fixed top-16 left-1/2 -translate-x-1/2 glass-card px-4 py-2.5 rounded-full text-xs font-medium text-white opacity-0 transition-all duration-300 pointer-events-none z-40 border-sky-400/30 shadow-xl">
+    Notificação
+  </div>
+
+  <!-- Importações do Three.js via ES Modules -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ── Presets Visuais Otimizados ──────────────────────────────
+    const PRESETS = {
+      silver: { name: 'Cromo Prata', color: '#d8d8d8', metal: 1.0, rough: 0.12, irid: 1.0, ior: 1.28, speed: 1.0, amp: 1.0 },
+      oil: { name: 'Óleo Iridescente', color: '#101015', metal: 0.95, rough: 0.08, irid: 1.0, ior: 1.65, speed: 0.8, amp: 1.2 },
+      gold: { name: 'Ouro Fundido', color: '#f5bd42', metal: 1.0, rough: 0.15, irid: 0.45, ior: 1.35, speed: 0.7, amp: 0.9 },
+      pearl: { name: 'Pérola Mística', color: '#e2e7f7', metal: 0.8, rough: 0.06, irid: 1.0, ior: 1.40, speed: 0.9, amp: 1.1 },
+      cyber: { name: 'Neon Ciberpunk', color: '#150a21', metal: 0.9, rough: 0.1, irid: 1.0, ior: 1.9, speed: 1.4, amp: 1.3 },
+      rose: { name: 'Mercúrio Rosa', color: '#f4a4a4', metal: 1.0, rough: 0.1, irid: 0.75, ior: 1.3, speed: 1.1, amp: 1.0 }
+    };
+
+    // ── Configuração da Cena 3D ──────────────────────────────────
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x3a3a3a);
+    scene.fog = new THREE.Fog(0x3a3a3a, 6, 18);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+    
+    // Função para enquadrar perfeitamente em modo retrato
+    function updateCameraAspect() {
+      const aspect = window.innerWidth / window.innerHeight;
+      camera.aspect = aspect;
+      if (aspect < 1.0) {
+        // Ajuste de distância em modo retrato (vertical)
+        camera.position.set(0, 2.2, 9.2);
+      } else {
+        // Modo paisagem (horizontal)
+        camera.position.set(0, 1.8, 7.5);
+      }
+      camera.updateProjectionMatrix();
+    }
+    updateCameraAspect();
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 3;
+    controls.maxDistance = 15;
+    controls.target.set(0, -0.3, 0);
+    controls.update();
+
+    // Ambiente HDRI para reflexos realistas
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environmentIntensity = 1.1;
+
+    // Iluminação Direcionada
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    keyLight.position.set(4, 6, 5);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xb0c4de, 0.35);
+    fillLight.position.set(-5, 2, -3);
+    scene.add(fillLight);
+
+    // ── Geometria e Shader em GPU ────────────────────────────────
+    const SEG = 260; // Malha adaptada para desempenho em telemóveis
+    const geometry = new THREE.PlaneGeometry(10, 11, SEG, SEG);
+    geometry.rotateX(-Math.PI / 2);
+
+    const customUniforms = {
+      uTime: { value: 0 },
+      uSpeed: { value: 1.0 },
+      uAmp: { value: 1.0 },
+      uThreadFreq: { value: 11.0 },
+      uTurbulence: { value: 1.0 },
+      uTouch: { value: new THREE.Vector3(999, 999, 999) },
+      uTouchPower: { value: 0 },
+      uAudioLevel: { value: 0 }
+    };
+
+    function attachCustomShader(baseMaterial, layerOffset = 0) {
+      baseMaterial.onBeforeCompile = (shader) => {
+        shader.uniforms.uTime = customUniforms.uTime;
+        shader.uniforms.uSpeed = customUniforms.uSpeed;
+        shader.uniforms.uAmp = customUniforms.uAmp;
+        shader.uniforms.uThreadFreq = customUniforms.uThreadFreq;
+        shader.uniforms.uTurbulence = customUniforms.uTurbulence;
+        shader.uniforms.uTouch = customUniforms.uTouch;
+        shader.uniforms.uTouchPower = customUniforms.uTouchPower;
+        shader.uniforms.uAudioLevel = customUniforms.uAudioLevel;
+
+        // Injetar declaração de uniforms no início do vertex shader
+        shader.vertexShader = `
+          uniform float uTime;
+          uniform float uSpeed;
+          uniform float uAmp;
+          uniform float uThreadFreq;
+          uniform float uTurbulence;
+          uniform vec3 uTouch;
+          uniform float uTouchPower;
+          uniform float uAudioLevel;
+
+          float calculateDisplacement(vec3 p) {
+            float t = uTime * uSpeed + ${layerOffset.toFixed(2)};
+            float x = p.x;
+            float z = p.z;
+
+            float cx = x * 0.82;
+            float cz = z * 0.88 + 0.55;
+            float r = length(vec2(cx, cz));
+            float angle = atan(cz, cx);
+
+            float y = 0.0;
+
+            // Linhas paralelas tipo fios fluídos
+            float threadFreq = uThreadFreq + ${layerOffset.toFixed(2)} * 1.8;
+            float wave = sin(z * 1.8 + t * 0.3) * 0.6;
+            y += sin(x * threadFreq + t * 0.28 + wave) * 0.038;
+            y += sin(x * (threadFreq * 1.85) - t * 0.19 + z * 1.1) * 0.022;
+
+            // Folds e relevo orgânico
+            y += sin(x * 2.6 + t * 0.16) * cos(z * 1.7 - t * 0.11) * 0.16 * uTurbulence;
+            y += sin((x * 0.9 + z) * 1.55 + t * 0.22) * 0.11 * uTurbulence;
+
+            // Formação fluida central (Pulsativa com Áudio)
+            float falloff = exp(-r * r * 0.42);
+            float pulse = sin(r * 4.5 - t * 0.95 + angle * 0.4 + uAudioLevel * 2.2) * 0.48;
+            y += falloff * (0.95 + pulse);
+
+            // Reação ao toque no ecrã tátil
+            if (uTouchPower > 0.001) {
+              float dist = length(vec2(p.x - uTouch.x, p.z - uTouch.z));
+              float ripple = sin(dist * 15.0 - t * 8.0) * exp(-dist * 2.0);
+              y += ripple * 0.45 * uTouchPower;
+            }
+
+            return y * uAmp + (${layerOffset.toFixed(2)} * 0.035);
+          }
+        ` + shader.vertexShader;
+
+        // Substituição do cálculo de normais (beginnormal_vertex é executado primeiro no GLSL)
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <beginnormal_vertex>',
+          `
+          #include <beginnormal_vertex>
+          
+          float eps = 0.015;
+          vec3 pBase = position;
+          pBase.y += calculateDisplacement(pBase);
+
+          vec3 pX = position + vec3(eps, 0.0, 0.0);
+          vec3 pZ = position + vec3(0.0, 0.0, eps);
+          pX.y += calculateDisplacement(pX);
+          pZ.y += calculateDisplacement(pZ);
+
+          vec3 gradX = pX - pBase;
+          vec3 gradZ = pZ - pBase;
+          objectNormal = normalize(cross(gradZ, gradX));
+          `
+        );
+
+        // Substituição da posição final dos vértices (begin_vertex)
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          `
+          #include <begin_vertex>
+          transformed.y += calculateDisplacement(position);
+          `
+        );
+      };
+    }
+
+    // Material Metálico Iridescente
+    const material = new THREE.MeshPhysicalMaterial({
+      color: 0xd8d8d8,
+      metalness: 1.0,
+      roughness: 0.12,
+      iridescence: 1.0,
+      iridescenceIOR: 1.28,
+      iridescenceThicknessRange: [80, 420],
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.08,
+      side: THREE.DoubleSide
+    });
+    attachCustomShader(material, 0);
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.y = -1.2;
+    scene.add(mesh);
+
+    // Camada Dupla Translúcida para Profundidade
+    const mat2 = material.clone();
+    mat2.opacity = 0.45;
+    mat2.transparent = true;
+    mat2.depthWrite = false;
+    attachCustomShader(mat2, 1);
+
+    const mesh2 = new THREE.Mesh(geometry.clone(), mat2);
+    mesh2.position.y = -1.15;
+    mesh2.scale.set(0.98, 1, 0.98);
+    scene.add(mesh2);
+
+    // ── Interação Tátil no Ecrã ─────────────────────────────────
+    const raycaster = new THREE.Raycaster();
+    const touchVec = new THREE.Vector2();
+    let touchPowerTarget = 0;
+
+    function handleTouch(e) {
+      if (e.touches && e.touches.length > 0) {
+        const touch = e.touches[0];
+        touchVec.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        touchVec.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(touchVec, camera);
+        const intersects = raycaster.intersectObject(mesh);
+        if (intersects.length > 0) {
+          customUniforms.uTouch.value.copy(intersects[0].point);
+          touchPowerTarget = 1.0;
+        }
+      }
+    }
+
+    window.addEventListener('touchstart', handleTouch, { passive: true });
+    window.addEventListener('touchmove', handleTouch, { passive: true });
+    window.addEventListener('touchend', () => touchPowerTarget = 0.0);
+
+    // ── Sistema de Áudio ─────────────────────────────────────────
+    let audioCtx, analyser, dataArray;
+    let isSynthActive = false;
+    let isMicActive = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    document.getElementById('btn-toggle-synth').addEventListener('click', () => {
+      initAudio();
+      isSynthActive = !isSynthActive;
+      isMicActive = false;
+      document.getElementById('txt-mic').innerText = 'Activar Microfone';
+      document.getElementById('txt-synth').innerText = isSynthActive ? 'Desativar Ritmo' : 'Ativar Ritmo Interno';
+      showToast(isSynthActive ? 'Ritmo Ativado 🎵' : 'Ritmo Desativado');
+    });
+
+    document.getElementById('btn-toggle-mic').addEventListener('click', async () => {
+      initAudio();
+      if (!isMicActive) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const source = audioCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
+          isMicActive = true;
+          isSynthActive = false;
+          document.getElementById('txt-mic').innerText = 'Desativar Microfone';
+          document.getElementById('txt-synth').innerText = 'Ativar Ritmo Interno';
+          showToast('Microfone Conectado 🎙️');
+        } catch (err) {
+          showToast('Acesso ao Microfone Negado');
+        }
+      } else {
+        isMicActive = false;
+        document.getElementById('txt-mic').innerText = 'Activar Microfone';
+      }
+    });
+
+    // ── Loop de Animação ─────────────────────────────────────────
+    const clock = new THREE.Clock();
+    let isPlaying = true;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      if (isPlaying) {
+        customUniforms.uTime.value += dt;
+        customUniforms.uTouchPower.value += (touchPowerTarget - customUniforms.uTouchPower.value) * 0.12;
+
+        const sens = parseFloat(document.getElementById('input-audio-sens').value);
+        if (isMicActive && analyser) {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const avg = (sum / dataArray.length) / 255;
+          customUniforms.uAudioLevel.value += (avg * sens - customUniforms.uAudioLevel.value) * 0.2;
+        } else if (isSynthActive) {
+          const synthVal = Math.pow(Math.sin(customUniforms.uTime.value * 3.8), 8) * 0.8 * sens;
+          customUniforms.uAudioLevel.value += (synthVal - customUniforms.uAudioLevel.value) * 0.2;
+        } else {
+          customUniforms.uAudioLevel.value *= 0.9;
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // ── Interface de Utilizador e Controles ─────────────────────
+
+    // Carrossel de Presets
+    const carousel = document.getElementById('preset-carousel');
+    Object.keys(PRESETS).forEach((key) => {
+      const p = PRESETS[key];
+      const btn = document.createElement('button');
+      btn.className = 'glass-btn shrink-0 px-3 py-2 rounded-xl text-left flex flex-col gap-1 min-w-[100px]';
+      btn.innerHTML = `
+        <span class="text-[11px] font-semibold text-white">${p.name}</span>
+        <div class="h-1.5 w-full rounded-full" style="background: linear-gradient(90deg, ${p.color}, #38bdf8)"></div>
+      `;
+      btn.onclick = () => applyPreset(key);
+      carousel.appendChild(btn);
+    });
+
+    function applyPreset(key) {
+      const p = PRESETS[key];
+      if (!p) return;
+
+      material.color.set(p.color);
+      material.metalness = p.metal;
+      material.roughness = p.rough;
+      material.iridescence = p.irid;
+      material.iridescenceIOR = p.ior;
+
+      document.getElementById('input-base-color').value = p.color;
+      document.getElementById('input-metal').value = p.metal;
+      document.getElementById('val-metal').innerText = p.metal;
+      document.getElementById('input-rough').value = p.rough;
+      document.getElementById('val-rough').innerText = p.rough;
+
+      customUniforms.uSpeed.value = p.speed;
+      document.getElementById('input-speed').value = p.speed;
+      document.getElementById('val-speed').innerText = p.speed;
+
+      customUniforms.uAmp.value = p.amp;
+      document.getElementById('input-amp').value = p.amp;
+      document.getElementById('val-amp').innerText = p.amp;
+
+      showToast(`Preset: ${p.name}`);
+    }
+
+    // Vinculação de Sliders
+    function bindSlider(id, valId, callback) {
+      const input = document.getElementById(id);
+      const label = document.getElementById(valId);
+      input.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        label.innerText = val;
+        callback(val);
+      });
+    }
+
+    bindSlider('input-speed', 'val-speed', v => customUniforms.uSpeed.value = v);
+    bindSlider('input-amp', 'val-amp', v => customUniforms.uAmp.value = v);
+    bindSlider('input-freq', 'val-freq', v => customUniforms.uThreadFreq.value = v);
+    bindSlider('input-turb', 'val-turb', v => customUniforms.uTurbulence.value = v);
+
+    document.getElementById('input-base-color').addEventListener('input', e => material.color.set(e.target.value));
+    bindSlider('input-metal', 'val-metal', v => material.metalness = v);
+    bindSlider('input-rough', 'val-rough', v => material.roughness = v);
+    bindSlider('input-irid', 'val-irid', v => material.iridescence = v);
+    bindSlider('input-ior', 'val-ior', v => material.iridescenceIOR = v);
+
+    document.getElementById('input-bg-color').addEventListener('input', e => {
+      scene.background.set(e.target.value);
+      scene.fog.color.set(e.target.value);
+    });
+    bindSlider('input-key-light', 'val-key-light', v => keyLight.intensity = v);
+    document.getElementById('input-auto-rotate').addEventListener('change', e => controls.autoRotate = e.target.checked);
+
+    document.getElementById('btn-reset-cam').addEventListener('click', () => {
+      updateCameraAspect();
+      controls.target.set(0, -0.3, 0);
+      controls.update();
+      showToast('Câmera Reajustada');
+    });
+
+    // Navegação entre Separadores
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('text-sky-400', 'bg-white/10');
+          b.classList.add('text-slate-400');
+        });
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+        btn.classList.add('text-sky-400', 'bg-white/10');
+        btn.classList.remove('text-slate-400');
+        document.getElementById(btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // Controle de Gaveta Deslizante (Bottom Sheet) com Gestos
+    const bottomSheet = document.getElementById('bottom-sheet');
+    const handleBtn = document.getElementById('sheet-handle');
+    let isCollapsed = false;
+
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    handleBtn.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    handleBtn.addEventListener('touchmove', (e) => {
+      touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    handleBtn.addEventListener('touchend', () => {
+      if (touchEndY !== 0) {
+        const diff = touchEndY - touchStartY;
+        if (diff > 30) {
+          isCollapsed = true;
+          bottomSheet.style.transform = 'translateY(calc(100% - 65px))';
+        } else if (diff < -30) {
+          isCollapsed = false;
+          bottomSheet.style.transform = 'translateY(0)';
+        }
+        touchStartY = 0;
+        touchEndY = 0;
+      } else {
+        isCollapsed = !isCollapsed;
+        bottomSheet.style.transform = isCollapsed ? 'translateY(calc(100% - 65px))' : 'translateY(0)';
+      }
+    });
+
+    // Botão de Ocultar Interface
+    const btnToggleUi = document.getElementById('btn-toggle-ui');
+    let uiVisible = true;
+
+    btnToggleUi.addEventListener('click', () => {
+      uiVisible = !uiVisible;
+      bottomSheet.style.transform = uiVisible ? (isCollapsed ? 'translateY(calc(100% - 65px))' : 'translateY(0)') : 'translateY(100%)';
+    });
+
+    // Pausar / Continuar
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      document.getElementById('icon-pause').setAttribute('d', isPlaying ? 'M6 19h4V5H6v14zm8-14v14h4V5h-4z' : 'M8 5v14l11-7z');
+      showToast(isPlaying ? 'Animação Retomada' : 'Animação Pausada');
+    });
+
+    // Capturar Foto HD
+    document.getElementById('btn-screenshot').addEventListener('click', () => {
+      renderer.render(scene, camera);
+      const link = document.createElement('a');
+      link.download = `fluxo-retrato-${Date.now()}.png`;
+      link.href = renderer.domElement.toDataURL('image/png');
+      link.click();
+      showToast('Foto Guardada na Galeria 📸');
+    });
+
+    // Função de Notificação Toast
+    let toastTimer;
+    function showToast(msg) {
+      const toast = document.getElementById('toast-msg');
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add('opacity-0'), 2200);
+    }
+
+    // Redimensionamento Dinâmico (Orientação Portrait/Landscape)
+    window.addEventListener('resize', () => {
+      updateCameraAspect();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
