@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Padrão Checkerboard + Plus | Estúdio de Ilusões Visuais</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #181b24;
+      --panel-border: #2a2e3d;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-light: rgba(59, 130, 246, 0.15);
+      --danger: #ef4444;
+      --success: #10b981;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 20px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto 10px auto;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #60a5fa, #a7f3d0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    /* Main Container */
+    .app-container {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1024px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    label span.val {
+      color: #fff;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 6px;
+      border-radius: 3px;
+      background: #2a2e3d;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: #11131a;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: #11131a;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    /* Toggle Switch */
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #2a2e3d;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Action Buttons */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    button.btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button.btn:hover {
+      background: var(--accent-hover);
+    }
+
+    button.btn:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-secondary {
+      background: #2a2e3d;
+      color: var(--text);
+    }
+
+    button.btn-secondary:hover {
+      background: #363b4e;
+    }
+
+    /* Preview Display Area */
+    .preview-area {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .toolbar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--panel-border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .toolbar-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+
+    .canvas-card {
+      background: #ffffff;
+      border-radius: var(--radius);
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      min-height: 420px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      overflow: auto;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      image-rendering: crisp-edges;
+    }
+
+    /* Scientific Explanation Card */
+    .info-card {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-card h3 {
+      font-size: 1rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-card p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .formula-box {
+      background: #0d0f14;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: #6ee7b7;
+      line-height: 1.6;
+      border-left: 3px solid var(--accent);
+      overflow-x: auto;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Laboratório Checkerboard + Plus</h1>
+    <p class="subtitle">Réplica matemática interativa & explorador de percepção visual para ilusões de orientação e contraste</p>
+  </header>
+
+  <div class="app-container">
+    
+    <!-- Painel de Controles -->
+    <div class="controls-panel">
+      
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-grid">Grade</button>
+        <button class="tab-btn" data-tab="tab-symbols">Símbolos (+)</button>
+        <button class="tab-btn" data-tab="tab-colors">Cores</button>
+        <button class="tab-btn" data-tab="tab-illusion">Ilusão</button>
+      </div>
+
+      <!-- TAB 1: GRADE E LAYOUT -->
+      <div class="tab-content active" id="tab-grid">
+        <div class="section-title">Geometria da Grade</div>
+
+        <div class="control-group">
+          <label>Biblioteca de Presets</label>
+          <select id="preset-select">
+            <option value="original">Padrão Original (Münsterberg +)</option>
+            <option value="dense">Grade Densa (Alto Contraste)</option>
+            <option value="diagonal">Símbolos Diagonais (X-Pattern)</option>
+            <option value="dots">Pontos Intersecção (Grid Dots)</option>
+            <option value="wide">Faixas Expandidas</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Colunas (N) <span class="val" id="val-cols">12</span></label>
+          <input type="range" id="cols" min="4" max="28" value="12" step="1">
+        </div>
+
+        <div class="control-group">
+          <label>Tamanho do Quadrado (px) <span class="val" id="val-size">50</span></label>
+          <input type="range" id="size" min="20" max="90" value="50" step="1">
+        </div>
+
+        <div class="control-group">
+          <label>Número de Faixas <span class="val" id="val-bands">3</span></label>
+          <input type="range" id="bands" min="1" max="6" value="3" step="1">
+        </div>
+
+        <div class="control-group">
+          <label>Linhas por Faixa <span class="val" id="val-rows">2</span></label>
+          <input type="range" id="rows" min="1" max="4" value="2" step="1">
+        </div>
+
+        <div class="control-group">
+          <label>Espaçamento entre Faixas (px) <span class="val" id="val-gap">40</span></label>
+          <input type="range" id="gap" min="0" max="100" value="40" step="2">
+        </div>
+
+        <div class="control-group">
+          <label>Fase do Checkerboard (0/1)</label>
+          <input type="range" id="phase" min="0" max="1" value="0" step="1">
+        </div>
+      </div>
+
+      <!-- TAB 2: SÍMBOLOS -->
+      <div class="tab-content" id="tab-symbols">
+        <div class="section-title">Geometria do Sinal +</div>
+
+        <div class="control-group">
+          <label>Formato do Símbolo</label>
+          <select id="symbol-shape">
+            <option value="plus">Sinal de Mais (+)</option>
+            <option value="cross">Cruz Diagonal (×)</option>
+            <option value="circle">Círculo (•)</option>
+            <option value="square">Quadrado (■)</option>
+            <option value="diamond">Losango (♦)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Comprimento do Braço (× tamanho) <span class="val" id="val-arm">0.28</span></label>
+          <input type="range" id="arm" min="0.05" max="0.48" value="0.28" step="0.01">
+        </div>
+
+        <div class="control-group">
+          <label>Espessura do Símbolo (× tamanho) <span class="val" id="val-thick">0.08</span></label>
+          <input type="range" id="thick" min="0.02" max="0.25" value="0.08" step="0.01">
+        </div>
+
+        <div class="control-group">
+          <label>Rotação do Símbolo (graus) <span class="val" id="val-rotate">0°</span></label>
+          <input type="range" id="rotate" min="0" max="90" value="0" step="5">
+        </div>
+
+        <div class="control-group">
+          <label>Inversão Inicial dos Símbolos (0/1)</label>
+          <input type="range" id="signPhase" min="0" max="1" value="0" step="1">
+        </div>
+      </div>
+
+      <!-- TAB 3: CORES -->
+      <div class="tab-content" id="tab-colors">
+        <div class="section-title">Paleta de Cores do Padrão</div>
+
+        <div class="row-2">
+          <div class="control-group">
+            <label>Cinza Claro</label>
+            <input type="color" id="light" value="#b3b3b3">
+          </div>
+          <div class="control-group">
+            <label>Cinza Escuro</label>
+            <input type="color" id="dark" value="#808080">
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="control-group">
+            <label>Símbolo Cor A</label>
+            <input type="color" id="symA" value="#000000">
+          </div>
+          <div class="control-group">
+            <label>Símbolo Cor B</label>
+            <input type="color" id="symB" value="#ffffff">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Fundo da Imagem</label>
+          <input type="color" id="bg-color" value="#ffffff">
+        </div>
+
+        <div class="control-group">
+          <label>Paletas Rápida</label>
+          <select id="color-palette">
+            <option value="custom">Personalizada</option>
+            <option value="classic">Clássica (Original ~179 / ~128)</option>
+            <option value="bw">Preto & Branco Puro</option>
+            <option value="neon">Cyberpunk Neon</option>
+            <option value="sepia">Sépia Vintage</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TAB 4: FERRAMENTAS DE ILUSÃO -->
+      <div class="tab-content" id="tab-illusion">
+        <div class="section-title">Análise de Ilusão de Óptica</div>
+
+        <div class="toggle-row">
+          <label for="toggle-guides">Exibir Linhas de Validação (Guia Vermelha)</label>
+          <label class="switch">
+            <input type="checkbox" id="toggle-guides">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <label for="toggle-hide-plus">Ocultar Símbolos (Apenas Checkerboard)</label>
+          <label class="switch">
+            <input type="checkbox" id="toggle-hide-plus">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-group">
+          <label>Cor das Linhas de Validação</label>
+          <input type="color" id="guide-color" value="#ff0044">
+        </div>
+      </div>
+
+      <!-- Botoes de Ação -->
+      <div class="btn-group">
+        <button id="btn-reset" class="btn btn-secondary">
+          <span>↺</span> Restaurar Padrões Originais
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Area de Pré-visualização -->
+    <div class="preview-area">
+      
+      <div class="toolbar">
+        <div class="toolbar-title">Pré-visualização em Tempo Real (Alta Precisão DPI)</div>
+        <div class="toolbar-actions">
+          <button id="btn-copy" class="btn btn-secondary btn-sm">📋 Copiar PNG</button>
+          <button id="btn-svg" class="btn btn-secondary btn-sm">📐 Exportar SVG</button>
+          <button id="btn-download" class="btn btn-sm">💾 Baixar PNG HD</button>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <canvas id="c"></canvas>
+      </div>
+
+      <div class="info-card">
+        <h3>🔬 Fundamentação Neurocientífica & Matemática</h3>
+        <p>
+          Esta figura demonstra o efeito das <strong>Junções T/X de Alto Contraste</strong> no cérebro humano.
+          Quando pequenos símbolos alternados são posicionados exatamente nas intersecções das linhas de um padrão xadrez, os receptores do córtex visual primário (V1) integram os gradientes de luminância locais, gerando um efeito de <em>tilt perceptivo</em> (inclinação ilusória) ou distorção de curvatura ao longo das linhas retas.
+        </p>
+        
+        <div class="formula-box" id="formula-display">
+          // Coordenada do k-ésimo símbolo nas intersecções horizontais<br>
+          x_k = (k + 1) * S  |  y_m = m * S  (onde S = tamanho do quadrado)<br>
+          cor_simbolo = ((k + m + signPhase) % 2 === 0) ? Cor_A : Cor_B<br>
+          cor_quadrado(i, j) = ((i + j + phase) % 2 === 0) ? CinzaClaro : CinzaEscuro
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast">Ação concluída com sucesso!</div>
+
+  <script>
+    // Elementos do DOM
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const toast = document.getElementById('toast');
+
+    // Mapeamento de Sliders e Inputs
+    const els = {
+      cols: document.getElementById('cols'),
+      size: document.getElementById('size'),
+      bands: document.getElementById('bands'),
+      rows: document.getElementById('rows'),
+      gap: document.getElementById('gap'),
+      phase: document.getElementById('phase'),
+      arm: document.getElementById('arm'),
+      thick: document.getElementById('thick'),
+      rotate: document.getElementById('rotate'),
+      signPhase: document.getElementById('signPhase'),
+      symbolShape: document.getElementById('symbol-shape'),
+      light: document.getElementById('light'),
+      dark: document.getElementById('dark'),
+      symA: document.getElementById('symA'),
+      symB: document.getElementById('symB'),
+      bgColor: document.getElementById('bg-color'),
+      presetSelect: document.getElementById('preset-select'),
+      colorPalette: document.getElementById('color-palette'),
+      toggleGuides: document.getElementById('toggle-guides'),
+      toggleHidePlus: document.getElementById('toggle-hide-plus'),
+      guideColor: document.getElementById('guide-color'),
+      
+      // Labels de valores
+      valCols: document.getElementById('val-cols'),
+      valSize: document.getElementById('val-size'),
+      valBands: document.getElementById('val-bands'),
+      valRows: document.getElementById('val-rows'),
+      valGap: document.getElementById('val-gap'),
+      valArm: document.getElementById('val-arm'),
+      valThick: document.getElementById('val-thick'),
+      valRotate: document.getElementById('val-rotate')
+    };
+
+    // Valores Padrão (Fidéis à análise do Checkerboard + Plus)
+    const defaults = {
+      cols: 12,
+      size: 50,
+      bands: 3,
+      rows: 2,
+      gap: 40,
+      phase: 0,
+      arm: 0.28,
+      thick: 0.08,
+      rotate: 0,
+      signPhase: 0,
+      symbolShape: 'plus',
+      light: '#b3b3b3',
+      dark: '#808080',
+      symA: '#000000',
+      symB: '#ffffff',
+      bgColor: '#ffffff',
+      toggleGuides: false,
+      toggleHidePlus: false,
+      guideColor: '#ff0044'
+    };
+
+    // Função para obter parâmetros atuais
+    function getParams() {
+      return {
+        cols: parseInt(els.cols.value, 10),
+        size: parseInt(els.size.value, 10),
+        bands: parseInt(els.bands.value, 10),
+        rows: parseInt(els.rows.value, 10),
+        gap: parseInt(els.gap.value, 10),
+        phase: parseInt(els.phase.value, 10),
+        arm: parseFloat(els.arm.value),
+        thick: parseFloat(els.thick.value),
+        rotate: parseInt(els.rotate.value, 10),
+        signPhase: parseInt(els.signPhase.value, 10),
+        symbolShape: els.symbolShape.value,
+        light: els.light.value,
+        dark: els.dark.value,
+        symA: els.symA.value,
+        symB: els.symB.value,
+        bgColor: els.bgColor.value,
+        showGuides: els.toggleGuides.checked,
+        hidePlus: els.toggleHidePlus.checked,
+        guideColor: els.guideColor.value
+      };
+    }
+
+    // Atualiza os indicadores de texto
+    function updateLabels(p) {
+      els.valCols.textContent = p.cols;
+      els.valSize.textContent = p.size;
+      els.valBands.textContent = p.bands;
+      els.valRows.textContent = p.rows;
+      els.valGap.textContent = p.gap;
+      els.valArm.textContent = p.arm.toFixed(2);
+      els.valThick.textContent = p.thick.toFixed(2);
+      els.valRotate.textContent = p.rotate + '°';
+    }
+
+    // Exibe notificação Toast
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Gerenciamento de Abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Desenha formas de símbolos (Cruz, Circulo, etc)
+    function drawSymbol(ctx, cx, cy, p, color) {
+      const armLen = p.arm * p.size;
+      const th = Math.max(1, p.thick * p.size);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (p.rotate !== 0) {
+        ctx.rotate((p.rotate * Math.PI) / 180);
+      }
+      ctx.fillStyle = color;
+
+      switch (p.symbolShape) {
+        case 'plus':
+          // Barra horizontal
+          ctx.fillRect(-armLen, -th / 2, armLen * 2, th);
+          // Barra vertical
+          ctx.fillRect(-th / 2, -armLen, th, armLen * 2);
+          break;
+
+        case 'cross':
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-armLen, -th / 2, armLen * 2, th);
+          ctx.fillRect(-th / 2, -armLen, th, armLen * 2);
+          break;
+
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(0, 0, armLen, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+
+        case 'square':
+          ctx.fillRect(-armLen, -armLen, armLen * 2, armLen * 2);
+          break;
+
+        case 'diamond':
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-armLen, -armLen, armLen * 2, armLen * 2);
+          break;
+      }
+
+      ctx.restore();
+    }
+
+    // Desenha uma única faixa do Checkerboard
+    function drawBand(ctx, x0, y0, p, bandIdx) {
+      const S = p.size;
+
+      // 1. Desenha os Quadrados do Checkerboard
+      for (let j = 0; j < p.rows; j++) {
+        for (let i = 0; i < p.cols; i++) {
+          const isLight = ((i + j + p.phase) % 2 === 0);
+          ctx.fillStyle = isLight ? p.light : p.dark;
+          ctx.fillRect(x0 + i * S, y0 + j * S, S, S);
+        }
+      }
+
+      // Se for a primeira faixa e houver mais de uma, a 1ª faixa pode ser mantida pura (sem símbolos)
+      // se for idêntica ao original. Caso contrário, desenha símbolos conforme p.hidePlus.
+      if (p.hidePlus) return;
+      if (bandIdx === 0 && p.bands > 1 && els.presetSelect.value === 'original') return;
+
+      // Determinamos a fase inicial do símbolo para esta faixa
+      // No modelo original:
+      // Faixa 1 (índice 0): Checkerboard Puro
+      // Faixa 2 (índice 1): Começa com Cor A (Preto)
+      // Faixa 3 (índice 2): Inverte e começa com Cor B (Branco)
+      const isStartA = (bandIdx % 2 === (p.signPhase === 0 ? 1 : 0));
+
+      // Desenhar símbolos nas linhas de intersecção internas intermediárias
+      for (let r = 1; r < p.rows; r++) {
+        const midY = y0 + r * S;
+        for (let k = 0; k < p.cols - 1; k++) {
+          const cx = x0 + (k + 1) * S;
+          const isSymA = ((k + (isStartA ? 0 : 1)) % 2 === 0);
+          const color = isSymA ? p.symA : p.symB;
+          drawSymbol(ctx, cx, midY, p, color);
+        }
+      }
+    }
+
+    // Função Principal de Renderização
+    function render() {
+      const p = getParams();
+      updateLabels(p);
+
+      const S = p.size;
+      const bandH = p.rows * S;
+      const totalW = p.cols * S;
+      const totalH = p.bands * bandH + (p.bands - 1) * p.gap;
+
+      // Suporte High-DPI (Retina displays)
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = totalW * dpr;
+      canvas.height = totalH * dpr;
+      canvas.style.width = totalW + 'px';
+      canvas.style.height = totalH + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Limpar Canvas / Fundo
+      ctx.fillStyle = p.bgColor;
+      ctx.fillRect(0, 0, totalW, totalH);
+
+      // Desenhar cada Faixa
+      for (let b = 0; b < p.bands; b++) {
+        const y0 = b * (bandH + p.gap);
+        drawBand(ctx, 0, y0, p, b);
+      }
+
+      // Desenhar Linhas Guia de Validação se ativado
+      if (p.showGuides) {
+        ctx.strokeStyle = p.guideColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+
+        for (let b = 0; b < p.bands; b++) {
+          const y0 = b * (bandH + p.gap);
+          for (let j = 0; j <= p.rows; j++) {
+            const gy = y0 + j * S;
+            ctx.beginPath();
+            ctx.moveTo(0, gy);
+            ctx.lineTo(totalW, gy);
+            ctx.stroke();
+          }
+        }
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Gerador de SVG Vetorial
+    function generateSVG() {
+      const p = getParams();
+      const S = p.size;
+      const bandH = p.rows * S;
+      const totalW = p.cols * S;
+      const totalH = p.bands * bandH + (p.bands - 1) * p.gap;
+
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}">\n`;
+      svg += `  <rect width="100%" height="100%" fill="${p.bgColor}" />\n`;
+
+      for (let b = 0; b < p.bands; b++) {
+        const y0 = b * (bandH + p.gap);
+        
+        // Quadrados
+        for (let j = 0; j < p.rows; j++) {
+          for (let i = 0; i < p.cols; i++) {
+            const isLight = ((i + j + p.phase) % 2 === 0);
+            const color = isLight ? p.light : p.dark;
+            svg += `  <rect x="${i*S}" y="${y0 + j*S}" width="${S}" height="${S}" fill="${color}" />\n`;
+          }
+        }
+
+        // Símbolos
+        if (!p.hidePlus && !(b === 0 && p.bands > 1 && els.presetSelect.value === 'original')) {
+          const isStartA = (b % 2 === (p.signPhase === 0 ? 1 : 0));
+          const armLen = p.arm * S;
+          const th = Math.max(1, p.thick * S);
+
+          for (let r = 1; r < p.rows; r++) {
+            const midY = y0 + r * S;
+            for (let k = 0; k < p.cols - 1; k++) {
+              const cx = (k + 1) * S;
+              const isSymA = ((k + (isStartA ? 0 : 1)) % 2 === 0);
+              const color = isSymA ? p.symA : p.symB;
+
+              if (p.symbolShape === 'plus') {
+                svg += `  <rect x="${cx - armLen}" y="${midY - th/2}" width="${armLen*2}" height="${th}" fill="${color}" />\n`;
+                svg += `  <rect x="${cx - th/2}" y="${midY - armLen}" width="${th}" height="${armLen*2}" fill="${color}" />\n`;
+              } else if (p.symbolShape === 'circle') {
+                svg += `  <circle cx="${cx}" cy="${midY}" r="${armLen}" fill="${color}" />\n`;
+              } else if (p.symbolShape === 'square') {
+                svg += `  <rect x="${cx - armLen}" y="${midY - armLen}" width="${armLen*2}" height="${armLen*2}" fill="${color}" />\n`;
+              }
+            }
+          }
+        }
+      }
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    // Configurações de Presets
+    els.presetSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'original') {
+        els.cols.value = 12;
+        els.size.value = 50;
+        els.bands.value = 3;
+        els.rows.value = 2;
+        els.gap.value = 40;
+        els.arm.value = 0.28;
+        els.thick.value = 0.08;
+        els.rotate.value = 0;
+        els.symbolShape.value = 'plus';
+      } else if (val === 'dense') {
+        els.cols.value = 20;
+        els.size.value = 35;
+        els.bands.value = 4;
+        els.rows.value = 2;
+        els.gap.value = 20;
+        els.arm.value = 0.32;
+        els.thick.value = 0.10;
+        els.symbolShape.value = 'plus';
+      } else if (val === 'diagonal') {
+        els.cols.value = 14;
+        els.size.value = 45;
+        els.bands.value = 3;
+        els.rotate.value = 45;
+        els.symbolShape.value = 'cross';
+      } else if (val === 'dots') {
+        els.cols.value = 16;
+        els.size.value = 40;
+        els.bands.value = 3;
+        els.arm.value = 0.20;
+        els.symbolShape.value = 'circle';
+      }
+      render();
+    });
+
+    // Configurações de Paletas Rápidas
+    els.colorPalette.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'classic') {
+        els.light.value = '#b3b3b3';
+        els.dark.value = '#808080';
+        els.symA.value = '#000000';
+        els.symB.value = '#ffffff';
+      } else if (val === 'bw') {
+        els.light.value = '#ffffff';
+        els.dark.value = '#000000';
+        els.symA.value = '#000000';
+        els.symB.value = '#ffffff';
+      } else if (val === 'neon') {
+        els.light.value = '#1e1b4b';
+        els.dark.value = '#312e81';
+        els.symA.value = '#06b6d4';
+        els.symB.value = '#f43f5e';
+      } else if (val === 'sepia') {
+        els.light.value = '#e2d5c3';
+        els.dark.value = '#9e8971';
+        els.symA.value = '#3e2723';
+        els.symB.value = '#fff8e1';
+      }
+      render();
+    });
+
+    // Registrar Ouvintes de Eventos para Redesenho Instantâneo
+    Object.keys(els).forEach(key => {
+      if (els[key] && els[key].addEventListener) {
+        els[key].addEventListener('input', render);
+        els[key].addEventListener('change', render);
+      }
+    });
+
+    // Restaurar Padrões
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      els.cols.value = defaults.cols;
+      els.size.value = defaults.size;
+      els.bands.value = defaults.bands;
+      els.rows.value = defaults.rows;
+      els.gap.value = defaults.gap;
+      els.phase.value = defaults.phase;
+      els.arm.value = defaults.arm;
+      els.thick.value = defaults.thick;
+      els.rotate.value = defaults.rotate;
+      els.signPhase.value = defaults.signPhase;
+      els.symbolShape.value = defaults.symbolShape;
+      els.light.value = defaults.light;
+      els.dark.value = defaults.dark;
+      els.symA.value = defaults.symA;
+      els.symB.value = defaults.symB;
+      els.bgColor.value = defaults.bgColor;
+      els.toggleGuides.checked = defaults.toggleGuides;
+      els.toggleHidePlus.checked = defaults.toggleHidePlus;
+      els.guideColor.value = defaults.guideColor;
+      els.presetSelect.value = 'original';
+      els.colorPalette.value = 'custom';
+      render();
+      showToast('Parâmetros restaurados para o padrão!');
+    });
+
+    // Baixar Imagem PNG
+    document.getElementById('btn-download').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'checkerboard-plus-illusion.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Imagem PNG exportada com sucesso!');
+    });
+
+    // Exportar Vetor SVG
+    document.getElementById('btn-svg').addEventListener('click', () => {
+      const svgData = generateSVG();
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const link = document.createElement('a');
+      link.download = 'checkerboard-plus.svg';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      showToast('Arquivo Vetorial SVG baixado!');
+    });
+
+    // Copiar Imagem para Área de Transferência
+    document.getElementById('btn-copy').addEventListener('click', () => {
+      canvas.toBlob(blob => {
+        try {
+          navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          showToast('Imagem copiada para a área de transferência!');
+        } catch (e) {
+          showToast('Não foi possível copiar automaticamente.');
+        }
+      });
+    });
+
+    // Renderização Inicial
+    render();
+  </script>
+</body>
+</html>
