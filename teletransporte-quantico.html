@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulação de Teletransporte Quântico</title>
+  <script>
+    // MathJax config
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #38bdf8;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 14px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-num {
+      background: var(--accent);
+      color: #0f172a;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .state-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: 'Cambria Math', 'Times New Roman', serif;
+      font-size: 1.05rem;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+    .qubit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .qubit {
+      background: #0f172a;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .qubit.active {
+      border-color: var(--accent);
+    }
+    .qubit.success {
+      border-color: var(--success);
+    }
+    .qubit h3 {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .qubit .label {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+    .bits {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 12px 0;
+    }
+    .bit {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .bit.set {
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+    .outcome-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .outcome-btns .btn {
+      font-size: 0.9rem;
+      padding: 12px;
+    }
+    .info {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .success-msg {
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .hidden { display: none !important; }
+    .math {
+      font-size: 1.05rem;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    @media (max-width: 600px) {
+      .row, .qubit-grid, .outcome-btns {
+        grid-template-columns: 1fr;
+      }
+      h1 { font-size: 1.45rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Teletransporte Quântico</h1>
+    <p class="subtitle">Simulação didática passo a passo • Protocolo de Bennett et al. (1993)</p>
+
+    <!-- PASSO 1: Estado de Alice -->
+    <div class="card" id="card1">
+      <h2><span class="step-num">1</span> Estado desconhecido de Alice</h2>
+      <p class="info">Defina o estado \( |\psi\rangle = \alpha|0\rangle + \beta|1\rangle \) (números reais para simplicidade).</p>
+      <div class="row">
+        <div>
+          <label for="alpha">α (amplitude de |0⟩)</label>
+          <input type="number" id="alpha" value="0.6" step="0.05" min="-1" max="1">
+        </div>
+        <div>
+          <label for="beta">β (amplitude de |1⟩)</label>
+          <input type="number" id="beta" value="0.8" step="0.05" min="-1" max="1">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn" onclick="normalizeAndSet()">Normalizar e definir</button>
+        <button class="btn btn-secondary" onclick="randomState()">Estado aleatório</button>
+      </div>
+      <div class="state-box" id="psiDisplay">
+        \( |\psi\rangle = \) (defina α e β)
+      </div>
+    </div>
+
+    <!-- PASSO 2: Emaranhamento -->
+    <div class="card" id="card2">
+      <h2><span class="step-num">2</span> Par emaranhado compartilhado</h2>
+      <p class="info">Alice e Bob compartilham o estado de Bell \( |\Phi^+\rangle \).</p>
+      <div class="state-box">
+        \( |\Phi^+\rangle_{AB} = \dfrac{1}{\sqrt{2}} \big( |0_A 0_B\rangle + |1_A 1_B\rangle \big) \)
+      </div>
+      <button class="btn" id="btnEntangle" onclick="createEntanglement()" disabled>Criar emaranhamento</button>
+      <div class="qubit-grid hidden" id="qubits entangle">
+        <div class="qubit" id="qAlicePsi">
+          <h3>Alice – estado</h3>
+          <div class="label">|ψ⟩</div>
+          <div id="qPsiText">—</div>
+        </div>
+        <div class="qubit" id="qAliceEnt">
+          <h3>Alice – emaranhado</h3>
+          <div class="label">A</div>
+          <div id="qAText">—</div>
+        </div>
+        <div class="qubit" id="qBob">
+          <h3>Bob</h3>
+          <div class="label">B</div>
+          <div id="qBText">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 3: Medida de Bell -->
+    <div class="card" id="card3">
+      <h2><span class="step-num">3</span> Medida de Bell (Alice)</h2>
+      <p class="info">Alice mede seus dois qubits na base de Bell. Escolha um resultado para explorar cada caso (cada um ocorre com probabilidade 1/4).</p>
+      <div class="outcome-btns">
+        <button class="btn btn-secondary" id="btn00" onclick="measureBell('00')" disabled>
+          \( |\Phi^+\rangle \) → bits 00
+        </button>
+        <button class="btn btn-secondary" id="btn01" onclick="measureBell('01')" disabled>
+          \( |\Phi^-\rangle \) → bits 01
+        </button>
+        <button class="btn btn-secondary" id="btn10" onclick="measureBell('10')" disabled>
+          \( |\Psi^+\rangle \) → bits 10
+        </button>
+        <button class="btn btn-secondary" id="btn11" onclick="measureBell('11')" disabled>
+          \( |\Psi^-\rangle \) → bits 11
+        </button>
+      </div>
+      <div class="state-box hidden" id="bellResult">
+        —
+      </div>
+    </div>
+
+    <!-- PASSO 4: Bits clássicos -->
+    <div class="card" id="card4">
+      <h2><span class="step-num">4</span> Comunicação clássica</h2>
+      <p class="info">Alice envia os 2 bits clássicos para Bob (canal normal – não é mais rápido que a luz).</p>
+      <div class="bits">
+        <div class="bit" id="bit0">?</div>
+        <div class="bit" id="bit1">?</div>
+      </div>
+      <div class="state-box hidden" id="bobBefore">
+        Estado de Bob <b>antes</b> da correção: —
+      </div>
+    </div>
+
+    <!-- PASSO 5: Correção -->
+    <div class="card" id="card5">
+      <h2><span class="step-num">5</span> Correção de Bob</h2>
+      <p class="info">Bob aplica a porta de Pauli correspondente aos bits recebidos.</p>
+      <div class="state-box" id="correctionInfo">
+        Aguardando medida de Bell...
+      </div>
+      <button class="btn" id="btnCorrect" onclick="applyCorrection()" disabled>Aplicar correção</button>
+      <div class="state-box hidden" id="bobAfter">
+        —
+      </div>
+      <div class="success-msg hidden" id="successMsg">
+        ✓ Teletransporte concluído! O estado de Bob agora é idêntico ao \( |\psi\rangle \) original.
+      </div>
+    </div>
+
+    <div class="btn-group" style="justify-content: center; margin-top: 10px;">
+      <button class="btn btn-secondary" onclick="resetAll()">Reiniciar simulação</button>
+    </div>
+
+    <footer>
+      Simulação educativa • Baseada no protocolo de teletransporte quântico<br>
+      Não há transmissão de informação mais rápida que a luz
+    </footer>
+  </div>
+
+  <script>
+    // Estado global
+    let alpha = 0.6;
+    let beta = 0.8;
+    let entangled = false;
+    let measured = false;
+    let bits = null;
+    let bobStateBefore = null; // {a0, a1} amplitudes after measurement
+    let corrected = false;
+
+    function formatNum(x) {
+      const r = Math.round(x * 1000) / 1000;
+      return r.toString();
+    }
+
+    function stateToString(a, b) {
+      // a|0> + b|1>
+      let s = '';
+      if (Math.abs(a) > 1e-9) {
+        s += (a < 0 ? '−' : '') + formatNum(Math.abs(a)) + '|0⟩';
+      }
+      if (Math.abs(b) > 1e-9) {
+        if (s) s += (b < 0 ? ' − ' : ' + ');
+        else if (b < 0) s += '−';
+        s += formatNum(Math.abs(b)) + '|1⟩';
+      }
+      if (!s) s = '0';
+      return s;
+    }
+
+    function updatePsiDisplay() {
+      const el = document.getElementById('psiDisplay');
+      el.innerHTML = `\\( |\\psi\\rangle = ${stateToString(alpha, beta)} \\)`;
+      if (window.MathJax) MathJax.typesetPromise([el]);
+    }
+
+    function normalizeAndSet() {
+      let a = parseFloat(document.getElementById('alpha').value) || 0;
+      let b = parseFloat(document.getElementById('beta').value) || 0;
+      const norm = Math.sqrt(a*a + b*b);
+      if (norm < 1e-9) {
+        alert('O estado não pode ser nulo. Use valores diferentes de zero.');
+        return;
+      }
+      alpha = a / norm;
+      beta = b / norm;
+      document.getElementById('alpha').value = formatNum(alpha);
+      document.getElementById('beta').value = formatNum(beta);
+      updatePsiDisplay();
+      document.getElementById('btnEntangle').disabled = false;
+      // reset later steps
+      resetFromStep2();
+    }
+
+    function randomState() {
+      // random point on the circle (real amplitudes)
+      const theta = Math.random() * Math.PI; // 0 to π for real positive/negative
+      alpha = Math.cos(theta);
+      beta = Math.sin(theta);
+      // randomly flip signs
+      if (Math.random() < 0.5) alpha = -alpha;
+      if (Math.random() < 0.5) beta = -beta;
+      document.getElementById('alpha').value = formatNum(alpha);
+      document.getElementById('beta').value = formatNum(beta);
+      updatePsiDisplay();
+      document.getElementById('btnEntangle').disabled = false;
+      resetFromStep2();
+    }
+
+    function createEntanglement() {
+      entangled = true;
+      document.getElementById('btnEntangle').disabled = true;
+      const grid = document.getElementById('qubits entangle');
+      grid.classList.remove('hidden');
+      document.getElementById('qPsiText').textContent = stateToString(alpha, beta);
+      document.getElementById('qAText').textContent = 'emaranhado com B';
+      document.getElementById('qBText').textContent = 'emaranhado com A';
+      document.getElementById('qAlicePsi').classList.add('active');
+      document.getElementById('qAliceEnt').classList.add('active');
+      document.getElementById('qBob').classList.add('active');
+
+      // enable Bell buttons
+      ['btn00','btn01','btn10','btn11'].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
+    }
+
+    function measureBell(outcome) {
+      if (!entangled) return;
+      measured = true;
+      bits = outcome;
+
+      // Disable further measurements
+      ['btn00','btn01','btn10','btn11'].forEach(id => {
+        document.getElementById(id).disabled = true;
+      });
+
+      // Highlight chosen button
+      document.getElementById('btn' + outcome).classList.remove('btn-secondary');
+      document.getElementById('btn' + outcome).style.background = 'var(--warning)';
+      document.getElementById('btn' + outcome).style.color = '#0f172a';
+
+      // Determine Bob's state before correction (from the theory)
+      // |Φ+> 00 → α|0> + β|1>
+      // |Φ-> 01 → α|0> − β|1>
+      // |Ψ+> 10 → α|1> + β|0>
+      // |Ψ-> 11 → α|1> − β|0>
+      let a0, a1;
+      if (outcome === '00') {
+        a0 = alpha; a1 = beta;
+      } else if (outcome === '01') {
+        a0 = alpha; a1 = -beta;
+      } else if (outcome === '10') {
+        a0 = beta; a1 = alpha;
+      } else { // 11
+        a0 = -beta; a1 = alpha;  // equivalent to α|1> − β|0> after reordering? Wait:
+        // α|1> − β|0>  → coefficient of |0> is −β, of |1> is α
+        a0 = -beta;
+        a1 = alpha;
+      }
+      bobStateBefore = { a0, a1 };
+
+      // Show result
+      const res = document.getElementById('bellResult');
+      res.classList.remove('hidden');
+      const names = {
+        '00': '|\\Phi^+\\rangle',
+        '01': '|\\Phi^-\\rangle',
+        '10': '|\\Psi^+\\rangle',
+        '11': '|\\Psi^-\\rangle'
+      };
+      res.innerHTML = `Alice obteve ${names[outcome]}. Os dois bits clássicos são <b>${outcome[0]}</b> e <b>${outcome[1]}</b>.<br>
+        O estado original de Alice foi destruído (teorema da não-clonagem).`;
+      if (window.MathJax) MathJax.typesetPromise([res]);
+
+      // Show classical bits
+      document.getElementById('bit0').textContent = outcome[0];
+      document.getElementById('bit1').textContent = outcome[1];
+      document.getElementById('bit0').classList.add('set');
+      document.getElementById('bit1').classList.add('set');
+
+      // Bob before
+      const before = document.getElementById('bobBefore');
+      before.classList.remove('hidden');
+      before.innerHTML = `Estado de Bob <b>antes</b> da correção:<br>\\( ${stateToString(a0, a1)} \\)`;
+      if (window.MathJax) MathJax.typesetPromise([before]);
+
+      // Enable correction
+      document.getElementById('btnCorrect').disabled = false;
+
+      // Update correction info
+      const corrMap = {
+        '00': 'Nenhuma (porta identidade I)',
+        '01': 'Porta Z',
+        '10': 'Porta X',
+        '11': 'Porta X seguida de Z (ou ZX)'
+      };
+      document.getElementById('correctionInfo').innerHTML =
+        `Bits recebidos: <b>${outcome}</b> → Bob deve aplicar: <b>${corrMap[outcome]}</b>`;
+    }
+
+    function applyCorrection() {
+      if (!measured || !bobStateBefore) return;
+      corrected = true;
+      document.getElementById('btnCorrect').disabled = true;
+
+      let { a0, a1 } = bobStateBefore;
+      // Apply the Pauli correction
+      if (bits === '00') {
+        // I – nothing
+      } else if (bits === '01') {
+        // Z: |0> → |0>, |1> → −|1>
+        a1 = -a1;
+      } else if (bits === '10') {
+        // X: swap
+        [a0, a1] = [a1, a0];
+      } else if (bits === '11') {
+        // X then Z (or Z then X with sign)
+        // First X: swap → a0' = a1, a1' = a0
+        // Then Z: a0'' = a0', a1'' = −a1'
+        let t0 = a1;
+        let t1 = a0;
+        a0 = t0;
+        a1 = -t1;
+      }
+
+      // Normalize just in case of floating point
+      const n = Math.sqrt(a0*a0 + a1*a1);
+      a0 /= n; a1 /= n;
+
+      const after = document.getElementById('bobAfter');
+      after.classList.remove('hidden');
+      after.innerHTML = `Estado de Bob <b>depois</b> da correção:<br>\\( ${stateToString(a0, a1)} \\)<br><br>
+        Compare com o original: \\( ${stateToString(alpha, beta)} \\)`;
+      if (window.MathJax) MathJax.typesetPromise([after]);
+
+      document.getElementById('successMsg').classList.remove('hidden');
+      document.getElementById('qBob').classList.add('success');
+      document.getElementById('qBText').textContent = stateToString(a0, a1);
+    }
+
+    function resetFromStep2() {
+      entangled = false;
+      measured = false;
+      bits = null;
+      bobStateBefore = null;
+      corrected = false;
+
+      document.getElementById('btnEntangle').disabled = false;
+      document.getElementById('qubits entangle').classList.add('hidden');
+      ['qAlicePsi','qAliceEnt','qBob'].forEach(id => {
+        document.getElementById(id).classList.remove('active', 'success');
+      });
+
+      ['btn00','btn01','btn10','btn11'].forEach(id => {
+        const b = document.getElementById(id);
+        b.disabled = true;
+        b.classList.add('btn-secondary');
+        b.style.background = '';
+        b.style.color = '';
+      });
+
+      document.getElementById('bellResult').classList.add('hidden');
+      document.getElementById('bit0').textContent = '?';
+      document.getElementById('bit1').textContent = '?';
+      document.getElementById('bit0').classList.remove('set');
+      document.getElementById('bit1').classList.remove('set');
+      document.getElementById('bobBefore').classList.add('hidden');
+      document.getElementById('btnCorrect').disabled = true;
+      document.getElementById('correctionInfo').textContent = 'Aguardando medida de Bell...';
+      document.getElementById('bobAfter').classList.add('hidden');
+      document.getElementById('successMsg').classList.add('hidden');
+    }
+
+    function resetAll() {
+      alpha = 0.6;
+      beta = 0.8;
+      document.getElementById('alpha').value = '0.6';
+      document.getElementById('beta').value = '0.8';
+      updatePsiDisplay();
+      resetFromStep2();
+      document.getElementById('btnEntangle').disabled = true;
+    }
+
+    // Init
+    updatePsiDisplay();
+    // Auto-normalize the default values
+    setTimeout(() => {
+      normalizeAndSet();
+      document.getElementById('btnEntangle').disabled = false;
+    }, 300);
+  </script>
+</body>
+</html>
