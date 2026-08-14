@@ -22,8 +22,8 @@
     }
     canvas {
       display: block;
-      max-width: 100vw;
-      max-height: 100vh;
+      width: 100vw;
+      height: 100vh;
       image-rendering: pixelated;
     }
     .info {
@@ -77,15 +77,15 @@
     let dpr = window.devicePixelRatio || 1;
 
     function resize() {
-      // Calcula o maior tamanho possível mantendo proporção
-      const max = Math.min(window.innerWidth, window.innerHeight) * 0.92;
+      // Ocupa a tela toda: usa a dimensão maior como base do grid
+      const max = Math.max(window.innerWidth, window.innerHeight);
       cell = Math.floor(max / SIZE);
       const side = cell * SIZE;
 
-      canvas.width = side * dpr;
-      canvas.height = side * dpr;
-      canvas.style.width = side + 'px';
-      canvas.style.height = side + 'px';
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
