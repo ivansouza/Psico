@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>tixy shader</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      display: block;
+      max-width: 100vw;
+      max-height: 100vh;
+      image-rendering: pixelated;
+    }
+    .info {
+      position: fixed;
+      bottom: 12px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #444;
+      font-size: 11px;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .code {
+      position: fixed;
+      top: 12px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+      pointer-events: none;
+      padding: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="code">(t,i,x,y) ⇒ sin(hypot(x,y)·(i-128)/71 + t·3)</div>
+  <canvas id="c"></canvas>
+  <div class="info">tixy.land style · toque para fullscreen</div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    // Shader original do post
+    const tixy = (t, i, x, y) => Math.sin(Math.hypot(x, y) * (i - 128) / 71 + t * 3);
+
+    const SIZE = 16;          // grid 16x16
+    let cell = 28;            // tamanho base de cada célula
+    let dpr = window.devicePixelRatio || 1;
+
+    function resize() {
+      // Calcula o maior tamanho possível mantendo proporção
+      const max = Math.min(window.innerWidth, window.innerHeight) * 0.92;
+      cell = Math.floor(max / SIZE);
+      const side = cell * SIZE;
+
+      canvas.width = side * dpr;
+      canvas.height = side * dpr;
+      canvas.style.width = side + 'px';
+      canvas.style.height = side + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Cores fiéis ao tixy original
+    const COLOR_POS = '#ffffff';   // positivo → branco
+    const COLOR_NEG = '#ff2a6d';   // negativo → rosa/vermelho (como no vídeo)
+
+    let start = performance.now();
+
+    function draw(now) {
+      const t = (now - start) / 1000;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const radiusMax = cell * 0.42;
+
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+          const i = y * SIZE + x;
+          const v = tixy(t, i, x, y);
+
+          const abs = Math.min(1, Math.abs(v));
+          if (abs < 0.01) continue;
+
+          const r = radiusMax * abs;
+          const cx = (x + 0.5) * cell;
+          const cy = (y + 0.5) * cell;
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = v >= 0 ? COLOR_POS : COLOR_NEG;
+          ctx.fill();
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+
+    // Fullscreen no toque
+    document.body.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+      }
+    });
+  </script>
+</body>
+</html>
