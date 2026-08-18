@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relógio Spiral Shader</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- p5.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030408;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #e2e8f0;
+    }
+    
+    /* Scrollbars personalizadas */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.5);
+      border-radius: 3px;
+    }
+
+    /* Painel Glassmorphism */
+    .glass-panel {
+      background: rgba(8, 12, 24, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-btn:hover {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(129, 140, 248, 0.5);
+    }
+
+    /* Slider Estilizado */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      height: 5px;
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #818cf8;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(129, 140, 248, 0.8);
+    }
+
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="relative w-full h-full flex items-center justify-center">
+
+  <!-- Display Digital do Horário no Cabeçalho Superior -->
+  <div id="digital-clock-display" class="absolute top-6 left-1/2 -translate-x-1/2 z-20 glass-panel px-6 py-2 rounded-full flex items-center gap-3 shadow-2xl border border-indigo-500/20">
+    <div class="flex items-baseline gap-1 font-mono tracking-wider">
+      <span id="clock-hours" class="text-xl md:text-2xl font-bold text-white">00</span>
+      <span class="text-indigo-400 font-bold animate-pulse">:</span>
+      <span id="clock-minutes" class="text-xl md:text-2xl font-bold text-white">00</span>
+      <span class="text-indigo-400 font-bold animate-pulse">:</span>
+      <span id="clock-seconds" class="text-xl md:text-2xl font-bold text-indigo-400">00</span>
+      <span id="clock-period" class="text-xs ml-1 text-gray-400 font-sans font-semibold">AM</span>
+    </div>
+  </div>
+
+  <!-- Container do Canvas -->
+  <div id="canvas-container" class="relative w-full h-full flex items-center justify-center overflow-hidden"></div>
+
+  <!-- Botão de Menu de Configurações -->
+  <button id="toggle-panel-btn" class="absolute top-5 right-5 z-30 glass-btn text-white w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
+    <i class="fa-solid fa-sliders text-lg"></i>
+  </button>
+
+  <!-- Botão de Modo Imersivo (Ocultar UI) -->
+  <button id="zen-mode-btn" title="Modo Imersivo" class="absolute top-5 left-5 z-30 glass-btn text-white w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
+    <i class="fa-solid fa-expand text-lg"></i>
+  </button>
+
+  <!-- Painel de Configurações do Relógio -->
+  <aside id="control-panel" class="absolute top-0 right-0 h-full w-full sm:w-80 md:w-96 glass-panel z-40 flex flex-col justify-between p-5 transform transition-transform duration-300 ease-in-out overflow-y-auto">
+    <div>
+      <!-- Cabeçalho do Painel -->
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-800">
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Relógio Spiral Shader
+          </h1>
+          <p class="text-xs text-gray-400">Arte Generativa e Marcação Temporal</p>
+        </div>
+        <button id="close-panel-btn" class="text-gray-400 hover:text-white p-2">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Presets Visuais -->
+      <div class="mb-5">
+        <label class="text-xs font-semibold uppercase tracking-wider text-indigo-300 mb-2 block">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Temas do Relógio
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="applyPreset('cyber')" class="glass-btn py-1.5 px-3 rounded text-xs text-left text-gray-200">
+            ⚡ Cyberpunk Neon
+          </button>
+          <button onclick="applyPreset('gold')" class="glass-btn py-1.5 px-3 rounded text-xs text-left text-gray-200">
+            👑 Dourado Luxo
+          </button>
+          <button onclick="applyPreset('minimal')" class="glass-btn py-1.5 px-3 rounded text-xs text-left text-gray-200">
+            ⚪ Minimalista
+          </button>
+          <button onclick="applyPreset('matrix')" class="glass-btn py-1.5 px-3 rounded text-xs text-left text-gray-200">
+            🟢 Matrix Quântico
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Estilo dos Ponteiros -->
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wider text-indigo-300 border-b border-gray-800 pb-1 mb-2 block">
+            <i class="fa-solid fa-clock mr-1"></i> Ponteiros Analógicos
+          </label>
+          <select id="param-hand-style" class="w-full bg-slate-900 border border-gray-700 text-xs rounded p-2 text-gray-200 outline-none focus:border-indigo-500">
+            <option value="cyber">Agulhas Neons Futuras</option>
+            <option value="classic">Clássico Elegante</option>
+            <option value="minimal">Linhas Finas com Nós</option>
+            <option value="energy">Ponteiros Geométricos</option>
+          </select>
+        </div>
+
+        <!-- Movimento do Ponteiro dos Segundos -->
+        <div>
+          <label class="text-xs text-gray-300 mb-1 block">Movimento do Ponteiro de Segundos</label>
+          <select id="param-sweep-mode" class="w-full bg-slate-900 border border-gray-700 text-xs rounded p-2 text-gray-200 outline-none focus:border-indigo-500">
+            <option value="smooth">Contínuo (Suave 60 FPS)</option>
+            <option value="tick">Tic-Tac Tradicional (1 seg)</option>
+          </select>
+        </div>
+
+        <!-- Marcadores Numéricos do Mostrador -->
+        <div>
+          <label class="text-xs text-gray-300 mb-1 block">Marcadores de Horas (Mostrador)</label>
+          <select id="param-markers" class="w-full bg-slate-900 border border-gray-700 text-xs rounded p-2 text-gray-200 outline-none focus:border-indigo-500">
+            <option value="dots">Pontos Neon Luminosos</option>
+            <option value="ticks">Trifos Graduados (12 Horas)</option>
+            <option value="numbers">Números Cardinais (12, 3, 6, 9)</option>
+            <option value="none">Nenhum (Apenas Espiral)</option>
+          </select>
+        </div>
+
+        <!-- Opacidade da Espiral Shader de Fundo -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-300">Intensidade da Espiral Shader</span>
+            <span id="val-spiral-opacity" class="text-indigo-400 font-mono">80%</span>
+          </div>
+          <input type="range" id="param-spiral-opacity" min="0.1" max="1" step="0.05" value="0.8" class="w-full">
+        </div>
+
+        <!-- Velocidade de Rotação da Espiral -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-300">Velocidade da Espiral</span>
+            <span id="val-speed" class="text-indigo-400 font-mono">1.0x</span>
+          </div>
+          <input type="range" id="param-speed" min="0" max="3" step="0.1" value="1" class="w-full">
+        </div>
+
+        <!-- Camadas da Espiral -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-300">Camadas do Shader (z)</span>
+            <span id="val-layers" class="text-indigo-400 font-mono">8</span>
+          </div>
+          <input type="range" id="param-layers" min="2" max="16" step="1" value="8" class="w-full">
+        </div>
+
+        <!-- Esquema de Cores -->
+        <div>
+          <label class="text-xs text-gray-300 mb-1 block">Paleta de Cores do Shader</label>
+          <select id="param-palette" class="w-full bg-slate-900 border border-gray-700 text-xs rounded p-2 text-gray-200 outline-none focus:border-indigo-500">
+            <option value="cyberpunk">Cyberpunk Neon (Ciano/Magenta)</option>
+            <option value="gold">Ouro & Âmbar Imperial</option>
+            <option value="matrix">Matrix Emerald</option>
+            <option value="rainbow">Gradiente Temporal Vivo</option>
+            <option value="monochrome">Monocromático Cristalino</option>
+          </select>
+        </div>
+
+        <!-- Opções Secundárias -->
+        <div class="space-y-2 pt-2 border-t border-gray-800">
+          <!-- Brilho Neon -->
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-300">Efeito de Brilho (Glow)</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="param-glow" class="sr-only peer" checked>
+              <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+
+          <!-- Exibir Relógio Digital -->
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-300">Display Digital Flutuante</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="param-show-digital" class="sr-only peer" checked>
+              <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+
+          <!-- Som de Tic-Tac -->
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-300">Som do Tique-Taque</span>
+            <button id="sound-btn" class="glass-btn px-3 py-1 rounded text-xs text-indigo-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-volume-xmark"></i>
+              <span id="sound-status">Mudo</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="pt-4 border-t border-gray-800 text-center">
+      <p class="text-[10px] text-gray-500">
+        Relógio Analógico Shader • Desenvolvido com p5.js
+      </p>
+    </div>
+  </aside>
+
+  <!-- Script da Aplicação -->
+  <script>
+    // Estado Global das Configurações do Relógio
+    const clockState = {
+      f: 0,
+      speed: 1.0,
+      layers: 8,
+      spiralOpacity: 0.8,
+      palette: 'cyberpunk',
+      handStyle: 'cyber',
+      sweepMode: 'smooth',
+      markers: 'dots',
+      glow: true,
+      showDigital: true,
+      soundEnabled: false,
+
+      // Controle de tempo
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      millis: 0,
+
+      // Efeitos de som
+      audioCtx: null
+    };
+
+    let W = 550;
+
+    function setup() {
+      const container = document.getElementById('canvas-container');
+      const size = Math.min(container.clientWidth - 20, container.clientHeight - 20, 750);
+      W = size;
+
+      const canvas = createCanvas(W, W);
+      canvas.parent('canvas-container');
+      canvas.style('border-radius', '50%'); // Relógio circular
+      canvas.style('box-shadow', '0 0 50px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.8)');
+
+      pixelDensity(window.devicePixelRatio > 1 ? 2 : 1);
+    }
+
+    function draw() {
+      background(3, 4, 8);
+
+      // 1. Atualizar Horário Atual
+      const now = new Date();
+      clockState.hours = now.getHours();
+      clockState.minutes = now.getMinutes();
+      clockState.seconds = now.getSeconds();
+      clockState.millis = now.getMilliseconds();
+
+      // Atualizar Display Digital
+      updateDigitalDisplay();
+
+      // Disparar som de tique-taque
+      checkTickSound();
+
+      // 2. Renderizar Espiral Shader de Fundo
+      drawSpiralShaderBackground();
+
+      // 3. Renderizar Marcadores e Números do Relógio
+      drawClockDial();
+
+      // 4. Renderizar Ponteiros Analógicos (Horas, Minutos, Segundos)
+      drawClockHands();
+
+      // Incremento de frame animado
+      clockState.f += clockState.speed;
+    }
+
+    // --- RENDERIZAÇÃO DO SPIRAL SHADER ---
+    function drawSpiralShaderBackground() {
+      push();
+      translate(width / 2, height / 2);
+
+      const ctx = drawingContext;
+      if (clockState.glow) {
+        ctx.shadowBlur = 12;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+
+      noFill();
+      const layersCount = clockState.layers;
+
+      // Usar os segundos reais para modular ligeiramente o pulso do shader
+      const timePulse = (clockState.seconds + clockState.millis / 1000) * 0.1;
+
+      for (let z = 1; z <= layersCount; z++) {
+        const strokeCol = getShaderColor(z, layersCount, clockState.f, clockState.palette, clockState.spiralOpacity);
+        stroke(strokeCol);
+        if (clockState.glow) ctx.shadowColor = strokeCol;
+
+        strokeWeight((z / 2.2));
+
+        beginShape();
+        // Fórmula matemática do Spiral Shader adaptada
+        const maxR = (W / 2) * 0.92;
+        for (let r = 0; r < maxR; r += 2.5) {
+          let R = Math.floor((r + z * 5) / 45) * 45;
+          let i = r / 30 + (clockState.f * (1 + z / 9)) / 100 + timePulse * 0.05;
+
+          let x = R * cos(i);
+          let y = R * sin(i);
+
+          vertex(x, y);
+        }
+        endShape();
+      }
+      pop();
+    }
+
+    // --- MARCADORES DO MOSTRADOR (12 HORAS) ---
+    function drawClockDial() {
+      if (clockState.markers === 'none') return;
+
+      push();
+      translate(width / 2, height / 2);
+      const radius = (W / 2) * 0.85;
+
+      const ctx = drawingContext;
+      ctx.shadowBlur = clockState.glow ? 10 : 0;
+
+      for (let i = 0; i < 12; i++) {
+        const angle = map(i, 0, 12, 0, TWO_PI) - HALF_PI;
+        const x = radius * cos(angle);
+        const y = radius * sin(angle);
+
+        if (clockState.markers === 'dots') {
+          // Pontos Neon Luminosos
+          const isMain = i % 3 === 0;
+          fill(isMain ? color(255, 255, 255) : getThemePrimaryColor());
+          stroke(isMain ? getThemeAccentColor() : color(255, 255, 255, 100));
+          strokeWeight(1.5);
+          if (clockState.glow) ctx.shadowColor = getThemeAccentColor();
+          circle(x, y, isMain ? 10 : 5);
+        } 
+        else if (clockState.markers === 'ticks') {
+          // Tracos graduados
+          const innerR = radius - (i % 3 === 0 ? 15 : 8);
+          const x1 = innerR * cos(angle);
+          const y1 = innerR * sin(angle);
+          stroke(i % 3 === 0 ? color(255, 255, 255) : getThemePrimaryColor());
+          strokeWeight(i % 3 === 0 ? 3 : 1.5);
+          if (clockState.glow) ctx.shadowColor = getThemeAccentColor();
+          line(x1, y1, x, y);
+        } 
+        else if (clockState.markers === 'numbers') {
+          // Números Cardinais (12, 3, 6, 9)
+          if (i % 3 === 0) {
+            const hourNum = i === 0 ? 12 : i;
+            textAlign(CENTER, CENTER);
+            textSize(W * 0.05);
+            textFont('monospace');
+            fill(255);
+            noStroke();
+            if (clockState.glow) ctx.shadowColor = getThemeAccentColor();
+            text(hourNum, x, y);
+          } else {
+            fill(getThemePrimaryColor());
+            noStroke();
+            circle(x, y, 4);
+          }
+        }
+      }
+      pop();
+    }
+
+    // --- DRAW CLOCK HANDS (PONTEIROS) ---
+    function drawClockHands() {
+      push();
+      translate(width / 2, height / 2);
+
+      // Cálculo preciso dos ângulos
+      const secVal = clockState.sweepMode === 'smooth' 
+        ? clockState.seconds + clockState.millis / 1000 
+        : clockState.seconds;
+
+      const minVal = clockState.minutes + secVal / 60;
+      const hourVal = (clockState.hours % 12) + minVal / 60;
+
+      const secAngle = map(secVal, 0, 60, 0, TWO_PI) - HALF_PI;
+      const minAngle = map(minVal, 0, 60, 0, TWO_PI) - HALF_PI;
+      const hourAngle = map(hourVal, 0, 12, 0, TWO_PI) - HALF_PI;
+
+      const r = W / 2;
+      const hourLen = r * 0.45;
+      const minLen = r * 0.68;
+      const secLen = r * 0.78;
+
+      const ctx = drawingContext;
+
+      if (clockState.handStyle === 'cyber') {
+        // --- ESTILO AGULHAS NEON FUTURAS ---
+        
+        // Ponteiro das Horas
+        drawGlowHand(hourAngle, hourLen, 6, color(255, 255, 255), getThemeAccentColor(), true);
+        
+        // Ponteiro dos Minutos
+        drawGlowHand(minAngle, minLen, 4, getThemePrimaryColor(), getThemeAccentColor(), true);
+        
+        // Ponteiro dos Segundos
+        stroke(255, 50, 120);
+        strokeWeight(2);
+        if (clockState.glow) { ctx.shadowBlur = 15; ctx.shadowColor = '#ff2a75'; }
+        line(-15 * cos(secAngle), -15 * sin(secAngle), secLen * cos(secAngle), secLen * sin(secAngle));
+        fill(255, 50, 120);
+        circle(secLen * cos(secAngle), secLen * sin(secAngle), 6);
+      } 
+      else if (clockState.handStyle === 'classic') {
+        // --- ESTILO CLÁSSICO ELEGANTE ---
+        
+        // Horas
+        stroke(240);
+        strokeWeight(7);
+        strokeCap(ROUND);
+        if (clockState.glow) { ctx.shadowBlur = 10; ctx.shadowColor = '#ffffff'; }
+        line(0, 0, hourLen * cos(hourAngle), hourLen * sin(hourAngle));
+
+        // Minutos
+        stroke(200);
+        strokeWeight(4);
+        line(0, 0, minLen * cos(minAngle), minLen * sin(minAngle));
+
+        // Segundos
+        stroke(239, 68, 68);
+        strokeWeight(1.5);
+        line(-20 * cos(secAngle), -20 * sin(secAngle), secLen * cos(secAngle), secLen * sin(secAngle));
+      } 
+      else if (clockState.handStyle === 'minimal') {
+        // --- LINHAS FINAS COM NÓS ---
+        
+        // Horas
+        stroke(255);
+        strokeWeight(3);
+        line(0, 0, hourLen * cos(hourAngle), hourLen * sin(hourAngle));
+        fill(255);
+        circle(hourLen * cos(hourAngle), hourLen * sin(hourAngle), 8);
+
+        // Minutos
+        stroke(getThemePrimaryColor());
+        strokeWeight(2);
+        line(0, 0, minLen * cos(minAngle), minLen * sin(minAngle));
+        fill(getThemePrimaryColor());
+        circle(minLen * cos(minAngle), minLen * sin(minAngle), 6);
+
+        // Segundos
+        stroke(255, 255, 255, 180);
+        strokeWeight(1);
+        line(0, 0, secLen * cos(secAngle), secLen * sin(secAngle));
+      } 
+      else if (clockState.handStyle === 'energy') {
+        // --- GEOMÉTRICO QUÂNTICO ---
+        
+        // Triângulos de energia para horas e minutos
+        drawPolygonHand(hourAngle, hourLen, 12, getThemePrimaryColor());
+        drawPolygonHand(minAngle, minLen, 8, color(255, 255, 255));
+
+        // Segundos
+        stroke(getThemeAccentColor());
+        strokeWeight(2);
+        line(0, 0, secLen * cos(secAngle), secLen * sin(secAngle));
+      }
+
+      // Centro do Relógio (Pino Central)
+      if (clockState.glow) { ctx.shadowBlur = 15; ctx.shadowColor = '#ffffff'; }
+      fill(255);
+      stroke(0);
+      strokeWeight(2);
+      circle(0, 0, 12);
+      fill(getThemeAccentColor());
+      noStroke();
+      circle(0, 0, 6);
+
+      pop();
+    }
+
+    // Auxiliar: Ponteiro de Linha Brilhante
+    function drawGlowHand(angle, length, weight, strokeCol, glowCol, hasTail = false) {
+      const ctx = drawingContext;
+      stroke(strokeCol);
+      strokeWeight(weight);
+      strokeCap(ROUND);
+      if (clockState.glow) {
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = glowCol;
+      }
+      const tail = hasTail ? -12 : 0;
+      line(tail * cos(angle), tail * sin(angle), length * cos(angle), length * sin(angle));
+    }
+
+    // Auxiliar: Ponteiro Poligonal
+    function drawPolygonHand(angle, length, widthAtBase, col) {
+      push();
+      rotate(angle);
+      fill(col);
+      noStroke();
+      beginShape();
+      vertex(0, -widthAtBase / 2);
+      vertex(length, 0);
+      vertex(0, widthAtBase / 2);
+      vertex(-10, 0);
+      endShape(CLOSE);
+      pop();
+    }
+
+    // --- CORES & PALETAS ---
+    function getShaderColor(z, totalLayers, frame, palette, opacity) {
+      colorMode(HSB, 360, 100, 100, 1);
+
+      if (palette === 'cyberpunk') {
+        let hue = (z % 2 === 0) ? 185 : 320;
+        return color(hue, 90, 100, opacity);
+      } 
+      else if (palette === 'gold') {
+        let hue = map(z, 1, totalLayers, 35, 55);
+        return color(hue, 95, 100, opacity);
+      } 
+      else if (palette === 'matrix') {
+        let hue = map(z, 1, totalLayers, 120, 150);
+        return color(hue, 100, 95, opacity);
+      } 
+      else if (palette === 'rainbow') {
+        let hue = (z * (360 / totalLayers) + frame * 2) % 360;
+        return color(hue, 85, 100, opacity);
+      } 
+      else if (palette === 'monochrome') {
+        colorMode(RGB);
+        return color(240, 240, 255, opacity * 255);
+      }
+
+      colorMode(RGB);
+      return color(255, opacity * 255);
+    }
+
+    function getThemePrimaryColor() {
+      if (clockState.palette === 'gold') return color(255, 200, 80);
+      if (clockState.palette === 'matrix') return color(34, 197, 94);
+      if (clockState.palette === 'monochrome') return color(200, 220, 255);
+      return color(99, 102, 241); // Indigo Padrão / Cyberpunk
+    }
+
+    function getThemeAccentColor() {
+      if (clockState.palette === 'gold') return '#f59e0b';
+      if (clockState.palette === 'matrix') return '#10b981';
+      if (clockState.palette === 'monochrome') return '#ffffff';
+      return '#ec4899'; // Rosa Choque Cyberpunk
+    }
+
+    // --- ATUALIZAÇÃO DO DISPLAY DIGITAL ---
+    function updateDigitalDisplay() {
+      const hElem = document.getElementById('clock-hours');
+      const mElem = document.getElementById('clock-minutes');
+      const sElem = document.getElementById('clock-seconds');
+      const pElem = document.getElementById('clock-period');
+
+      let h = clockState.hours;
+      const period = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      h = h ? h : 12; // Formato 12 horas
+
+      hElem.textContent = String(h).padStart(2, '0');
+      mElem.textContent = String(clockState.minutes).padStart(2, '0');
+      sElem.textContent = String(clockState.seconds).padStart(2, '0');
+      pElem.textContent = period;
+    }
+
+    // --- GERADOR DE SOM DE TIC-TAC (WEB AUDIO) ---
+    let lastSecond = -1;
+    function checkTickSound() {
+      if (!clockState.soundEnabled) return;
+
+      if (clockState.seconds !== lastSecond) {
+        lastSecond = clockState.seconds;
+        playTickSound();
+      }
+    }
+
+    function playTickSound() {
+      try {
+        if (!clockState.audioCtx) {
+          clockState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const osc = clockState.audioCtx.createOscillator();
+        const gain = clockState.audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, clockState.audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, clockState.audioCtx.currentTime + 0.03);
+
+        gain.gain.setValueAtTime(0.08, clockState.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, clockState.audioCtx.currentTime + 0.03);
+
+        osc.connect(gain);
+        gain.connect(clockState.audioCtx.destination);
+
+        osc.start();
+        osc.stop(clockState.audioCtx.currentTime + 0.03);
+      } catch (e) {
+        // Ignora caso áudio esteja bloqueado pelo navegador
+      }
+    }
+
+    // --- REDIMENSIONAMENTO RESPONSIVO ---
+    function windowResized() {
+      const container = document.getElementById('canvas-container');
+      const size = Math.min(container.clientWidth - 20, container.clientHeight - 20, 750);
+      W = size;
+      resizeCanvas(W, W);
+    }
+
+    // --- CONTROLES DA INTERFACE ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const panel = document.getElementById('control-panel');
+      const toggleBtn = document.getElementById('toggle-panel-btn');
+      const closeBtn = document.getElementById('close-panel-btn');
+      const zenBtn = document.getElementById('zen-mode-btn');
+
+      toggleBtn.addEventListener('click', () => panel.classList.toggle('translate-x-full'));
+      closeBtn.addEventListener('click', () => panel.classList.add('translate-x-full'));
+
+      // Modo Imersivo (Zen)
+      let zenActive = false;
+      zenBtn.addEventListener('click', () => {
+        zenActive = !zenActive;
+        if (zenActive) {
+          panel.classList.add('translate-x-full');
+          toggleBtn.classList.add('hidden');
+          document.getElementById('digital-clock-display').classList.add('opacity-0');
+          zenBtn.innerHTML = '<i class="fa-solid fa-compress text-lg"></i>';
+        } else {
+          toggleBtn.classList.remove('hidden');
+          document.getElementById('digital-clock-display').classList.remove('opacity-0');
+          zenBtn.innerHTML = '<i class="fa-solid fa-expand text-lg"></i>';
+        }
+      });
+
+      // Bindings de Inputs e Sliders
+      document.getElementById('param-hand-style').addEventListener('change', (e) => clockState.handStyle = e.target.value);
+      document.getElementById('param-sweep-mode').addEventListener('change', (e) => clockState.sweepMode = e.target.value);
+      document.getElementById('param-markers').addEventListener('change', (e) => clockState.markers = e.target.value);
+      document.getElementById('param-palette').addEventListener('change', (e) => clockState.palette = e.target.value);
+
+      document.getElementById('param-spiral-opacity').addEventListener('input', (e) => {
+        clockState.spiralOpacity = parseFloat(e.target.value);
+        document.getElementById('val-spiral-opacity').textContent = `${Math.round(clockState.spiralOpacity * 100)}%`;
+      });
+
+      document.getElementById('param-speed').addEventListener('input', (e) => {
+        clockState.speed = parseFloat(e.target.value);
+        document.getElementById('val-speed').textContent = `${clockState.speed.toFixed(1)}x`;
+      });
+
+      document.getElementById('param-layers').addEventListener('input', (e) => {
+        clockState.layers = parseInt(e.target.value);
+        document.getElementById('val-layers').textContent = clockState.layers;
+      });
+
+      document.getElementById('param-glow').addEventListener('change', (e) => clockState.glow = e.target.checked);
+
+      document.getElementById('param-show-digital').addEventListener('change', (e) => {
+        clockState.showDigital = e.target.checked;
+        const display = document.getElementById('digital-clock-display');
+        if (clockState.showDigital) display.classList.remove('hidden');
+        else display.classList.add('hidden');
+      });
+
+      // Ativar Áudio Tic-Tac
+      const soundBtn = document.getElementById('sound-btn');
+      const soundStatus = document.getElementById('sound-status');
+      soundBtn.addEventListener('click', () => {
+        clockState.soundEnabled = !clockState.soundEnabled;
+        if (clockState.soundEnabled) {
+          soundStatus.textContent = 'Ligado';
+          soundBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> <span>Ligado</span>';
+          soundBtn.classList.add('bg-indigo-600', 'text-white');
+          playTickSound();
+        } else {
+          soundStatus.textContent = 'Mudo';
+          soundBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> <span>Mudo</span>';
+          soundBtn.classList.remove('bg-indigo-600', 'text-white');
+        }
+      });
+    });
+
+    // Preset Manager
+    function applyPreset(presetName) {
+      if (presetName === 'cyber') {
+        clockState.handStyle = 'cyber';
+        clockState.palette = 'cyberpunk';
+        clockState.markers = 'dots';
+        clockState.sweepMode = 'smooth';
+        clockState.spiralOpacity = 0.8;
+      } else if (presetName === 'gold') {
+        clockState.handStyle = 'classic';
+        clockState.palette = 'gold';
+        clockState.markers = 'ticks';
+        clockState.sweepMode = 'smooth';
+        clockState.spiralOpacity = 0.85;
+      } else if (presetName === 'minimal') {
+        clockState.handStyle = 'minimal';
+        clockState.palette = 'monochrome';
+        clockState.markers = 'numbers';
+        clockState.sweepMode = 'tick';
+        clockState.spiralOpacity = 0.4;
+      } else if (presetName === 'matrix') {
+        clockState.handStyle = 'energy';
+        clockState.palette = 'matrix';
+        clockState.markers = 'dots';
+        clockState.sweepMode = 'smooth';
+        clockState.spiralOpacity = 0.9;
+      }
+
+      // Sincronizar UI
+      document.getElementById('param-hand-style').value = clockState.handStyle;
+      document.getElementById('param-palette').value = clockState.palette;
+      document.getElementById('param-markers').value = clockState.markers;
+      document.getElementById('param-sweep-mode').value = clockState.sweepMode;
+      document.getElementById('param-spiral-opacity').value = clockState.spiralOpacity;
+      document.getElementById('val-spiral-opacity').textContent = `${Math.round(clockState.spiralOpacity * 100)}%`;
+    }
+  </script>
+</body>
+</html>
