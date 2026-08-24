@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emoji Canvas Math Shader</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            touch-action: none;
+            background-color: #09090b;
+        }
+        /* Custom Scrollbar for Controls */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .glass-panel {
+            background: rgba(18, 18, 24, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="h-full w-full text-slate-100 font-sans antialiased">
+
+    <!-- Canvas principal -->
+    <canvas id="shaderCanvas" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+    <!-- Top Bar Controls -->
+    <header class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-20">
+        <div class="flex items-center gap-3 pointer-events-auto glass-panel px-4 py-2.5 rounded-2xl shadow-2xl">
+            <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold tracking-wide text-white">Emoji Math Shader</h1>
+                <p class="text-xs text-slate-400 font-mono">e=2.62**(t%3/3)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <!-- Play / Pause Button -->
+            <button id="btnPlayPause" class="glass-panel p-3 rounded-2xl hover:bg-white/10 transition active:scale-95 text-white shadow-xl" title="Pausar / Iniciar">
+                <svg id="iconPause" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <svg id="iconPlay" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </button>
+
+            <!-- Reset Camera Button -->
+            <button id="btnResetCam" class="glass-panel p-3 rounded-2xl hover:bg-white/10 transition active:scale-95 text-white shadow-xl" title="Centralizar Câmera">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+            </button>
+
+            <!-- Snapshot / Screenshot Button -->
+            <button id="btnSnapshot" class="glass-panel p-3 rounded-2xl hover:bg-white/10 transition active:scale-95 text-white shadow-xl" title="Salvar Imagem HD">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </button>
+
+            <!-- Toggle Panel Button -->
+            <button id="btnTogglePanel" class="glass-panel p-3 rounded-2xl hover:bg-white/10 transition active:scale-95 text-white shadow-xl flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                <span class="text-xs font-semibold hidden md:inline">Controles</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Side Control Panel -->
+    <aside id="controlPanel" class="absolute right-4 top-20 bottom-4 w-80 md:w-96 glass-panel rounded-3xl p-5 shadow-2xl flex flex-col gap-4 overflow-y-auto z-30 transition-all duration-300 transform translate-x-0">
+        
+        <!-- Header Panel -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <h2 class="text-base font-bold flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                Parâmetros do Shader
+            </h2>
+            <button id="btnClosePanel" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Presets Quick Bar -->
+        <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Presets Rápidos</label>
+            <div class="grid grid-cols-2 gap-2">
+                <button class="preset-btn px-3 py-2 text-xs font-medium bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/30 rounded-xl text-left transition" data-preset="cats">
+                    😸 Original Cats
+                </button>
+                <button class="preset-btn px-3 py-2 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-left transition" data-preset="space">
+                    🌌 Luas & Estrelas
+                </button>
+                <button class="preset-btn px-3 py-2 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-left transition" data-preset="cyber">
+                    👾 Cyber Matrix
+                </button>
+                <button class="preset-btn px-3 py-2 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-left transition" data-preset="floral">
+                    🌸 Geometria Floral
+                </button>
+            </div>
+        </div>
+
+        <!-- Control Group: Tempo e Animação -->
+        <div class="space-y-3 pt-2 border-t border-white/10">
+            <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Velocidade da Animação</label>
+                <span id="valSpeed" class="text-xs font-mono text-indigo-400">1.0x</span>
+            </div>
+            <input type="range" id="inputSpeed" min="0" max="3" step="0.1" value="1" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Tamanho da Grade (N x N)</label>
+                <span id="valGrid" class="text-xs font-mono text-indigo-400">20</span>
+            </div>
+            <input type="range" id="inputGrid" min="5" max="35" step="1" value="20" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+        </div>
+
+        <!-- Control Group: Emoji / Símbolos -->
+        <div class="space-y-3 pt-2 border-t border-white/10">
+            <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Conjunto de Emojis</label>
+            </div>
+            <select id="selectEmojiSet" class="w-full bg-slate-900/80 border border-white/10 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="128568">😸 Gatos (Original - 128568)</option>
+                <option value="128512">😀 Emoticons (128512)</option>
+                <option value="127770">🌙 Espaço e Estrelas (127770)</option>
+                <option value="128126">👾 Monstros / Aliens (128126)</option>
+                <option value="127800">🌸 Flores (127800)</option>
+                <option value="9800">♈ Signos do Zodíaco (9800)</option>
+                <option value="128064">👀 Olhos & Corpo (128064)</option>
+            </select>
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Tamanho da Fonte</label>
+                <span id="valFontSize" class="text-xs font-mono text-indigo-400">4.0em</span>
+            </div>
+            <input type="range" id="inputFontSize" min="1" max="8" step="0.2" value="4" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+        </div>
+
+        <!-- Control Group: Fórmulas de q -->
+        <div class="space-y-3 pt-2 border-t border-white/10">
+            <label class="text-xs font-semibold text-slate-300">Fórmula de Mapeamento (q)</label>
+            <select id="selectFormula" class="w-full bg-slate-900/80 border border-white/10 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="original">Original: q = i² - ij - j²</option>
+                <option value="euclidean">Euclidiana: q = i² + j²</option>
+                <option value="hyperbolic">Hiperbólica: q = i² - j²</option>
+                <option value="multiply">Multiplicação: q = i * j</option>
+                <option value="wave">Onda: q = sin(i) * cos(j) * 10</option>
+            </select>
+        </div>
+
+        <!-- Control Group: Ajuste de Constantes Matemáticas -->
+        <div class="space-y-3 pt-2 border-t border-white/10">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Constantes da Equação</span>
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Base Exponencial (p1 = 2.62)</label>
+                <span id="valP1" class="text-xs font-mono text-indigo-400">2.62</span>
+            </div>
+            <input type="range" id="inputP1" min="1.1" max="5.0" step="0.05" value="2.62" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Multiplicador k (p2 = 44.7)</label>
+                <span id="valP2" class="text-xs font-mono text-indigo-400">44.7</span>
+            </div>
+            <input type="range" id="inputP2" min="10" max="100" step="0.5" value="44.7" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Termo a_1 (p3 = 117)</label>
+                <span id="valP3" class="text-xs font-mono text-indigo-400">117</span>
+            </div>
+            <input type="range" id="inputP3" min="10" max="250" step="1" value="117" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+        </div>
+
+        <!-- Control Group: Efeitos Visuais -->
+        <div class="space-y-3 pt-2 border-t border-white/10">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Efeitos Visuais</span>
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Rastro / Blur de Movimento</label>
+                <span id="valTrail" class="text-xs font-mono text-indigo-400">0%</span>
+            </div>
+            <input type="range" id="inputTrail" min="0" max="0.9" step="0.05" value="0" class="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer">
+
+            <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Brilho Neon (Glow)</label>
+                <input type="checkbox" id="checkGlow" class="w-4 h-4 rounded accent-indigo-500 bg-white/10 border-white/20 cursor-pointer">
+            </div>
+        </div>
+
+        <!-- Live Math Monitor -->
+        <div class="bg-black/40 border border-white/10 rounded-2xl p-3 font-mono text-[11px] text-slate-400 space-y-1">
+            <div class="flex justify-between"><span>t (tempo):</span><span id="monT" class="text-emerald-400">0.00</span></div>
+            <div class="flex justify-between"><span>e = 2.62**(t%3/3):</span><span id="monE" class="text-emerald-400">0.00</span></div>
+            <div class="flex justify-between"><span>k = 44.7*(e - 1/e):</span><span id="monK" class="text-emerald-400">0.00</span></div>
+            <div class="flex justify-between"><span>a = 117/e - 17*e + k:</span><span id="monA" class="text-emerald-400">0.00</span></div>
+        </div>
+
+    </aside>
+
+    <!-- Canvas Pan / Zoom Hint Overlay -->
+    <div class="absolute bottom-4 left-4 pointer-events-none hidden md:block">
+        <div class="glass-panel px-3 py-1.5 rounded-xl text-[11px] text-slate-400 flex items-center gap-2">
+            <span>💡 <b>Dica:</b> Arraste para mover, use a roda do mouse para dar zoom</span>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        // State variables
+        const canvas = document.getElementById('shaderCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+
+        let isRunning = true;
+        let t = 0;
+        let lastTime = performance.now();
+
+        // Camera Pan/Zoom State
+        let zoom = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        // Editable Shader Parameters
+        const params = {
+            speed: 1.0,
+            gridRange: 20,
+            baseEmojiCode: 128568,
+            fontSizeRem: 4.0,
+            formula: 'original',
+            p1: 2.62,
+            p2: 44.7,
+            p3: 117,
+            p4: 17,
+            trailOpacity: 0.0,
+            glow: false
+        };
+
+        // UI Element References
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const iconPlay = document.getElementById('iconPlay');
+        const iconPause = document.getElementById('iconPause');
+        const btnResetCam = document.getElementById('btnResetCam');
+        const btnSnapshot = document.getElementById('btnSnapshot');
+        const btnTogglePanel = document.getElementById('btnTogglePanel');
+        const btnClosePanel = document.getElementById('btnClosePanel');
+        const controlPanel = document.getElementById('controlPanel');
+
+        // Inputs
+        const inputSpeed = document.getElementById('inputSpeed');
+        const valSpeed = document.getElementById('valSpeed');
+        const inputGrid = document.getElementById('inputGrid');
+        const valGrid = document.getElementById('valGrid');
+        const selectEmojiSet = document.getElementById('selectEmojiSet');
+        const inputFontSize = document.getElementById('inputFontSize');
+        const valFontSize = document.getElementById('valFontSize');
+        const selectFormula = document.getElementById('selectFormula');
+        const inputP1 = document.getElementById('inputP1');
+        const valP1 = document.getElementById('valP1');
+        const inputP2 = document.getElementById('inputP2');
+        const valP2 = document.getElementById('valP2');
+        const inputP3 = document.getElementById('inputP3');
+        const valP3 = document.getElementById('valP3');
+        const inputTrail = document.getElementById('inputTrail');
+        const valTrail = document.getElementById('valTrail');
+        const checkGlow = document.getElementById('checkGlow');
+
+        // Monitor
+        const monT = document.getElementById('monT');
+        const monE = document.getElementById('monE');
+        const monK = document.getElementById('monK');
+        const monA = document.getElementById('monA');
+
+        // Resize Canvas dynamically
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Calculations for q
+        function computeQ(i, j, formula) {
+            switch (formula) {
+                case 'euclidean':
+                    return i * i + j * j;
+                case 'hyperbolic':
+                    return i * i - j * j;
+                case 'multiply':
+                    return i * j;
+                case 'wave':
+                    return Math.floor(Math.sin(i * 0.4) * Math.cos(j * 0.4) * 20);
+                case 'original':
+                default:
+                    return i * i - i * j - j * j;
+            }
+        }
+
+        // Render Loop
+        function render(now) {
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (isRunning) {
+                t += delta * params.speed;
+            }
+
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            // Background / Trail
+            if (params.trailOpacity > 0) {
+                ctx.fillStyle = `rgba(9, 9, 11, ${1 - params.trailOpacity})`;
+                ctx.fillRect(0, 0, w, h);
+            } else {
+                ctx.fillStyle = '#09090b';
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            // Core Math
+            // e=2.62**(t%3/3)
+            // k=44.7*(e-1/e)
+            // a=117/e-17*e+k
+            const e = Math.pow(params.p1, (t % 3) / 3);
+            const k = params.p2 * (e - 1 / e);
+            const a = params.p3 / e - params.p4 * e + k;
+
+            // Monitor update
+            monT.textContent = t.toFixed(2);
+            monE.textContent = e.toFixed(3);
+            monK.textContent = k.toFixed(2);
+            monA.textContent = a.toFixed(2);
+
+            // Center coordinate origin
+            const originX = w / 2 + panX;
+            const originY = h / 2 + panY;
+
+            // Set font style
+            const fontSizePx = params.fontSizeRem * 16 * zoom;
+            ctx.font = `${fontSizePx}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (params.glow) {
+                ctx.shadowColor = '#818cf8';
+                ctx.shadowBlur = 12 * zoom;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+
+            const range = params.gridRange;
+
+            // Render Emoji Matrix Loop
+            // Original: for(c.width|=i=20;i-->-20;x.font='4em"')for(j=-20;j++<20;x.fillText(String.fromCodePoint(128568+q*q%9|0),928+i*(k+a)+j*k,565+i*k+j*a))q=i*i-i*j-j*j
+            for (let i = range; i >= -range; i--) {
+                for (let j = -range; j <= range; j++) {
+
+                    const q = computeQ(i, j, params.formula);
+
+                    // Pick Emoji from offset
+                    const emojiOffset = Math.abs(Math.floor((q * q) % 9));
+                    const charCode = params.baseEmojiCode + emojiOffset;
+                    const char = String.fromCodePoint(charCode);
+
+                    // Position relative to canvas center
+                    // Offset original constants 928, 565 with origin centering
+                    const posX = originX + (i * (k + a) + j * k) * zoom;
+                    const posY = originY + (i * k + j * a) * zoom;
+
+                    // Frustum culling (only draw if inside view bounds)
+                    if (posX > -100 && posX < w + 100 && posY > -100 && posY < h + 100) {
+                        ctx.fillText(char, posX, posY);
+                    }
+                }
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+
+        // UI Event Listeners
+        btnPlayPause.addEventListener('click', () => {
+            isRunning = !isRunning;
+            iconPlay.classList.toggle('hidden', isRunning);
+            iconPause.classList.toggle('hidden', !isRunning);
+        });
+
+        btnResetCam.addEventListener('click', () => {
+            zoom = 1.0;
+            panX = 0;
+            panY = 0;
+        });
+
+        btnSnapshot.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `shader-emoji-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        btnTogglePanel.addEventListener('click', () => {
+            controlPanel.classList.toggle('translate-x-0');
+            controlPanel.classList.toggle('translate-x-full');
+        });
+
+        btnClosePanel.addEventListener('click', () => {
+            controlPanel.classList.add('translate-x-full');
+            controlPanel.classList.remove('translate-x-0');
+        });
+
+        // Inputs Binding
+        inputSpeed.addEventListener('input', (e) => {
+            params.speed = parseFloat(e.target.value);
+            valSpeed.textContent = `${params.speed.toFixed(1)}x`;
+        });
+
+        inputGrid.addEventListener('input', (e) => {
+            params.gridRange = parseInt(e.target.value, 10);
+            valGrid.textContent = params.gridRange;
+        });
+
+        selectEmojiSet.addEventListener('change', (e) => {
+            params.baseEmojiCode = parseInt(e.target.value, 10);
+        });
+
+        inputFontSize.addEventListener('input', (e) => {
+            params.fontSizeRem = parseFloat(e.target.value);
+            valFontSize.textContent = `${params.fontSizeRem.toFixed(1)}em`;
+        });
+
+        selectFormula.addEventListener('change', (e) => {
+            params.formula = e.target.value;
+        });
+
+        inputP1.addEventListener('input', (e) => {
+            params.p1 = parseFloat(e.target.value);
+            valP1.textContent = params.p1.toFixed(2);
+        });
+
+        inputP2.addEventListener('input', (e) => {
+            params.p2 = parseFloat(e.target.value);
+            valP2.textContent = params.p2.toFixed(1);
+        });
+
+        inputP3.addEventListener('input', (e) => {
+            params.p3 = parseFloat(e.target.value);
+            valP3.textContent = params.p3.toFixed(0);
+        });
+
+        inputTrail.addEventListener('input', (e) => {
+            params.trailOpacity = parseFloat(e.target.value);
+            valTrail.textContent = `${Math.round(params.trailOpacity * 100)}%`;
+        });
+
+        checkGlow.addEventListener('change', (e) => {
+            params.glow = e.target.checked;
+        });
+
+        // Presets Logic
+        const presetConfigs = {
+            cats: {
+                speed: 1.0,
+                gridRange: 20,
+                baseEmojiCode: 128568,
+                fontSizeRem: 4.0,
+                formula: 'original',
+                p1: 2.62,
+                p2: 44.7,
+                p3: 117,
+                trailOpacity: 0.0,
+                glow: false
+            },
+            space: {
+                speed: 0.7,
+                gridRange: 22,
+                baseEmojiCode: 127770,
+                fontSizeRem: 3.5,
+                formula: 'original',
+                p1: 2.1,
+                p2: 50.0,
+                p3: 140,
+                trailOpacity: 0.2,
+                glow: true
+            },
+            cyber: {
+                speed: 1.5,
+                gridRange: 28,
+                baseEmojiCode: 128126,
+                fontSizeRem: 2.8,
+                formula: 'hyperbolic',
+                p1: 3.2,
+                p2: 35.0,
+                p3: 90,
+                trailOpacity: 0.4,
+                glow: true
+            },
+            floral: {
+                speed: 0.5,
+                gridRange: 18,
+                baseEmojiCode: 127800,
+                fontSizeRem: 4.2,
+                formula: 'wave',
+                p1: 1.8,
+                p2: 60.0,
+                p3: 160,
+                trailOpacity: 0.1,
+                glow: false
+            }
+        };
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetKey = btn.getAttribute('data-preset');
+                const cfg = presetConfigs[presetKey];
+                if (!cfg) return;
+
+                // Update params
+                Object.assign(params, cfg);
+
+                // Update UI Controls
+                inputSpeed.value = cfg.speed; valSpeed.textContent = `${cfg.speed.toFixed(1)}x`;
+                inputGrid.value = cfg.gridRange; valGrid.textContent = cfg.gridRange;
+                selectEmojiSet.value = cfg.baseEmojiCode;
+                inputFontSize.value = cfg.fontSizeRem; valFontSize.textContent = `${cfg.fontSizeRem.toFixed(1)}em`;
+                selectFormula.value = cfg.formula;
+                inputP1.value = cfg.p1; valP1.textContent = cfg.p1.toFixed(2);
+                inputP2.value = cfg.p2; valP2.textContent = cfg.p2.toFixed(1);
+                inputP3.value = cfg.p3; valP3.textContent = cfg.p3.toFixed(0);
+                inputTrail.value = cfg.trailOpacity; valTrail.textContent = `${Math.round(cfg.trailOpacity * 100)}%`;
+                checkGlow.checked = cfg.glow;
+
+                // Active style highlight
+                document.querySelectorAll('.preset-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-600/30', 'border-indigo-500/30');
+                    b.classList.add('bg-white/5', 'border-white/10');
+                });
+                btn.classList.add('bg-indigo-600/30', 'border-indigo-500/30');
+                btn.classList.remove('bg-white/5', 'border-white/10');
+            });
+        });
+
+        // Mouse Drag & Zoom Controls
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX - panX;
+            dragStartY = e.clientY - panY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            panX = e.clientX - dragStartX;
+            panY = e.clientY - dragStartY;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            const newZoom = Math.min(Math.max(0.2, zoom * zoomFactor), 5.0);
+            
+            // Adjust pan so zoom centers under mouse cursor
+            const mouseX = e.clientX - window.innerWidth / 2;
+            const mouseY = e.clientY - window.innerHeight / 2;
+            panX = mouseX - (mouseX - panX) * (newZoom / zoom);
+            panY = mouseY - (mouseY - panY) * (newZoom / zoom);
+
+            zoom = newZoom;
+        }, { passive: false });
+
+        // Touch Gestures support for mobile
+        let touchStartDist = 0;
+        let initialZoom = 1;
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                dragStartX = e.touches[0].clientX - panX;
+                dragStartY = e.touches[0].clientY - panY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                touchStartDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialZoom = zoom;
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                panX = e.touches[0].clientX - dragStartX;
+                panY = e.touches[0].clientY - dragStartY;
+            } else if (e.touches.length === 2 && touchStartDist > 0) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                zoom = Math.min(Math.max(0.2, initialZoom * (dist / touchStartDist)), 5.0);
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+            touchStartDist = 0;
+        });
+    </script>
+</body>
+</html>
