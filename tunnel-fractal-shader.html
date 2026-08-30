@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+ <meta name="apple-mobile-web-app-capable" content="yes" />
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+ <meta name="theme-color" content="#000000" />
+ <title>Túnel Fractal Shader</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <style>
+ * {
+ -webkit-touch-callout: none;
+ -webkit-user-select: none;
+ user-select: none;
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+ }
+ body, html {
+ width: 100%;
+ height: 100%;
+ overflow: hidden;
+ background-color: #000000;
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+ }
+ canvas {
+ display: block;
+ width: 100vw;
+ height: 100vh;
+ touch-action: none;
+ }
+ .glass {
+ background: rgba(13, 17, 23, 0.72);
+ backdrop-filter: blur(14px);
+ -webkit-backdrop-filter: blur(14px);
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ }
+ .slider-thumb::-webkit-slider-thumb {
+ -webkit-appearance: none;
+ appearance: none;
+ width: 18px;
+ height: 18px;
+ border-radius: 50%;
+ background: #38bdf8;
+ cursor: pointer;
+ box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+ }
+ .slider-thumb::-moz-range-thumb {
+ width: 18px;
+ height: 18px;
+ border-radius: 50%;
+ background: #38bdf8;
+ cursor: pointer;
+ box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+ border: none;
+ }
+ </style>
+</head>
+<body class="relative bg-black text-white">
+
+ <!-- Ecrã de Renderização WebGL -->
+ <canvas id="glcanvas"></canvas>
+
+ <!-- Caixa de Erro Diagnóstico (se o GPU falhar) -->
+ <div id="error-box" class="hidden fixed inset-4 z-50 glass rounded-2xl p-6 flex-col justify-center items-center text-center text-rose-400">
+ <h2 class="font-bold text-lg mb-2">Erro de Compilação WebGL</h2>
+ <p id="error-message" class="text-xs font-mono text-left bg-black/60 p-4 rounded-xl max-h-60 overflow-y-auto w-full text-gray-300"></p>
+ </div>
+
+ <!-- Indicação Inicial de Interação -->
+ <div id="hint-overlay" class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 z-10">
+ <div class="glass px-5 py-3 rounded-2xl flex items-center gap-3 text-sm text-gray-200 shadow-2xl animate-pulse">
+ <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+ </svg>
+ <span>Arraste para rodar • Toque para ver controlos</span>
+ </div>
+ </div>
+
+ <!-- Notificação Toast -->
+ <div id="toast" class="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-xl text-xs font-medium text-cyan-300 opacity-0 transition-opacity duration-300 z-50 shadow-lg">
+ Mensagem
+ </div>
+
+ <!-- Interface / HUD de Controlo -->
+ <div id="ui-container" class="absolute inset-0 flex flex-col justify-between p-4 sm:p-6 transition-all duration-300 pointer-events-none z-20">
+
+ <!-- Barra Superior -->
+ <header class="flex items-center justify-between w-full pointer-events-auto">
+ <div class="flex items-center gap-2">
+ <div class="glass px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
+ <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+ <span id="fps-counter" class="text-xs font-mono font-bold tracking-wider text-emerald-300">-- FPS</span>
+ </div>
+ </div>
+
+ <div class="flex items-center gap-2">
+ <!-- Botão Giroscópio -->
+ <button id="btn-gyro" class="glass w-10 h-10 rounded-full flex items-center justify-center text-gray-300 active:scale-95 transition-transform" title="Giroscópio">
+ <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+ </svg>
+ </button>
+
+ <!-- Botão Captura de Ecrã -->
+ <button id="btn-screenshot" class="glass w-10 h-10 rounded-full flex items-center justify-center text-gray-300 active:scale-95 transition-transform" title="Capturar Imagem">
+ <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+ </svg>
+ </button>
+
+ <!-- Botão Ecrã Inteiro -->
+ <button id="btn-fullscreen" class="glass w-10 h-10 rounded-full flex items-center justify-center text-gray-300 active:scale-95 transition-transform" title="Ecrã Inteiro">
+ <svg id="fullscreen-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0 0l-5-5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+ </svg>
+ </button>
+ </div>
+ </header>
+
+ <!-- Barra Inferior e Definições -->
+ <footer class="w-full flex flex-col gap-3 pointer-events-auto">
+
+ <!-- Gaveta de Definições -->
+ <div id="settings-panel" class="glass p-4 rounded-3xl flex flex-col gap-4 shadow-2xl transition-all duration-300 hidden max-w-lg mx-auto w-full">
+ <div class="flex items-center justify-between pb-2 border-b border-white/10">
+ <h3 class="text-sm font-semibold tracking-wide text-cyan-300">Definições do Shader</h3>
+ <button id="btn-reset" class="text-xs text-gray-400 hover:text-white transition">Repor</button>
+ </div>
+
+ <!-- Velocidade -->
+ <div class="flex flex-col gap-1.5">
+ <div class="flex justify-between text-xs text-gray-300">
+ <span>Velocidade</span>
+ <span id="val-speed" class="font-mono text-cyan-400">1.0x</span>
+ </div>
+ <input id="slider-speed" type="range" min="0.1" max="3.0" step="0.1" value="1.0" class="slider-thumb w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+ </div>
+
+ <!-- Matiz de Cores -->
+ <div class="flex flex-col gap-1.5">
+ <div class="flex justify-between text-xs text-gray-300">
+ <span>Variação de Cor</span>
+ <span id="val-hue" class="font-mono text-cyan-400">0.00</span>
+ </div>
+ <input id="slider-hue" type="range" min="0" max="6.28" step="0.05" value="0.0" class="slider-thumb w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+ </div>
+
+ <!-- Qualidade / Resolução -->
+ <div class="flex flex-col gap-1.5">
+ <div class="flex justify-between text-xs text-gray-300">
+ <span>Resolução</span>
+ <span id="val-scale" class="font-mono text-cyan-400">1.0x</span>
+ </div>
+ <div class="grid grid-cols-3 gap-2 pt-1">
+ <button class="quality-btn glass py-1.5 rounded-xl text-xs font-medium text-gray-400 hover:text-white transition" data-scale="0.6">Desempenho</button>
+ <button class="quality-btn glass py-1.5 rounded-xl text-xs font-medium text-cyan-300 border-cyan-400/40 bg-cyan-950/30 transition" data-scale="1.0">Normal</button>
+ <button class="quality-btn glass py-1.5 rounded-xl text-xs font-medium text-gray-400 hover:text-white transition" data-scale="native">Retina HD</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- Barra de Ações Rápidas -->
+ <div class="glass px-4 py-2.5 rounded-full flex items-center justify-between max-w-md mx-auto w-full shadow-2xl">
+ <button id="btn-play" class="flex items-center gap-2 text-xs font-medium text-gray-200 active:scale-95 transition-transform px-3 py-1.5 rounded-full hover:bg-white/10">
+ <svg id="icon-pause" class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+ <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+ </svg>
+ <svg id="icon-play" class="w-4 h-4 text-emerald-400 hidden" fill="currentColor" viewBox="0 0 24 24">
+ <path d="M8 5v14l11-7z"/>
+ </svg>
+ <span id="text-play">Pausar</span>
+ </button>
+
+ <button id="btn-toggle-settings" class="flex items-center gap-2 text-xs font-medium text-gray-200 active:scale-95 transition-transform px-3 py-1.5 rounded-full hover:bg-white/10">
+ <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+ </svg>
+ <span>Ajustes</span>
+ </button>
+
+ <button id="btn-hide-ui" class="flex items-center gap-2 text-xs font-medium text-gray-400 active:scale-95 transition-transform px-3 py-1.5 rounded-full hover:bg-white/10">
+ <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path>
+ </svg>
+ <span>Ocultar</span>
+ </button>
+ </div>
+
+ </footer>
+ </div>
+
+ <script>
+ window.addEventListener("DOMContentLoaded", () => {
+ const canvas = document.getElementById("glcanvas");
+ const errorBox = document.getElementById("error-box");
+ const errorMessage = document.getElementById("error-message");
+
+ // Inicialização do contexto WebGL com fallback
+ const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, alpha: false }) ||
+ canvas.getContext("experimental-webgl", { preserveDrawingBuffer: true, alpha: false });
+
+ if (!gl) {
+ showError("O seu navegador ou dispositivo não suporta WebGL.");
+ return;
+ }
+
+ function showError(msg) {
+ errorBox.classList.remove("hidden");
+ errorMessage.textContent = msg;
+ }
+
+ // Shaders em conformidade estrita com GLSL ES 1.00
+ const vsSource = `
+ attribute vec2 position;
+ void main() {
+ gl_Position = vec4(position, 0.0, 1.0);
+ }
+ `;
+
+ const fsSource = `
+ #ifdef GL_FRAGMENT_PRECISION_HIGH
+ precision highp float;
+ #else
+ precision mediump float;
+ #endif
+
+ uniform vec2 u_resolution;
+ uniform float u_time;
+ uniform vec2 u_mouse;
+ uniform float u_speed;
+ uniform float u_color_shift;
+
+ mat2 rotate2D(float a) {
+ float c = cos(a);
+ float s = sin(a);
+ return mat2(c, -s, s, c);
+ }
+
+ vec3 hsv(float h, float s, float v) {
+ vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+ vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+ return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+ }
+
+ vec3 safe_tanh(vec3 x) {
+ vec3 cx = clamp(x, 0.0, 10.0);
+ vec3 e2 = exp(2.0 * cx);
+ return (e2 - 1.0) / (e2 + 1.0);
+ }
+
+ void main() {
+ vec2 r = u_resolution;
+ vec2 FC = gl_FragCoord.xy;
+ float t = u_time * u_speed;
+ vec3 o = vec3(0.0);
+
+ float z = 0.0;
+ float d = 0.0;
+
+ // Raymarching principal
+ for (int i = 0; i < 90; i++) {
+ if (float(i) + z >= 100.0) {
+ break;
+ }
+
+ vec3 q = z * normalize(vec3(FC * 2.0 - r, r.y));
+
+ // Rotação suave baseada no toque/rato
+ q.xy *= rotate2D(u_mouse.x * 1.5);
+ q.yz *= rotate2D(u_mouse.y * 1.5);
+
+ q.z += t * 4.0;
+ q.xy *= rotate2D(q.z * 0.1);
+
+ // Iterações fractais com limites constantes
+ float s = 1.0;
+ for (int j = 0; j < 5; j++) {
+ q += (abs(cos(q.yzx * s)) - 0.68) / s;
+ s *= 2.0;
+ }
+
+ d = 0.005 + abs((length(q.yx) - 6.0) * q.x) / 8.0;
+ z += d;
+
+ o += hsv(0.3 + sin(q.x) * 0.2 + u_color_shift, 0.5, 0.2) * exp(-z * 0.1) / d;
+ }
+
+ o = safe_tanh(o / 200.0);
+ gl_FragColor = vec4(o, 1.0);
+ }
+ `;
+
+ function compileShader(type, source) {
+ const shader = gl.createShader(type);
+ gl.shaderSource(shader, source);
+ gl.compileShader(shader);
+ if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+ const info = gl.getShaderInfoLog(shader);
+ gl.deleteShader(shader);
+ throw new Error(info);
+ }
+ return shader;
+ }
+
+ let program;
+ try {
+ const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
+ const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fsSource);
+
+ program = gl.createProgram();
+ gl.attachShader(program, vertexShader);
+ gl.attachShader(program, fragmentShader);
+ gl.linkProgram(program);
+
+ if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+ throw new Error(gl.getProgramInfoLog(program));
+ }
+ } catch (err) {
+ showError("Falha na compilação do Shader:\n" + err.message);
+ return;
+ }
+
+ gl.useProgram(program);
+
+ // Definição do quadrado do ecrã
+ const positionBuffer = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+ gl.bufferData(
+ gl.ARRAY_BUFFER,
+ new Float32Array([
+ -1.0, -1.0,
+ 1.0, -1.0,
+ -1.0, 1.0,
+ -1.0, 1.0,
+ 1.0, -1.0,
+ 1.0, 1.0,
+ ]),
+ gl.STATIC_DRAW
+ );
+
+ const positionLocation = gl.getAttribLocation(program, "position");
+ gl.enableVertexAttribArray(positionLocation);
+ gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+ // Localizações dos Uniforms
+ const uResolutionLocation = gl.getUniformLocation(program, "u_resolution");
+ const uTimeLocation = gl.getUniformLocation(program, "u_time");
+ const uMouseLocation = gl.getUniformLocation(program, "u_mouse");
+ const uSpeedLocation = gl.getUniformLocation(program, "u_speed");
+ const uColorShiftLocation = gl.getUniformLocation(program, "u_color_shift");
+
+ // Variáveis de Estado
+ let isPlaying = true;
+ let startTime = performance.now();
+ let pausedTime = 0;
+ let totalElapsedTime = 0;
+ let speed = 1.0;
+ let colorShift = 0.0;
+ let resolutionScale = 1.0;
+
+ let mouse = { x: 0.0, y: 0.0, targetX: 0.0, targetY: 0.0 };
+ let gyroEnabled = false;
+ let isDragging = false;
+ let lastTouch = { x: 0, y: 0 };
+ let uiVisible = true;
+
+ // Elementos do DOM
+ const uiContainer = document.getElementById("ui-container");
+ const hintOverlay = document.getElementById("hint-overlay");
+ const toast = document.getElementById("toast");
+ const fpsCounter = document.getElementById("fps-counter");
+ const btnPlay = document.getElementById("btn-play");
+ const textPlay = document.getElementById("text-play");
+ const iconPlay = document.getElementById("icon-play");
+ const iconPause = document.getElementById("icon-pause");
+ const btnToggleSettings = document.getElementById("btn-toggle-settings");
+ const settingsPanel = document.getElementById("settings-panel");
+ const btnHideUi = document.getElementById("btn-hide-ui");
+ const btnFullscreen = document.getElementById("btn-fullscreen");
+ const btnScreenshot = document.getElementById("btn-screenshot");
+ const btnGyro = document.getElementById("btn-gyro");
+ const btnReset = document.getElementById("btn-reset");
+
+ const sliderSpeed = document.getElementById("slider-speed");
+ const valSpeed = document.getElementById("val-speed");
+ const sliderHue = document.getElementById("slider-hue");
+ const valHue = document.getElementById("val-hue");
+ const qualityBtns = document.querySelectorAll(".quality-btn");
+
+ function showToast(msg) {
+ toast.textContent = msg;
+ toast.style.opacity = "1";
+ setTimeout(() => {
+ toast.style.opacity = "0";
+ }, 2000);
+ }
+
+ function resize() {
+ const dpr = resolutionScale === "native" ? Math.min(window.devicePixelRatio || 1, 2) : resolutionScale;
+ const w = Math.floor(window.innerWidth * dpr);
+ const h = Math.floor(window.innerHeight * dpr);
+
+ if (canvas.width !== w || canvas.height !== h) {
+ canvas.width = Math.max(w, 1);
+ canvas.height = Math.max(h, 1);
+ gl.viewport(0, 0, canvas.width, canvas.height);
+ }
+ }
+
+ window.addEventListener("resize", resize);
+ window.addEventListener("orientationchange", () => setTimeout(resize, 200));
+ resize();
+
+ setTimeout(() => {
+ hintOverlay.style.opacity = "0";
+ }, 3500);
+
+ function setUIVisibility(visible) {
+ uiVisible = visible;
+ if (visible) {
+ uiContainer.classList.remove("opacity-0", "pointer-events-none");
+ uiContainer.classList.add("opacity-100");
+ } else {
+ uiContainer.classList.remove("opacity-100");
+ uiContainer.classList.add("opacity-0", "pointer-events-none");
+ settingsPanel.classList.add("hidden");
+ }
+ }
+
+ canvas.addEventListener("click", () => {
+ if (!isDragging) {
+ setUIVisibility(!uiVisible);
+ }
+ });
+
+ // Gestos de toque e rotação
+ function onTouchStart(e) {
+ isDragging = false;
+ const t = e.touches ? e.touches[0] : e;
+ lastTouch.x = t.clientX;
+ lastTouch.y = t.clientY;
+ }
+
+ function onTouchMove(e) {
+ const t = e.touches ? e.touches[0] : e;
+ const dx = (t.clientX - lastTouch.x) / window.innerWidth;
+ const dy = (t.clientY - lastTouch.y) / window.innerHeight;
+
+ if (Math.abs(dx) > 0.005 || Math.abs(dy) > 0.005) {
+ isDragging = true;
+ }
+
+ mouse.targetX += dx * 2.5;
+ mouse.targetY += dy * 2.5;
+ mouse.targetY = Math.max(-1.0, Math.min(1.0, mouse.targetY));
+
+ lastTouch.x = t.clientX;
+ lastTouch.y = t.clientY;
+ }
+
+ function onTouchEnd() {
+ setTimeout(() => {
+ isDragging = false;
+ }, 100);
+ }
+
+ canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+ window.addEventListener("touchmove", onTouchMove, { passive: true });
+ window.addEventListener("touchend", onTouchEnd);
+
+ canvas.addEventListener("mousedown", onTouchStart);
+ window.addEventListener("mousemove", (e) => {
+ if (e.buttons === 1) onTouchMove(e);
+ });
+ window.addEventListener("mouseup", onTouchEnd);
+
+ // Giroscópio
+ function handleOrientation(event) {
+ if (!gyroEnabled) return;
+ const gamma = event.gamma || 0;
+ const beta = event.beta || 0;
+ mouse.targetX = gamma / 40.0;
+ mouse.targetY = (beta - 40.0) / 40.0;
+ }
+
+ btnGyro.addEventListener("click", async (e) => {
+ e.stopPropagation();
+ if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+ try {
+ const resp = await DeviceOrientationEvent.requestPermission();
+ if (resp === "granted") {
+ toggleGyro();
+ } else {
+ showToast("Permissão de giroscópio recusada");
+ }
+ } catch (err) {
+ showToast("Giroscópio indisponível");
+ }
+ } else if (window.DeviceOrientationEvent) {
+ toggleGyro();
+ } else {
+ showToast("Dispositivo sem giroscópio");
+ }
+ });
+
+ function toggleGyro() {
+ gyroEnabled = !gyroEnabled;
+ if (gyroEnabled) {
+ window.addEventListener("deviceorientation", handleOrientation);
+ btnGyro.classList.add("bg-cyan-500/30", "border-cyan-400", "text-cyan-300");
+ showToast("Giroscópio ativado");
+ } else {
+ window.removeEventListener("deviceorientation", handleOrientation);
+ btnGyro.classList.remove("bg-cyan-500/30", "border-cyan-400", "text-cyan-300");
+ showToast("Giroscópio desativado");
+ }
+ }
+
+ // Reproduzir / Pausar
+ btnPlay.addEventListener("click", (e) => {
+ e.stopPropagation();
+ isPlaying = !isPlaying;
+ if (isPlaying) {
+ startTime = performance.now() - pausedTime;
+ iconPlay.classList.add("hidden");
+ iconPause.classList.remove("hidden");
+ textPlay.textContent = "Pausar";
+ } else {
+ pausedTime = performance.now() - startTime;
+ iconPlay.classList.remove("hidden");
+ iconPause.classList.add("hidden");
+ textPlay.textContent = "Continuar";
+ }
+ });
+
+ btnToggleSettings.addEventListener("click", (e) => {
+ e.stopPropagation();
+ settingsPanel.classList.toggle("hidden");
+ });
+
+ btnHideUi.addEventListener("click", (e) => {
+ e.stopPropagation();
+ setUIVisibility(false);
+ showToast("Toque no ecrã para reexibir");
+ });
+
+ btnFullscreen.addEventListener("click", (e) => {
+ e.stopPropagation();
+ if (!document.fullscreenElement) {
+ document.documentElement.requestFullscreen().catch(() => {});
+ showToast("Modo Ecrã Inteiro");
+ } else {
+ document.exitFullscreen().catch(() => {});
+ }
+ });
+
+ btnScreenshot.addEventListener("click", (e) => {
+ e.stopPropagation();
+ render(performance.now());
+ const link = document.createElement("a");
+ link.download = `shader-tunnel-${Date.now()}.png`;
+ link.href = canvas.toDataURL("image/png");
+ link.click();
+ showToast("Captura guardada!");
+ });
+
+ sliderSpeed.addEventListener("input", (e) => {
+ speed = parseFloat(e.target.value);
+ valSpeed.textContent = speed.toFixed(1) + "x";
+ });
+
+ sliderHue.addEventListener("input", (e) => {
+ colorShift = parseFloat(e.target.value);
+ valHue.textContent = colorShift.toFixed(2);
+ });
+
+ qualityBtns.forEach((btn) => {
+ btn.addEventListener("click", (e) => {
+ e.stopPropagation();
+ qualityBtns.forEach((b) => {
+ b.classList.remove("text-cyan-300", "border-cyan-400/40", "bg-cyan-950/30");
+ b.classList.add("text-gray-400");
+ });
+ btn.classList.add("text-cyan-300", "border-cyan-400/40", "bg-cyan-950/30");
+ btn.classList.remove("text-gray-400");
+
+ const scale = btn.getAttribute("data-scale");
+ resolutionScale = scale === "native" ? "native" : parseFloat(scale);
+ resize();
+ });
+ });
+
+ btnReset.addEventListener("click", (e) => {
+ e.stopPropagation();
+ speed = 1.0;
+ colorShift = 0.0;
+ sliderSpeed.value = "1.0";
+ sliderHue.value = "0.0";
+ valSpeed.textContent = "1.0x";
+ valHue.textContent = "0.00";
+ mouse.targetX = 0;
+ mouse.targetY = 0;
+ showToast("Definições repostas");
+ });
+
+ // Medidor de FPS
+ let frameCount = 0;
+ let lastFpsUpdate = performance.now();
+
+ function updateFPS(now) {
+ frameCount++;
+ if (now - lastFpsUpdate >= 1000) {
+ const fps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+ fpsCounter.textContent = `${fps} FPS`;
+ frameCount = 0;
+ lastFpsUpdate = now;
+ }
+ }
+
+ // Ciclo Principal de Renderização
+ function render(now) {
+ updateFPS(now);
+
+ if (isPlaying) {
+ totalElapsedTime = (now - startTime) * 0.001;
+ }
+
+ mouse.x += (mouse.targetX - mouse.x) * 0.08;
+ mouse.y += (mouse.targetY - mouse.y) * 0.08;
+
+ gl.uniform2f(uResolutionLocation, canvas.width, canvas.height);
+ gl.uniform1f(uTimeLocation, totalElapsedTime);
+ gl.uniform2f(uMouseLocation, mouse.x, mouse.y);
+ gl.uniform1f(uSpeedLocation, speed);
+ gl.uniform1f(uColorShiftLocation, colorShift);
+
+ gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+ requestAnimationFrame(render);
+ }
+
+ requestAnimationFrame(render);
+ });
+ </script>
+</body>
+</html>
