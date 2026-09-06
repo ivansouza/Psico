@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Crescimento exponencial — colisões</title>
+  <style>
+    :root {
+      --bg: #f4efe4;
+      --ink: #111;
+      --muted: #5a5348;
+      --line: #111;
+      --card: rgba(255,255,255,0.55);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    .wrap {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 18px 12px 12px;
+      gap: 8px;
+    }
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(18px, 4.6vw, 28px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      font-weight: 800;
+    }
+    .sub {
+      margin: 0 0 4px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    canvas {
+      display: block;
+      touch-action: none;
+      max-width: 100%;
+      max-height: min(72vh, 720px);
+    }
+    .bar {
+      width: min(100%, 520px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 4px;
+    }
+    button, .stat {
+      border: 1.5px solid #111;
+      background: #fffdf8;
+      color: #111;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:active { transform: translateY(1px); }
+    .stat {
+      cursor: default;
+      background: var(--card);
+      font-variant-numeric: tabular-nums;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Toda vez que as bolas colidem,<br>uma nova nasce</h1>
+    <p class="sub">Duas bolas. Uma regra. Depois explode.</p>
+    <canvas id="c"></canvas>
+    <div class="bar">
+      <span class="stat" id="count">2 bolas</span>
+      <span class="stat" id="hits">0 colisões</span>
+      <button id="pause">Pausar</button>
+      <button id="reset">Reiniciar</button>
+      <button id="add">+ bola</button>
+    </div>
+    <p class="hint">Toque no círculo para soltar uma bola. No começo parece lento — é exatamente esse o ponto.</p>
+  </div>
+  <script>
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const countEl = document.getElementById("count");
+    const hitsEl = document.getElementById("hits");
+    const pauseBtn = document.getElementById("pause");
+    const resetBtn = document.getElementById("reset");
+    const addBtn = document.getElementById("add");
+
+    const COLORS = [
+      "#e23b3b", "#6b4fd6", "#2aa9b8", "#e2b53a",
+      "#e07a2f", "#3db36a", "#d44fa3", "#4a7fe8",
+      "#8b5a2b", "#1f8a70"
+    ];
+
+    const MAX_BALLS = 900;
+    const R = 5.2;
+    const SPEED = 118;
+    const REST = 1;
+    const SPAWN_COOLDOWN = 0.42;
+    const PAIR_COOLDOWN = 0.18;
+
+    let dpr = 1;
+    let W = 0, H = 0;
+    let cx = 0, cy = 0, arenaR = 0;
+    let balls = [];
+    let hits = 0;
+    let paused = false;
+    let last = performance.now();
+    let spawnQueue = [];
+
+    function resize() {
+      const maxSide = Math.min(window.innerWidth - 24, window.innerHeight * 0.62, 560);
+      const css = Math.max(280, maxSide);
+      dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      canvas.style.width = css + "px";
+      canvas.style.height = css + "px";
+      canvas.width = Math.round(css * dpr);
+      canvas.height = Math.round(css * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      W = css; H = css;
+      cx = W / 2; cy = H / 2;
+      arenaR = W * 0.42;
+    }
+
+    function randColor() {
+      return COLORS[(Math.random() * COLORS.length) | 0];
+    }
+
+    function makeBall(x, y, vx, vy, color) {
+      const ang = Math.atan2(vy, vx);
+      const sp = SPEED * (0.92 + Math.random() * 0.16);
+      return {
+        x, y,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp,
+        r: R,
+        color: color || randColor(),
+        cool: 0,
+        id: Math.random().toString(36).slice(2)
+      };
+    }
+
+    function startTwo() {
+      balls = [];
+      hits = 0;
+      spawnQueue = [];
+      const a = Math.random() * Math.PI * 2;
+      const b = a + Math.PI * (0.55 + Math.random() * 0.3);
+      const d = arenaR * 0.38;
+      balls.push(makeBall(cx + Math.cos(a) * d, cy + Math.sin(a) * d, Math.cos(a + 1.2), Math.sin(a + 1.2), COLORS[0]));
+      balls.push(makeBall(cx + Math.cos(b) * d, cy + Math.sin(b) * d, Math.cos(b - 0.8), Math.sin(b - 0.8), COLORS[1]));
+      updateStats();
+    }
+
+    function updateStats() {
+      const n = balls.length;
+      countEl.textContent = n + (n === 1 ? " bola" : " bolas");
+      hitsEl.textContent = hits + (hits === 1 ? " colisão" : " colisões");
+    }
+
+    function bounceWall(p) {
+      const dx = p.x - cx;
+      const dy = p.y - cy;
+      const dist = Math.hypot(dx, dy);
+      const limit = arenaR - p.r;
+      if (dist > limit) {
+        const nx = dx / (dist || 1);
+        const ny = dy / (dist || 1);
+        p.x = cx + nx * limit;
+        p.y = cy + ny * limit;
+        const vn = p.vx * nx + p.vy * ny;
+        if (vn > 0) {
+          p.vx -= (1 + REST) * vn * nx;
+          p.vy -= (1 + REST) * vn * ny;
+        }
+      }
+    }
+
+    function collide(a, b, dt) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const minD = a.r + b.r;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= minD * minD || d2 === 0) return false;
+
+      const dist = Math.sqrt(d2);
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const overlap = minD - dist;
+
+      a.x -= nx * overlap * 0.5;
+      a.y -= ny * overlap * 0.5;
+      b.x += nx * overlap * 0.5;
+      b.y += ny * overlap * 0.5;
+
+      const rvx = b.vx - a.vx;
+      const rvy = b.vy - a.vy;
+      const velN = rvx * nx + rvy * ny;
+      if (velN >= 0) return false;
+
+      const j = -(1 + REST) * velN / 2;
+      a.vx -= j * nx;
+      a.vy -= j * ny;
+      b.vx += j * nx;
+      b.vy += j * ny;
+
+      return true;
+    }
+
+    function trySpawn(a, b) {
+      if (balls.length + spawnQueue.length >= MAX_BALLS) return;
+      if (a.cool > 0 || b.cool > 0) return;
+      a.cool = SPAWN_COOLDOWN;
+      b.cool = SPAWN_COOLDOWN;
+      hits++;
+
+      const mx = (a.x + b.x) * 0.5;
+      const my = (a.y + b.y) * 0.5;
+      const tx = b.x - a.x;
+      const ty = b.y - a.y;
+      const len = Math.hypot(tx, ty) || 1;
+      const px = -ty / len;
+      const py = tx / len;
+      const side = Math.random() < 0.5 ? 1 : -1;
+      const ox = px * side * (R * 1.15);
+      const oy = py * side * (R * 1.15);
+      let sx = mx + ox;
+      let sy = my + oy;
+      const fromC = Math.hypot(sx - cx, sy - cy);
+      if (fromC > arenaR - R - 1) {
+        const k = (arenaR - R - 1) / fromC;
+        sx = cx + (sx - cx) * k;
+        sy = cy + (sy - cy) * k;
+      }
+      const ang = Math.random() * Math.PI * 2;
+      spawnQueue.push(makeBall(sx, sy, Math.cos(ang), Math.sin(ang)));
+    }
+
+    function addBallAt(x, y) {
+      if (balls.length >= MAX_BALLS) return;
+      const dx = x - cx, dy = y - cy;
+      if (Math.hypot(dx, dy) > arenaR - R) return;
+      const ang = Math.random() * Math.PI * 2;
+      balls.push(makeBall(x, y, Math.cos(ang), Math.sin(ang)));
+      updateStats();
+    }
+
+    function step(dt) {
+      dt = Math.min(dt, 1 / 30);
+      const n = balls.length;
+      for (let i = 0; i < n; i++) {
+        const p = balls[i];
+        if (p.cool > 0) p.cool = Math.max(0, p.cool - dt);
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        bounceWall(p);
+      }
+
+      // spatial bins to keep late-game usable
+      const cell = R * 4.2;
+      const bins = new Map();
+      const key = (ix, iy) => ix + "," + iy;
+      for (let i = 0; i < balls.length; i++) {
+        const p = balls[i];
+        const ix = Math.floor(p.x / cell);
+        const iy = Math.floor(p.y / cell);
+        const k = key(ix, iy);
+        if (!bins.has(k)) bins.set(k, []);
+        bins.get(k).push(i);
+      }
+
+      const seen = new Set();
+      for (let i = 0; i < balls.length; i++) {
+        const p = balls[i];
+        const ix = Math.floor(p.x / cell);
+        const iy = Math.floor(p.y / cell);
+        for (let ox = -1; ox <= 1; ox++) {
+          for (let oy = -1; oy <= 1; oy++) {
+            const list = bins.get(key(ix + ox, iy + oy));
+            if (!list) continue;
+            for (const j of list) {
+              if (j <= i) continue;
+              const pair = i + ":" + j;
+              if (seen.has(pair)) continue;
+              seen.add(pair);
+              const q = balls[j];
+              if (collide(p, q, dt)) trySpawn(p, q);
+            }
+          }
+        }
+      }
+
+      if (spawnQueue.length) {
+        balls.push(...spawnQueue);
+        spawnQueue = [];
+        updateStats();
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#111";
+      ctx.beginPath();
+      ctx.arc(cx, cy, arenaR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (const p of balls) {
+        ctx.beginPath();
+        ctx.fillStyle = p.color;
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.15;
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.arc(p.x - p.r * 0.28, p.y - p.r * 0.28, p.r * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function loop(now) {
+      const dt = (now - last) / 1000;
+      last = now;
+      if (!paused) step(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function canvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const t = e.touches ? e.touches[0] : e;
+      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      const p = canvasPos(e);
+      addBallAt(p.x, p.y);
+    });
+
+    pauseBtn.addEventListener("click", () => {
+      paused = !paused;
+      pauseBtn.textContent = paused ? "Continuar" : "Pausar";
+    });
+    resetBtn.addEventListener("click", startTwo);
+    addBtn.addEventListener("click", () => {
+      const ang = Math.random() * Math.PI * 2;
+      const d = Math.random() * (arenaR - R * 3);
+      addBallAt(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d);
+    });
+
+    window.addEventListener("resize", () => {
+      const snapshot = balls.map(b => ({
+        x: (b.x - cx) / (arenaR || 1),
+        y: (b.y - cy) / (arenaR || 1),
+        vx: b.vx, vy: b.vy, color: b.color, cool: b.cool
+      }));
+      resize();
+      balls = snapshot.map(s => {
+        const p = makeBall(cx + s.x * arenaR, cy + s.y * arenaR, s.vx, s.vy, s.color);
+        p.cool = s.cool;
+        p.vx = s.vx; p.vy = s.vy;
+        return p;
+      });
+    });
+
+    resize();
+    startTwo();
+    requestAnimationFrame(t => { last = t; loop(t); });
+  </script>
+</body>
+</html>
