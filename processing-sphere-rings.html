@@ -7,27 +7,100 @@
   <title>Processing Sphere Rings</title>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: ui-sans-serif, system-ui, sans-serif; }
-    canvas { display: block; }
+    canvas { display: block; touch-action: none; }
     #hud { position: fixed; z-index: 5; left: 12px; top: max(10px, env(safe-area-inset-top)); padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: rgba(0,0,0,.45); backdrop-filter: blur(8px); font-size: 12px; letter-spacing: .04em; pointer-events: none; }
   </style>
 </head>
 <body>
-  <div id="hud">Processing to p5.js WEBGL</div>
+  <div id="hud">Pinch / scroll to zoom · Processing to p5.js</div>
   <script>
     let d, r, t = 0;
+    let zoom = 1;
+    const ZMIN = 0.35, ZMAX = 3.2;
+    const camBase = { x: 900, y: 800, z: 700 };
+    let pinchStartDist = 0;
+    let pinchStartZoom = 1;
+    const pointers = new Map();
+
     function setup() {
       createCanvas(windowWidth, windowHeight, WEBGL);
       pixelDensity(Math.min(2, displayDensity()));
+      const c = canvas || document.querySelector('canvas');
+      if (c) {
+        c.addEventListener('wheel', onWheel, { passive: false });
+        c.addEventListener('pointerdown', onPointerDown);
+        c.addEventListener('pointermove', onPointerMove);
+        c.addEventListener('pointerup', onPointerUp);
+        c.addEventListener('pointercancel', onPointerUp);
+        c.addEventListener('pointerleave', onPointerUp);
+      }
     }
+
     function windowResized() {
       resizeCanvas(windowWidth, windowHeight);
     }
+
+    function clampZoom(z) {
+      return Math.min(ZMAX, Math.max(ZMIN, z));
+    }
+
+    function dist2(a, b) {
+      const dx = a.x - b.x, dy = a.y - b.y;
+      return Math.hypot(dx, dy);
+    }
+
+    function onWheel(e) {
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.0015);
+      zoom = clampZoom(zoom * factor);
+      syncHud();
+    }
+
+    function onPointerDown(e) {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { e.target.setPointerCapture(e.pointerId); } catch (_) {}
+      if (pointers.size === 2) {
+        const pts = [...pointers.values()];
+        pinchStartDist = dist2(pts[0], pts[1]) || 1;
+        pinchStartZoom = zoom;
+      }
+    }
+
+    function onPointerMove(e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        e.preventDefault();
+        const pts = [...pointers.values()];
+        const dist = dist2(pts[0], pts[1]) || 1;
+        zoom = clampZoom(pinchStartZoom * (dist / pinchStartDist));
+        syncHud();
+      }
+    }
+
+    function onPointerUp(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) {
+        pinchStartDist = 0;
+      } else {
+        const pts = [...pointers.values()];
+        pinchStartDist = dist2(pts[0], pts[1]) || 1;
+        pinchStartZoom = zoom;
+      }
+    }
+
+    function syncHud() {
+      const el = document.getElementById('hud');
+      if (el) el.textContent = 'Zoom ' + zoom.toFixed(2) + 'x · pinch / scroll';
+    }
+
     function draw() {
       background(0);
       noStroke();
-      camera(900, 800, 700, 0, 0, 0, 0, 0, -1);
+      const z = zoom;
+      camera(camBase.x * z, camBase.y * z, camBase.z * z, 0, 0, 0, 0, 0, -1);
       lights();
       const aFill = 300 * Math.cos(t * 1000);
       const aStroke = -300 * Math.cos(t * 1000);
@@ -47,6 +120,8 @@
       }
       t += 1e-6;
     }
+
+    syncHud();
   </script>
 </body>
 </html>
