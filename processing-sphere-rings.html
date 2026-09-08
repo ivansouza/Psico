@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Processing Sphere Rings</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: ui-sans-serif, system-ui, sans-serif; }
+    canvas { display: block; }
+    #hud { position: fixed; z-index: 5; left: 12px; top: max(10px, env(safe-area-inset-top)); padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: rgba(0,0,0,.45); backdrop-filter: blur(8px); font-size: 12px; letter-spacing: .04em; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="hud">Processing to p5.js WEBGL</div>
+  <script>
+    let d, r, t = 0;
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      pixelDensity(Math.min(2, displayDensity()));
+    }
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+    function draw() {
+      background(0);
+      noStroke();
+      camera(900, 800, 700, 0, 0, 0, 0, 0, -1);
+      lights();
+      const aFill = 300 * Math.cos(t * 1000);
+      const aStroke = -300 * Math.cos(t * 1000);
+      fill(255, constrain(aFill, 0, 255));
+      stroke(255, constrain(aStroke, 0, 255));
+      sphere(500 * Math.sin(t * 999));
+      for (d = 10; d < 900; d += 50) {
+        rotateX(d * 2 * t);
+        rotateY(d * t);
+        for (r = 0; r < TAU; r += (TAU / d) * 9) {
+          push();
+          translate(d * Math.sin(r), d * Math.cos(r));
+          rotateZ(-r);
+          box(d / 12);
+          pop();
+        }
+      }
+      t += 1e-6;
+    }
+  </script>
+</body>
+</html>
