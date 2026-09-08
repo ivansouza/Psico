@@ -27,7 +27,7 @@
     function setup() {
       createCanvas(windowWidth, windowHeight, WEBGL);
       pixelDensity(Math.min(2, displayDensity()));
-      const c = canvas || document.querySelector('canvas');
+      const c = document.querySelector('canvas');
       if (c) {
         c.addEventListener('wheel', onWheel, { passive: false });
         c.addEventListener('pointerdown', onPointerDown);
@@ -53,6 +53,7 @@
 
     function onWheel(e) {
       e.preventDefault();
+      // scroll up = zoom in
       const factor = Math.exp(-e.deltaY * 0.0015);
       zoom = clampZoom(zoom * factor);
       syncHud();
@@ -75,6 +76,7 @@
         e.preventDefault();
         const pts = [...pointers.values()];
         const dist = dist2(pts[0], pts[1]) || 1;
+        // fingers apart = zoom in
         zoom = clampZoom(pinchStartZoom * (dist / pinchStartDist));
         syncHud();
       }
@@ -99,8 +101,9 @@
     function draw() {
       background(0);
       noStroke();
-      const z = zoom;
-      camera(camBase.x * z, camBase.y * z, camBase.z * z, 0, 0, 0, 0, 0, -1);
+      // larger zoom = closer camera
+      const inv = 1 / zoom;
+      camera(camBase.x * inv, camBase.y * inv, camBase.z * inv, 0, 0, 0, 0, 0, -1);
       lights();
       const aFill = 300 * Math.cos(t * 1000);
       const aStroke = -300 * Math.cos(t * 1000);
