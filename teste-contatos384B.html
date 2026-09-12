@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App de Contatos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button.add-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button.add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(118, 75, 162, 0.4);
+        }
+
+        .table-container {
+            margin-top: 30px;
+        }
+
+        .table-title {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #f8f9fc;
+            padding: 12px 15px;
+            text-align: left;
+            color: #555;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        tbody td {
+            padding: 12px 15px;
+            color: #444;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tbody tr:hover {
+            background: #f0f2ff;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #e04050;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+            <h1>📋 Cadastro de Contatos</h1>
+            <p class="subtitle">Adicione novos contatos com facilidade</p>
+
+            <form id="contactForm">
+                <div class="form-group">
+                    <label for="name">Nome</label>
+                    <input type="text" id="name" placeholder="Digite o nome..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="address">Endereço</label>
+                    <textarea id="address" placeholder="Digite o endereço completo..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Telefone</label>
+                    <input type="tel" id="phone" placeholder="(00) 00000-0000" required>
+                </div>
+
+                <button type="submit" class="add-btn">
+                    ➕ Adicionar Contato
+                </button>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <h2 class="table-title">📁 Lista de Contatos</h2>
+            <div id="emptyState" class="empty-state">
+                <div style="font-size: 3rem;">📭</div>
+                <p>Nenhum contato cadastrado ainda.</p>
+            </div>
+            <table id="contactsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nome</th>
+                        <th>Endereço</th>
+                        <th>Telefone</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">Contato cadastrado com sucesso! ✅</div>
+
+    <script>
+        // Armazena os contatos no localStorage
+        let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+
+        const form = document.getElementById('contactForm');
+        const tableBody = document.getElementById('tableBody');
+        const emptyState = document.getElementById('emptyState');
+        const notification = document.getElementById('notification');
+
+        // Salvar no localStorage
+        function saveContacts() {
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+        }
+
+        // Adicionar contato
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            if (name && address && phone) {
+                const newContact = {
+                    id: Date.now(),
+                    name,
+                    address,
+                    phone,
+                    date: new Date().toLocaleDateString('pt-BR')
+                };
+
+                contacts.push(newContact);
+                saveContacts();
+                renderTable();
+                form.reset();
+                showNotification();
+            }
+        });
+
+        // Excluir contato
+        function deleteContact(id) {
+            if (confirm('Tem certeza que deseja excluir este contato?')) {
+                contacts = contacts.filter(c => c.id !== id);
+                saveContacts();
+                renderTable();
+            }
+        }
+
+        // Renderizar tabela
+        function renderTable() {
+            tableBody.innerHTML = '';
+
+            if (contacts.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+
+                contacts.forEach((contact, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${contact.name}</td>
+                        <td>${contact.address}</td>
+                        <td>${contact.phone}</td>
+                        <td>
+                            <button class="delete-btn" onclick="deleteContact(${contact.id})">
+                                🗑️ Excluir
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+        }
+
+        // Mostrar notificação
+        function showNotification() {
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Renderizar ao carregar
+        renderTable();
+    </script>
+</body>
+</html>
