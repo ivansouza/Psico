@@ -93,6 +93,7 @@
         <option value="gif">GIF</option>
       </select>
     </label>
+    <label>Tempo do loop <input id="loopTime" type="range" min="2" max="30" step="0.5" value="6"><span id="loopTimeVal" style="color:var(--txt);min-width:2.5em">6s</span></label>
     <button id="rec" type="button">Gravar loop</button>
     <span id="status"></span>
   </div>
@@ -115,6 +116,7 @@ const S = {
   brightness: 0.85,
   color: "ice",
   duration: 6,
+  recordSecs: 6,
   axis: "y",
   elevation: 12,
   azimuth: 0,
@@ -586,8 +588,9 @@ async function recordVideo(fmt) {
   await new Promise((resolve) => {
     const step = (now) => {
       const t = (now - t0) / 1000;
-      angle = startAngle + dir * (t / S.duration) * Math.PI * 2;
-      if (t >= S.duration) { angle = startAngle; resolve(); return; }
+      const loopSecs = S.recordSecs;
+      angle = startAngle + dir * (t / loopSecs) * Math.PI * 2;
+      if (t >= loopSecs) { angle = startAngle; resolve(); return; }
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -602,7 +605,7 @@ async function recordVideo(fmt) {
 async function recordGif() {
   const { GIFEncoder, quantize, applyPalette } = await import("https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js");
   const w = 480, h = 480, fps = 12;
-  const frames = Math.max(16, Math.round(S.duration * fps));
+  const frames = Math.max(16, Math.round(S.recordSecs * fps));
   const off = document.createElement("canvas");
   off.width = w; off.height = h;
   const octx = off.getContext("2d", { willReadFrequently: true });
@@ -637,7 +640,7 @@ document.getElementById("rec").onclick = async () => {
   btn.disabled = true;
   const fmt = document.getElementById("fmt").value;
   try {
-    setStatus("Gravando loop " + fmt.toUpperCase() + "…");
+    setStatus("Gravando loop " + fmt.toUpperCase() + " · " + S.recordSecs + "s…");
     if (fmt === "gif") await recordGif();
     else await recordVideo(fmt);
     setStatus("Loop salvo.");
@@ -659,6 +662,10 @@ document.getElementById("count").oninput = e => S.count = +e.target.value;
 document.getElementById("size").oninput = e => S.size = +e.target.value;
 document.getElementById("zoom").oninput = e => S.zoom = +e.target.value;
 document.getElementById("duration").oninput = e => S.duration = +e.target.value;
+document.getElementById("loopTime").oninput = e => {
+  S.recordSecs = +e.target.value;
+  document.getElementById("loopTimeVal").textContent = S.recordSecs + "s";
+};
 
 const reveal = document.getElementById("reveal");
 reveal.onpointerdown = () => { cueTarget = 1; reveal.classList.add("active"); };
