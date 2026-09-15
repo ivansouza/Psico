@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#18181e" />
+  <title>MiniCPM5-2B WebGPU Pi</title>
+  <style>
+    :root { --bg:#0b0b10; --panel:#15151d; --line:#ffffff18; --txt:#e8e8f0; --muted:#9a9aab; --accent:#5eead4; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:14px/1.4 system-ui,sans-serif; overflow:hidden; }
+    #bar {
+      position:fixed; z-index:5; inset:0 0 auto 0; height:44px;
+      display:flex; align-items:center; gap:10px; padding:0 12px;
+      background:linear-gradient(180deg, #15151df2, #15151dcc);
+      border-bottom:1px solid var(--line); backdrop-filter:blur(10px);
+    }
+    #bar strong { font-size:13px; letter-spacing:.02em; }
+    #bar span { color:var(--muted); font-size:12px; }
+    #bar a {
+      margin-left:auto; color:var(--accent); text-decoration:none;
+      border:1px solid #5eead455; border-radius:8px; padding:6px 10px; font-size:12px;
+    }
+    #frame-wrap { position:fixed; inset:44px 0 0 0; }
+    iframe { width:100%; height:100%; border:0; background:#18181e; }
+    #note {
+      position:fixed; z-index:6; left:12px; right:12px; bottom:12px;
+      padding:10px 12px; border-radius:12px; border:1px solid var(--line);
+      background:#15151dee; color:var(--muted); font-size:12px;
+      display:none;
+    }
+    #note.show { display:block; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <strong>🥧 MiniCPM5-2B · WebGPU Pi</strong>
+    <span>coding agent no browser (WebGPU)</span>
+    <a href="https://huggingface.co/spaces/victor/MiniCPM5-2B-WebGPU-Pi" target="_blank" rel="noopener">Space original</a>
+  </div>
+  <div id="frame-wrap">
+    <iframe
+      id="app"
+      title="MiniCPM5-2B WebGPU Pi"
+      src="https://victor-minicpm5-2b-webgpu-pi.static.hf.space/"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; web-share; cross-origin-isolated"
+      allowfullscreen
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+  </div>
+  <div id="note">Se o iframe for bloqueado, abra o Space original. O modelo ONNX/WebGPU continua baixando no dispositivo na primeira execução.</div>
+  <script>
+    const frame = document.getElementById('app');
+    const note = document.getElementById('note');
+    let loaded = false;
+    frame.addEventListener('load', () => { loaded = true; note.classList.remove('show'); });
+    setTimeout(() => { if (!loaded) note.classList.add('show'); }, 8000);
+  </script>
+</body>
+</html>
