@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Efeito de profundidade cinética</title>
+  <style>
+    :root {
+      --bg: #050608;
+      --panel: #0c0e14cc;
+      --line: #ffffff18;
+      --txt: #e8eef8;
+      --muted: #93a0b4;
+      --accent: #7ec8ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--txt); font: 14px/1.4 system-ui, sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #ui {
+      position: fixed; left: 12px; right: 12px; bottom: 12px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px;
+      background: var(--panel); backdrop-filter: blur(12px);
+    }
+    #ui label { color: var(--muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; display: flex; gap: 6px; align-items: center; }
+    select, button {
+      background: #161a24; color: var(--txt); border: 1px solid var(--line);
+      border-radius: 8px; padding: 6px 10px; font: inherit; cursor: pointer;
+    }
+    button.active { background: #1e3a55; border-color: #7ec8ff55; color: var(--accent); }
+    input[type=range] { width: 90px; accent-color: var(--accent); }
+    #status { color: var(--muted); font-size: 12px; }
+    input[type="file"] { display: none; }
+    #hint { position: fixed; top: 14px; left: 16px; color: var(--muted); font-size: 12px; pointer-events: none; }
+    #hint b { color: var(--txt); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="hint"><b>Profundidade cinética</b> · arraste para olhar · espaço pausa · Revelar força uma leitura</div>
+  <div id="ui">
+    <label>Forma
+      <select id="shape">
+        <option value="torus">Nó</option>
+        <option value="sphere">Esfera</option>
+        <option value="arrow">Seta</option>
+        <option value="cube">Cubo</option>
+        <option value="ring">Anel</option>
+        <option value="helix">Hélice</option>
+        <option value="star">Estrela</option>
+        <option value="diamond">Diamante</option>
+        <option value="cone">Cone</option>
+        <option value="pyramid">Pirâmide</option>
+      </select>
+    </label>
+    <label>Modo
+      <select id="mode">
+        <option value="particles">Partículas</option>
+        <option value="wireframe">Arame</option>
+        <option value="silhouette">Silhueta</option>
+      </select>
+    </label>
+    <label>Cor
+      <select id="color">
+        <option value="ice">Gelo</option>
+        <option value="spectrum">Espectro</option>
+        <option value="amber">Âmbar</option>
+        <option value="mono">Mono</option>
+        <option value="lavender">Lavanda</option>
+        <option value="rose">Rosa</option>
+        <option value="original">Original</option>
+      </select>
+    </label>
+    <label>Eixo
+      <select id="axis">
+        <option value="y">Y</option>
+        <option value="x">X</option>
+        <option value="z">Z</option>
+      </select>
+    </label>
+    <label>Pontos <input id="count" type="range" min="2000" max="18000" step="500" value="9000"></label>
+    <label>Tamanho <input id="size" type="range" min="0.6" max="3" step="0.1" value="1.4"></label>
+    <label>Zoom <input id="zoom" type="range" min="0.6" max="2" step="0.02" value="1.08"></label>
+    <label>Velocidade <input id="duration" type="range" min="3" max="16" step="0.5" value="6"></label>
+    <button id="reveal" type="button">Revelar</button>
+    <button id="pause" type="button">Pausar</button>
+    <input id="file" type="file" accept=".obj,.glb,.gltf,model/gltf-binary,model/gltf+json" />
+    <button id="import" type="button">Importar</button>
+    <label>Loop
+      <select id="fmt">
+        <option value="webm">WebM</option>
+        <option value="mp4">MP4</option>
+        <option value="gif">GIF</option>
+      </select>
+    </label>
+    <button id="rec" type="button">Gravar loop</button>
+    <span id="status"></span>
+  </div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d", { alpha: false });
+
+const S = {
+  mode: "particles",
+  count: 9000,
+  size: 1.4,
+  brightness: 0.85,
+  color: "ice",
+  duration: 6,
+  axis: "y",
+  elevation: 12,
+  azimuth: 0,
+  zoom: 1.08,
+  cue: 0,
+};
+
+let model = null;
+let angle = 0.35;
+let running = true;
+let cueTarget = 0;
+let cueNow = 0;
+let last = 0;
+let dragging = false, lastX = 0, lastY = 0;
+let recording = false;
+
+function seeded(seed = 2026) {
+  return () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+function pushTri(arr, a, b, c, rgb) {
+  arr.push(a[0], a[1], a[2], rgb[0], rgb[1], rgb[2]);
+  arr.push(b[0], b[1], b[2], rgb[0], rgb[1], rgb[2]);
+  arr.push(c[0], c[1], c[2], rgb[0], rgb[1], rgb[2]);
+}
+function quad(arr, a, b, c, d, rgb) {
+  pushTri(arr, a, b, c, rgb);
+  pushTri(arr, a, c, d, rgb);
+}
+
+function sampleSurface(triangles, count) {
+  const n = triangles.length / 18;
+  const cdf = new Float64Array(n);
+  let sum = 0;
+  const Ax = [0,0,0], Bx = [0,0,0], Cx = [0,0,0];
+  for (let i = 0; i < n; i++) {
+    const j = i * 18;
+    Ax[0]=triangles[j]; Ax[1]=triangles[j+1]; Ax[2]=triangles[j+2];
+    Bx[0]=triangles[j+6]-Ax[0]; Bx[1]=triangles[j+7]-Ax[1]; Bx[2]=triangles[j+8]-Ax[2];
+    Cx[0]=triangles[j+12]-Ax[0]; Cx[1]=triangles[j+13]-Ax[1]; Cx[2]=triangles[j+14]-Ax[2];
+    const cx = Bx[1]*Cx[2]-Bx[2]*Cx[1], cy = Bx[2]*Cx[0]-Bx[0]*Cx[2], cz = Bx[0]*Cx[1]-Bx[1]*Cx[0];
+    sum += Math.hypot(cx, cy, cz) * 0.5;
+    cdf[i] = sum;
+  }
+  const out = new Float32Array(count * 6);
+  const rnd = seeded();
+  for (let k = 0; k < count; k++) {
+    const target = rnd() * sum;
+    let lo = 0, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (cdf[mid] > target) hi = mid; else lo = mid + 1;
+    }
+    const root = Math.sqrt(rnd()), u = 1 - root, v = root * (1 - rnd()), w = 1 - u - v;
+    const j = lo * 18;
+    for (let d = 0; d < 6; d++)
+      out[k * 6 + d] = triangles[j + d] * u + triangles[j + 6 + d] * v + triangles[j + 12 + d] * w;
+  }
+  return out;
+}
+
+function finish(name, raw, rgbFallback, dir = 1) {
+  const triangles = new Float32Array(raw);
+  let cx=0,cy=0,cz=0, n = triangles.length / 6;
+  for (let i = 0; i < triangles.length; i += 6) { cx += triangles[i]; cy += triangles[i+1]; cz += triangles[i+2]; }
+  cx/=n; cy/=n; cz/=n;
+  let r = 0;
+  for (let i = 0; i < triangles.length; i += 6) {
+    triangles[i]-=cx; triangles[i+1]-=cy; triangles[i+2]-=cz;
+    r = Math.max(r, Math.hypot(triangles[i], triangles[i+1], triangles[i+2]));
+  }
+  for (let i = 0; i < triangles.length; i += 6) {
+    triangles[i]/=r; triangles[i+1]/=r; triangles[i+2]/=r;
+    if (triangles[i+3] === undefined) {}
+  }
+  const edges = new Map();
+  for (let i = 0; i < triangles.length; i += 18) {
+    for (const [a,b] of [[0,6],[6,12],[12,0]]) {
+      const va = triangles.subarray(i+a, i+a+6);
+      const vb = triangles.subarray(i+b, i+b+6);
+      const ka = [va[0],va[1],va[2]].map(x=>Math.round(x*1e5)).join(",");
+      const kb = [vb[0],vb[1],vb[2]].map(x=>Math.round(x*1e5)).join(",");
+      const key = ka < kb ? ka+"/"+kb : kb+"/"+ka;
+      if (!edges.has(key)) edges.set(key, [...va, ...vb]);
+    }
+  }
+  const wires = new Float32Array(edges.size * 12);
+  let o = 0;
+  for (const e of edges.values()) { wires.set(e, o); o += 12; }
+  return {
+    name,
+    triangles,
+    wires,
+    particles: sampleSurface(triangles, 18000),
+    rotationDirection: dir,
+  };
+}
+
+function sphere() {
+  const arr = [], rgb = [0.66,0.89,0.94];
+  const slat = 28, slon = 40;
+  for (let i = 0; i < slat; i++) {
+    const a0 = Math.PI * i / slat - Math.PI/2, a1 = Math.PI * (i+1) / slat - Math.PI/2;
+    for (let j = 0; j < slon; j++) {
+      const b0 = 2*Math.PI*j/slon, b1 = 2*Math.PI*(j+1)/slon;
+      const p = (a,b)=>[Math.cos(a)*Math.cos(b), Math.sin(a), Math.cos(a)*Math.sin(b)];
+      const A=p(a0,b0), B=p(a0,b1), C=p(a1,b1), D=p(a1,b0);
+      if (i) pushTri(arr, A,B,D,rgb);
+      if (i < slat-1) pushTri(arr, B,C,D,rgb);
+    }
+  }
+  return finish("Sphere", arr, rgb);
+}
+
+function torusKnot() {
+  const arr = [], rgb = [0.83,0.72,1];
+  const p=2,q=3, R=0.72, r=0.22, segs=120, tubes=14;
+  const pos = (t,s) => {
+    const x = Math.cos(p*t)*(R + r*Math.cos(q*t));
+    const y = Math.sin(p*t)*(R + r*Math.cos(q*t));
+    const z = r*Math.sin(q*t);
+    const tx = -p*Math.sin(p*t)*(R + r*Math.cos(q*t)) + Math.cos(p*t)*(-r*q*Math.sin(q*t));
+    const ty =  p*Math.cos(p*t)*(R + r*Math.cos(q*t)) + Math.sin(p*t)*(-r*q*Math.sin(q*t));
+    const tz = r*q*Math.cos(q*t);
+    const len = Math.hypot(tx,ty,tz)||1;
+    const T = [tx/len,ty/len,tz/len];
+    let Nx = -T[1], Ny = T[0], Nz = 0;
+    const nlen = Math.hypot(Nx,Ny,Nz)||1;
+    Nx/=nlen; Ny/=nlen;
+    const Bx = T[1]*Nz - T[2]*Ny, By = T[2]*Nx - T[0]*Nz, Bz = T[0]*Ny - T[1]*Nx;
+    return [
+      x + r*0.02 + (Nx*Math.cos(s) + Bx*Math.sin(s))*r,
+      z + (Ny*Math.cos(s) + By*Math.sin(s))*r,
+      y + (Nz*Math.cos(s) + Bz*Math.sin(s))*r,
+    ];
+  };
+  for (let i=0;i<segs;i++) for (let j=0;j<tubes;j++) {
+    const t0=i/segs*Math.PI*2, t1=(i+1)/segs*Math.PI*2;
+    const s0=j/tubes*Math.PI*2, s1=(j+1)/tubes*Math.PI*2;
+    quad(arr, pos(t0,s0), pos(t1,s0), pos(t1,s1), pos(t0,s1), rgb);
+  }
+  return finish("Knot", arr, rgb);
+}
+
+function cube() {
+  const arr=[], rgb=[0.81,0.93,0.67];
+  const h=0.75;
+  const f=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]].map(([x,y,z])=>[x*h,y*h,z*h]);
+  const faces=[[0,1,2,3],[4,7,6,5],[0,4,5,1],[2,6,7,3],[0,3,7,4],[1,5,6,2]];
+  for (const q of faces) quad(arr, f[q[0]], f[q[1]], f[q[2]], f[q[3]], rgb);
+  return finish("Cube", arr, rgb);
+}
+
+function ring() {
+  const arr=[], rgb=[0.66,0.89,0.94];
+  const R=0.7,r=0.24,u=48,v=16;
+  const p=(i,j)=>{
+    const a=i/u*Math.PI*2, b=j/v*Math.PI*2;
+    return [(R+r*Math.cos(b))*Math.cos(a), r*Math.sin(b), (R+r*Math.cos(b))*Math.sin(a)];
+  };
+  for (let i=0;i<u;i++) for (let j=0;j<v;j++)
+    quad(arr, p(i,j), p(i+1,j), p(i+1,j+1), p(i,j+1), rgb);
+  return finish("Ring", arr, rgb);
+}
+
+function helix() {
+  const arr=[], rgb=[0.83,0.72,1];
+  const segs=90, tubes=10, rad=0.11;
+  const P=(t)=>{
+    const a=t*Math.PI*4.5;
+    return [0.62*Math.cos(a), (t-0.5)*1.6, 0.62*Math.sin(a)];
+  };
+  const ring=(t,s)=>{
+    const a=t*Math.PI*4.5;
+    const T=[-0.62*Math.sin(a)*Math.PI*4.5, 1.6, 0.62*Math.cos(a)*Math.PI*4.5];
+    const tl=Math.hypot(...T)||1; T[0]/=tl;T[1]/=tl;T[2]/=tl;
+    let N=[-T[1],T[0],0]; const nl=Math.hypot(...N)||1; N=N.map(x=>x/nl);
+    const B=[T[1]*N[2]-T[2]*N[1], T[2]*N[0]-T[0]*N[2], T[0]*N[1]-T[1]*N[0]];
+    const c=P(t);
+    return [c[0]+(N[0]*Math.cos(s)+B[0]*Math.sin(s))*rad, c[1]+(N[1]*Math.cos(s)+B[1]*Math.sin(s))*rad, c[2]+(N[2]*Math.cos(s)+B[2]*Math.sin(s))*rad];
+  };
+  for (let i=0;i<segs;i++) for (let j=0;j<tubes;j++) {
+    const t0=i/segs, t1=(i+1)/segs, s0=j/tubes*Math.PI*2, s1=(j+1)/tubes*Math.PI*2;
+    quad(arr, ring(t0,s0), ring(t1,s0), ring(t1,s1), ring(t0,s1), rgb);
+  }
+  return finish("Helix", arr, rgb);
+}
+
+function diamond() {
+  const arr=[], rgb=[0.66,0.89,0.94];
+  const v=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+  const faces=[[0,2,4],[2,1,4],[1,3,4],[3,0,4],[2,0,5],[1,2,5],[3,1,5],[0,3,5]];
+  for (const f of faces) pushTri(arr, v[f[0]], v[f[1]], v[f[2]], rgb);
+  return finish("Diamond", arr, rgb);
+}
+
+function coneShape(sides, r, h, rgb, rotY=0, tilt=0, name="Cone") {
+  const arr=[];
+  const tip=[0,h/2,0], base=[];
+  for (let i=0;i<sides;i++) {
+    const a=i/sides*Math.PI*2 + rotY;
+    base.push([Math.cos(a)*r, -h/2, Math.sin(a)*r]);
+  }
+  const rot = (p)=>{
+    const c=Math.cos(tilt), s=Math.sin(tilt);
+    return [p[0]*c - p[1]*s, p[0]*s + p[1]*c, p[2]];
+  };
+  const T=rot(tip), B=base.map(rot);
+  for (let i=0;i<sides;i++) {
+    pushTri(arr, T, B[i], B[(i+1)%sides], rgb);
+    pushTri(arr, [0,-h/2,0].map((x,k)=>rot([0,-h/2,0])[k]), B[(i+1)%sides], B[i], rgb);
+  }
+  return finish(name, arr, rgb);
+}
+
+function star() {
+  const arr=[], rgb=[0.95,0.8,0.6];
+  const pts=[];
+  for (let i=0;i<10;i++) {
+    const a=Math.PI/2 + i*Math.PI/5, r=i%2?0.38:0.85;
+    pts.push([Math.cos(a)*r, Math.sin(a)*r]);
+  }
+  const d=0.18;
+  for (let i=0;i<10;i++) {
+    const a=pts[i], b=pts[(i+1)%10];
+    const A=[a[0],a[1],d], B=[b[0],b[1],d], C=[b[0],b[1],-d], D=[a[0],a[1],-d];
+    quad(arr, A,B,C,D, rgb);
+  }
+  for (let i=0;i<10;i++) {
+    pushTri(arr, [0,0,d], [pts[i][0],pts[i][1],d], [pts[(i+1)%10][0],pts[(i+1)%10][1],d], rgb);
+    pushTri(arr, [0,0,-d], [pts[(i+1)%10][0],pts[(i+1)%10][1],-d], [pts[i][0],pts[i][1],-d], rgb);
+  }
+  return finish("Star", arr, rgb);
+}
+
+function arrow() {
+  const arr=[], rgb=[0.74,0.85,1];
+  const segs=80, end=5.45;
+  const point=(t,side,radial)=>{
+    const u=t/end;
+    const half=u<0.78?0.115:(0.38*(1-u))/0.22;
+    return [(1+radial*0.022)*Math.cos(t), side*half, (1+radial*0.022)*Math.sin(t)];
+  };
+  for (let i=0;i<segs;i++) {
+    const a=end*i/segs, b=end*(i+1)/segs;
+    quad(arr, point(a,-1,1), point(b,-1,1), point(b,1,1), point(a,1,1), rgb);
+    quad(arr, point(a,1,-1), point(b,1,-1), point(b,-1,-1), point(a,-1,-1), rgb);
+    quad(arr, point(a,1,1), point(b,1,1), point(b,1,-1), point(a,1,-1), rgb);
+    quad(arr, point(a,-1,-1), point(b,-1,-1), point(b,-1,1), point(a,-1,1), rgb);
+  }
+  return finish("Arrow", arr, rgb, -1);
+}
+
+const builders = { sphere, torus: torusKnot, cube, ring, helix, diamond, star, arrow,
+  cone: () => coneShape(36, 0.72, 1.7, [0.94,0.64,0.77], 0, 0.25, "Cone"),
+  pyramid: () => coneShape(4, 1, 1.6, [0.81,0.93,0.67], Math.PI/4, 0, "Pyramid"),
+};
+
+function transform(x,y,z,s,a) {
+  const c=Math.cos(a), sn=Math.sin(a);
+  let xx=x, yy=y, zz=z;
+  if (s.axis==="x") { yy=y*c-z*sn; zz=y*sn+z*c; }
+  else if (s.axis==="y") { xx=x*c+z*sn; zz=-x*sn+z*c; }
+  else { xx=x*c-y*sn; yy=x*sn+y*c; }
+  const az=s.azimuth*Math.PI/180, e=s.elevation*Math.PI/180;
+  const qx=xx*Math.cos(az)+zz*Math.sin(az), qz=-xx*Math.sin(az)+zz*Math.cos(az);
+  return [qx, yy*Math.cos(e)-qz*Math.sin(e), yy*Math.sin(e)+qz*Math.cos(e)];
+}
+function mix(a,b,t){ return a.map((v,i)=>v+(b[i]-v)*t); }
+function palette(z,r,g,b,mode){
+  const t=Math.max(0,Math.min(1,0.5+0.5*z));
+  if (mode==="original") return [r,g,b];
+  if (mode==="mono") return [0.95,0.94,0.9];
+  if (mode==="ice") return mix([0.16,0.55,0.83],[0.73,0.96,1],t);
+  if (mode==="amber") return mix([1,0.28,0.09],[1,0.87,0.5],t);
+  if (mode==="lavender") return mix([0.44,0.33,0.85],[0.88,0.79,1],t);
+  if (mode==="rose") return mix([0.85,0.28,0.48],[1,0.78,0.88],t);
+  return t<0.5 ? mix([0.22,0.43,1],[0.96,0.43,0.52],t*2) : mix([0.96,0.43,0.52],[1,0.86,0.43],(t-0.5)*2);
+}
+function cue(z, strength){
+  const sign = strength>=0?1:-1;
+  return 1 - Math.abs(strength) + Math.abs(strength) * (0.012 + 1.3 * Math.pow(Math.max(0,Math.min(1,0.5+0.5*z*sign)), 2.4));
+}
+
+function resize(){
+  const r=Math.min(devicePixelRatio||1, 2);
+  const w=innerWidth, h=innerHeight;
+  canvas.width=Math.max(2,Math.round(w*r));
+  canvas.height=Math.max(2,Math.round(h*r));
+  canvas.style.width=w+"px"; canvas.style.height=h+"px";
+}
+addEventListener("resize", resize); resize();
+
+function draw(){
+  const w=canvas.width, h=canvas.height, s=S;
+  const scale=Math.min(w,h)*0.41*s.zoom;
+  ctx.globalCompositeOperation="source-over";
+  ctx.globalAlpha=1;
+  ctx.fillStyle="rgb(5,6,8)";
+  ctx.fillRect(0,0,w,h);
+  if (!model) return;
+  const project=(v,i)=>{
+    const p=transform(v[i],v[i+1],v[i+2],s,angle);
+    return [w*0.5+p[0]*scale, h*0.5-p[1]*scale, p[2]];
+  };
+  const color=(v,i)=> {
+    const c=palette(v[i+2],v[i+3],v[i+4],v[i+5],s.color);
+    return `rgb(${c.map(x=>Math.round(x*255)).join(",")})`;
+  };
+  const ratio=Math.min(devicePixelRatio||1,2);
+  if (s.mode==="particles") {
+    ctx.globalCompositeOperation="lighter";
+    const v=model.particles, n=Math.min(s.count, v.length/6);
+    for (let i=0;i<n*6;i+=6){
+      const p=project(v,i);
+      ctx.fillStyle=color(v,i);
+      ctx.globalAlpha=Math.min(1,s.brightness*cue(p[2],s.cue)*0.8);
+      ctx.beginPath();
+      ctx.arc(p[0],p[1],s.size*ratio*0.5,0,Math.PI*2);
+      ctx.fill();
+    }
+  } else if (s.mode==="wireframe") {
+    ctx.globalCompositeOperation="lighter";
+    const v=model.wires; ctx.lineWidth=ratio;
+    for (let i=0;i<v.length;i+=12){
+      const p=project(v,i), q=project(v,i+6);
+      ctx.strokeStyle=color(v,i);
+      ctx.globalAlpha=Math.min(1,0.36*cue((p[2]+q[2])*0.5,s.cue));
+      ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle="rgb(242,245,250)";
+    const v=model.triangles;
+    for (let i=0;i<v.length;i+=18){
+      const p=project(v,i), q=project(v,i+6), r=project(v,i+12);
+      ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.lineTo(r[0],r[1]); ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over";
+}
+
+function tick(now){
+  const dt=last?Math.min((now-last)/1000,0.1):0;
+  last=now;
+  if (running && model && !recording)
+    angle=(angle + (dt*Math.PI*2)/S.duration * model.rotationDirection) % (Math.PI*2);
+  cueNow += (cueTarget - cueNow) * -Math.expm1(-dt/0.12);
+  S.cue = cueNow;
+  draw();
+  requestAnimationFrame(tick);
+}
+
+function load(key){ model = builders[key](); }
+load("torus");
+requestAnimationFrame(tick);
+
+const statusEl = document.getElementById("status");
+function setStatus(t) { statusEl.textContent = t || ""; }
+
+function parseOBJ(text, name) {
+  const verts = [];
+  const arr = [];
+  const rgb = [0.75, 0.86, 0.95];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line[0] === "#") continue;
+    if (line.startsWith("v ")) {
+      const p = line.split(/\s+/);
+      verts.push([+p[1], +p[2], +p[3]]);
+    } else if (line.startsWith("f ")) {
+      const idx = line.split(/\s+/).slice(1).map((t) => {
+        const n = parseInt(t, 10);
+        return n < 0 ? verts.length + n : n - 1;
+      });
+      const pts = idx.map((i) => verts[i]).filter(Boolean);
+      for (let i = 1; i + 1 < pts.length; i++) pushTri(arr, pts[0], pts[i], pts[i + 1], rgb);
+    }
+  }
+  if (arr.length < 18) throw new Error("Este OBJ não tem faces.");
+  if (arr.length / 18 > 150000) throw new Error("Modelo grande demais (máx. 150 mil triângulos).");
+  return finish(name.replace(/\.[^.]+$/, ""), arr, rgb);
+}
+
+async function parseGLB(file) {
+  const THREE = await import("three");
+  const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
+  const url = URL.createObjectURL(file);
+  try {
+    const gltf = await new GLTFLoader().loadAsync(url);
+    const arr = [];
+    const rgbDef = [0.8, 0.85, 0.95];
+    const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+    gltf.scene.updateMatrixWorld(true);
+    gltf.scene.traverse((obj) => {
+      if (!obj.isMesh || !obj.geometry?.getAttribute("position")) return;
+      const geo = obj.geometry.index ? obj.geometry.toNonIndexed() : obj.geometry;
+      const pos = geo.getAttribute("position");
+      const col = geo.getAttribute("color");
+      const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+      const base = mat?.color ? [mat.color.r, mat.color.g, mat.color.b] : rgbDef;
+      for (let i = 0; i + 2 < pos.count; i += 3) {
+        vA.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+        vB.fromBufferAttribute(pos, i + 1).applyMatrix4(obj.matrixWorld);
+        vC.fromBufferAttribute(pos, i + 2).applyMatrix4(obj.matrixWorld);
+        const c = col ? [col.getX(i), col.getY(i), col.getZ(i)] : base;
+        pushTri(arr, [vA.x, vA.y, vA.z], [vB.x, vB.y, vB.z], [vC.x, vC.y, vC.z], c);
+        if (arr.length / 18 > 150000) throw new Error("Modelo grande demais (máx. 150 mil triângulos).");
+      }
+    });
+    if (arr.length < 18) throw new Error("Este GLB/GLTF não tem malha triangular.");
+    return finish(file.name.replace(/\.[^.]+$/, ""), arr, rgbDef);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+document.getElementById("import").onclick = () => document.getElementById("file").click();
+document.getElementById("file").onchange = async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+  const ext = file.name.split(".").pop().toLowerCase();
+  try {
+    setStatus("Importando " + file.name + "…");
+    if (ext === "obj") model = parseOBJ(await file.text(), file.name);
+    else if (ext === "glb" || ext === "gltf") model = await parseGLB(file);
+    else throw new Error("Use .obj, .glb ou .gltf");
+    document.getElementById("shape").value = "";
+    setStatus(model.name + " · " + Math.round(model.triangles.length / 18) + " faces");
+  } catch (err) {
+    setStatus(err.message || "Falha ao importar");
+  }
+};
+
+function downloadBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function pickMime(fmt) {
+  const list = fmt === "mp4"
+    ? ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm"]
+    : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+  return list.find((t) => window.MediaRecorder?.isTypeSupported?.(t)) || "";
+}
+
+async function recordVideo(fmt) {
+  const mime = pickMime(fmt);
+  if (!mime || !window.MediaRecorder) throw new Error("Este navegador não grava " + fmt.toUpperCase() + ".");
+  const fps = 30;
+  const stream = canvas.captureStream(fps);
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  const done = new Promise((res, rej) => {
+    rec.onstop = () => res(new Blob(chunks, { type: mime }));
+    rec.onerror = () => rej(new Error("Falha na gravação"));
+  });
+  const startAngle = angle;
+  const dir = model.rotationDirection;
+  rec.start();
+  const t0 = performance.now();
+  await new Promise((resolve) => {
+    const step = (now) => {
+      const t = (now - t0) / 1000;
+      angle = startAngle + dir * (t / S.duration) * Math.PI * 2;
+      if (t >= S.duration) { angle = startAngle; resolve(); return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  rec.stop();
+  stream.getTracks().forEach((t) => t.stop());
+  const blob = await done;
+  const ext = mime.includes("mp4") ? "mp4" : "webm";
+  downloadBlob(blob, (model?.name || "loop") + "." + ext);
+}
+
+async function recordGif() {
+  const { GIFEncoder, quantize, applyPalette } = await import("https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js");
+  const w = 480, h = 480, fps = 12;
+  const frames = Math.max(16, Math.round(S.duration * fps));
+  const off = document.createElement("canvas");
+  off.width = w; off.height = h;
+  const octx = off.getContext("2d", { willReadFrequently: true });
+  const startAngle = angle;
+  const dir = model.rotationDirection;
+  const gif = GIFEncoder();
+  const saved = { w: canvas.width, h: canvas.height };
+  for (let i = 0; i < frames; i++) {
+    setStatus("GIF " + (i + 1) + "/" + frames);
+    angle = startAngle + dir * (i / frames) * Math.PI * 2;
+    canvas.width = w; canvas.height = h;
+    draw();
+    octx.drawImage(canvas, 0, 0);
+    const { data } = octx.getImageData(0, 0, w, h);
+    const palette = quantize(data, 256);
+    const index = applyPalette(data, palette);
+    gif.writeFrame(index, w, h, { palette, delay: Math.round(1000 / fps), repeat: 0 });
+    await new Promise((r) => requestAnimationFrame(r));
+  }
+  canvas.width = saved.w; canvas.height = saved.h;
+  angle = startAngle;
+  gif.finish();
+  downloadBlob(new Blob([gif.bytes()], { type: "image/gif" }), (model?.name || "loop") + ".gif");
+}
+
+document.getElementById("rec").onclick = async () => {
+  if (recording || !model) return;
+  recording = true;
+  const wasRunning = running;
+  running = false;
+  const btn = document.getElementById("rec");
+  btn.disabled = true;
+  const fmt = document.getElementById("fmt").value;
+  try {
+    setStatus("Gravando loop " + fmt.toUpperCase() + "…");
+    if (fmt === "gif") await recordGif();
+    else await recordVideo(fmt);
+    setStatus("Loop salvo.");
+  } catch (err) {
+    setStatus(err.message || "Não foi possível gravar");
+  } finally {
+    recording = false;
+    running = wasRunning;
+    btn.disabled = false;
+    resize();
+  }
+};
+
+document.getElementById("shape").onchange = e => load(e.target.value);
+document.getElementById("mode").onchange = e => S.mode = e.target.value;
+document.getElementById("color").onchange = e => S.color = e.target.value;
+document.getElementById("axis").onchange = e => S.axis = e.target.value;
+document.getElementById("count").oninput = e => S.count = +e.target.value;
+document.getElementById("size").oninput = e => S.size = +e.target.value;
+document.getElementById("zoom").oninput = e => S.zoom = +e.target.value;
+document.getElementById("duration").oninput = e => S.duration = +e.target.value;
+
+const reveal = document.getElementById("reveal");
+reveal.onpointerdown = () => { cueTarget = 1; reveal.classList.add("active"); };
+reveal.onpointerup = reveal.onpointerleave = () => { cueTarget = 0; reveal.classList.remove("active"); };
+
+const pause = document.getElementById("pause");
+pause.onclick = () => { running = !running; pause.textContent = running ? "Pausar" : "Continuar"; };
+
+addEventListener("keydown", e => {
+  if (e.code==="Space") { e.preventDefault(); pause.click(); }
+});
+
+canvas.addEventListener("pointerdown", e => { dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointerup", () => dragging=false);
+canvas.addEventListener("pointermove", e => {
+  if (!dragging) return;
+  S.azimuth += (e.clientX-lastX)*0.4;
+  S.elevation = Math.max(-80, Math.min(80, S.elevation + (e.clientY-lastY)*0.3));
+  lastX=e.clientX; lastY=e.clientY;
+});
+</script>
+</body>
+</html>
