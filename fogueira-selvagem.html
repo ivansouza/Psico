@@ -67,11 +67,12 @@ float fbm(vec2 p) {
 vec3 firePalette(float x) {
   x = clamp(x, 0.0, 1.0);
   vec3 c = vec3(0.0);
-  c = mix(c, vec3(0.35, 0.02, 0.0), smoothstep(0.0, 0.18, x));
-  c = mix(c, vec3(0.95, 0.18, 0.02), smoothstep(0.12, 0.38, x));
-  c = mix(c, vec3(1.0, 0.55, 0.08), smoothstep(0.32, 0.62, x));
-  c = mix(c, vec3(1.0, 0.92, 0.45), smoothstep(0.55, 0.82, x));
-  c = mix(c, vec3(1.0, 0.98, 0.92), smoothstep(0.78, 1.0, x));
+  // #FF3300 tips → #FF9900 mid → #FFF0A8 → white core
+  c = mix(c, vec3(0.55, 0.04, 0.0), smoothstep(0.0, 0.14, x));
+  c = mix(c, vec3(1.0, 0.2, 0.0), smoothstep(0.10, 0.32, x));
+  c = mix(c, vec3(1.0, 0.6, 0.0), smoothstep(0.28, 0.55, x));
+  c = mix(c, vec3(1.0, 0.94, 0.66), smoothstep(0.50, 0.78, x));
+  c = mix(c, vec3(1.0, 1.0, 1.0), smoothstep(0.75, 1.0, x));
   return c;
 }
 
@@ -151,17 +152,14 @@ void main() {
 
   float t = T;
 
-  // céu noite
-  vec3 col = vec3(0.004, 0.005, 0.01);
-  // estrelas suaves
-  float st = step(0.997, hash(floor(fc * 0.45)));
-  col += st * vec3(0.55, 0.6, 0.7) * (0.4 + 0.6 * hash(fc.yx));
+  // céu noite — void puro como no vídeo
+  vec3 col = vec3(0.0);
 
   // lua suave (canto superior esquerdo, desfocada como no vídeo)
   vec2 moonP = vec2(-0.42, 0.72);
   float moon = exp(-length(uv - moonP) * 28.0);
   moon += 0.25 * exp(-length(uv - moonP) * 8.0);
-  col += moon * vec3(0.55, 0.58, 0.62);
+  col += moon * vec3(0.92, 0.92, 0.92);
 
   // campo de fogo (coords locais)
   vec2 fp = vec2(uv.x * 1.15, uv.y + 0.05);
@@ -180,23 +178,26 @@ void main() {
   // glow atmosférico
   float halo = fireField(vec2(fp.x * 0.7, fp.y * 0.85), t * 0.7) * 0.55;
   fire += firePalette(halo * 0.7) * 0.35;
-  fire += vec3(1.0, 0.35, 0.05) * dens * dens * 0.8;
+  fire += vec3(1.0, 0.3, 0.02) * dens * dens * 0.55;
 
-  // brasas
+  // brasas: crimson/magenta (#FF1133) como no vídeo
   float em = emberGlow(fp, t);
-  fire += vec3(1.0, 0.25, 0.05) * em * 1.4;
-  fire += vec3(0.6, 0.05, 0.35) * em * 0.35;
+  fire += vec3(1.0, 0.07, 0.2) * em * 1.5;
+  fire += vec3(0.53, 0.07, 0.0) * em * 0.55;
+  // leve azul na base das chamas
+  float blueLick = dens * smoothstep(0.18, -0.02, fp.y) * smoothstep(0.25, 0.0, abs(fp.x));
+  fire += vec3(0.55, 0.75, 1.0) * blueLick * 0.18;
 
   // faíscas
   float sp = 0.0;
-  for (float i = 0.0; i < 18.0; i++) {
+  for (float i = 0.0; i < 10.0; i++) {
     sp += spark(fp, t, i + 1.0);
   }
-  fire += vec3(1.0, 0.7, 0.25) * sp * 2.2;
+  fire += vec3(1.0, 0.55, 0.15) * sp * 1.6;
 
   // chão iluminado
-  float ground = smoothstep(0.08, -0.12, fp.y) * exp(-abs(fp.x) * 3.5);
-  col += vec3(0.25, 0.08, 0.02) * ground * (0.4 + dens);
+  float ground = smoothstep(0.04, -0.08, fp.y) * exp(-abs(fp.x) * 5.5);
+  col += vec3(0.18, 0.05, 0.01) * ground * (0.25 + dens * 0.5);
 
   // gravetos
   float sticks = stickMask(fp);
