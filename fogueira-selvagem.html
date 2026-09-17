@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fogueira selvagem · WebGL2</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .hint {
+    position: fixed; left: 12px; bottom: 12px; z-index: 2;
+    font: 12px/1.4 system-ui, sans-serif; color: rgba(255,200,120,.55);
+    pointer-events: none; user-select: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="hint">arraste · scroll zoom · toque</div>
+
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform vec2 u_mouse;
+uniform float u_zoom;
+out vec4 fragColor;
+
+#define T u_time
+
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+float fbm(vec2 p) {
+  float v = 0.0;
+  float a = 0.5;
+  for (int i = 0; i < 5; i++) {
+    v += a * noise(p);
+    p = p * 2.02 + vec2(17.1, 9.7);
+    a *= 0.5;
+  }
+  return v;
+}
+
+// Paleta fogueira: preto → vermelho → laranja → amarelo → branco
+vec3 firePalette(float x) {
+  x = clamp(x, 0.0, 1.0);
+  vec3 c = vec3(0.0);
+  c = mix(c, vec3(0.35, 0.02, 0.0), smoothstep(0.0, 0.18, x));
+  c = mix(c, vec3(0.95, 0.18, 0.02), smoothstep(0.12, 0.38, x));
+  c = mix(c, vec3(1.0, 0.55, 0.08), smoothstep(0.32, 0.62, x));
+  c = mix(c, vec3(1.0, 0.92, 0.45), smoothstep(0.55, 0.82, x));
+  c = mix(c, vec3(1.0, 0.98, 0.92), smoothstep(0.78, 1.0, x));
+  return c;
+}
+
+float fireField(vec2 p, float t) {
+  // p: x lateral, y altura (0 base, 1 topo)
+  float w = 0.22 + 0.08 * (1.0 - p.y);
+  // domain warp estilo 3d-fire / twigl
+  vec2 q = p;
+  q.x += 0.12 * sin(t * 1.7 + p.y * 6.0);
+  q.x += 0.08 * (fbm(vec2(p.x * 3.0, p.y * 2.0 - t * 1.4)) - 0.5);
+  q.y += 0.05 * fbm(vec2(p.x * 2.0 - t * 0.6, p.y * 3.0));
+
+  float n = fbm(vec2(q.x * 4.5, q.y * 2.8 - t * 2.2));
+  n = n * 0.65 + 0.35 * fbm(vec2(q.x * 9.0 + 3.1, q.y * 5.0 - t * 3.5));
+
+  float shape = 1.0 - abs(q.x) / max(w * (0.55 + 0.9 * n), 0.02);
+  shape = max(shape, 0.0);
+  // afila no topo
+  shape *= smoothstep(1.15, 0.15, p.y);
+  // base mais cheia
+  shape *= smoothstep(-0.08, 0.12, p.y);
+
+  float dens = shape * (0.35 + 0.9 * n);
+  dens = pow(clamp(dens, 0.0, 1.5), 1.35);
+  return dens;
+}
+
+float emberGlow(vec2 p, float t) {
+  float r = length(p - vec2(0.0, -0.02));
+  float pulse = 0.85 + 0.15 * sin(t * 3.0 + fbm(p * 8.0 + t) * 6.28);
+  float g = exp(-r * 14.0) * pulse;
+  g += 0.35 * exp(-r * 6.0);
+  // brasa irregular
+  g *= 0.7 + 0.5 * fbm(p * 18.0 + vec2(t * 0.4, -t * 0.2));
+  return g;
+}
+
+float stickMask(vec2 p) {
+  // gravetos escuros na base (silhueta simples)
+  float m = 0.0;
+  for (int i = 0; i < 7; i++) {
+    float fi = float(i);
+    float ang = -0.9 + fi * 0.28 + 0.08 * sin(fi * 2.1);
+    vec2 dir = vec2(sin(ang), cos(ang) * 0.55);
+    vec2 o = vec2(0.0, -0.02);
+    vec2 q = p - o;
+    float proj = clamp(dot(q, dir), 0.0, 0.22 + 0.04 * sin(fi));
+    vec2 closest = o + dir * proj;
+    float d = length(p - closest);
+    float thick = mix(0.012, 0.006, proj / 0.25);
+    m = max(m, 1.0 - smoothstep(thick, thick + 0.008, d));
+  }
+  return m;
+}
+
+float spark(vec2 uv, float t, float seed) {
+  float h = hash(vec2(seed, seed * 1.7));
+  float life = fract(t * (0.15 + 0.35 * h) + h);
+  float x = (hash(vec2(seed * 3.1, 2.2)) - 0.5) * 0.55;
+  x += 0.08 * sin(life * 12.0 + seed);
+  float y = life * (0.55 + 0.7 * h) - 0.02;
+  float s = exp(-length(uv - vec2(x, y)) * (90.0 + 80.0 * h));
+  s *= smoothstep(0.0, 0.08, life) * smoothstep(1.0, 0.55, life);
+  return s;
+}
+
+void main() {
+  vec2 res = u_resolution;
+  vec2 fc = gl_FragCoord.xy;
+  // aspect-correct uv, fire centered lower third (como o vídeo vertical)
+  vec2 uv = (fc - 0.5 * res) / res.y;
+  uv /= max(u_zoom, 0.35);
+  uv.x -= (u_mouse.x / res.x - 0.5) * 0.8;
+  uv.y -= (u_mouse.y / res.y - 0.5) * 0.5;
+  // sobe um pouco a composição: fogueira mais baixa no frame
+  uv.y += 0.28;
+
+  float t = T;
+
+  // céu noite
+  vec3 col = vec3(0.004, 0.005, 0.01);
+  // estrelas suaves
+  float st = step(0.997, hash(floor(fc * 0.45)));
+  col += st * vec3(0.55, 0.6, 0.7) * (0.4 + 0.6 * hash(fc.yx));
+
+  // lua suave (canto superior esquerdo, desfocada como no vídeo)
+  vec2 moonP = vec2(-0.42, 0.72);
+  float moon = exp(-length(uv - moonP) * 28.0);
+  moon += 0.25 * exp(-length(uv - moonP) * 8.0);
+  col += moon * vec3(0.55, 0.58, 0.62);
+
+  // campo de fogo (coords locais)
+  vec2 fp = vec2(uv.x * 1.15, uv.y + 0.05);
+  float dens = 0.0;
+  // “ray” barato em fatias 2.5D (eco do loop do 3d-fire)
+  for (float i = 0.0; i < 6.0; i++) {
+    float z = i / 6.0;
+    vec2 p = fp;
+    p.x *= 1.0 + z * 0.15;
+    p.y += z * 0.02;
+    dens += fireField(p, t + z * 0.4) * (1.0 - z * 0.12);
+  }
+  dens /= 4.2;
+
+  vec3 fire = firePalette(dens * 1.15);
+  // glow atmosférico
+  float halo = fireField(vec2(fp.x * 0.7, fp.y * 0.85), t * 0.7) * 0.55;
+  fire += firePalette(halo * 0.7) * 0.35;
+  fire += vec3(1.0, 0.35, 0.05) * dens * dens * 0.8;
+
+  // brasas
+  float em = emberGlow(fp, t);
+  fire += vec3(1.0, 0.25, 0.05) * em * 1.4;
+  fire += vec3(0.6, 0.05, 0.35) * em * 0.35;
+
+  // faíscas
+  float sp = 0.0;
+  for (float i = 0.0; i < 18.0; i++) {
+    sp += spark(fp, t, i + 1.0);
+  }
+  fire += vec3(1.0, 0.7, 0.25) * sp * 2.2;
+
+  // chão iluminado
+  float ground = smoothstep(0.08, -0.12, fp.y) * exp(-abs(fp.x) * 3.5);
+  col += vec3(0.25, 0.08, 0.02) * ground * (0.4 + dens);
+
+  // gravetos
+  float sticks = stickMask(fp);
+  vec3 wood = vec3(0.04, 0.025, 0.015);
+  wood += vec3(0.5, 0.12, 0.02) * em * 0.8;
+  col = mix(col, wood, sticks * 0.92);
+
+  // compor fogo por cima
+  col += fire;
+  // vinheta sutil
+  float vig = smoothstep(1.4, 0.35, length(uv * vec2(0.9, 1.0)));
+  col *= vig;
+
+  col = tanh(col * 1.15);
+  fragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+const canvas = document.getElementById('canvas');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
+if (!gl) {
+  document.body.textContent = 'WebGL2 não suportado neste navegador.';
+  throw new Error('WebGL2');
+}
+
+function createShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+const program = gl.createProgram();
+gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, document.getElementById('vertex-shader').text));
+gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, document.getElementById('fragment-shader').text));
+gl.linkProgram(program);
+if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+  console.error(gl.getProgramInfoLog(program));
+}
+gl.useProgram(program);
+
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const positionLocation = gl.getAttribLocation(program, 'position');
+gl.enableVertexAttribArray(positionLocation);
+gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+const resLocation = gl.getUniformLocation(program, 'u_resolution');
+const timeLocation = gl.getUniformLocation(program, 'u_time');
+const mouseLocation = gl.getUniformLocation(program, 'u_mouse');
+const zoomLocation = gl.getUniformLocation(program, 'u_zoom');
+
+let mouse = { x: 0, y: 0 };
+let zoom = 1.0;
+let dragging = false;
+let last = null;
+
+function setMouseFromEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  mouse.x = (src.clientX - rect.left) * (canvas.width / rect.width);
+  mouse.y = (rect.bottom - src.clientY) * (canvas.height / rect.height);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  last = { x: e.clientX, y: e.clientY };
+  canvas.setPointerCapture(e.pointerId);
+  setMouseFromEvent(e);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!dragging) {
+    setMouseFromEvent(e);
+    return;
+  }
+  if (last) {
+    mouse.x += (e.clientX - last.x) * (canvas.width / canvas.clientWidth);
+    mouse.y -= (e.clientY - last.y) * (canvas.height / canvas.clientHeight);
+  }
+  last = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('pointerup', () => { dragging = false; last = null; });
+canvas.addEventListener('pointercancel', () => { dragging = false; last = null; });
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  zoom *= e.deltaY > 0 ? 0.92 : 1.08;
+  zoom = Math.min(2.8, Math.max(0.45, zoom));
+}, { passive: false });
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  if (mouse.x === 0 && mouse.y === 0) {
+    mouse.x = canvas.width * 0.5;
+    mouse.y = canvas.height * 0.38;
+  }
+}
+window.addEventListener('resize', resize);
+resize();
+
+function render(time) {
+  if (canvas.width !== Math.floor(window.innerWidth * Math.min(devicePixelRatio || 1, 2))) resize();
+  gl.uniform2f(resLocation, canvas.width, canvas.height);
+  gl.uniform1f(timeLocation, time * 0.001);
+  gl.uniform2f(mouseLocation, mouse.x, mouse.y);
+  gl.uniform1f(zoomLocation, zoom);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
