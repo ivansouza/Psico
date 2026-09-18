@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pássaro Voando em 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+    <script>
+        // Configuração básica da cena
+        const cena = new THREE.Scene();
+        cena.background = new THREE.Color(0x87ceeb); // Céu azul claro
+
+        // Câmera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 10);
+
+        // Renderizador
+        const renderizador = new THREE.WebGLRenderer({ antialias: true });
+        renderizador.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderizador.domElement);
+
+        // Luz
+        const luzDirecional = new THREE.DirectionalLight(0xffffff, 1);
+        luzDirecional.position.set(5, 10, 7.5);
+        cena.add(luzDirecional);
+
+        // Chão
+        const plano = new THREE.Mesh(
+            new THREE.PlaneGeometry(20, 20),
+            new THREE.MeshStandardMaterial({ color: 0x228B22, side: THREE.DoubleSide })
+        );
+        plano.rotation.x = -Math.PI / 2;
+        plano.position.y = -1;
+        cena.add(plano);
+
+        // Criar o pássaro (usando esfera e cilindros para asas)
+        const paisagem = new THREE.Group();
+
+        // Corpo do pássaro (esfera)
+        const corpo = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 16, 16),
+            new THREE.MeshStandardMaterial({ color: 0xffd700 })
+        );
+        paisagem.add(corpo);
+
+        // Asas (cilindros)
+        const asaEsquerda = new THREE.Mesh(
+            new THREE.CylinderGeometry(0, 0.3, 0.8, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffd700 })
+        );
+        asaEsquerda.rotation.z = Math.PI / 2;
+        asaEsquerda.position.x = -0.3;
+        paisagem.add(asaEsquerda);
+
+        const asaDireita = new THREE.Mesh(
+            new THREE.CylinderGeometry(0, 0.3, 0.8, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffd700 })
+        );
+        asaDireita.rotation.z = Math.PI / 2;
+        asaDireita.position.x = 0.3;
+        paisagem.add(asaDireita);
+
+        // Cauda (cilindro fino)
+        const cauda = new THREE.Mesh(
+            new THREE.CylinderGeometry(0, 0.1, 0.5, 6),
+            new THREE.MeshStandardMaterial({ color: 0xffd700 })
+        );
+        cauda.rotation.z = -Math.PI / 6;
+        cauda.position.x = -0.5;
+        paisagem.add(cauda);
+
+        // Peito (esfera menor)
+        const peito = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 12, 12),
+            new THREE.MeshStandardMaterial({ color: 0xffd700 })
+        );
+        peito.position.y = 0.2;
+        paisagem.add(peito);
+
+        cena.add(paisagem);
+
+        // Posição inicial do pássaro
+        paisagem.position.set(-10, 2, 0);
+
+        // Animação de voo
+        let tempo = 0;
+        function animar() {
+            requestAnimationFrame(animar);
+
+            // Movimento de deslocamento
+            paisagem.position.x += 0.02;
+
+            // Movimento de subida/descida (senoide)
+            paisagem.position.y = 2 + Math.sin(tempo * 0.5) * 0.5;
+
+            // Rotação do pássaro (simula andar no ar)
+            paisagem.rotation.y = Math.sin(tempo * 0.3) * 0.2;
+
+            // Movimento das asas (oscilação)
+            asaEsquerda.rotation.x = Math.sin(tempo * 0.8) * 0.3;
+            asaDireita.rotation.x = Math.sin(tempo * 0.8) * 0.3;
+
+            // Movimento da cauda
+            cauda.rotation.x = Math.sin(tempo * 0.6) * 0.2;
+
+            // Atualizar câmera para seguir o pássaro
+            camera.position.x = paisagem.position.x + 5;
+            camera.position.z = 10;
+            camera.lookAt(paisagem.position);
+
+            tempo += 0.05;
+
+            renderizador.render(cena, camera);
+        }
+
+        // Ajustar para tela cheia
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderizador.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Iniciar animação
+        animar();
+    </script>
+</body>
+</html>
