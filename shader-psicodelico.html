@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Psychedelic Shader</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+const uniforms = {
+  uTime: { value: 0 },
+  uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+};
+
+const vertexShader = /* glsl */`
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+  }
+`;
+
+const fragmentShader = /* glsl */`
+  precision highp float;
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform vec2 uResolution;
+
+  vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+  }
+
+  float hash(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+  }
+
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float a = hash(i + vec2(0.0, 0.0));
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  }
+
+  float fbm(vec2 p) {
+    float v = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 5; i++) {
+      v += amp * noise(p);
+      p *= 2.02;
+      amp *= 0.5;
+    }
+    return v;
+  }
+
+  void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / min(uResolution.x, uResolution.y);
+    float t = uTime * 0.25;
+
+    vec2 q = vec2(fbm(uv * 3.0 + t), fbm(uv * 3.0 + vec2(5.2, 1.3) - t));
+    vec2 r = vec2(
+      fbm(uv * 3.0 + 4.0 * q + vec2(1.7, 9.2) + t * 1.5),
+      fbm(uv * 3.0 + 4.0 * q + vec2(8.3, 2.8) - t * 1.2)
+    );
+
+    float warp = fbm(uv * 2.0 + 4.0 * r);
+
+    float radius = length(uv);
+    float angle = atan(uv.y, uv.x);
+    float rings = sin(radius * 18.0 - t * 6.0 + warp * 6.2831);
+    float swirl = sin(angle * 6.0 + radius * 8.0 + t * 3.0);
+
+    float pattern = 0.5 + 0.5 * (rings * 0.6 + swirl * 0.4);
+    pattern = mix(pattern, warp, 0.5);
+
+    float hue = fract(pattern * 1.5 + t * 0.3 + radius * 0.5);
+    vec3 col = hsv2rgb(vec3(hue, 0.9, 0.5 + 0.5 * pattern));
+
+    col *= 1.0 - 0.35 * smoothstep(0.4, 1.2, radius);
+
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+const geometry = new THREE.PlaneGeometry(2, 2);
+const material = new THREE.ShaderMaterial({
+  uniforms,
+  vertexShader,
+  fragmentShader
+});
+const quad = new THREE.Mesh(geometry, material);
+scene.add(quad);
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  uniforms.uTime.value = clock.getElapsedTime();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
+  uniforms.uResolution.value.set(w, h);
+});
+</script>
+</body>
+</html>
