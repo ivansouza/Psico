@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>Shader Mobile</title>
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; background: #000;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #overlay {
+            position: fixed; left: 50%; bottom: 8%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.75);
+            font-family: -apple-system, system-ui, sans-serif;
+            font-size: 13px; letter-spacing: 0.04em;
+            pointer-events: none; opacity: 1;
+            transition: opacity 1.2s ease-out;
+            text-align: center; z-index: 10;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+        #overlay.hidden { opacity: 0; }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas"></canvas>
+    <div id="overlay">toque para pausar</div>
+
+    <script>
+    (function () {
+        const canvas = document.getElementById('glCanvas');
+        const overlay = document.getElementById('overlay');
+
+        // WebGL2 (GLSL ES 3.00) — necessário para a sintaxe do shader original
+        const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+        if (!gl) {
+            overlay.textContent = 'WebGL2 não suportado neste navegador';
+            return;
+        }
+
+        const vsSource = `#version 300 es
+            in vec2 a_position;
+            void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
+        `;
+
+        // Shader original (dialeto Shadertoy) adaptado para GLSL ES 3.00
+        const fsSource = `#version 300 es
+            precision highp float;
+            out vec4 fragColor;
+
+            uniform vec2 r;   // resolução
+            uniform float t;  // tempo
+
+            mat2 rotate2D(float a) {
+                float c = cos(a), s = sin(a);
+                return mat2(c, -s, s, c);
+            }
+
+            vec3 hsv(float h, float s, float v) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+                return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+            }
+
+            void main() {
+                vec4 FC = vec4(gl_FragCoord.xy, 0.0, 1.0);
+                vec3 o = vec3(0.0);
+                for (float i = 0., z = 0., d = 0., s = 0.; i++ + z < 1.3e2;) {
+                    vec3 q = z * normalize(vec3(FC.xy * 2.0 - r, r.y));
+                    q.z += t;
+                    q.yx *= rotate2D(q.z * 0.2);
+                    for (s = 4.; s < 32.; s /= 0.5)
+                        q += cos(q.yzx * s + t) / s;
+                    z += d = 0.008 + abs((length(q.yx) - 6.0) * q.x) / 5.0;
+                    o.rgb += hsv(0.07 + sin(z * 0.4) * 0.03, 0.75, 0.7) / d;
+                }
+                o = tanh(o / 9e2);
+                fragColor = vec4(o, 1.0);
+            }
+        `;
+
+        function compile(type, src) {
+            const sh = gl.createShader(type);
+            gl.shaderSource(sh, src);
+            gl.compileShader(sh);
+            if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+                console.error('Shader error:', gl.getShaderInfoLog(sh));
+                return null;
+            }
+            return sh;
+        }
+
+        const vs = compile(gl.VERTEX_SHADER, vsSource);
+        const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+        if (!vs || !fs) { overlay.textContent = 'erro ao compilar shader'; return; }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error('Link error:', gl.getProgramInfoLog(program));
+            overlay.textContent = 'erro ao linkar shader';
+            return;
+        }
+        gl.useProgram(program);
+
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1, -1, 1, -1, -1, 1,
+            -1, 1, 1, -1, 1, 1
+        ]), gl.STATIC_DRAW);
+        const loc = gl.getAttribLocation(program, 'a_position');
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+        const uRes = gl.getUniformLocation(program, 'r');
+        const uTime = gl.getUniformLocation(program, 't');
+
+        function resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.floor(window.innerWidth * dpr);
+            canvas.height = Math.floor(window.innerHeight * dpr);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', resize);
+
+        let elapsed = 0, last = performance.now(), paused = false;
+
+        function frame(now) {
+            const dt = (now - last) / 1000;
+            last = now;
+            if (!paused) elapsed += dt;
+            gl.uniform2f(uRes, canvas.width, canvas.height);
+            gl.uniform1f(uTime, elapsed);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        let hideTimer = setTimeout(() => overlay.classList.add('hidden'), 3500);
+        function toggle() {
+            paused = !paused;
+            overlay.textContent = paused ? 'pausado — toque para retomar' : 'toque para pausar';
+            overlay.classList.remove('hidden');
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => overlay.classList.add('hidden'), 2000);
+        }
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); toggle(); }, { passive: false });
+        window.addEventListener('mousedown', toggle);
+    })();
+    </script>
+</body>
+</html>
