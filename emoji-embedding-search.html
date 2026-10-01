@@ -154,10 +154,13 @@ function finishIndex(){
 }
 let bits = null;
 
+let seq = 0;
 async function search(q){
   if (!state) return;
+  const my = ++seq;
   const t0 = performance.now();
   const box = await embedOne(q);
+  if (my !== seq) return;
   const qb = bitsFromVec(box, 0, dim);
   const short = [];
   for (let i = 0; i < total; i++){
@@ -168,6 +171,7 @@ async function search(q){
   const top = short.slice(0, 120);
   const scored = top.map(([s, i]) => [cosine(box, i * dim, state.vecs, dim), i])
     .sort((a, b) => b[0] - a[0]);
+  if (my !== seq) return;
   render(scored.slice(0, 24), performance.now() - t0, short[0][0]);
 }
 function embedOne(text){
@@ -204,12 +208,25 @@ function init(){
   log("carregando bge-small-en-v1.5");
   worker.postMessage({ type: "load" });
 }
-$("go").addEventListener("click", () => {
+function clearResults(){
+  seq++;
+  $("results").innerHTML = "";
+  $("m-latency").textContent = "—";
+  $("status").textContent = "Digite para buscar";
+}
+function runSearch(){
   const q = $("q").value.trim();
-  if (q) search(q);
+  if (q.length < 2){ clearResults(); return; }
+  search(q);
+}
+let deb = null;
+$("go").addEventListener("click", () => { clearTimeout(deb); runSearch(); });
+$("q").addEventListener("input", () => {
+  clearTimeout(deb);
+  deb = setTimeout(runSearch, 180);
 });
 $("q").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") $("go").click();
+  if (e.key === "Enter"){ clearTimeout(deb); runSearch(); }
 });
 log("catalogo: " + CATALOG.length + " emoji");
 init();
