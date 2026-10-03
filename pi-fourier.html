@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>π(t) — Transformada de Fourier</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+<style>
+  :root { --bg: #e6e6e4; --ink: #2c2c2c; --muted: #8d8d8a; --teal: #1b7c86; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: Georgia, serif; overflow: hidden; }
+  #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .hud { position: fixed; left: 0; right: 0; z-index: 2; pointer-events: none; text-align: center; }
+  .top { top: 0; padding: 14px 16px 0; }
+  .brand { letter-spacing: 0.28em; font-size: 11px; color: #b0b0aa; margin: 0 0 2px; }
+  h1 { margin: 0; font-weight: 500; font-size: clamp(26px, 7.2vw, 48px); }
+  .formula { bottom: 108px; padding: 0 8px; }
+  .formula .katex { font-size: clamp(16px, 4.4vw, 30px); }
+  .controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 10px 12px; background: linear-gradient(to top, rgba(230,230,228,0.96), rgba(230,230,228,0)); font-family: sans-serif; font-size: 12px; }
+  input[type=range] { width: 84px; accent-color: var(--teal); }
+  button { border: 1px solid #c8c8c2; background: #f4f4f1; border-radius: 999px; padding: 7px 14px; font: inherit; }
+  .note { position: fixed; left: 12px; right: 12px; bottom: 72px; z-index: 2; text-align: center; color: var(--muted); font-size: 12px; font-family: sans-serif; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div class="hud top"><p class="brand">EPICICLOS</p><h1>Fourier Transform</h1></div>
+<div class="hud formula" id="formula"></div>
+<div class="note" id="note">contorno fechado de π como soma de circunferências girantes</div>
+<div class="controls"><label>N <input id="harm" type="range" min="3" max="80" value="36"></label><label>vel. <input id="speed" type="range" min="1" max="20" value="6"></label><button id="replay" type="button">recomeçar</button></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script>
+const formulaEl = document.getElementById('formula');
+function renderFormula(N){ if (window.katex) katex.render('\\pi(t)=\\sum_{k=-'+N+'}^{'+N+'} c_k\\, e^{\\, i\\, 2\\pi k t}', formulaEl, {throwOnError:false, displayMode:true}); }
+function roundRect(ctx,x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath(); ctx.fill(); }
+function buildPiMask(size){ const c=document.createElement('canvas'); c.width=c.height=size; const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.fillStyle='#000'; const barW=size*0.8, barH=size*0.125, top=size*0.2, left=(size-barW)/2; roundRect(ctx,left,top,barW,barH,barH*0.48); const legW=size*0.138, legH=size*0.5, legTop=top+barH*0.38, inset=size*0.105; roundRect(ctx,left+inset,legTop,legW,legH,legW*0.5); roundRect(ctx,left+barW-legW-inset,legTop,legW,legH,legW*0.5); const img=ctx.getImageData(0,0,size,size); const mask=new Uint8Array(size*size); for (let i=0;i<mask.length;i++) mask[i]=img.data[i*4+3]>40?1:0; return mask; }
+function traceOuter(mask,w,h){ let sx=-1,sy=-1; for (let y=0;y<h&&sx<0;y++) for (let x=0;x<w;x++) if (mask[y*w+x]) { sx=x; sy=y; break; } if (sx<0) return []; const dirs=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]]; const pts=[]; let x=sx,y=sy,dir=6; for (let step=0; step<w*h; step++){ pts.push({x,y}); let found=false; const begin=(dir+6)%8; for (let i=0;i<8;i++){ const d=(begin+i)%8, nx=x+dirs[d][0], ny=y+dirs[d][1]; if (nx>=0&&ny>=0&&nx<w&&ny<h&&mask[ny*w+nx]){ x=nx; y=ny; dir=d; found=true; break; } } if (!found) break; if (pts.length>8 && x===sx && y===sy) break; } return pts; }
+function resample(pts,count){ if (pts.length<2) return pts; const cum=[0]; for (let i=1;i<pts.length;i++) cum.push(cum[i-1]+Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y)); const total=cum.at(-1)||1, out=[]; let j=0; for (let i=0;i<count;i++){ const target=i/count*total; while (j<cum.length-2 && cum[j+1]<target) j++; const span=cum[j+1]-cum[j]||1, u=(target-cum[j])/span; out.push({x:pts[j].x+(pts[j+1].x-pts[j].x)*u, y:pts[j].y+(pts[j+1].y-pts[j].y)*u}); } return out; }
+function dft(pts){ const M=pts.length, coeffs=[], maxK=Math.min(90, Math.floor(M/2)-1); for (let k=-maxK;k<=maxK;k++){ let re=0, im=0; for (let n=0;n<M;n++){ const ang=-2*Math.PI*k*n/M, c=Math.cos(ang), s=Math.sin(ang); re+=pts[n].x*c-pts[n].y*s; im+=pts[n].x*s+pts[n].y*c; } re/=M; im/=M; const amp=Math.hypot(re,im); if (amp>=1e-4) coeffs.push({k,re,im,amp}); } coeffs.sort((a,b)=>b.amp-a.amp); return coeffs; }
+const SIZE=480, mask=buildPiMask(SIZE), sampled=resample(traceOuter(mask,SIZE,SIZE),480); let cx=0, cy=0; sampled.forEach(p=>{cx+=p.x; cy+=p.y}); cx/=sampled.length; cy/=sampled.length; let maxR=1; const path=sampled.map(p=>{ const x=p.x-cx, y=-(p.y-cy); maxR=Math.max(maxR, Math.hypot(x,y)); return {x,y}; }); const fit=1.28/maxR; path.forEach(p=>{p.x*=fit; p.y*=fit}); const coeffs=dft(path);
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('stage'), antialias:true}); renderer.setClearColor(0xe6e6e4,1); renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+const scene=new THREE.Scene(); const camera=new THREE.OrthographicCamera(-1,1,1,-1,0.1,20); camera.position.set(0,-0.15,5);
+function makeCircle(){ const g=new THREE.BufferGeometry(), n=72, pos=new Float32Array((n+1)*3); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); const line=new THREE.Line(g, new THREE.LineBasicMaterial({color:0xb7b7b2, transparent:true, opacity:0.85})); line.visible=false; scene.add(line); return line; }
+function makeArm(){ const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6),3)); const line=new THREE.Line(g, new THREE.LineBasicMaterial({color:0x2a2a2a})); line.visible=false; scene.add(line); const head=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.09,10), new THREE.MeshBasicMaterial({color:0x2a2a2a})); head.visible=false; scene.add(head); return {line, head}; }
+const MAX=80, circles=Array.from({length:MAX}, makeCircle), arms=Array.from({length:MAX}, makeArm);
+const pen=new THREE.Mesh(new THREE.CircleGeometry(0.045,24), new THREE.MeshBasicMaterial({color:0x1b7c86})); scene.add(pen);
+const trailMax=700, trailGeom=new THREE.BufferGeometry(), trailPos=new Float32Array(trailMax*6*3), trailCol=new Float32Array(trailMax*6*3);
+trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPos,3)); trailGeom.setAttribute('color', new THREE.BufferAttribute(trailCol,3)); trailGeom.setDrawRange(0,0);
+const trail=new THREE.Mesh(trailGeom, new THREE.MeshBasicMaterial({vertexColors:true, side:THREE.DoubleSide, transparent:true})); scene.add(trail); const trailPts=[];
+function writeTrail(){ const n=trailPts.length, segs=Math.min(n-1, trailMax), hw=0.026; let v=0; for (let i=0;i<segs;i++){ const a=trailPts[i], b=trailPts[i+1]; let dx=b.x-a.x, dy=b.y-a.y; const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len; const nx=-dy*hw, ny=dx*hw, u=n<2?0:i/(n-1); const cr=0.10+0.62*u, cg=0.52+0.22*u, cb=0.58-0.30*u; const quad=[a.x+nx,a.y+ny,b.x+nx,b.y+ny,b.x-nx,b.y-ny,a.x+nx,a.y+ny,b.x-nx,b.y-ny,a.x-nx,a.y-ny]; for (let k=0;k<12;k+=2){ trailPos[v]=quad[k]; trailPos[v+1]=quad[k+1]; trailPos[v+2]=0.01; trailCol[v]=cr; trailCol[v+1]=cg; trailCol[v+2]=cb; v+=3; } } trailGeom.setDrawRange(0, segs*6); trailGeom.attributes.position.needsUpdate=true; trailGeom.attributes.color.needsUpdate=true; }
+function shapeFromPath(pts){ const shape=new THREE.Shape(); shape.moveTo(pts[0].x, pts[0].y); for (let i=1;i<pts.length;i++) shape.lineTo(pts[i].x, pts[i].y); shape.closePath(); let area=0; for (let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; area+=a.x*b.y-b.x*a.y; } if (area<0){ const rev=new THREE.Shape(); rev.moveTo(pts.at(-1).x, pts.at(-1).y); for (let i=pts.length-2;i>=0;i--) rev.lineTo(pts[i].x, pts[i].y); rev.closePath(); return rev; } return shape; }
+const fill=new THREE.Mesh(new THREE.BufferGeometry(), new THREE.ShaderMaterial({transparent:true, uniforms:{uOpacity:{value:0}}, vertexShader:'varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }', fragmentShader:'varying vec2 vP; uniform float uOpacity; void main(){ float t=smoothstep(-1.35,1.45,vP.x); vec3 a=vec3(0.10,0.62,0.66), b=vec3(0.45,0.74,0.32), c=vec3(0.78,0.82,0.28); vec3 col=mix(a,b,smoothstep(0.0,0.55,t)); col=mix(col,c,smoothstep(0.45,1.0,t)); gl_FragColor=vec4(col,uOpacity); }'})); fill.position.z=-0.05; scene.add(fill); let fillN=-1;
+const harmInput=document.getElementById('harm'), speedInput=document.getElementById('speed'), note=document.getElementById('note');
+let N=+harmInput.value, t=0, mode='draw', modeT=0, userZoom=1, panX=0, panY=0; const baseView={w:6,h:8,cy:0};
+renderFormula(N);
+harmInput.addEventListener('input', ()=>{ N=+harmInput.value; renderFormula(N); t=0; mode='draw'; modeT=0; trailPts.length=0; fillN=-1; });
+document.getElementById('replay').addEventListener('click', ()=>{ t=0; mode='draw'; modeT=0; trailPts.length=0; });
+function applyView(){ const viewW=baseView.w/userZoom, viewH=baseView.h/userZoom; camera.left=-viewW/2+panX; camera.right=viewW/2+panX; camera.top=viewH/2+panY; camera.bottom=-viewH/2+panY; camera.position.y=baseView.cy; camera.updateProjectionMatrix(); }
+function resize(){ const w=innerWidth, h=innerHeight; renderer.setSize(w,h,false); const aspect=w/h, portrait=h>w; const marginTop=(portrait?92:108)/h, marginBot=(portrait?188:150)/h, avail=Math.max(0.35,1-marginTop-marginBot); const viewH=Math.max((portrait?5.2:3.8)/avail, (portrait?6.6:4.8)/aspect); baseView.w=viewH*aspect; baseView.h=viewH; baseView.cy=-((marginBot-marginTop)/2)*viewH*0.35; renderer.domElement.style.width='100%'; renderer.domElement.style.height='100%'; applyView(); }
+addEventListener('resize', resize); resize();
+const pointers=new Map(); let pinchDist=0, lastMid=null; const stage=renderer.domElement;
+function worldPerPx(){ return (baseView.h/userZoom)/innerHeight; }
+stage.addEventListener('pointerdown', e=>{ stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); if (pointers.size===2){ const [a,b]=[...pointers.values()]; pinchDist=Math.hypot(a.x-b.x,a.y-b.y); lastMid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; } });
+stage.addEventListener('pointermove', e=>{ if (!pointers.has(e.pointerId)) return; const prev=pointers.get(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); if (pointers.size>=2){ const [a,b]=[...pointers.values()]; const dist=Math.hypot(a.x-b.x,a.y-b.y)||1; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; if (pinchDist>8) userZoom=Math.min(8, Math.max(0.35, userZoom*(dist/pinchDist))); pinchDist=dist; if (lastMid){ const k=worldPerPx(); panX-=(mid.x-lastMid.x)*k; panY+=(mid.y-lastMid.y)*k; } lastMid=mid; applyView(); } else if (e.pointerType==='touch'){ const k=worldPerPx(); panX-=(e.clientX-prev.x)*k; panY+=(e.clientY-prev.y)*k; applyView(); } });
+function endPointer(e){ pointers.delete(e.pointerId); if (pointers.size<2){ pinchDist=0; lastMid=null; } }
+stage.addEventListener('pointerup', endPointer); stage.addEventListener('pointercancel', endPointer);
+stage.addEventListener('wheel', e=>{ e.preventDefault(); userZoom=Math.min(8, Math.max(0.35, userZoom*(e.deltaY>0?0.92:1.08))); applyView(); }, {passive:false});
+function evalChain(time, count){ const used=coeffs.slice(0,count); let x=0, y=0; const joints=[{x,y}]; for (const c of used){ const ang=Math.atan2(c.im,c.re)+2*Math.PI*c.k*time; x+=c.amp*Math.cos(ang); y+=c.amp*Math.sin(ang); joints.push({x,y,amp:c.amp}); } return joints; }
+function setFillFromN(count){ const pts=[]; for (let i=0;i<320;i++) pts.push(evalChain(i/320, count).at(-1)); fill.geometry.dispose(); fill.geometry=new THREE.ShapeGeometry(shapeFromPath(pts),2); fillN=count; }
+function writeCircle(line,x,y,r){ const arr=line.geometry.attributes.position.array, n=arr.length/3-1; for (let i=0;i<=n;i++){ const a=i/n*Math.PI*2; arr[i*3]=x+Math.cos(a)*r; arr[i*3+1]=y+Math.sin(a)*r; } line.geometry.attributes.position.needsUpdate=true; }
+let lastT=performance.now();
+function frame(now){ const dt=Math.min(0.05,(now-lastT)/1000); lastT=now; modeT+=dt; const speed=+speedInput.value/28; let drawAlpha=1, fillAlpha=0; if (mode==='draw'){ t+=dt*speed; if (t>=1){ t=1; mode='hold'; modeT=0; setFillFromN(N); } } else { t=1; const u=Math.min(1, modeT/0.45); drawAlpha=1-u; fillAlpha=u; if (fillN!==N) setFillFromN(N); if (modeT>2.2){ mode='draw'; modeT=0; t=0; trailPts.length=0; } } const joints=evalChain(t%1, N), tip=joints.at(-1); if (mode==='draw' && drawAlpha>0.5 && (!trailPts.length || Math.hypot(tip.x-trailPts.at(-1).x, tip.y-trailPts.at(-1).y)>0.004)){ trailPts.push({x:tip.x,y:tip.y}); if (trailPts.length>trailMax-2) trailPts.shift(); } circles.forEach((c,i)=>{ if (i>=joints.length-1 || drawAlpha<0.02){ c.visible=false; return; } const r=joints[i+1].amp; c.visible=r>0.012; c.material.opacity=0.8*drawAlpha; writeCircle(c, joints[i].x, joints[i].y, r); }); arms.forEach((a,i)=>{ if (i>=joints.length-1 || drawAlpha<0.02){ a.line.visible=false; a.head.visible=false; return; } const A=joints[i], B=joints[i+1], arr=a.line.geometry.attributes.position.array; arr[0]=A.x; arr[1]=A.y; arr[3]=B.x; arr[4]=B.y; a.line.geometry.attributes.position.needsUpdate=true; a.line.visible=true; a.line.material.opacity=drawAlpha; a.head.visible=B.amp>0.04; a.head.position.set(B.x,B.y,0.01); a.head.rotation.z=Math.atan2(B.y-A.y,B.x-A.x)-Math.PI/2; const s=Math.min(1,B.amp*1.4); a.head.scale.set(s,s,s); a.head.material.opacity=drawAlpha; }); pen.visible=drawAlpha>0.05; pen.position.set(tip.x,tip.y,0.02); pen.material.opacity=drawAlpha; writeTrail(); trail.material.opacity=drawAlpha; fill.material.uniforms.uOpacity.value=fillAlpha; note.textContent=mode==='draw'?`N = ${N}  ·  desenhando com ${N} circunferências`:`preenchido com a curva de N = ${N}`; renderer.render(scene, camera); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
