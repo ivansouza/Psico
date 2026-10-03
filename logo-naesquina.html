@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Logo formas + shader</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; width: 100vw !important; height: auto !important; }
+</style>
+</head>
+<body>
+<script>
+// geometria medida no logo (espaço 1440 x 1405), sem colar a imagem
+const LW = 1440, LH = 1405;
+const SQUARES = [
+  [260, 222, 430, 440],
+  [260, 750, 430, 440],
+  [780, 750, 438, 440]
+];
+const PIN = {
+  hole: [1001, 430, 86],
+  // contorno medido no logo: cabeça redonda à direita, ponta embaixo à esquerda
+  pts: [[974,221],[993,221],[1017,223],[1041,227],[1065,233],[1089,242],[1113,254],[1137,270],[1160,291],[1180,313],[1194,336],[1205,360],[1213,384],[1217,408],[1220,432],[1220,456],[1216,480],[1213,504],[1204,528],[1191,552],[1175,576],[1155,598],[1132,617],[1108,632],[1084,645],[1060,653],[1036,657],[1012,663],[988,663],[964,663],[940,663],[916,663],[892,663],[868,663],[844,663],[820,663],[796,663],[786,648],[786,624],[786,600],[786,576],[786,552],[786,528],[786,504],[786,480],[786,456],[786,432],[788,408],[793,384],[800,360],[808,336],[820,312],[838,289],[859,267],[882,251],[905,238],[929,228],[953,225]]
+};
+const R = 48;
+
+function fit() {
+  const c = document.querySelector("canvas");
+  if (!c) return;
+  const w = window.innerWidth;
+  c.style.width = w + "px";
+  c.style.height = Math.round(w * LH / LW) + "px";
+}
+
+function setup() {
+  createCanvas(LW, LH);
+  pixelDensity(1);
+  noStroke();
+  fit();
+}
+
+function windowResized() { fit(); }
+
+function roundRect(x, y, w, h, r) {
+  const c = drawingContext;
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function pinPath() {
+  const c = drawingContext;
+  const pts = PIN.pts;
+  c.beginPath();
+  c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+  c.closePath();
+}
+
+function dots(x0, y0, w, h, t, warm) {
+  const step = 18;
+  const B = 255, n = 25;
+  for (let x = x0 + step * 0.5; x < x0 + w; x += step) {
+    for (let y = y0 + step * 0.5; y < y0 + h; y += step) {
+      const u = (x - x0) / w;
+      const v = (y - y0) / h;
+      const cr = u * 2.6 - 2;
+      const ci = v * 2.3 - 1.2;
+      let zr = 0, zi = 0, l = 10;
+      while (zr * zr + zi * zi < 4 && l--) {
+        const nz = zr * zr - zi * zi + cr;
+        zi = 2 * zr * zi + ci;
+        zr = nz;
+      }
+      const rad = Math.max(2.4, (10 - l) * 1.2);
+      if (!warm) {
+        const c = ((x * y * 2 - t) & B);
+        const k = (c < n) * B;
+        fill(k, k, c);
+        circle(x, y, rad);
+      } else {
+        const c = (((u * 24) | 0) * ((v * 24) | 0) * 2 - t * 3) & B;
+        fill(255, 40 + (c / B) * 170, c < 40 ? 18 : 0, 230);
+        circle(x, y, rad + 1.5);
+      }
+    }
+  }
+}
+
+function draw() {
+  const t = frameCount;
+  const ctx = drawingContext;
+  background(0);
+
+  for (const [x, y, w, h] of SQUARES) {
+    ctx.save();
+    roundRect(x, y, w, h, R);
+    ctx.clip();
+    fill(0);
+    rect(x, y, w, h);
+    dots(x, y, w, h, t, false);
+    ctx.restore();
+  }
+
+  const pin = null;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 10;
+  fill(245, 199, 17);
+  pinPath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  pinPath();
+  ctx.clip();
+  fill(245, 199, 17);
+  rect(786, 221, 434, 442);
+  dots(786, 221, 434, 442, t, true);
+  ctx.restore();
+
+  fill(0);
+  circle(PIN.hole[0], PIN.hole[1], PIN.hole[2]);
+}
+</script>
+</body>
+</html>
