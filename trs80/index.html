@@ -10,6 +10,7 @@
   h1 { font-size:18px; margin:0 0 4px; }
   p { margin:0 0 8px; color:#aaa; font-size:13px; line-height:1.35; }
   #scrn { padding:8px 14px 0; }
+  #histbtn { margin:8px 14px 0; }
   #hist { margin:8px 14px 12px; max-height:220px; overflow:auto; background:#0c0c0c; color:#c8f7c5; border:1px solid #333; padding:8px; font:13px/1.35 ui-monospace,monospace; white-space:pre; }
   canvas { width:min(100%, 640px); height:auto; background:#000; border:1px solid #333; image-rendering:pixelated; }
   .row { display:flex; gap:8px; flex-wrap:wrap; padding:0 14px 16px; }
@@ -33,7 +34,8 @@
   <p>Emulador de trsjs.48k.ca (Peter Phillips, v1.6) com o programa já inserido. O programa só é carregado. O histórico abaixo da tela guarda as linhas que já subiram.</p>
 </header>
 <div id="scrn"><canvas width="512" height="384"></canvas></div>
-<pre id="hist">histórico da tela</pre>
+<button id="histbtn" type="button">Mostrar histórico</button>
+<pre id="hist" class="hidden">histórico da tela</pre>
 <div class="row">
   <button id="btn" type="button">Run / Stop</button>
   <button id="load" type="button">Carregar</button>
@@ -157,6 +159,10 @@ function sameLine(a, b) {
 }
 var prevLines = null;
 var hist = document.getElementById("hist");
+document.getElementById("histbtn").onclick = function() {
+  hist.classList.toggle("hidden");
+  this.textContent = hist.classList.contains("hidden") ? "Mostrar histórico" : "Esconder histórico";
+};
 function remember(lines) {
   var text = lines.filter(function(l) { return l.length; }).join("\n");
   if (!text) return;
