@@ -49,6 +49,7 @@ var keyQueue = [];
 var keyBusy = false;
 function enqueueKeys(text) {
   for (var i = 0; i < text.length; i++) keyQueue.push(text.charAt(i));
+  trsEmu.run("4MHz");
   pumpKeys();
 }
 function pumpKeys() {
@@ -64,8 +65,9 @@ function pumpKeys() {
   setTimeout(function() {
     kbd.ascii_up(z, ch);
     keyBusy = false;
-    pumpKeys();
-  }, 40);
+    if (!keyQueue.length) trsEmu.run("64MHz");
+    else pumpKeys();
+  }, 25);
 }
 var keys = document.getElementById("keys");
 document.getElementById("kbd").onclick = function() {
