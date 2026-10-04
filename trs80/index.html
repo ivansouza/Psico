@@ -52,7 +52,7 @@
   </blockquote>
   <p>O desafio pede um único número, colado nesta ordem: média, mediana, moda, soma dos dígitos ímpares e soma dos dígitos pares. O resultado dele, conferido neste emulador:</p>
   <p><strong>FINAL NUMBER = 3251179966045634169</strong></p>
-  <p>Média 3251, mediana 1799, moda 660, dígitos ímpares 4563, dígitos pares 4169. O botão RUN acelera para 64 MHz porque em 4 MHz o shell sort de 2495 números parece travado.</p>
+  <p>Média 3251, mediana 1799, moda 660, dígitos ímpares 4563, dígitos pares 4169. O botão RUN acelera para 256 MHz porque em 4 MHz o shell sort de 2495 números parece travado.</p>
 </section>
 <pre id="screen"></pre>
 <script src="trsemu-1.6.js"></script>
@@ -85,7 +85,7 @@ function sendToBasic(text) {
 }
 var keys = document.getElementById("keys");
 document.getElementById("list").onclick = function() { sendToBasic("LIST\r"); };
-document.getElementById("runp").onclick = function() { trsEmu.run("64MHz"); sendToBasic("RUN\r"); };
+document.getElementById("runp").onclick = function() { trsEmu.run("256MHz"); sendToBasic("RUN\r"); };
 document.getElementById("send").onclick = function() {
   sendToBasic(keys.value + "\r");
   keys.value = "";
