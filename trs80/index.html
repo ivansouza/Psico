@@ -38,7 +38,10 @@
   <button id="btn" type="button">Run / Stop</button>
   <button id="load" type="button">Carregar</button>
   <button id="runp" type="button">RUN</button>
-  <button id="fast" type="button">64 MHz</button>
+  <label>MHz <select id="mhz">
+    <option>2</option><option selected>4</option><option>8</option><option>16</option>
+    <option>32</option><option>64</option><option>128</option><option>256</option>
+  </select></label>
   <button id="rst" type="button">Reset</button>
   <button id="list" type="button">LIST</button>
   <button id="send" type="button">Enviar</button>
@@ -70,7 +73,12 @@ function boot() {
   trsEmu.run("4MHz");
 }
 document.getElementById("load").onclick = function() { trsEmu.run(macro); trsEmu.run("4MHz"); };
-document.getElementById("fast").onclick = function() { trsEmu.run("4MHz"); };
+document.getElementById("mhz").onchange = function() { trsEmu.run(this.value + "MHz"); };
+document.getElementById("runp").onclick = function() {
+  document.getElementById("mhz").value = "256";
+  trsEmu.run("256MHz");
+  sendToBasic("RUN\r");
+};
 document.getElementById("rst").onclick = function() { trsEmu.run("reset"); };
 function sendToBasic(text) {
   var s = "~";
@@ -92,7 +100,7 @@ function sendToBasic(text) {
 }
 var keys = document.getElementById("keys");
 document.getElementById("list").onclick = function() { sendToBasic("LIST\r"); };
-document.getElementById("runp").onclick = function() { trsEmu.run("256MHz"); sendToBasic("RUN\r"); };
+
 document.getElementById("send").onclick = function() {
   sendToBasic(keys.value + "\r");
   keys.value = "";
