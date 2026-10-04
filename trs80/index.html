@@ -75,10 +75,10 @@ function sendToBasic(text) {
     var ch = text.charAt(i);
     if (ch === "\r") { s += "\r"; shown += "↵"; continue; }
     if (ch === "\b") { s += "\x08"; shown += "⌫"; continue; }
-    if (ch >= "A" && ch <= "Z") ch = ch.toLowerCase();
+    if (ch >= "a" && ch <= "z") ch = ch.toUpperCase();
     if ("|[]{}~".indexOf(ch) >= 0) continue;
     s += ch;
-    shown += ch.toUpperCase();
+    shown += ch;
   }
   document.getElementById("sent").textContent = "enviado: " + shown;
   trsEmu.load(s);
