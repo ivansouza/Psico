@@ -17,6 +17,10 @@
   #osk { display:flex; flex-wrap:wrap; gap:4px; padding:0 14px 16px; }
   #osk button { min-width:34px; padding:10px 6px; font-size:13px; }
   #sent { color:#9c9; font-size:12px; padding:0 14px 8px; }
+  #flavio { padding:4px 14px 18px; color:#ccc; font-size:14px; line-height:1.45; }
+  #flavio h2 { font-size:16px; color:#e8e8e8; margin:8px 0; }
+  #flavio a { color:#8fd6a8; }
+  #flavio blockquote { margin:8px 0; padding:8px 12px; border-left:3px solid #3d8f5a; color:#ddd; }
   pre { padding:0 14px 16px; color:#9f9; white-space:pre-wrap; }
 </style>
 </head>
@@ -39,6 +43,17 @@
 </div>
 <div id="sent"></div>
 <div id="osk"></div>
+<section id="flavio">
+  <h2>Explicação do Flavio</h2>
+  <p>Entrada de Flavio de Sousa no <a href="https://stackoverflow.com/beta/challenges/80003558/challenge-23-fun-with-arithmetic/80007730">Challenge #23: Fun with Arithmetic</a>. O programa desta página é o BASIC dele.</p>
+  <blockquote>
+    <p>More a chore than a challenge. So, I decided to make it more interesting and tried reliving my early days as a programmer: <strong>TRS-80 Model III ROM BASIC</strong> from the early 1980s.</p>
+    <p>The history can be seen in its <a href="https://github.com/flaviodesousa-programming-for-fun/fun-with-arithmetic">repo</a>. It can be tested with a TRS-80 MODEL III emulator (this one allows simulating typing from the clipboard).</p>
+  </blockquote>
+  <p>O desafio pede um único número, colado nesta ordem: média, mediana, moda, soma dos dígitos ímpares e soma dos dígitos pares. O resultado dele, conferido neste emulador:</p>
+  <p><strong>FINAL NUMBER = 3251179966045634169</strong></p>
+  <p>Média 3251, mediana 1799, moda 660, dígitos ímpares 4563, dígitos pares 4169. O botão RUN acelera para 64 MHz porque em 4 MHz o shell sort de 2495 números parece travado.</p>
+</section>
 <pre id="screen"></pre>
 <script src="trsemu-1.6.js"></script>
 <script>
@@ -70,7 +85,7 @@ function sendToBasic(text) {
 }
 var keys = document.getElementById("keys");
 document.getElementById("list").onclick = function() { sendToBasic("LIST\r"); };
-document.getElementById("runp").onclick = function() { sendToBasic("RUN\r"); };
+document.getElementById("runp").onclick = function() { trsEmu.run("64MHz"); sendToBasic("RUN\r"); };
 document.getElementById("send").onclick = function() {
   sendToBasic(keys.value + "\r");
   keys.value = "";
