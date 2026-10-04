@@ -45,14 +45,27 @@ function boot() {
 document.getElementById("load").onclick = function() { trsEmu.run(macro); trsEmu.run("256MHz"); };
 document.getElementById("fast").onclick = function() { trsEmu.run("256MHz"); };
 document.getElementById("rst").onclick = function() { trsEmu.run("reset"); };
-function typeChar(ch) {
+var keyQueue = [];
+var keyBusy = false;
+function enqueueKeys(text) {
+  for (var i = 0; i < text.length; i++) keyQueue.push(text.charAt(i));
+  pumpKeys();
+}
+function pumpKeys() {
+  if (keyBusy || !keyQueue.length) return;
+  var ch = keyQueue.shift();
+  if (ch === "\n") ch = "\r";
+  if (ch >= "A" && ch <= "Z") ch = ch.toLowerCase();
   var z = trsEmu.trs80;
   var kbd = z.dev && z.dev.kbd;
   if (!kbd) return;
-  if (ch >= "a" && ch <= "z") ch = ch.toUpperCase();
-  if (ch >= "A" && ch <= "Z") ch = ch.toLowerCase();
+  keyBusy = true;
   kbd.ascii_down(z, ch);
-  kbd.ascii_up(z, ch);
+  setTimeout(function() {
+    kbd.ascii_up(z, ch);
+    keyBusy = false;
+    pumpKeys();
+  }, 40);
 }
 var keys = document.getElementById("keys");
 document.getElementById("kbd").onclick = function() {
@@ -60,13 +73,13 @@ document.getElementById("kbd").onclick = function() {
   keys.focus();
 };
 keys.addEventListener("keydown", function(e) {
-  if (e.key === "Enter") { e.preventDefault(); typeChar("\r"); keys.value = ""; }
-  else if (e.key === "Backspace") { e.preventDefault(); typeChar("\x08"); }
+  if (e.key === "Enter") { e.preventDefault(); enqueueKeys("\r"); keys.value = ""; }
+  else if (e.key === "Backspace") { e.preventDefault(); enqueueKeys("\x08"); }
 });
 keys.addEventListener("input", function() {
   var v = keys.value;
   keys.value = "";
-  for (var i = 0; i < v.length; i++) typeChar(v.charAt(i) === "\n" ? "\r" : v.charAt(i));
+  if (v) enqueueKeys(v);
 });
 window.addEventListener("load", boot);
 </script>
