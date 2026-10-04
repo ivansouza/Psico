@@ -81,7 +81,10 @@ function sendToBasic(text) {
     shown += ch;
   }
   document.getElementById("sent").textContent = "enviado: " + shown;
+  var enter = s.charAt(s.length - 1) === "\r";
+  if (enter) s = s.slice(0, -1);
   trsEmu.load(s);
+  if (enter) setTimeout(function() { trsEmu.load("~\r"); }, 400);
 }
 var keys = document.getElementById("keys");
 document.getElementById("list").onclick = function() { sendToBasic("LIST\r"); };
