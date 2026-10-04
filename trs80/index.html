@@ -13,6 +13,7 @@
   canvas { width:min(100%, 640px); height:auto; background:#000; border:1px solid #333; image-rendering:pixelated; }
   .row { display:flex; gap:8px; flex-wrap:wrap; padding:0 14px 16px; }
   button { background:#1c3d2a; color:#d7ffe4; border:1px solid #3d8f5a; padding:8px 12px; border-radius:6px; font-size:14px; }
+  #keys { flex:1; min-width:140px; background:#0c0c0c; color:#d7ffe4; border:1px solid #3d8f5a; border-radius:6px; padding:8px 10px; font-size:16px; }
   pre { padding:0 14px 16px; color:#9f9; white-space:pre-wrap; }
 </style>
 </head>
@@ -27,6 +28,8 @@
   <button id="load" type="button">Carregar e RUN</button>
   <button id="fast" type="button">64 MHz</button>
   <button id="rst" type="button">Reset</button>
+  <button id="kbd" type="button">Teclado</button>
+  <input id="keys" type="text" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="toque em Teclado e digite">
 </div>
 <pre id="screen"></pre>
 <script src="trsemu-1.6.js"></script>
@@ -42,6 +45,29 @@ function boot() {
 document.getElementById("load").onclick = function() { trsEmu.run(macro); trsEmu.run("256MHz"); };
 document.getElementById("fast").onclick = function() { trsEmu.run("256MHz"); };
 document.getElementById("rst").onclick = function() { trsEmu.run("reset"); };
+function typeChar(ch) {
+  var z = trsEmu.trs80;
+  var kbd = z.dev && z.dev.kbd;
+  if (!kbd) return;
+  if (ch >= "a" && ch <= "z") ch = ch.toUpperCase();
+  if (ch >= "A" && ch <= "Z") ch = ch.toLowerCase();
+  kbd.ascii_down(z, ch);
+  kbd.ascii_up(z, ch);
+}
+var keys = document.getElementById("keys");
+document.getElementById("kbd").onclick = function() {
+  trsEmu.focus();
+  keys.focus();
+};
+keys.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") { e.preventDefault(); typeChar("\r"); keys.value = ""; }
+  else if (e.key === "Backspace") { e.preventDefault(); typeChar("\x08"); }
+});
+keys.addEventListener("input", function() {
+  var v = keys.value;
+  keys.value = "";
+  for (var i = 0; i < v.length; i++) typeChar(v.charAt(i) === "\n" ? "\r" : v.charAt(i));
+});
 window.addEventListener("load", boot);
 </script>
 </body>
