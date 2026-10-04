@@ -144,9 +144,16 @@ function screenLines() {
       var c = mem[0x3c00 + row * 64 + col] & 127;
       line += (c >= 32 && c < 127) ? String.fromCharCode(c) : " ";
     }
-    lines.push(line.replace(/\s+$/, ""));
+    lines.push(line.replace(/[_\u2588\u2584]+$/g, "").replace(/\s+$/, ""));
   }
   return lines;
+}
+function sameLine(a, b) {
+  if (a === b) return true;
+  var n = Math.max(a.length, b.length);
+  var diff = 0;
+  for (var i = 0; i < n; i++) if (a.charAt(i) !== b.charAt(i)) diff++;
+  return diff <= 1;
 }
 var prevLines = null;
 var hist = document.getElementById("hist");
@@ -160,14 +167,13 @@ function watchScreen() {
   if (!window.trsEmu || !trsEmu.getmem) return;
   var next = screenLines();
   if (prevLines) {
-    var shift = -1;
+    var shift = 0;
     for (var s = 0; s <= 16; s++) {
       var ok = true;
-      for (var i = 0; i < 16 - s; i++) if (prevLines[i + s] !== next[i]) ok = false;
+      for (var i = 0; i < 16 - s; i++) if (!sameLine(prevLines[i + s], next[i])) ok = false;
       if (ok) { shift = s; break; }
     }
     if (shift > 0) remember(prevLines.slice(0, shift));
-    else if (shift < 0) remember(prevLines);
   }
   prevLines = next;
 }
