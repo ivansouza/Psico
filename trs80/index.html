@@ -14,8 +14,9 @@
   .row { display:flex; gap:8px; flex-wrap:wrap; padding:0 14px 16px; }
   button { background:#1c3d2a; color:#d7ffe4; border:1px solid #3d8f5a; padding:8px 12px; border-radius:6px; font-size:14px; }
   #keys { flex:1; min-width:140px; background:#0c0c0c; color:#d7ffe4; border:1px solid #3d8f5a; border-radius:6px; padding:8px 10px; font-size:16px; }
-  #osk { display:flex; flex-wrap:wrap; gap:4px; padding:0 14px 16px; }
-  #osk button { min-width:34px; padding:10px 6px; font-size:13px; }
+  #osk { padding:0 14px 16px; }
+  #osk .rowk { display:flex; gap:4px; margin-bottom:4px; }
+  #osk button { flex:1; min-width:0; padding:12px 0; font-size:14px; }
   #sent { color:#9c9; font-size:12px; padding:0 14px 8px; }
   #flavio { padding:4px 14px 18px; color:#ccc; font-size:14px; line-height:1.45; }
   #flavio h2 { font-size:16px; color:#e8e8e8; margin:8px 0; }
@@ -102,21 +103,24 @@ keys.addEventListener("keydown", function(e) {
   }
 });
 var osk = document.getElementById("osk");
-"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ".split("").forEach(function(ch) {
-  var b = document.createElement("button");
-  b.type = "button";
-  b.textContent = ch === " " ? "espaço" : ch;
-  b.onclick = function() { sendToBasic(ch); };
-  osk.appendChild(b);
-});
-var bk = document.createElement("button");
-bk.type = "button"; bk.textContent = "⌫";
-bk.onclick = function() { sendToBasic("\b"); };
-osk.appendChild(bk);
-var en = document.createElement("button");
-en.type = "button"; en.textContent = "ENTER";
-en.onclick = function() { sendToBasic("\r"); };
-osk.appendChild(en);
+function addRow(keys) {
+  var row = document.createElement("div");
+  row.className = "rowk";
+  keys.forEach(function(item) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = item[0];
+    b.onclick = function() { sendToBasic(item[1]); };
+    row.appendChild(b);
+  });
+  osk.appendChild(row);
+}
+addRow("QWERTYUIOP".split("").map(function(ch) { return [ch, ch]; }));
+addRow("ASDFGHJKL".split("").map(function(ch) { return [ch, ch]; }));
+addRow([["Z", "Z"], ["X", "X"], ["C", "C"], ["V", "V"], ["B", "B"], ["N", "N"], ["M", "M"], ["⌫", "\b"]]);
+addRow([["espaço", " "], ["ENTER", "\r"]]);
+addRow("1234567890".split("").map(function(ch) { return [ch, ch]; }));
+addRow([["-", "-"], ["=", "="], ["+", "+"], ["*", "*"], ["/", "/"], [",", ","], [".", "."], ["(", "("], [")", ")"], [":", ":"]]);
 window.addEventListener("load", boot);
 </script>
 </body>
