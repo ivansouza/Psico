@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Isao — fios</title>
+<style>
+  :root {
+    --bg: #07080b;
+    --card: rgba(18, 20, 26, 0.86);
+    --line: rgba(255,255,255,0.08);
+    --text: #eceae4;
+    --muted: #8d8a84;
+    --yellow: #f6d35b;
+    --magenta: #ff4fae;
+    --violet: #b06bff;
+    --cyan: #3ee0ff;
+    --orange: #ff7a45;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    overflow: hidden; touch-action: none;
+  }
+  body {
+    background:
+      radial-gradient(900px 520px at 70% 40%, rgba(80, 60, 20, 0.16), transparent 60%),
+      radial-gradient(700px 500px at 20% 80%, rgba(60, 30, 90, 0.14), transparent 55%),
+      var(--bg);
+  }
+  #dots {
+    position: fixed; inset: 0; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(circle at 50% 45%, #000 40%, transparent 85%);
+  }
+  header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 6;
+    display: flex; align-items: center; gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background: linear-gradient(#07080b, rgba(7,8,11,0.88) 72%, transparent);
+    pointer-events: none;
+  }
+  header h1 {
+    margin: 0; font-weight: 600; letter-spacing: 0.22em; font-size: 13px;
+    text-transform: uppercase; color: #f4f1ea;
+  }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 11px; }
+  header .brand { pointer-events: none; }
+  button.sound {
+    pointer-events: auto; margin-left: auto;
+    background: rgba(255,255,255,0.04); color: #cfcabe;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px; padding: 8px 12px; font-size: 12px; cursor: pointer;
+  }
+  button.sound.on { border-color: rgba(62,224,255,0.5); color: #d8fbff; }
+  #stage { position: fixed; inset: 0; }
+  svg.cables { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+  .node {
+    position: absolute; width: 280px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
+    user-select: none;
+    z-index: 2;
+  }
+  .node.hot { box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 50px rgba(0,0,0,0.45), 0 0 40px var(--glow, transparent); }
+  .node header.node-h {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px 8px; cursor: grab; color: #f7f4ee; font-size: 14px; font-weight: 600;
+  }
+  .node header.node-h:active { cursor: grabbing; }
+  .grip { margin-left: auto; color: #5c5a56; letter-spacing: 2px; font-size: 12px; }
+  .ico { width: 16px; height: 16px; opacity: 0.85; }
+  .body { padding: 0 14px 14px; color: #c8c4bb; font-size: 13px; line-height: 1.45; }
+  .chip {
+    background: #101216; border-radius: 10px; padding: 10px 12px; color: #d9d4cb;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .meta { margin-top: 8px; color: #6f6c67; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .ports { padding: 4px 0 12px; }
+  .port-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; position: relative; min-height: 44px; }
+  .port-row.out { justify-content: flex-end; }
+  .port-row span { font-size: 14px; color: #ddd9d1; }
+  .port {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #f4f1ea; box-shadow: 0 0 0 5px rgba(255,255,255,0.06);
+    cursor: crosshair; position: relative; flex: 0 0 auto;
+    touch-action: none;
+  }
+  .port::after { content: ""; position: absolute; inset: -16px; }
+  .port.snap {
+    box-shadow: 0 0 0 7px rgba(255,255,255,0.08), 0 0 18px var(--c, #fff);
+  }
+  .port.live { background: var(--c, #fff); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent), 0 0 16px var(--c); }
+  .check { margin-left: auto; color: var(--c, #8d8); font-size: 13px; opacity: 0; }
+  .port-row.in.ok .check { opacity: 1; }
+  .status {
+    margin: 2px 14px 14px; font-size: 12.5px; color: #8a877f;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status i {
+    width: 7px; height: 7px; border-radius: 50%; background: #3a3a38; display: inline-block;
+  }
+  .status.ready { color: #d7fff6; }
+  .status.ready i { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+  .edge {
+    position: absolute; left: 10px; right: 10px; height: 2px; border-radius: 2px;
+    opacity: 0; pointer-events: none;
+  }
+  .edge.top { top: 0; }
+  .edge.bot { bottom: 0; }
+  .node.lit .edge { opacity: 1; background: linear-gradient(90deg, transparent, var(--glow), transparent); box-shadow: 0 0 12px var(--glow); }
+  #hint { display: none; }
+</style>
+</head>
+<body>
+<div id="dots"></div>
+<header>
+  <div class="brand">
+    <h1>Isao</h1>
+    <p>puxa a bolinha até a porta</p>
+  </div>
+  <button class="sound" id="sound" type="button">som</button>
+</header>
+<div id="hint">arrasta da bolinha clara até uma entrada do Isao · arrasta o cartão pelo título</div>
+<div id="stage">
+  <svg class="cables" id="svg"></svg>
+</div>
+<script>
+const stage = document.getElementById("stage");
+const svg = document.getElementById("svg");
+const NS = "http://www.w3.org/2000/svg";
+
+const COLORS = {
+  lembranca: "#f6d35b",
+  pulso: "#ff4fae",
+  circuito: "#b06bff"
+};
+
+const nodes = [
+  {
+    id: "ideia", title: "Ideia", icon: "spark",
+    x: 70, y: 110, w: 290,
+    body: `<div class="meta" style="margin:0">sala quieta · tom menor</div>`,
+    outs: [{ id: "lembranca", label: "lembrança" }]
+  },
+  {
+    id: "ruido", title: "Ruído", icon: "dots",
+    x: 40, y: 340, w: 230,
+    body: `<div class="meta" style="margin:0">semente 432512</div>`,
+    outs: [{ id: "pulso", label: "pulso" }]
+  },
+  {
+    id: "compasso", title: "Compasso", icon: "bars",
+    x: 120, y: 470, w: 250,
+    body: `<div class="meta" style="margin:0">3/4 · 72 bpm · mão esquerda</div>`,
+    outs: [{ id: "circuito", label: "circuito" }]
+  },
+  {
+    id: "isao", title: "Isao", icon: "gear", sink: true,
+    x: 620, y: 180, w: 300,
+    ins: [
+      { id: "voz", label: "voz", accepts: "lembranca" },
+      { id: "luz", label: "luz", accepts: "pulso" },
+      { id: "tempo", label: "tempo", accepts: "circuito" }
+    ]
+  }
+];
+
+const links = []; // {fromNode, fromPort, toNode, toPort, color}
+let drag = null; // {fromNode, fromPort, x, y, color}
+let snap = null;
+let nodeDrag = null;
+let soundOn = false;
+let audioCtx = null;
+const portEls = new Map();
+
+function icon(name) {
+  if (name === "spark") return `<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2 2M10.6 10.6l2 2M3.4 12.6l2-2M10.6 5.4l2-2"/></svg>`;
+  if (name === "dots") return `<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.2"/><circle cx="8" cy="5" r="1.2"/><circle cx="13" cy="9" r="1.2"/><circle cx="8" cy="12" r="1.2"/></svg>`;
+  if (name === "bars") return `<svg class="ico" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="6" width="2" height="8" rx="0.5"/><rect x="7" y="3" width="2" height="11" rx="0.5"/><rect x="12" y="7" width="2" height="7" rx="0.5"/></svg>`;
+  return `<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2.1M8 12.1v2.1M1.8 8h2.1M12.1 8h2.1M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5"/></svg>`;
+}
+
+function el(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+}
+
+function layout() {
+  const vw = window.innerWidth;
+  const top = 64 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sat") || "0", 10) || 0);
+  const pad = 12;
+  const gutter = Math.max(46, Math.min(72, vw * 0.16));
+  const board = Math.min(vw, 430);
+  const origin = Math.max(0, (vw - board) / 2);
+  const colW = Math.floor((board - pad * 2 - gutter) / 2);
+  nodes.forEach(n => { n.w = colW; });
+  const sources = [nodes[0], nodes[1], nodes[2]];
+  let y = top;
+  sources.forEach(n => {
+    n.x = origin + pad;
+    n.y = y;
+    const card = document.getElementById("node-" + n.id);
+    y += (card ? card.offsetHeight : 86) + 10;
+  });
+  const sink = nodes[3];
+  sink.x = origin + pad + colW + gutter;
+  const sinkEl = document.getElementById("node-isao");
+  const sinkH = sinkEl ? sinkEl.offsetHeight : 196;
+  const block = y - top - 10;
+  sink.y = top + Math.max(0, (block - sinkH) / 2);
+}
+
+function mount() {
+  layout();
+  nodes.forEach(n => {
+    const ins = (n.ins || []).map(p => `
+      <div class="port-row in" data-port="${p.id}">
+        <div class="port" data-kind="in" data-node="${n.id}" data-port="${p.id}"></div>
+        <span>${p.label}</span>
+        <span class="check">✓</span>
+      </div>`).join("");
+    const outs = (n.outs || []).map(p => `
+      <div class="port-row out">
+        <span>${p.label}</span>
+        <div class="port" data-kind="out" data-node="${n.id}" data-port="${p.id}"></div>
+      </div>`).join("");
+    const card = el(`
+      <article class="node" id="node-${n.id}" style="width:${n.w}px;left:${n.x}px;top:${n.y}px">
+        <div class="edge top"></div><div class="edge bot"></div>
+        <header class="node-h">${icon(n.icon)} ${n.title}<span class="grip">⋮⋮</span></header>
+        ${n.body ? `<div class="body">${n.body}</div>` : ""}
+        <div class="ports">${outs}${ins}</div>
+        ${n.sink ? `<div class="status" id="status"><i></i><span>esperando fios</span></div>` : ""}
+      </article>`);
+    stage.appendChild(card);
+    card.querySelectorAll(".port").forEach(p => portEls.set(n.id + ":" + p.dataset.port, p));
+    const head = card.querySelector(".node-h");
+    head.addEventListener("pointerdown", e => startNodeDrag(e, n, card));
+  });
+  window.addEventListener("pointermove", onMove, { passive: false });
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+  window.addEventListener("touchmove", onTouchMove, { passive: false });
+  window.addEventListener("touchend", onTouchEnd);
+  window.addEventListener("touchcancel", onTouchEnd);
+  window.addEventListener("resize", () => { layout(); place(); draw(); });
+  stage.querySelectorAll(".port[data-kind=out]").forEach(p => {
+    p.addEventListener("pointerdown", e => startWire(e, p));
+    p.addEventListener("touchstart", e => startWireTouch(e, p), { passive: false });
+  });
+  place();
+  layout();
+  place();
+  requestAnimationFrame(tick);
+  setTimeout(demo, 700);
+}
+
+function place() {
+  nodes.forEach(n => {
+    const card = document.getElementById("node-" + n.id);
+    card.style.left = n.x + "px";
+    card.style.top = n.y + "px";
+    card.style.width = n.w + "px";
+  });
+}
+
+function portCenter(nodeId, portId) {
+  const p = portEls.get(nodeId + ":" + portId);
+  const r = p.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function bezier(a, b) {
+  const dx = Math.max(80, Math.abs(b.x - a.x) * 0.45);
+  const c1x = a.x + dx, c2x = b.x - dx;
+  return `M ${a.x} ${a.y} C ${c1x} ${a.y}, ${c2x} ${b.y}, ${b.x} ${b.y}`;
+}
+
+function lightning(a, b, seed) {
+  const n = 7;
+  let d = `M ${a.x} ${a.y}`;
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const x = a.x + (b.x - a.x) * t;
+    const y = a.y + (b.y - a.y) * t;
+    const mag = (i === n ? 0 : (8 + (seed * 13 + i * 7) % 10));
+    const s = ((seed + i) % 2 ? 1 : -1);
+    d += ` L ${x + s * mag * (i % 2 ? 1 : 0.4)} ${y + s * mag * 0.35}`;
+  }
+  return d;
+}
+
+function clearSvg() { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+
+function addPath(d, color, width, opacity, blur, extra) {
+  const p = document.createElementNS(NS, "path");
+  p.setAttribute("d", d);
+  p.setAttribute("fill", "none");
+  p.setAttribute("stroke", color);
+  p.setAttribute("stroke-width", width);
+  p.setAttribute("stroke-linecap", "round");
+  p.setAttribute("stroke-linejoin", "round");
+  p.setAttribute("opacity", opacity);
+  if (blur) p.setAttribute("filter", `drop-shadow(0 0 ${blur}px ${color})`);
+  if (extra) Object.entries(extra).forEach(([k, v]) => p.setAttribute(k, v));
+  svg.appendChild(p);
+  return p;
+}
+
+let t = 0;
+function tick() {
+  t += 1;
+  draw();
+  requestAnimationFrame(tick);
+}
+
+function draw() {
+  clearSvg();
+  links.forEach(l => {
+    const a = portCenter(l.fromNode, l.fromPort);
+    const b = portCenter(l.toNode, l.toPort);
+    const d = bezier(a, b);
+    addPath(d, l.color, 10, 0.18, 8);
+    addPath(d, l.color, 3.4, 0.95, 4);
+    addPath(d, "#fff8e8", 1.1, 0.8, 0);
+    const flow = document.createElementNS(NS, "path");
+    flow.setAttribute("d", d);
+    flow.setAttribute("fill", "none");
+    flow.setAttribute("stroke", "#fff");
+    flow.setAttribute("stroke-width", "1.6");
+    flow.setAttribute("stroke-linecap", "round");
+    flow.setAttribute("stroke-dasharray", "2 16");
+    flow.setAttribute("stroke-dashoffset", String(-(t % 180) * 0.35));
+    flow.setAttribute("opacity", "0.55");
+    svg.appendChild(flow);
+  });
+  if (drag) {
+    const a = portCenter(drag.fromNode, drag.fromPort);
+    const b = { x: drag.x, y: drag.y };
+    const d = bezier(a, b);
+    addPath(d, "rgba(255,255,255,0.9)", 2.2, 1, 0);
+    if (snap) {
+      const s = portCenter(snap.node, snap.port);
+      const jag = lightning(
+        { x: b.x - (b.x - s.x) * 0.15, y: b.y - (b.y - s.y) * 0.15 },
+        s,
+        Math.floor(t / 3)
+      );
+      addPath(jag, drag.color, 5, 0.35, 8);
+      addPath(jag, drag.color, 1.7, 1, 3);
+      addPath(jag, "#fff", 0.8, 0.9, 0);
+    }
+  }
+}
+
+function startWire(e, port) {
+  e.preventDefault();
+  e.stopPropagation();
+  const node = port.dataset.node;
+  const pid = port.dataset.port;
+  const color = COLORS[pid] || "#fff";
+  const existing = links.findIndex(l => l.fromNode === node && l.fromPort === pid);
+  if (existing >= 0) links.splice(existing, 1);
+  drag = { fromNode: node, fromPort: pid, x: e.clientX, y: e.clientY, color };
+  refreshPorts();
+}
+
+function startWireTouch(e, port) {
+  e.preventDefault();
+  e.stopPropagation();
+  const tch = e.changedTouches[0];
+  startWire({ preventDefault(){}, stopPropagation(){}, clientX: tch.clientX, clientY: tch.clientY }, port);
+}
+
+function onTouchMove(e) {
+  if (!drag && !nodeDrag) return;
+  e.preventDefault();
+  const tch = e.touches[0];
+  onMove({ clientX: tch.clientX, clientY: tch.clientY, preventDefault(){} });
+}
+
+function onTouchEnd(e) {
+  if (!drag && !nodeDrag) return;
+  const tch = e.changedTouches[0];
+  onUp({ clientX: tch.clientX, clientY: tch.clientY });
+}
+
+function startNodeDrag(e, n, card) {
+  if (e.target.closest(".port")) return;
+  nodeDrag = { n, card, dx: e.clientX - n.x, dy: e.clientY - n.y, id: e.pointerId };
+}
+
+function nearestIn(x, y) {
+  let best = null, bestD = 72;
+  nodes.forEach(n => (n.ins || []).forEach(p => {
+    const c = portCenter(n.id, p.id);
+    const d = Math.hypot(c.x - x, c.y - y);
+    if (d < bestD) { bestD = d; best = { node: n.id, port: p.id }; }
+  }));
+  return best;
+}
+
+function onMove(e) {
+  if (nodeDrag) {
+    nodeDrag.n.x = e.clientX - nodeDrag.dx;
+    nodeDrag.n.y = e.clientY - nodeDrag.dy;
+    place();
+    return;
+  }
+  if (!drag) return;
+  drag.x = e.clientX; drag.y = e.clientY;
+  const next = nearestIn(e.clientX, e.clientY);
+  if (next?.node !== snap?.node || next?.port !== snap?.port) {
+    document.querySelectorAll(".port.snap").forEach(p => p.classList.remove("snap"));
+    snap = next;
+    if (snap) {
+      const elp = portEls.get(snap.node + ":" + snap.port);
+      elp.style.setProperty("--c", drag.color);
+      elp.classList.add("snap");
+    }
+  }
+}
+
+function onUp(e) {
+  if (nodeDrag) { nodeDrag = null; return; }
+  if (!drag) return;
+  if (snap) {
+    const idx = links.findIndex(l => l.toNode === snap.node && l.toPort === snap.port);
+    if (idx >= 0) links.splice(idx, 1);
+    links.push({
+      fromNode: drag.fromNode, fromPort: drag.fromPort,
+      toNode: snap.node, toPort: snap.port, color: drag.color
+    });
+  }
+  drag = null;
+  snap = null;
+  document.querySelectorAll(".port.snap").forEach(p => p.classList.remove("snap"));
+  refreshPorts();
+  maybeSing();
+}
+
+function refreshPorts() {
+  document.querySelectorAll(".port").forEach(p => {
+    p.classList.remove("live");
+    p.style.removeProperty("--c");
+  });
+  document.querySelectorAll(".port-row.in").forEach(r => r.classList.remove("ok"));
+  links.forEach(l => {
+    const a = portEls.get(l.fromNode + ":" + l.fromPort);
+    const b = portEls.get(l.toNode + ":" + l.toPort);
+    [a, b].forEach(p => { p.classList.add("live"); p.style.setProperty("--c", l.color); });
+    b.closest(".port-row").classList.add("ok");
+    b.closest(".port-row").style.setProperty("--c", l.color);
+  });
+  const sink = document.getElementById("node-isao");
+  const status = document.getElementById("status");
+  const ready = links.length >= 3;
+  sink.classList.toggle("lit", links.length > 0);
+  sink.classList.toggle("hot", links.length > 0);
+  const last = links[links.length - 1];
+  if (last) sink.style.setProperty("--glow", last.color);
+  status.classList.toggle("ready", ready);
+  status.querySelector("span").textContent = ready ? "Isao ligado" : (links.length ? "entrando fio…" : "esperando fios");
+}
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+document.getElementById("sound").addEventListener("click", () => {
+  soundOn = !soundOn;
+  const b = document.getElementById("sound");
+  b.classList.toggle("on", soundOn);
+  b.textContent = soundOn ? "som on" : "som";
+  if (soundOn) ensureAudio();
+  maybeSing();
+});
+
+let singing = false;
+function maybeSing() {
+  if (!soundOn || links.length < 3 || singing) return;
+  const ctx = ensureAudio();
+  singing = true;
+  const now = ctx.currentTime;
+  const notes = [220, 277.18, 329.63, 440, 329.63];
+  notes.forEach((f, i) => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = i % 2 ? "triangle" : "sine";
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0, now + i * 0.18);
+    g.gain.linearRampToValueAtTime(0.06, now + i * 0.18 + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.5);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(now + i * 0.18); o.stop(now + i * 0.18 + 0.52);
+  });
+  setTimeout(() => { singing = false; }, 1400);
+}
+
+mount();
+
+function demo() {
+  if (links.length) return;
+  const seq = [
+    ["ideia", "lembranca", "voz", COLORS.lembranca],
+    ["ruido", "pulso", "luz", COLORS.pulso],
+    ["compasso", "circuito", "tempo", COLORS.circuito]
+  ];
+  seq.forEach((s, i) => {
+    setTimeout(() => {
+      if (drag) return;
+      links.push({ fromNode: s[0], fromPort: s[1], toNode: "isao", toPort: s[2], color: s[3] });
+      refreshPorts();
+      if (i === 2) maybeSing();
+    }, 500 + i * 700);
+  });
+}
+</script>
+</body>
+</html>
