@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>迷宮案内の章 — Labirinto Guia</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <style>
+    body { margin: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+    canvas { max-width: 100vw; max-height: 100vh; }
+  </style>
+</head>
+<body>
+<script>
+// #つぶやきProcessing 「迷宮案内の章」
+let f = 0;
+
+function setup() {
+  createCanvas(500, 500);
+  noStroke();
+  pixelDensity(1);
+}
+
+function draw() {
+  f++;
+  background(0);
+  for (let x = 0; x <= width; x += 20) {
+    for (let y = 0; y <= height; y += 20) {
+      for (let n = 0; n < 20; n++) {
+        const r = (fn) => max(-10, min(10, 20 * fn((n + f) * noise(x, y) / 9)));
+        circle(x + r(cos), y + r(sin), 3);
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>
