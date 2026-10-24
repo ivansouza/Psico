@@ -9,10 +9,55 @@
   </style>
 </head>
 <body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script>
-// ── Scene setup ───────────────────────────────────────────────────────────────────
+// Simple orbit-style controls (no external dependency)
+function SimpleControls(camera, domElement) {
+  this.camera = camera;
+  this.domElement = domElement;
+  this.target = new THREE.Vector3(0, 50, 0);
+  this.enableDamping = true;
+  this.dampingFactor = 0.05;
+  this.minDistance = 80;
+  this.maxDistance = 900;
+  this.maxPolarAngle = Math.PI * 0.48;
+
+  const spherical = new THREE.Spherical();
+  const offset = new THREE.Vector3();
+  let isDragging = false;
+  let prevX = 0, prevY = 0;
+  let theta = 0.4, phi = 1.1, radius = 420;
+
+  const update = () => {
+    spherical.theta = theta;
+    spherical.phi = Math.max(0.1, Math.min(this.maxPolarAngle, phi));
+    spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, radius));
+    offset.setFromSpherical(spherical);
+    this.camera.position.copy(this.target).add(offset);
+    this.camera.lookAt(this.target);
+  };
+
+  domElement.addEventListener('pointerdown', e => { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
+  window.addEventListener('pointerup', () => isDragging = false);
+  window.addEventListener('pointermove', e => {
+    if (!isDragging) return;
+    theta -= (e.clientX - prevX) * 0.005;
+    phi -= (e.clientY - prevY) * 0.005;
+    prevX = e.clientX; prevY = e.clientY;
+    update();
+  });
+  domElement.addEventListener('wheel', e => {
+    radius *= (1 + e.deltaY * 0.001);
+    update();
+    e.preventDefault();
+  }, { passive: false });
+
+  this.update = update;
+  update();
+}
+</script>
+<script>
+// ── Scene setup ─────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87a8c9);
 scene.fog = new THREE.FogExp2(0xb0c4d8, 0.0018);
@@ -27,15 +72,10 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const controls = new SimpleControls(camera, renderer.domElement);
 controls.target.set(0, 50, 0);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.maxPolarAngle = Math.PI * 0.48;
-controls.minDistance = 80;
-controls.maxDistance = 900;
 
-// ── Lights ─────────────────────────────────────────────────────────────────────────
+// ── Lights ───────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0x9bb0c8, 0.55));
 const sun = new THREE.DirectionalLight(0xfff5e0, 1.1);
 sun.position.set(180, 220, 80);
@@ -51,7 +91,7 @@ const fill = new THREE.DirectionalLight(0x8eb4d4, 0.35);
 fill.position.set(-120, 80, -100);
 scene.add(fill);
 
-// ── Materials ────────────────────────────────────────────────────────────────────────
+// ── Materials ─────────────────────────────────────────────────────────────
 const orange = 0xc0362c; // International Orange
 const towerMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 30 });
 const cableMat = new THREE.MeshPhongMaterial({ color: 0x2a2a2a, shininess: 40 });
@@ -59,7 +99,7 @@ const deckMat  = new THREE.MeshPhongMaterial({ color: 0x4a4a4a, shininess: 15 })
 const roadMat  = new THREE.MeshPhongMaterial({ color: 0x333333 });
 const stripeMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
 
-// ── Towers ─────────────────────────────────────────────────────────────────────────
+// ── Towers ────────────────────────────────────────────────────────────────
 function createTower(xPos) {
   const g = new THREE.Group();
   const pillarGeo = new THREE.BoxGeometry(14, 210, 14);
@@ -102,7 +142,7 @@ const tower1 = createTower(-220);
 const tower2 = createTower(220);
 scene.add(tower1, tower2);
 
-// ── Main cables (parabolic catenary approximation) ──────────────────────────────────────────
+// ── Main cables (parabolic catenary approximation) ───────────────────
 function makeCable(start, end, sag, radius = 1.4, segments = 64) {
   const pts = [];
   for (let i = 0; i <= segments; i++) {
@@ -133,7 +173,7 @@ const t2Top     = new THREE.Vector3( 220, 198, 0);
   scene.add(makeCable(a(t2Top),     a(rightAnch), 28));
 });
 
-// ── Suspender cables (vertical hangers) ─────────────────────────────────────────────────────────
+// ── Suspender cables (vertical hangers) ──────────────────────────────
 function cableHeightAt(x, z) {
   // Approximate main-span parabola between towers
   if (x >= -220 && x <= 220) {
@@ -162,7 +202,7 @@ for (let x = -430; x <= 430; x += 12) {
   });
 }
 
-// ── Deck & roadway ───────────────────────────────────────────────────────────────────────
+// ── Deck & roadway ───────────────────────────────────────────────────
 const deck = new THREE.Mesh(new THREE.BoxGeometry(960, 6, 48), deckMat);
 deck.position.y = 29;
 deck.receiveShadow = true;
@@ -188,7 +228,7 @@ for (let i = -460; i < 460; i += 18) {
   scene.add(rail);
 });
 
-// ── Water ───────────────────────────────────────────────────────────────────────────────
+// ── Water ───────────────────────────────────────────────────────────────────
 const waterGeo = new THREE.PlaneGeometry(2400, 1800, 120, 80);
 const waterMat = new THREE.ShaderMaterial({
   uniforms: {
@@ -232,7 +272,7 @@ water.position.y = -2;
 water.receiveShadow = true;
 scene.add(water);
 
-// ── Rolling fog volumes ───────────────────────────────────────────────────────────────────
+// ── Rolling fog volumes ───────────────────────────────────────────
 const fogVolumes = [];
 const fogMat = new THREE.MeshBasicMaterial({
   color: 0xd0dce8,
@@ -253,7 +293,7 @@ for (let i = 0; i < 6; i++) {
   fogVolumes.push(fogBox);
 }
 
-// ── Traffic ───────────────────────────────────────────────────────────────────────────────────
+// ── Traffic ───────────────────────────────────────────────────────────────────
 const cars = [];
 function makeCar(color) {
   const g = new THREE.Group();
@@ -284,7 +324,7 @@ for (let i = 0; i < 28; i++) {
   cars.push(car);
 }
 
-// ── Distant land masses (simple) ───────────────────────────────────────────────────────────────
+// ── Distant land masses (simple) ───────────────────────────────────
 const landMat = new THREE.MeshPhongMaterial({ color: 0x5a7a4a });
 const northLand = new THREE.Mesh(new THREE.BoxGeometry(600, 30, 400), landMat);
 northLand.position.set(0, 10, -500);
@@ -293,7 +333,7 @@ const southLand = new THREE.Mesh(new THREE.BoxGeometry(600, 25, 350), landMat);
 southLand.position.set(0, 8, 520);
 scene.add(southLand);
 
-// ── Animation loop ───────────────────────────────────────────────────────────────────────────
+// ── Animation loop ──────────────────────────────────────────────────────
 const clock = new THREE.Clock();
 
 function animate() {
@@ -324,7 +364,7 @@ function animate() {
 }
 animate();
 
-// ── Resize ───────────────────────────────────────────────────────────────────────────────────────
+// ── Resize ────────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
