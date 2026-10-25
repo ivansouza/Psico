@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#191919">
+<meta name="description" content="A cinematic flight through a procedural Grand Canyon. One offline HTML file; every cliff, ripple, cloud, and sound is made from code.">
+<title>Grand Canyon · A flight through deep time</title>
+<style>
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#141a20;color:#fff;font-family:Arial,Helvetica,sans-serif}body{--gold:#e8d5ae}canvas{display:block;width:100%;height:100%;touch-action:none}button,select,input{font:inherit}button,select{color:inherit;border:1px solid #ffffff32;background:#17202857;backdrop-filter:blur(14px);border-radius:7px;height:36px;cursor:pointer}button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 12px}button:hover,select:hover{background:#ffffff26}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:4px}button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}select{padding:0 10px;font-size:11px;color-scheme:dark}#letterbox{position:absolute;inset:0;pointer-events:none;border-top:5vh solid #080b0e;border-bottom:5vh solid #080b0e;z-index:3}#vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 45%,#07101850 100%);z-index:2}.ui{transition:opacity .6s ease;z-index:5;position:absolute}.hidden-ui .ui{opacity:0;pointer-events:none}#masthead{left:4.2vw;top:calc(5vh + 29px);text-shadow:0 2px 15px #0008;pointer-events:none}.eyebrow{font-size:9px;letter-spacing:4px;color:#f0e4d2a9;margin:0 0 12px}h1{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:clamp(30px,4.2vw,58px);letter-spacing:1px;margin:0;line-height:1.1}.subtitle{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:14px;letter-spacing:.3px;color:#f5e9d2c4;margin:10px 0 0}.top-actions{right:4.2vw;top:calc(5vh + 29px);display:flex;gap:8px}.icon-btn{width:36px;padding:0}.off{display:none!important}#controls{bottom:calc(5vh + 22px);left:4.2vw;right:4.2vw;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end}#chapter-line{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:10px;letter-spacing:1.6px;text-shadow:0 2px 8px #000}.chapter-number{font-size:9px;color:var(--gold);border:1px solid #e8d5ae70;border-radius:50%;width:23px;height:23px;display:inline-flex;align-items:center;justify-content:center}#timeline{display:flex;align-items:center;gap:12px;max-width:550px}#seek{accent-color:#e8d5ae;min-width:70px;flex:1;height:16px;cursor:pointer}#time{font-size:10px;font-variant-numeric:tabular-nums;letter-spacing:.7px;color:#ffffffbc;white-space:nowrap}#actions{display:flex;align-items:center;gap:8px}#play{font-size:11px;min-width:105px}.mobile-hide{display:inline}.help{position:absolute;bottom:calc(5vh + 2px);right:4.2vw;font-size:9px;letter-spacing:.7px;color:#ffffff58;z-index:5;pointer-events:none}#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#151a20;z-index:10;transition:opacity .9s}.loading-title{font-family:Georgia,serif;font-size:31px;letter-spacing:2px}.loading-caption{font-size:10px;text-transform:uppercase;letter-spacing:3px;margin-top:18px;color:#e5d5ba9e}.loading-bar{width:190px;height:1px;background:#ffffff25;margin-top:28px}.loading-bar i{display:block;height:1px;background:#e5d5ba;width:0;transition:width .25s}#error{max-width:430px;text-align:center;line-height:1.6;padding:25px;font-size:14px}#about{position:absolute;z-index:7;right:4.2vw;top:calc(5vh + 78px);width:min(350px,90vw);padding:25px;background:#111c25e8;backdrop-filter:blur(20px);border:1px solid #ffffff26;border-radius:10px;font-size:12px;line-height:1.8;color:#ece7de}#about h2{font:24px Georgia,serif;margin:0 0 15px}#about p{margin:10px 0}#about .keys{font-size:11px;color:#d9d2c1}#about-close{float:right}#fade{position:absolute;inset:0;z-index:4;background:#101720;opacity:0;pointer-events:none}#toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 20px;border-radius:8px;background:#14212bcb;z-index:8;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none}.hidden-ui .help{opacity:0}#show-ui{position:absolute;right:15px;bottom:14px;z-index:6;opacity:0;pointer-events:none;background:#17202850}.hidden-ui #show-ui{opacity:.55;pointer-events:auto}@media(max-width:650px){#masthead{top:calc(5vh + 20px)}.eyebrow{font-size:8px;letter-spacing:2.5px;margin-bottom:8px}.subtitle{font-size:12px}.top-actions{top:calc(5vh + 20px)}#controls{grid-template-columns:1fr;gap:12px;bottom:calc(5vh + 19px)}#actions{justify-content:space-between}#timeline{max-width:none}.mobile-hide{display:none}.help{display:none}#chapter-line{margin-bottom:5px;font-size:9px}#quality{max-width:90px}#speed{max-width:78px}#play{min-width:105px}h1{font-size:32px}#about{top:calc(5vh + 70px)}}@media(max-width:650px){#actions{display:grid;grid-template-columns:1.4fr 36px 1fr 1fr;gap:7px}#play{grid-column:1}#sound{position:absolute;right:44px;bottom:92px}#fullscreen{position:absolute;right:0;bottom:92px}#quality,#speed{width:100%;max-width:none;padding:0 6px;font-size:10px}.top-actions{gap:5px}#masthead{max-width:calc(100vw - 130px)}h1{font-size:28px}.subtitle{max-width:210px;font-size:11px}.eyebrow{font-size:7px;letter-spacing:1.8px}#chapter-line{max-width:calc(100% - 90px)}}@media(prefers-reduced-motion:reduce){.ui,#loading{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Cinematic three-dimensional flight through a procedurally generated Grand Canyon"></canvas>
+<div id="vignette"></div><div id="letterbox"></div><div id="fade"></div>
+<header id="masthead" class="ui"><p class="eyebrow">A FLIGHT THROUGH DEEP TIME</p><h1>Grand Canyon</h1><p class="subtitle">Stone, water, and the last light.</p></header>
+<div class="top-actions ui"><button id="info" class="icon-btn" aria-label="About this flight" title="About this flight"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v6m0-10v.5"/></svg></button><button id="hide" class="icon-btn" title="Hide interface (H)" aria-label="Hide interface"><svg viewBox="0 0 24 24"><path d="M3 9V4h5m8 0h5v5M3 15v5h5m8 0h5v-5"/></svg></button></div>
+<div id="controls" class="ui"><div><div id="chapter-line"><span class="chapter-number" id="chapter-number">01</span><span id="chapter">ABOVE THE RIM</span></div><div id="timeline"><input id="seek" type="range" min="0" max="150" step="0.1" value="0" aria-label="Flight position"><span id="time">0:00 / 2:30</span></div></div><div id="actions"><button id="play" title="Pause or resume (Space)"><svg id="pause-icon" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg><span id="play-label">Pause</span></button><button id="restart" class="icon-btn" title="Restart flight (R)" aria-label="Restart flight"><svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 1 1 1 9M4 4v5h5"/></svg></button><select id="speed" aria-label="Flight speed" title="Flight speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select><select id="quality" aria-label="Render quality" title="Render quality"><option value="auto" selected>Auto</option><option value="high">Cinema</option><option value="medium">Balanced</option><option value="low">Fast</option></select><button id="sound" class="icon-btn" title="Enable wind ambience (M)" aria-label="Enable wind ambience" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M11 4 6 8H3v8h3l5 4ZM16 9l5 6m0-6-5 6"/></svg></button><button id="fullscreen" class="icon-btn" title="Fullscreen (F)" aria-label="Enter fullscreen"><svg viewBox="0 0 24 24"><path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6"/></svg></button></div></div>
+<div class="help ui">SPACE pause · DRAG look around · H hide interface</div>
+<button id="show-ui" class="icon-btn" aria-label="Show interface" title="Show interface (H)"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+<aside id="about" class="off"><button id="about-close" class="icon-btn" aria-label="Close information">×</button><h2>A canyon made of code.</h2><p>A 150-second journey from the rim to the river and back into the light. Drag gently to look around, or use the timeline to find your own view.</p><p>Every landform, rock layer, cloud, water ripple, and sound is generated mathematically. No photographs, external models, libraries, or network connection are used.</p><p>This is an artistic reconstruction inspired by the Grand Canyon, not a surveyed route.</p><p class="keys">SPACE · pause &nbsp; R · restart &nbsp; F · fullscreen<br>H · hide controls &nbsp; M · wind ambience<br>← / → · move through the flight</p></aside>
+<div id="loading"><div class="loading-title">Grand Canyon</div><div class="loading-caption" id="loading-caption">Carving the landscape</div><div class="loading-bar"><i id="load-progress"></i></div></div><div id="toast" role="status"></div>
+<noscript><div id="error">Enable JavaScript to fly through the canyon.</div></noscript>
+<script>
+'use strict';
+/* GRAND CANYON — single-file procedural expedition.
+   Native WebGL 2; no dependencies, assets, network requests, or build step.
+   Units are approximate metres. Geometry is generated once from a deterministic
+   river-distance field, unequal geological formations, and tributary erosion.
+   A real depth shadow map, planar water reflection, analytic sky, derivative
+   rock normals, atmospheric extinction and filmic mapping complete the image. */
+(()=>{
+const $=id=>document.getElementById(id), canvas=$('scene');
+const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,powerPreference:'high-performance',depth:true}) || canvas.getContext('webgl2',{alpha:false,antialias:false});
+if(!gl){$('loading').innerHTML='<div id="error"><h2>WebGL 2 is needed for this flight.</h2><p>Open this HTML file in a current Chrome, Edge, Firefox, or Safari browser with hardware acceleration enabled.</p></div>';return;}
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), mix=(a,b,t)=>a+(b-a)*t;
+const smooth=(a,b,x)=>{let t=clamp((x-a)/(b-a));return t*t*(3-2*t);};
+let seed=271828;const rand=()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;};
+const table=new Float32Array(256*256);for(let i=0;i<table.length;i++)table[i]=rand();
+function noise(x,z){const ix=Math.floor(x),iz=Math.floor(z);let a=x-ix,b=z-iz;a=a*a*(3-2*a);b=b*b*(3-2*b);const u=ix&255,v=iz&255;return mix(mix(table[v*256+u],table[v*256+((u+1)&255)],a),mix(table[((v+1)&255)*256+u],table[((v+1)&255)*256+((u+1)&255)],a),b);}
+const ridge=(x,z)=>1-Math.abs(2*noise(x,z)-1);
+function river(z){return 840*Math.sin(z/1820+.5)+340*Math.sin(z/730-.3)+110*Math.sin(z/3570+1.7);}
+function riverD(z){return 840/1820*Math.cos(z/1820+.5)+340/730*Math.cos(z/730-.3)+110/3570*Math.cos(z/3570+1.7);}
+const riverWidth=z=>64+10*Math.sin(z*.002+1)+7*Math.sin(z*.00073)+3.5*Math.sin(z*.021)+1.8*Math.sin(z*.057);
+function terrain(x,z){
+ const c=river(z),u=x-c,d=Math.abs(u)/Math.sqrt(1+riverD(z)**2),side=u<0?-1:1,w=riverWidth(z);
+ const shore=smooth(w+8,w+250,d);
+ let p=d/(1.17+.27*noise(z*.0007+side*12,side*17)+.12*Math.sin(z*.00115+side));
+ const warp=(noise(x*.0011+19,z*.0011)-.48)*1150+(noise(x*.0031-7,z*.0031+30)-.5)*430+(ridge(x*.009,z*.009)-.5)*125+(noise(x*.035,z*.025)-.5)*34;
+ p=Math.max(d*.37,p+warp*shore);
+ // Tributaries rise as they cut away from the main river; their beds never
+ // lower the riverbanks, and opposing tributaries are deliberately offset.
+ const cuts=side>0?[2200,7000,11600,17300]:[-1600,4600,9600,14800];
+ for(let k=0;k<4;k++){
+  const branch=Math.abs(z-cuts[k]-Math.abs(u)*(.38+.16*(k%2))-125*Math.sin(Math.abs(u)*.0013+k));
+  p=mix(p,Math.min(p,branch*.92+Math.abs(u)*.21+115),shore);
+ }
+ let h=-13+20*smooth(w*.73,w+18,d);
+ h+=103*smooth(95,290,p)+181*smooth(320,343,p)+90*smooth(343,760,p)+236*smooth(790,825,p)+115*smooth(825,1440,p)+264*smooth(1455,1495,p)+85*smooth(1495,2080,p);
+ const ledges=(noise(x*.007+40,z*.007)-.5)*37+(ridge(x*.022,z*.018)-.5)*17;
+ const fluting=Math.pow(ridge(x*.0047+18,z*.0054),5)*31+Math.pow(ridge(x*.014,z*.016),6)*12;
+ h+=(ledges-fluting)*shore;
+ h+=3.4*Math.sin(h*.34+noise(x*.006,z*.006)*.4)*shore;
+ h+=(noise(x*.00048+80,z*.00048)-.5)*85*smooth(450,2500,p);
+ h+=(noise(x*.016,z*.014)-.5)*10*shore+(noise(x*.049,z*.042)-.5)*3*shore;
+ return Math.max(-13+20*smooth(w*.73,w+18,d),h);
+}
+const V={sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s],dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{let n=Math.hypot(...a)||1;return a.map(v=>v/n);}};
+function perspective(fov,aspect,near,far){let f=1/Math.tan(fov/2),nf=1/(near-far);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0]);}
+function ortho(l,r,b,t,n,f){return new Float32Array([2/(r-l),0,0,0,0,2/(t-b),0,0,0,0,-2/(f-n),0,-(r+l)/(r-l),-(t+b)/(t-b),-(f+n)/(f-n),1]);}
+function lookAt(eye,target,up){const z=V.norm(V.sub(eye,target)),x=V.norm(V.cross(up,z)),y=V.cross(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-V.dot(x,eye),-V.dot(y,eye),-V.dot(z,eye),1]);}
+function matmul(a,b){let out=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)out[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return out;}
+const quadVS=`#version 300 es
+precision highp float;
+out vec2 vUV;
+void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);vUV=p;gl_Position=vec4(p*2.-1.,0.,1.);}`;
+const common=`
+precision highp float;
+uniform sampler2D uNoise;
+uniform vec3 uSun;
+uniform vec3 uEye;
+uniform float uTime;
+float n2(vec2 p){return texture(uNoise,(p+.5)/256.).r;}
+float fbm(vec2 p){return .53*n2(p)+.27*n2(p*2.03+37.)+.13*n2(p*4.11-21.)+.07*n2(p*8.31+71.);}
+float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);vec2 uv=i.xz+vec2(37.,17.)*i.y+f.xz;return mix(n2(uv),n2(uv+vec2(37.,17.)),f.y);}
+vec3 sky(vec3 rd){
+ float h=max(rd.y,0.);
+ float s=max(dot(rd,uSun),0.);
+ vec3 zenith=pow(vec3(.15,.32,.53),vec3(2.2)),horizon=pow(vec3(.73,.75,.77),vec3(2.2));
+ vec3 col=mix(horizon,zenith,pow(h,.38));
+ col+=vec3(.55,.34,.15)*pow(s,12.)*.32+vec3(1.,.68,.32)*pow(s,180.)*.36;
+ col+=vec3(5.,4.0,2.7)*smoothstep(.99986,.99994,s);
+ // Sparse high cirrus: directional, feathered, and not opaque cloud balls.
+ vec2 cp=rd.xz/max(rd.y+.16,.04)*3.4+vec2(13.,31.);
+ float streak=fbm(cp*vec2(.7,3.5));
+ float wisps=smoothstep(.60,.78,streak)*smoothstep(.02,.25,h)*(1.-smoothstep(.65,.95,h));
+ col=mix(col,pow(vec3(.88,.85,.80),vec3(2.2)),wisps*.23);
+ return col;
+}
+vec3 atmosphere(vec3 col,vec3 p){
+ vec3 v=p-uEye;float d=length(v);vec3 ray=v/max(d,.001);
+ float density=.000040+.000038*exp(-max(p.y,0.)/650.);
+ vec3 fog=pow(vec3(.58,.66,.76),vec3(2.2))+vec3(.10,.057,.015)*pow(max(dot(ray,uSun),0.),5.);
+ float extinction=1.-exp(-d*density);
+ return mix(col,fog,extinction);
+}
+`;
+const terrainVS=`#version 300 es
+precision highp float;
+layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNormal;
+uniform mat4 uVP;uniform mat4 uShadowMatrix;
+out vec3 vPos;out vec3 vNormal;out vec4 vShadow;
+void main(){vPos=aPos;vNormal=aNormal;vShadow=uShadowMatrix*vec4(aPos,1.);gl_Position=uVP*vec4(aPos,1.);}`;
+const shadowPart=`
+uniform highp sampler2DShadow uShadow;
+uniform float uShadowTexel;
+float shadowAt(vec4 sp,float ndl){
+ vec3 q=sp.xyz/sp.w*.5+.5;if(any(lessThan(q,vec3(0.)))||any(greaterThan(q,vec3(1.))))return 1.;
+ float bias=max(.00020,.00085*(1.-ndl));float sum=0.;
+ for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)sum+=texture(uShadow,vec3(q.xy+vec2(x,y)*uShadowTexel,q.z-bias));
+ return sum/9.;
+}
+`;
+const terrainFS=`#version 300 es
+${common}
+${shadowPart}
+in vec3 vPos;in vec3 vNormal;in vec4 vShadow;
+out vec4 fragColor;
+float rockBump(vec3 p){
+ float erosion=n3(p*vec3(.11,.014,.11));
+ float grain=n3(p*.55);
+ float line=sin(p.y*1.47+2.*n3(p*.095))*.5+.5;
+ return erosion*.68+grain*.19+line*.13;
+}
+void main(){
+ if(vPos.y<-.7)discard;
+ vec3 p=vPos;vec3 N=normalize(vNormal);
+ float distanceToEye=length(p-uEye);
+ // The derivative basis must use the actual triangle plane. Using the smooth
+ // heightfield normal in its determinant is unstable on near-vertical cliffs.
+ float bump=rockBump(p);
+ vec3 dp1=dFdx(p),dp2=dFdy(p);
+ vec3 Ng=normalize(cross(dp1,dp2));Ng*=dot(Ng,N)<0.?-1.:1.;
+ vec3 r1=cross(dp2,Ng),r2=cross(Ng,dp1);float det=dot(dp1,r1);
+ vec3 grad=sign(det)*(dFdx(bump)*r1+dFdy(bump)*r2)/max(abs(det),1e-8);
+ grad-=N*dot(N,grad);grad*=min(1.,.29/max(length(grad),.001));
+ N=normalize(N-grad*1.65);
+ float tilt=n2(p.xz*.0007)*6.-3.;float h=p.y+tilt;
+ vec3 base=vec3(.24,.205,.18);
+ base=mix(base,vec3(.49,.285,.17),smoothstep(90.,210.,h));
+ base=mix(base,vec3(.59,.345,.20),smoothstep(310.,380.,h));
+ base=mix(base,vec3(.39,.215,.15),smoothstep(405.,455.,h));
+ base=mix(base,vec3(.67,.42,.27),smoothstep(560.,640.,h));
+ base=mix(base,vec3(.73,.57,.39),smoothstep(730.,800.,h));
+ base=mix(base,vec3(.61,.40,.26),smoothstep(835.,880.,h));
+ base=mix(base,vec3(.75,.65,.48),smoothstep(940.,1035.,h));
+ float beds=n2(vec2(h*.073,43.))+n2(vec2(h*.29,82.))*.35;
+ float fine=sin(h*2.1+n2(p.xz*.012)*1.5)*.025*(1.-smoothstep(.3,2.,fwidth(h)));
+ base*=.79+.32*beds+fine;
+ // Vertical oxide stains, mineral mottling, and local weathering.
+ float stains=fbm(p.xz*.045+vec2(n2(vec2(h*.012,9.))*2.));
+ base*=.67+.41*stains+.20*n3(p*.23);
+ float fineBeds=n2(vec2(h*.43+stains*.12,118.));
+ float faceWeight=1.-smoothstep(.48,.87,N.y);
+ base*=1.-.27*pow(1.-fineBeds,3.)*faceWeight;
+ float crack=pow(1.-n2(p.xz*.055+vec2(n2(vec2(h*.002,8.))*1.7)),8.);
+ base*=1.-crack*.55*(1.-smoothstep(.45,.85,N.y));
+ // Lighter talus; sparse dark scrub only on upward-facing shelves.
+ float slope=smoothstep(.65,.96,N.y);
+ base=mix(base,vec3(.51,.395,.27)*(.8+fbm(p.xz*.11)*.35),slope*.27);
+ float scrub=smoothstep(.79,.88,n2(p.xz*.16))*smoothstep(110.,290.,h)*slope;
+ base=mix(base,vec3(.20,.24,.14),scrub*.55);
+ float bank=(1.-smoothstep(4.,19.,p.y))*slope;
+ base=mix(base,vec3(.38,.31,.19),bank*.45);
+ base=pow(max(base,vec3(.01)),vec3(2.2));
+ float ndl=max(dot(N,uSun),0.);float shadow=shadowAt(vShadow,max(dot(normalize(vNormal),uSun),0.));
+ float ambientOcclusion=mix(.66,1.,smoothstep(-.1,.8,N.y))*(.85+.15*stains);
+ vec3 ambient=vec3(.28,.34,.44)*ambientOcclusion;
+ ambient+=vec3(.12,.075,.038)*(1.-max(N.y,0.));
+ vec3 lit=base*(ambient+vec3(1.65,1.28,.89)*ndl*shadow);
+ lit=atmosphere(lit,p);
+ fragColor=vec4(lit,1.);
+}`;
+const skyFS=`#version 300 es
+${common}
+uniform vec3 uForward;uniform vec3 uRight;uniform vec3 uUp;uniform float uAspect;uniform float uTan;
+in vec2 vUV;out vec4 fragColor;
+void main(){vec2 q=vUV*2.-1.;vec3 rd=normalize(uForward+q.x*uAspect*uTan*uRight+q.y*uTan*uUp);fragColor=vec4(sky(rd),1.);}`;
+const depthVS=`#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;uniform mat4 uVP;void main(){gl_Position=uVP*vec4(aPos,1.);}`;
+const depthFS=`#version 300 es
+precision highp float;void main(){}`;
+const waterVS=`#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNormal;
+uniform mat4 uVP;uniform mat4 uReflectionVP;uniform mat4 uShadowMatrix;
+out vec3 vPos;out vec4 vRef;out vec4 vShadow;
+void main(){vPos=aPos;vRef=uReflectionVP*vec4(aPos,1.);vShadow=uShadowMatrix*vec4(aPos,1.);gl_Position=uVP*vec4(aPos,1.);}`;
+const waterFS=`#version 300 es
+${common}
+${shadowPart}
+uniform sampler2D uReflection;
+in vec3 vPos;in vec4 vRef;in vec4 vShadow;out vec4 fragColor;
+void main(){
+ vec3 p=vPos;vec3 V=normalize(uEye-p);
+ vec2 flow=vec2(p.x*.105,p.z*.13-uTime*.52);
+ float a=n2(flow),b=n2(flow*2.71+uTime*.18),c=n2(flow*.33+vec2(uTime*.1,0.));
+ vec3 N=normalize(vec3((a-.5)*.14+(b-.5)*.065,1.,(c-.5)*.13));
+ float fresnel=.035+.965*pow(1.-max(dot(N,V),0.),5.);
+ vec2 uv=vRef.xy/vRef.w*.5+.5;
+ uv+=N.xz*.018*clamp(300./length(p-uEye),.14,1.);
+ vec3 reflected=texture(uReflection,clamp(uv,.001,.999)).rgb;
+ vec3 tint=vec3(.028,.064,.042);
+ float sh=shadowAt(vShadow,1.);
+ float flowline=fbm(p.xz*vec2(.08,.17)+vec2(uTime*.04,-uTime*.25))-.5;
+ vec3 water=tint*(.62+.38*sh)+vec3(.008,.012,.007)*flowline;
+ water=mix(water,reflected,clamp(fresnel,.14,.88));
+ vec3 H=normalize(V+uSun);float glint=pow(max(dot(N,H),0.),310.);
+ water+=vec3(2.,1.6,.9)*glint*sh*.75;
+ water=atmosphere(water,p);
+ fragColor=vec4(water,1.);
+}`;
+const postFS=`#version 300 es
+precision highp float;uniform sampler2D uScene;uniform vec2 uResolution;uniform float uTime;
+in vec2 vUV;out vec4 fragColor;
+vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
+void main(){
+ vec2 px=1./uResolution;vec3 center=texture(uScene,vUV).rgb;
+ // Gentle highlight halation, not a foggy global bloom.
+ vec3 bloom=vec3(0.);for(int i=0;i<8;i++){float a=float(i)*.785398;vec3 q=texture(uScene,vUV+vec2(cos(a),sin(a))*px*4.).rgb;bloom+=max(q-vec3(.85),0.);}
+ vec3 col=center+bloom*.025;
+ col=aces(col*1.08);col=pow(col,vec3(1./2.2));
+ col=mix(vec3(dot(col,vec3(.2126,.7152,.0722))),col,1.055);
+ float grain=fract(sin(dot(gl_FragCoord.xy+floor(uTime*24.),vec2(12.9898,78.233)))*43758.5453)-.5;
+ col+=grain*.0035;
+ fragColor=vec4(col,1.);
+}`;
+function program(vs,fs){const p=gl.createProgram();for(const[type,src]of[[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){let s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));gl.attachShader(p,s);gl.deleteShader(s);}gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));return {p,loc:{}};}
+let terrainProg,skyProg,depthProg,waterProg,postProg;
+try{terrainProg=program(terrainVS,terrainFS);skyProg=program(quadVS,skyFS);depthProg=program(depthVS,depthFS);waterProg=program(waterVS,waterFS);postProg=program(quadVS,postFS);}catch(e){$('loading').innerHTML='<div id="error"><h2>The renderer could not start.</h2><p>Try enabling hardware acceleration or opening the file in another WebGL 2 browser.</p></div>';console.error(e);return;}
+function loc(p,n){if(!(n in p.loc))p.loc[n]=gl.getUniformLocation(p.p,n);return p.loc[n];}
+const f=(p,n,v)=>gl.uniform1f(loc(p,n),v),i=(p,n,v)=>gl.uniform1i(loc(p,n),v),v3=(p,n,v)=>gl.uniform3fv(loc(p,n),v),m4=(p,n,v)=>gl.uniformMatrix4fv(loc(p,n),false,v);
+function bindTex(tex,unit){gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,tex);}
+const noiseTex=gl.createTexture();bindTex(noiseTex,0);const texBytes=new Uint8Array(256*256);for(let j=0;j<table.length;j++)texBytes[j]=Math.round(table[j]*255);gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,256,256,0,gl.RED,gl.UNSIGNED_BYTE,texBytes);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+const sun=V.norm([-0.63,.52,-.57]);
+const shadowSize=Math.min(4096,gl.getParameter(gl.MAX_TEXTURE_SIZE));
+const shadowTex=gl.createTexture();bindTex(shadowTex,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.DEPTH_COMPONENT24,shadowSize,shadowSize,0,gl.DEPTH_COMPONENT,gl.UNSIGNED_INT,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_COMPARE_FUNC,gl.LEQUAL);
+const shadowFB=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,shadowFB);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,shadowTex,0);gl.drawBuffers([gl.NONE]);gl.readBuffer(gl.NONE);
+const shadowTarget=[0,0,8500];const shadowMatrix=matmul(ortho(-18500,18500,-19000,19000,8000,54000),lookAt(V.add(shadowTarget,V.mul(sun,30000)),shadowTarget,[0,1,0]));
+const chunks=[];let waterMesh;
+function mesh(data,indices,coarse){
+ const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+ function vaoFor(indexData){const vao=gl.createVertexArray();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,vb);for(let a=0;a<2;a++){gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,3,gl.FLOAT,false,24,a*12);}const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,indexData,gl.STATIC_DRAW);gl.bindVertexArray(null);return vao;}
+ return{vao:vaoFor(indices),count:indices.length,lodVao:coarse?vaoFor(coarse):null,lodCount:coarse?coarse.length:0};
+}
+function drawMesh(m,coarse=false){const lod=coarse&&m.lodVao;gl.bindVertexArray(lod?m.lodVao:m.vao);gl.drawElements(gl.TRIANGLES,lod?m.lodCount:m.count,gl.UNSIGNED_INT,0);}
+function makeChunk(z0){
+ const nx=384,nz=80,len=560,data=new Float32Array((nx+1)*(nz+1)*6),inds=new Uint32Array(nx*nz*6);
+ for(let j=0;j<=nz;j++){const z=z0+j/nz*len,c=river(z);for(let k=0;k<=nx;k++){
+  const t=(k/nx)*2-1;const u=Math.sign(t)*(Math.expm1(Math.abs(t)*2.5)/Math.expm1(2.5))*8500;
+  const x=c+u,h=terrain(x,z),e=2.7,n=V.norm([terrain(x-e,z)-terrain(x+e,z),2*e,terrain(x,z-e)-terrain(x,z+e)]);
+  const id=(j*(nx+1)+k)*6;data.set([x,h,z,...n],id);
+ }}
+ let p=0;for(let j=0;j<nz;j++)for(let k=0;k<nx;k++){const a=j*(nx+1)+k,b=a+nx+1;inds.set([a,b,a+1,a+1,b,b+1],p);p+=6;}
+ // Fallen blocks are actual geometry, half-buried into the alluvial shelves.
+ // Their deterministic scatter makes the scale legible during the low pass.
+ let rockSeed=(Math.imul(Math.floor(z0)+9000,1597334677)+3812015801)>>>0;
+ const rr=()=>{rockSeed=(Math.imul(1664525,rockSeed)+1013904223)>>>0;return rockSeed/4294967296;};
+ const phi=(1+Math.sqrt(5))/2;
+ const rockShape=[[-1,phi,0],[1,phi,0],[-1,-phi,0],[1,-phi,0],[0,-1,phi],[0,1,phi],[0,-1,-phi],[0,1,-phi],[phi,0,-1],[phi,0,1],[-phi,0,-1],[-phi,0,1]].map(V.norm);
+ const faces=[[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+ const added=[],addedIndices=[];
+ for(let r=0;r<62;r++){
+  const z=z0+rr()*len,side=rr()<.5?-1:1;
+  const dist=r<43?riverWidth(z)+15+rr()**1.7*225:390+rr()*1450;
+  const x=river(z)+side*dist*Math.sqrt(1+riverD(z)**2),h=terrain(x,z);
+  const radius=1.3+rr()**2.5*8,stretch=.65+rr()*.55;
+  if(h<2||Math.abs(terrain(x+radius,z)-h)>radius*1.1||Math.abs(terrain(x,z+radius)-h)>radius*1.1)continue;
+  const angle=rr()*Math.PI*2,co=Math.cos(angle),si=Math.sin(angle);
+  const verts=rockShape.map(v=>{const q=.79+rr()*.33;return[x+(v[0]*co-v[2]*si)*radius*q,h+radius*.12+v[1]*radius*stretch*q,z+(v[2]*co+v[0]*si)*radius*q];});
+  for(const face of faces){const a=verts[face[0]],b=verts[face[1]],c=verts[face[2]],normal=V.norm(V.cross(V.sub(b,a),V.sub(c,a)));for(const v of[a,b,c]){addedIndices.push(data.length/6+added.length/6);added.push(...v,...normal);}}
+ }
+ const combined=new Float32Array(data.length+added.length);combined.set(data);combined.set(added,data.length);
+ const combinedIndices=new Uint32Array(inds.length+addedIndices.length);combinedIndices.set(inds);combinedIndices.set(addedIndices,inds.length);
+ const coarse=[];for(let j=0;j<nz;j+=2)for(let k=0;k<nx;k+=2){const a=j*(nx+1)+k,b=a+2*(nx+1);coarse.push(a,b,a+2,a+2,b,b+2);}coarse.push(...addedIndices);
+ const m=mesh(combined,combinedIndices,new Uint32Array(coarse));m.z=z0+len/2;return m;
+}
+function makeWater(){const n=2300,verts=new Float32Array((n+1)*2*6),idx=new Uint32Array(n*6);for(let j=0;j<=n;j++){const z=-4500+j/n*27000,w=(riverWidth(z)+10)*Math.sqrt(1+riverD(z)**2);for(let k=0;k<2;k++)verts.set([river(z)+(k?1:-1)*w,0,z,0,1,0],(j*2+k)*6);if(j<n)idx.set([j*2,j*2+2,j*2+1,j*2+1,j*2+2,j*2+3],j*6);}return mesh(verts,idx);}
+function target(w,h){const tex=gl.createTexture();bindTex(tex,3);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);const depth=gl.createRenderbuffer();gl.bindRenderbuffer(gl.RENDERBUFFER,depth);gl.renderbufferStorage(gl.RENDERBUFFER,gl.DEPTH_COMPONENT24,w,h);const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,depth);return{fb,tex,depth,w,h};}
+function disposeTarget(t){if(t){gl.deleteFramebuffer(t.fb);gl.deleteTexture(t.tex);gl.deleteRenderbuffer(t.depth);}}
+let mainTarget,refTarget,qualityScale=1,drawDistance=10500,frameMs=16,renderFrame=0;
+function resize(){const mode=$('quality').value;let dpr=Math.min(devicePixelRatio||1,2);let scale=mode==='high'?1.35:mode==='medium'?.90:mode==='low'?.63:qualityScale;const cap=mode==='high'?2560:mode==='low'?1200:1920;let w=Math.round(innerWidth*dpr*scale),h=Math.round(innerHeight*dpr*scale);let capScale=Math.min(1,cap/Math.max(w,h));w=Math.max(160,Math.round(w*capScale));h=Math.max(90,Math.round(w*innerHeight/innerWidth));canvas.width=w;canvas.height=h;disposeTarget(mainTarget);disposeTarget(refTarget);mainTarget=target(w,h);refTarget=target(Math.max(256,Math.floor(w*.5)),Math.max(144,Math.floor(h*.5)));drawDistance=mode==='low'?8500:10500;}
+function setCommon(p,eye,time){gl.useProgram(p.p);i(p,'uNoise',0);i(p,'uShadow',1);v3(p,'uEye',eye);v3(p,'uSun',sun);f(p,'uTime',time);f(p,'uShadowTexel',1/shadowSize);m4(p,'uShadowMatrix',shadowMatrix);}
+function camera(t){
+ const z=200+t/150*6300;
+ const intro=1-smooth(0,32,t),rise=smooth(105,146,t);
+ const alt=285+intro*840+rise*840+70*Math.sin(t*.041);
+ const lateral=-intro*450+60*Math.sin(t*.051)+rise*220;
+ const x=river(z)+lateral;
+ let pos=[x,Math.max(alt,terrain(x,z)+110),z];
+ const ahead=520+intro*600+rise*250;
+ let targetPos=[river(z+ahead),Math.max(85,alt-160-intro*230+rise*10),z+ahead];
+ let dir=V.norm(V.sub(targetPos,pos));
+ // User look is damped back toward the authored route after release.
+ const yaw=look.x,pitch=look.y;
+ let dx=dir[0]*Math.cos(yaw)+dir[2]*Math.sin(yaw),dz=dir[2]*Math.cos(yaw)-dir[0]*Math.sin(yaw);
+ dir=V.norm([dx,dir[1]+pitch,dz]);
+ const curvature=(riverD(z+100)-riverD(z-100));
+ const bank=clamp(-curvature*.45,-.055,.055);
+ let right=V.norm(V.cross(dir,[0,1,0])),up=V.norm(V.cross(right,dir));
+ up=V.add(V.mul(up,Math.cos(bank)),V.mul(right,Math.sin(bank)));right=V.norm(V.cross(dir,up));
+ return{pos,dir,right,up,target:V.add(pos,dir),alt:pos[1],z};
+}
+function renderSky(cam,time){setCommon(skyProg,cam.pos,time);v3(skyProg,'uForward',cam.dir);v3(skyProg,'uRight',cam.right);v3(skyProg,'uUp',cam.up);f(skyProg,'uAspect',canvas.width/canvas.height);f(skyProg,'uTan',Math.tan(Math.PI*58/360));gl.disable(gl.DEPTH_TEST);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.enable(gl.DEPTH_TEST);}
+function renderTerrain(cam,vp,time,isReflection=false){setCommon(terrainProg,cam.pos,time);m4(terrainProg,'uVP',vp);for(const c of chunks){const delta=c.z-cam.z;if(delta>-3700&&delta<drawDistance){const mode=$('quality').value;const lod=mode==='low'||(mode!=='high'&&Math.abs(delta)>(isReflection?1800:4200));drawMesh(c,lod);}}}
+function bakeShadows(){gl.bindFramebuffer(gl.FRAMEBUFFER,shadowFB);gl.viewport(0,0,shadowSize,shadowSize);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.clear(gl.DEPTH_BUFFER_BIT);gl.useProgram(depthProg.p);m4(depthProg,'uVP',shadowMatrix);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.8,3.);for(const c of chunks)drawMesh(c);gl.disable(gl.POLYGON_OFFSET_FILL);gl.bindFramebuffer(gl.FRAMEBUFFER,null);}
+let flight=0,playing=!matchMedia('(prefers-reduced-motion: reduce)').matches,last=0,ready=false;
+let look={x:0,y:0},drag=null,lookTarget={x:0,y:0};
+function render(time){
+ const cam=camera(time),proj=perspective(Math.PI*58/180,canvas.width/canvas.height,2,20000),vp=matmul(proj,lookAt(cam.pos,cam.target,cam.up));
+ const rc={...cam,pos:[cam.pos[0],-cam.pos[1],cam.pos[2]],dir:[cam.dir[0],-cam.dir[1],cam.dir[2]],right:[cam.right[0],-cam.right[1],cam.right[2]],up:[cam.up[0],-cam.up[1],cam.up[2]]};
+ rc.right=V.norm(V.cross(rc.dir,rc.up));rc.target=V.add(rc.pos,rc.dir);const rvp=matmul(proj,lookAt(rc.pos,rc.target,rc.up));
+ bindTex(noiseTex,0);bindTex(shadowTex,1);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,refTarget.fb);gl.viewport(0,0,refTarget.w,refTarget.h);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);renderSky(rc,time);renderTerrain(rc,rvp,time,true);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,mainTarget.fb);gl.viewport(0,0,mainTarget.w,mainTarget.h);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);renderSky(cam,time);renderTerrain(cam,vp,time);
+ setCommon(waterProg,cam.pos,time);m4(waterProg,'uVP',vp);m4(waterProg,'uReflectionVP',rvp);i(waterProg,'uReflection',2);bindTex(refTarget.tex,2);drawMesh(waterMesh);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,canvas.width,canvas.height);gl.disable(gl.DEPTH_TEST);gl.useProgram(postProg.p);bindTex(mainTarget.tex,3);i(postProg,'uScene',3);gl.uniform2f(loc(postProg,'uResolution'),canvas.width,canvas.height);f(postProg,'uTime',time);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);
+ renderFrame++;
+}
+const chapters=[[0,'ABOVE THE RIM'],[28,'DESCENT INTO DEEP TIME'],[62,'FOLLOWING THE COLORADO'],[104,'BACK INTO THE LIGHT']];
+function updateHUD(){const q=Math.min(3,chapters.reduce((a,c,j)=>flight>=c[0]?j:a,0));$('chapter-number').textContent=String(q+1).padStart(2,'0');$('chapter').textContent=chapters[q][1];$('seek').value=flight;$('time').textContent=Math.floor(flight/60)+':'+String(Math.floor(flight%60)).padStart(2,'0')+' / 2:30';$('fade').style.opacity=Math.max(1-smooth(0,1.5,flight),smooth(148,150,flight))*.98;}
+function frame(now){if(!ready)return;requestAnimationFrame(frame);const dt=last?Math.min((now-last)/1000,.1):0;last=now;if(document.hidden)return;frameMs=mix(frameMs,dt*1000,.025);if(playing)flight=(flight+dt*Number($('speed').value))%150;const ease=1-Math.exp(-dt*5);if(!drag){lookTarget.x*=Math.exp(-dt*.75);lookTarget.y*=Math.exp(-dt*.75);}look.x=mix(look.x,lookTarget.x,ease);look.y=mix(look.y,lookTarget.y,ease);render(flight);if(renderFrame%6===0)updateHUD();if($('quality').value==='auto'&&renderFrame%180===0&&frameMs>30&&qualityScale>.61){qualityScale=Math.max(.6,qualityScale*.84);resize();}}
+function syncPlay(){ $('play-label').textContent=playing?'Pause':'Resume';$('pause-icon').innerHTML=playing?'<path d="M8 5v14M16 5v14"/>':'<path d="m8 5 11 7-11 7Z"/>';$('play').setAttribute('aria-label',playing?'Pause flight':'Resume flight');}
+function togglePlay(){playing=!playing;syncPlay();}
+function toast(s){$('toast').textContent=s;$('toast').style.opacity=1;setTimeout(()=>$('toast').style.opacity=0,1700);}
+function hideUI(){document.body.classList.toggle('hidden-ui');$('about').classList.add('off');}
+function restart(){flight=0;look.x=look.y=lookTarget.x=lookTarget.y=0;playing=true;syncPlay();updateHUD();}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Use your browser’s fullscreen control.');}catch{toast('Fullscreen is unavailable in this preview.');}}
+let audioCtx=null,windGain=null,audioOn=false;
+async function toggleSound(){try{if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext;audioCtx=new AC();const len=audioCtx.sampleRate*6,buf=audioCtx.createBuffer(2,len,audioCtx.sampleRate);for(let ch=0;ch<2;ch++){let b0=0;const data=buf.getChannelData(ch);for(let k=0;k<len;k++){b0=(b0+.017*(rand()*2-1))/1.017;data[k]=b0*3.2;}}const src=audioCtx.createBufferSource();src.buffer=buf;src.loop=true;const low=audioCtx.createBiquadFilter();low.type='lowpass';low.frequency.value=570;const high=audioCtx.createBiquadFilter();high.type='highpass';high.frequency.value=75;windGain=audioCtx.createGain();windGain.gain.value=0;src.connect(low);low.connect(high);high.connect(windGain);windGain.connect(audioCtx.destination);src.start();}await audioCtx.resume();audioOn=!audioOn;windGain.gain.setTargetAtTime(audioOn?.32:0,audioCtx.currentTime,.4);$('sound').setAttribute('aria-pressed',String(audioOn));$('sound').setAttribute('aria-label',audioOn?'Mute wind ambience':'Enable wind ambience');$('sound').innerHTML=audioOn?'<svg viewBox="0 0 24 24"><path d="M11 4 6 8H3v8h3l5 4ZM16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>':'<svg viewBox="0 0 24 24"><path d="M11 4 6 8H3v8h3l5 4ZM16 9l5 6m0-6-5 6"/></svg>';}catch{toast('Audio is unavailable in this browser.');}}
+$('play').onclick=togglePlay;$('restart').onclick=restart;$('hide').onclick=hideUI;$('show-ui').onclick=hideUI;$('fullscreen').onclick=fullscreen;$('sound').onclick=toggleSound;$('info').onclick=()=>$('about').classList.toggle('off');$('about-close').onclick=()=>$('about').classList.add('off');
+$('seek').addEventListener('input',()=>{flight=Number($('seek').value);updateHUD();});$('quality').onchange=resize;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,startX:lookTarget.x,startY:lookTarget.y};canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointermove',e=>{if(!drag)return;lookTarget.x=clamp(drag.startX-(e.clientX-drag.x)*.0025,-.9,.9);lookTarget.y=clamp(drag.startY+(e.clientY-drag.y)*.0017,-.45,.45);});canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+window.addEventListener('keydown',e=>{if(['INPUT','SELECT'].includes(document.activeElement.tagName))return;const key=e.key.toLowerCase();if(key===' '){e.preventDefault();togglePlay();}if(key==='h')hideUI();if(key==='r')restart();if(key==='f')fullscreen();if(key==='m')toggleSound();if(key==='escape')$('about').classList.add('off');if(key==='arrowright'||key==='arrowleft'){e.preventDefault();flight=clamp(flight+(key==='arrowright'?5:-5),0,149.9);updateHUD();}});
+let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(ready)resize();},120);});document.addEventListener('visibilitychange',()=>{last=0;if(audioCtx&&windGain)windGain.gain.setTargetAtTime(document.hidden?0:audioOn?.32:0,audioCtx.currentTime,.3);});
+canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;toast('Graphics context interrupted. Reload to resume.');});canvas.addEventListener('webglcontextrestored',()=>location.reload());
+// A deterministic inspection interface is kept deliberately small; it also
+// makes individual frames reproducible without changing the authored camera.
+window.Canyon={seek(t){flight=clamp(t,0,149.9);playing=false;syncPlay();updateHUD();if(ready)render(flight);},get state(){return{ready,time:flight,playing,frames:renderFrame,width:canvas.width,height:canvas.height,frameMs,meshes:chunks.length,triangles:chunks.reduce((n,c)=>n+c.count/3,0),webglError:gl.getError(),camera:camera(flight)};},terrain,camera};
+async function init(){try{gl.disable(gl.CULL_FACE);gl.clearColor(.2,.3,.4,1);for(let j=0;j<48;j++){chunks.push(makeChunk(-4480+j*560));$('load-progress').style.width=(j/48*85)+'%';if(j%2===0)await new Promise(r=>setTimeout(r,0));}waterMesh=makeWater();$('loading-caption').textContent='Finding the light';$('load-progress').style.width='92%';await new Promise(r=>setTimeout(r,30));bakeShadows();resize();syncPlay();ready=true;flight=2;render(flight);updateHUD();$('load-progress').style.width='100%';$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),1000);requestAnimationFrame(frame);}catch(e){console.error(e);$('loading').innerHTML='<div id="error"><h2>The landscape could not be rendered.</h2><p>Try opening the file in a browser with WebGL 2 and hardware acceleration enabled.</p></div>';}}
+init();
+})();
+</script>
+</body></html>
