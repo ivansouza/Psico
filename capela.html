@@ -250,7 +250,7 @@ function show(){const s=steps[idx];$('#phase').textContent=(s.ph==='Início'||s.
  $('#ptitle').textContent=s.t;const x=$('#ptext');x.style.opacity=0;setTimeout(()=>{x.innerHTML=esc(s.x).replace(/\n/g,'<br>')+(s.med?'<span class="med">'+esc(s.med)+'</span>':'');x.style.opacity=1;x.scrollTop=0;},150);
  beads(s);$('#prev').disabled=idx===0;$('#next').textContent=idx===steps.length-1?'Recomeçar ↺':'Próxima ›';
  if(s.k==='sinal')crossFx();save();schedule();}
-const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&','<':'<','>':'>'}[c]));
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'\x26amp;','<':'\x26lt;','>':'\x26gt;'}[c]));
 function next(){if(idx>=steps.length-1){idx=0;}else idx++;show();}
 function prev(){if(idx>0){idx--;show();}}
 let timer;function schedule(){clearTimeout(timer);if(!cfg.auto)return;const s=steps[idx];const w=(s.x+(s.med||'')).split(/\s+/).length;timer=setTimeout(()=>{if(idx<steps.length-1)next();},(w*420+1800)/cfg.speed);}
