@@ -225,10 +225,20 @@ function ghost(){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.Caps
  const l=new THREE.Sprite(glowMat);l.scale.set(.25,.25,1);l.position.set(0,1.0,-.25);g.add(l);g.userData={b,h,k:0,tk:0,a:0};g.scale.setScalar(.95);scene.add(g);return g;}
 // ---------- câmera / controles ----------
 let yaw=0,pitch=.06,tyaw=0,tpitch=.06,camY=1.6,tCamY=1.6,kneel=false;const camBase=new THREE.Vector3(.5,0,2.2);
-{let d=null;const el=renderer.domElement;el.addEventListener('pointerdown',e=>{d={x:e.clientX,y:e.clientY};el.setPointerCapture(e.pointerId);});
- el.addEventListener('pointermove',e=>{if(!d)return;tyaw-=(e.clientX-d.x)*.004;tpitch-=(e.clientY-d.y)*.003;tyaw=Math.max(-1.1,Math.min(1.1,tyaw));tpitch=Math.max(-.35,Math.min(.5,tpitch));d={x:e.clientX,y:e.clientY};});
- el.addEventListener('pointerup',()=>d=null);el.addEventListener('pointercancel',()=>d=null);}
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.fov=w<h?78:58;camBase.z=w<h?3.4:2.2;cam.updateProjectionMatrix();}addEventListener('resize',resize);resize();
+{let d=null;const el=renderer.domElement,pts=new Map();let pd0=0,z0=1;el.style.touchAction='none';
+ const pdist=()=>{const a=[...pts.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
+ el.addEventListener('pointerdown',e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);if(pts.size===2){d=null;if(e.pointerType!=='touch'){pd0=pdist();z0=camZoom;}}else if(pts.size===1)d={x:e.clientX,y:e.clientY};});
+ el.addEventListener('pointermove',e=>{if(pts.has(e.pointerId))pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size>=2){if(e.pointerType!=='touch'&&pd0>10)setZoom(z0*pdist()/pd0);return;}if(!d)return;tyaw-=(e.clientX-d.x)*.004;tpitch-=(e.clientY-d.y)*.003;tyaw=Math.max(-1.1,Math.min(1.1,tyaw));tpitch=Math.max(-.35,Math.min(.5,tpitch));d={x:e.clientX,y:e.clientY};});
+ const up=e=>{pts.delete(e.pointerId);d=null;if(pts.size===1){const q=[...pts.values()][0];d={x:q.x,y:q.y};}};
+ el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
+ el.addEventListener('wheel',e=>{e.preventDefault();setZoom(camZoom*Math.exp(-e.deltaY*.0015));},{passive:false});
+ el.addEventListener('gesturestart',e=>e.preventDefault());
+ let tp0=0,tz0=1;const td=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);const free=e=>!e.target.closest('.panel,textarea,input');
+ document.addEventListener('touchstart',e=>{if(e.touches.length===2&&free(e)){tp0=td(e.touches);tz0=camZoom;d=null;}},{passive:true});
+ document.addEventListener('touchmove',e=>{if(e.touches.length===2&&tp0>10&&free(e)){e.preventDefault();setZoom(tz0*td(e.touches)/tp0);}},{passive:false});
+ document.addEventListener('touchend',e=>{if(e.touches.length<2)tp0=0;},{passive:true});}
+let camZoom=1,baseFov=60;function setZoom(z){const f=Math.max(20,Math.min(85,baseFov/z));camZoom=baseFov/f;cam.fov=f;cam.updateProjectionMatrix();window.__fov=f;}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;baseFov=w<h?78:58;camBase.z=w<h?3.4:2.2;setZoom(camZoom);}addEventListener('resize',resize);resize();
 // ---------- loop ----------
 const clk=new THREE.Clock();let entered=false,introT=0;
 function loop(){const dt=Math.min(clk.getDelta(),.05),t=clk.elapsedTime;
